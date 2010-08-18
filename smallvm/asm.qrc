@@ -1,0 +1,5 @@
+<RCC>
+    <qresource prefix="/asm">
+        <file>test1.txt</file>
+    </qresource>
+</RCC>

@@ -1,0 +1,28 @@
+.class point
+.field x
+.field y
+.method show 1
+popl this@12
+pushl this@157
+getfld x
+callex print
+pushl this
+getfld y
+callex print
+pushv 0
+ret
+.endmethod
+.endclass
+
+.method main
+new point
+popl p
+pushl p
+pushv 5
+setfld x
+pushl p
+pushv 10
+setfld y
+pushl p
+callm show
+.endmethod

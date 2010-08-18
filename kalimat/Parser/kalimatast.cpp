@@ -1,0 +1,749 @@
+/**************************************************************************
+**   The Kalimat programming language
+**   Copyright (C) 2010 Mohamed Samy Ali - samy2004@gmail.com
+**   This project is released under the Apache License version 2.0
+**   as described in the included license.txt file
+**************************************************************************/
+
+#include <QString>
+#include <QLocale>
+#include <QStringList>
+#include <QVector>
+#include <QMap>
+#include "../Lexer/token.h"
+#include "ast.h"
+#include "kalimatast.h"
+
+CompilationUnit::CompilationUnit(Token pos) : AST(pos)
+{
+
+}
+
+Program::Program(Token pos ,QVector<TopLevel* > elements, QVector<StrLiteral *> usedModules)
+    : CompilationUnit(pos)
+{
+    for(int i=0; i<elements.count(); i++)
+        _elements.append(QSharedPointer<TopLevel>(elements[i]));
+
+    for(int i=0; i<usedModules.count(); i++)
+        _usedModules.append(QSharedPointer<StrLiteral>(usedModules[i]));
+}
+QString Program::toString()
+{
+    QStringList ret;
+    for(int i=0; i<elementCount(); i++)
+    {
+        ret.append(element(i)->toString());
+    }
+    return QString("program(").append(ret.join(", ")).append(")");
+}
+Module::Module(Token pos, Identifier *name, QVector<Declaration *>module, QVector<StrLiteral *>usedModules)
+    :CompilationUnit(pos),
+    _name(name)
+{
+    for(int i=0; i<module.count(); i++)
+        _declarations.append(QSharedPointer<Declaration>(module[i]));
+
+    for(int i=0; i<usedModules.count(); i++)
+        _usedModules.append(QSharedPointer<StrLiteral>(usedModules[i]));
+}
+QString Module::toString()
+{
+    QStringList ret;
+    for(int i=0; i<declCount(); i++)
+    {
+        ret.append(decl(i)->toString());
+    }
+    return QString("module(").append(ret.join(", ")).append(")");
+}
+
+TopLevel::TopLevel(Token pos)
+    :AST(pos)
+{
+
+}
+
+Statement::Statement(Token pos): TopLevel(pos)
+{
+
+}
+
+Expression::Expression(Token pos) : AST(pos)
+{
+
+}
+AssignableExpression::AssignableExpression(Token pos) : Expression(pos)
+{
+
+}
+
+Declaration::Declaration(Token pos, bool isPublic) : TopLevel(pos)
+{
+    _isPublic = isPublic;
+}
+bool Declaration::isPublic()
+{
+    return _isPublic;
+}
+
+IOStatement::IOStatement(Token pos) : Statement(pos)
+{
+}
+GraphicsStatement::GraphicsStatement(Token pos) : Statement(pos)
+{
+
+}
+
+
+
+AssignmentStmt::AssignmentStmt(Token pos ,AssignableExpression *_variable, Expression *_value)
+    :Statement(pos),
+    _variable(_variable),
+    _value(_value)
+{
+}
+
+QString AssignmentStmt::toString()
+{
+    return QString("=(%1,%2)").arg(variable()->toString(),value()->toString());
+}
+
+IfStmt::IfStmt(Token pos ,Expression *cond, Statement *_thenStmt, Statement *elseStmt)
+    :Statement(pos),
+    _condition(cond),
+    _thenPart(_thenStmt),
+    _elsePart(elseStmt)
+{
+
+}
+QString IfStmt::toString()
+{
+    if(elsePart() == NULL)
+        return QString("If(%1,%2)").arg(condition()->toString())
+                                   .arg(thenPart()->toString());
+    else
+        return QString("If(%1,%2,%3)").arg(condition()->toString())
+                                      .arg(thenPart()->toString())
+                                      .arg(elsePart()->toString());
+}
+
+WhileStmt::WhileStmt(Token pos ,Expression *condition, Statement *statement)
+    :Statement(pos),
+    _condition(condition),
+    _statement(statement)
+{
+}
+
+QString WhileStmt::toString()
+{
+
+    return QString("While(%1,%2)").arg(condition()->toString())
+                               .arg(statement()->toString());
+}
+
+ForAllStmt::ForAllStmt(Token pos ,Identifier *variable, Expression *from, Expression *to, Statement *statement)
+    :Statement(pos),
+    _variable(variable),
+    _from(from),
+    _to(to),
+    _statement(statement)
+{
+}
+QVector<Identifier *> ForAllStmt::getIntroducedVariables()
+{
+    QVector<Identifier *> ret;
+    ret.append(variable());
+    return ret;
+}
+
+QString ForAllStmt::toString()
+{
+
+    return QString("ForEach(%1,%2,%3,%4)")
+            .arg(variable()->toString())
+            .arg(from()->toString())
+            .arg(to()->toString())
+            .arg(statement()->toString());
+}
+
+ReturnStmt::ReturnStmt(Token pos ,Expression *returnVal)
+    :Statement(pos),
+    _returnVal(returnVal)
+{
+}
+QString ReturnStmt::toString()
+{
+    return QString("return(%1)").arg(returnVal()->toString());
+}
+
+LabelStmt::LabelStmt(Token pos, Expression *target)
+    : Statement(pos),
+      _target(target)
+{
+
+}
+QString LabelStmt::toString()
+{
+    return QString("label(%1)").arg(target()->toString());
+}
+
+GotoStmt::GotoStmt(Token pos, bool _targetIsNumber, Expression *target)
+    :Statement(pos)
+{
+    targetIsNumber = _targetIsNumber;
+    if(targetIsNumber)
+        _numericTarget = QSharedPointer<NumLiteral>((NumLiteral *) target);
+    else
+        _idTarget = QSharedPointer<Identifier>((Identifier *) target);
+}
+QString GotoStmt::toString()
+{
+    return QString("goto(%1)").arg(targetIsNumber? _numericTarget.data()->toString(): _idTarget.data()->toString());
+}
+
+PrintStmt::PrintStmt(Token pos, Expression *fileObject, QVector<Expression *>args, QVector<Expression *> widths, bool printOnSameLine)
+    :IOStatement(pos),
+    _fileObject(fileObject)
+{
+    for(int i= 0; i<args.count();i++)
+    {
+        this->_args.append(QSharedPointer<Expression>(args[i]));
+        this->_widths.append(QSharedPointer<Expression>(widths[i]));
+    }
+    this->printOnSameLine = printOnSameLine;
+}
+QString PrintStmt::toString()
+{
+    QStringList ret;
+    for(int i=0; i<argCount(); i++)
+    {
+        ret.append(arg(i)->toString());
+    }
+    return QString("print(").append(ret.join(", ")).append(")");
+}
+
+ReadStmt::ReadStmt(Token pos, Expression *fileObject, QString prompt, QVector<Identifier *>variables, QVector<bool>readNumberFlags)
+    :IOStatement(pos),
+     _fileObject(fileObject)
+{
+    this->prompt = prompt;
+    for(int i=0; i<variables.count(); i++)
+        this->_variables.append(QSharedPointer<Identifier>(variables[i]));
+    this->readNumberFlags = readNumberFlags;
+}
+
+QString ReadStmt::toString()
+{
+    QStringList ret;
+    for(int i=0; i<variableCount(); i++)
+    {
+        ret.append(variable(i)->toString());
+    }
+    return QString("read(\"").append(prompt).append("\",").append(ret.join(", ")).append("}");
+}
+DrawPixelStmt::DrawPixelStmt(Token pos ,Expression *x, Expression *y, Expression *color)
+    :GraphicsStatement(pos),
+    _x(x),
+    _y(y),
+    _color(color)
+{
+}
+QString DrawPixelStmt::toString()
+{
+    return QString("DrawPixel(%1,%2,%3)")
+            .arg(x()->toString())
+            .arg(y()->toString())
+            .arg(color()? color()->toString(): "default");
+}
+
+DrawLineStmt::DrawLineStmt(Token pos ,Expression *x1, Expression *y1, Expression *x2, Expression *y2, Expression *color)
+        :GraphicsStatement(pos),
+         _x1(x1),
+         _y1(x2),
+         _x2(y1),
+         _y2(y2),
+         _color(color)
+{
+}
+QString DrawLineStmt::toString()
+{
+    return QString("DrawLine([%1,%2],[%3,%4],%5)")
+            .arg(x1()? x1()->toString(): "current")
+            .arg(y1()? y1()->toString(): "current")
+            .arg(x2()->toString())
+            .arg(y2()->toString())
+            .arg(color()? color()->toString(): "default");
+}
+
+DrawRectStmt::DrawRectStmt(Token pos ,Expression *x1, Expression *y1, Expression *x2, Expression *y2, Expression *color, bool filled)
+        :GraphicsStatement(pos),
+        _x1(x1),
+        _y1(x2),
+        _x2(y1),
+        _y2(y2),
+        _color(color)
+
+{
+    this->filled = filled;
+}
+QString DrawRectStmt::toString()
+{
+    return QString("DrawLine([%1,%2],[%3,%4],%5,%6)")
+            .arg(x1()? x1()->toString() : "current")
+            .arg(y1()? y1()->toString() : "current")
+            .arg(x2()->toString())
+            .arg(y2()->toString())
+            .arg(color()? color()->toString(): "default")
+            .arg(filled);
+}
+DrawCircleStmt::DrawCircleStmt(Token pos ,Expression *cx, Expression *cy, Expression *radius, Expression *color, bool filled)
+        :GraphicsStatement(pos),
+        _cx(cx),
+        _cy(cy),
+        _radius(radius),
+        _color(color)
+
+{
+    this->filled = filled;
+}
+QString DrawCircleStmt::toString()
+{
+    return QString("DrawCircle([%1,%2],%3,%4,%5)")
+            .arg(cx()->toString())
+            .arg(cy()->toString())
+            .arg(radius()->toString())
+            .arg(color()? color()->toString(): "default")
+            .arg(filled);
+}
+DrawSpriteStmt::DrawSpriteStmt(Token pos ,Expression *x, Expression *y, Expression *number)
+        :GraphicsStatement(pos),
+        _x(x),
+        _y(y),
+        _number(number)
+
+{
+}
+QString DrawSpriteStmt::toString()
+{
+    return QString("DrawSprite(%1,[%2,%3])")
+            .arg(number()->toString())
+            .arg(x()->toString())
+            .arg(y()->toString());
+}
+ZoomStmt::ZoomStmt(Token pos ,Expression *x1, Expression *y1, Expression *x2, Expression *y2)
+        :GraphicsStatement(pos),
+        _x1(x1),
+        _y1(y1),
+        _x2(x2),
+        _y2(y2)
+{
+}
+QString ZoomStmt::toString()
+{
+    return QString("Zoom([%1,%2],[%3,%4])")
+            .arg(x1()->toString())
+            .arg(y1()->toString())
+            .arg(x2()->toString())
+            .arg(y2()->toString());
+}
+
+EventStatement::EventStatement(Token pos ,EventType type, Identifier *handler)
+        :Statement(pos),
+        _handler(handler)
+
+{
+    this->type = type;
+}
+QString EventStatement::toString()
+{
+    return QString("on(%1,%2)").arg(type).arg(handler()->toString());
+}
+
+BlockStmt::BlockStmt(Token pos ,QVector<Statement *> statements)
+        :Statement(pos)
+
+{
+    for(int i=0; i<statements.count(); i++)
+        _statements.append(QSharedPointer<Statement>(statements[i]));
+}
+QVector<Statement *> BlockStmt::getStatements()
+{
+    QVector<Statement *> ret;
+    for(int i=0; i<statementCount(); i++)
+    {
+        ret.append(statement(i));
+    }
+    return ret;
+}
+
+QString BlockStmt::toString()
+{
+    QStringList ret;
+    for(int i=0; i<statementCount(); i++)
+    {
+        ret.append(statement(i)->toString());
+    }
+    return QString("{").append(ret.join(", ")).append("}");
+}
+
+InvokationStmt::InvokationStmt(Token pos ,Expression *expression)
+        :Statement(pos),
+        _expression(expression)
+{
+}
+QString InvokationStmt::toString()
+{
+    return expression()->toString();
+}
+
+Identifier::Identifier(Token pos ,QString name)
+        :AssignableExpression(pos)
+{
+    this->name = name;
+}
+QString Identifier::toString()
+{
+    return name;
+}
+
+BinaryOperation::BinaryOperation(Token pos ,QString op, Expression *op1, Expression *op2)
+    : Expression(pos),
+    _operator(op),
+    _operand1(op1),
+    _operand2(op2)
+
+{
+}
+QString BinaryOperation::toString()
+{
+    return QString("BinOp(%1,%2,%3)")
+            .arg(_operator)
+            .arg(operand1()->toString())
+            .arg(operand2()->toString());
+}
+
+UnaryOperation::UnaryOperation(Token pos ,QString __operator, Expression *operand)
+    : Expression(pos),
+    _operator(__operator),
+    _operand(operand)
+{
+}
+QString UnaryOperation::toString()
+{
+    return QString("UnOp(%1,%2)")
+            .arg(_operator)
+            .arg(operand()->toString());
+}
+
+
+NumLiteral::NumLiteral(Token pos ,QString lexeme) :Expression(pos)
+{
+    bool ok;
+    QLocale loc(QLocale::Arabic, QLocale::Egypt);
+    longNotDouble = true;
+    lValue= loc.toLongLong(lexeme, &ok, 10);
+    if(!ok)
+        lValue = lexeme.toLong(&ok, 10);
+
+    if(!ok)
+    {
+        longNotDouble = false;
+        dValue = loc.toDouble(lexeme, &ok);
+    }
+    if(!ok)
+        dValue = lexeme.toDouble(&ok);
+
+    valueRecognized = ok;
+
+}
+QString NumLiteral::toString()
+{
+    return QString("Num(%1)")
+            .arg(longNotDouble? lValue: dValue);
+}
+
+
+StrLiteral::StrLiteral(Token pos ,QString value) : Expression(pos)
+{
+    this->value = value;
+}
+QString StrLiteral::toString()
+{
+    return QString("Str(%1)")
+            .arg(value);
+}
+NullLiteral::NullLiteral(Token pos) : Expression(pos)
+{
+
+}
+QString NullLiteral::toString()
+{
+    return "null";
+}
+BoolLiteral::BoolLiteral(Token pos, bool _value) : Expression(pos)
+{
+    value = _value;
+}
+QString BoolLiteral::toString()
+{
+    return value? QString::fromWCharArray(L"صحيح") : QString::fromWCharArray(L"خطأ");
+}
+
+ArrayLiteral::ArrayLiteral(Token pos, QVector<Expression *>data)
+    : Expression(pos)
+{
+    for(int i=0; i<data.count(); i++)
+        _data.append(QSharedPointer<Expression>(data[i]));
+}
+QString ArrayLiteral::toString()
+{
+    return QString("array(%1)").arg(vector_toString(_data));
+}
+
+IInvokation::IInvokation(Token pos)
+    :Expression(pos)
+{
+
+}
+
+Invokation::Invokation(Token pos ,Expression *functor, QVector<Expression *>arguments)
+    : IInvokation(pos),
+    _functor(functor)
+{
+    for(int i=0; i<arguments.count(); i++)
+        _arguments.append(QSharedPointer<Expression>(arguments[i]));
+}
+
+QString Invokation::toString()
+{
+    return QString("Call(%1,%2)").arg(functor()->toString()).arg(vector_toString(_arguments));
+}
+
+MethodInvokation::MethodInvokation(Token pos ,Expression *receiver, Identifier *methodSelector, QVector<Expression *>arguments)
+    :IInvokation(pos),
+    _receiver(receiver),
+    _methodSelector(methodSelector)
+{
+    for(int i=0; i<arguments.count(); i++)
+        _arguments.append(QSharedPointer<Expression>(arguments[i]));
+}
+QString MethodInvokation::toString()
+{
+    return QString("CallMethod(%1,%2, %3)")
+            .arg(receiver()->toString())
+            .arg(methodSelector()->toString())
+            .arg(vector_toString(_arguments));
+}
+
+Idafa::Idafa(Token pos ,Identifier *modaf, Expression *modaf_elaih)
+    :AssignableExpression(pos),
+    _modaf(modaf),
+    _modaf_elaih(modaf_elaih)
+{
+}
+
+QString Idafa::toString()
+{
+    return QString("Idafa(%1,%2").arg(modaf()->toString(), modaf_elaih()->toString());
+}
+ArrayIndex::ArrayIndex(Token pos ,Expression *array, Expression *index)
+    :AssignableExpression(pos),
+    _array(array),
+    _index(index)
+{
+}
+QString ArrayIndex::toString()
+{
+    return QString("%1[%2]").arg(array()->toString(), index()->toString());
+}
+
+MultiDimensionalArrayIndex::MultiDimensionalArrayIndex(Token pos, Expression *array, QVector<Expression *> indexes)
+    :AssignableExpression(pos),
+    _array(array)
+{
+    for(int i=0; i<indexes.count(); i++)
+        _indexes.append(QSharedPointer<Expression>(indexes[i]));
+}
+QString MultiDimensionalArrayIndex::toString()
+{
+    return QString("%1[%2]").arg(array()->toString(), vector_toString(_indexes));
+}
+ObjectCreation::ObjectCreation(Token pos ,Identifier *className)
+    :Expression(pos),
+    _className(className)
+{
+}
+QString ObjectCreation::toString()
+{
+    return QString("new(%1)").arg(className()->name);
+}
+
+
+ProceduralDecl::ProceduralDecl(Token pos ,Identifier *procName, QVector<Identifier *>formals, BlockStmt *body, bool isPublic)
+    :Declaration(pos, isPublic),
+    _procName(procName),
+    _body(body)
+{
+    for(int i=0; i<formals.count(); i++)
+        _formals.append(QSharedPointer<Identifier>(formals[i]));
+}
+QVector<Identifier *> ProceduralDecl::getIntroducedVariables()
+{
+    QVector<Identifier *> ret;
+    for(int i=0; i<_formals.count(); i++)
+        ret.append(_formals[i].data());
+    return ret;
+}
+
+ProcedureDecl::ProcedureDecl(Token pos ,Identifier *procName, QVector<Identifier *>formals, BlockStmt *body, bool isPublic)
+    :ProceduralDecl(pos, procName, formals, body, isPublic)
+{
+
+}
+QString ProcedureDecl::toString()
+{
+    return QString("Procedure(%1,%2,%3)")
+            .arg(procName()->toString())
+            .arg(vector_toString(_formals))
+            .arg(body()->toString());
+}
+FunctionDecl::FunctionDecl(Token pos ,Identifier *procName, QVector<Identifier *>formals, BlockStmt *body, bool isPublic)
+    :ProceduralDecl(pos, procName, formals, body, isPublic)
+{
+
+}
+QString FunctionDecl::toString()
+{
+    return QString("Function(%1,%2,%3)")
+            .arg(procName()->toString())
+            .arg(vector_toString(_formals))
+            .arg(body()->toString());
+}
+MethodInfo::MethodInfo(int arity, bool isFunction)
+{
+    this->arity = arity;
+    this->isFunction = isFunction;
+}
+// Degenerate constructor, create only to allow usage in QMap<>...etc
+MethodInfo::MethodInfo()
+{
+    arity = -1;
+    isFunction = false;
+}
+
+ClassDecl::ClassDecl(Token pos,
+                     Identifier *name,
+                     QVector<Identifier*>fields,
+                     QMap<QString, MethodInfo> methodPrototypes,
+                     bool isPublic)
+        :Declaration(pos, isPublic),
+        _name(name),
+        _methodPrototypes(methodPrototypes),
+        _ancestorName(NULL),
+        _ancestorClass(NULL)
+{
+    for(int i=0; i<fields.count(); i++)
+        _fields.append(QSharedPointer<Identifier>(fields[i]));
+}
+ClassDecl::ClassDecl(Token pos,
+                     Identifier *ancestorName,
+                     Identifier *name,
+                     QVector<Identifier*>fields,
+                     QMap<QString, MethodInfo> methodPrototypes,
+                     bool isPublic)
+        :Declaration(pos, isPublic),
+        _name(name),
+        _methodPrototypes(methodPrototypes),
+        _ancestorName(ancestorName),
+        _ancestorClass(NULL)
+{
+    for(int i=0; i<fields.count(); i++)
+        _fields.append(QSharedPointer<Identifier>(fields[i]));
+}
+
+QString ClassDecl::toString()
+{
+    QMap<QString, MethodInfo> &m = this->_methodPrototypes;
+    QStringList lst;
+    for(int i=0; i<m.keys().count(); i++)
+    {
+        lst.append(QString("%1/%2").arg(m.keys().at(i))
+                   .arg(m[m.keys().at(i)].arity));
+    }
+    QString map = lst.join(",");
+
+    return QString("Class(%1,%2,%3")
+            .arg(name()->toString())
+            .arg(vector_toString(_fields))
+            .arg(map);
+
+}
+void ClassDecl::insertMethod(QString name, QSharedPointer<MethodDecl>m)
+{
+    _methods[name] = m;
+}
+bool ClassDecl::containsMethod(QString name)
+{
+    if(_methods.contains(name))
+        return true;
+    if(!_ancestorClass.isNull() && _ancestorClass.data()->containsMethod(name))
+        return true;
+    return false;
+}
+MethodDecl *ClassDecl::method(QString name)
+{
+    if(_methods.contains(name))
+        return _methods[name].data();
+    if(!_ancestorClass.isNull())
+        return _ancestorClass.data()->method(name);
+    return NULL;
+}
+
+bool ClassDecl::containsPrototype(QString name)
+{
+    if(_methodPrototypes.contains(name))
+        return true;
+    if(!_ancestorClass.isNull() && _ancestorClass.data()->containsPrototype(name))
+        return true;
+    return false;
+}
+MethodInfo ClassDecl::methodPrototype(QString name)
+{
+    if(_methodPrototypes.contains(name))
+        return _methodPrototypes[name];
+    return _ancestorClass.data()->methodPrototype(name);
+}
+void ClassDecl::setAncestorClass(QSharedPointer<ClassDecl> cd)
+{
+    _ancestorClass = cd;
+}
+
+
+GlobalDecl::GlobalDecl(Token pos ,QString varName, bool isPublic)
+    :Declaration(pos, isPublic)
+{
+    this->varName = varName;
+}
+QString GlobalDecl::toString()
+{
+    return QString("global(%1)").arg(varName);
+}
+
+MethodDecl::MethodDecl(Token pos ,Identifier *className, Identifier *receiverName, Identifier *methodName
+                       , QVector<Identifier *>formals, BlockStmt *body, bool isFunctionNotProcedure)
+
+       :ProceduralDecl(pos, methodName, formals, body, true),
+       _className(className),
+       _receiverName(receiverName)
+{
+    this->isFunctionNotProcedure = isFunctionNotProcedure;
+    this->_formals.prepend(QSharedPointer<Identifier>(receiverName));
+}
+QString MethodDecl::toString()
+{
+    return QString("Method%1(%2,%3,%4)")
+            .arg(isFunctionNotProcedure?"Reply":"Response")
+            .arg(procName()->toString())
+            .arg(vector_toString(_formals))
+            .arg(body()->toString());
+}

@@ -1,0 +1,230 @@
+﻿.method %emptymethod 0
+ret
+.endmethod
+
+.method مصفوفة 1 1
+newarr
+ret
+.endmethod
+
+.method مصفوفة.متعددة 1 1
+newmdarr
+ret
+.endmethod
+
+.method عشوائي 1
+callex random
+ret
+.endmethod
+
+.method كعدد 1
+callex to_num
+ret
+.endmethod
+
+.method عدد 1
+arrlength
+ret
+.endmethod
+
+
+.method كنص 1
+callex to_string
+ret
+.endmethod
+
+.method قرب 1
+callex round
+ret
+.endmethod
+
+.method جا 1
+callex sin
+ret
+.endmethod
+
+.method جتا 1
+callex cos
+ret
+.endmethod
+
+.method ظا 1
+callex tan
+ret
+.endmethod
+
+.method جذر 1
+callex sqrt
+ret
+.endmethod
+
+.method لو 1
+callex log10
+ret
+.endmethod
+
+.method لو.ه 1
+callex ln
+ret
+.endmethod
+
+.method طول 1
+callex str_len
+ret
+.endmethod
+
+.method ضم 2
+callex concat
+ret
+.endmethod
+
+.method أول 2
+callex str_first
+ret
+.endmethod
+
+.method آخر 2
+callex str_last
+ret
+.endmethod
+
+.method وسط 3
+callex str_mid
+ret
+.endmethod
+
+.method حمل.طيف 1
+callex load_sprite
+ret
+.endmethod
+
+.method انتظر 1
+callex wait
+ret
+.endmethod
+
+.method اخف.طيف 1
+callex hidesprite
+ret
+.endmethod
+
+.method اظهر.طيف 1
+callex showsprite
+ret
+.endmethod
+
+.method يمين.الطيف 1 1
+callex getspriteright
+ret
+.endmethod
+
+.method يسار.الطيف 1 1
+callex getspriteleft
+ret
+.endmethod
+
+.method قمة.الطيف 1 1
+callex getspritetop
+ret
+.endmethod
+
+.method قاع.الطيف 1 1
+callex getspritebottom
+ret
+.endmethod
+
+.method عرض.الطيف 1 1
+callex getspritewidth
+ret
+.endmethod
+
+.method ارتفاع.الطيف 1 1
+callex getspriteheight
+ret
+.endmethod
+
+
+.method م.ش 0
+callex cls
+ret
+.endmethod
+
+.method امسح.الشاشة 0
+callex cls
+ret
+.endmethod
+
+.method امسح.الكتابة 0
+callex cleartext
+ret
+.endmethod
+
+.method حدد.مكان.المؤشر 2 0
+callex setcursorpos
+ret
+.endmethod
+
+.method سطر.المؤشر 0 1
+callex getcursorrow
+ret
+.endmethod
+
+.method عمود.المؤشر 0 1
+callex getcursorcol
+ret
+.endmethod
+
+.method ح.لون.النص 1 0
+callex settextcolor
+ret
+.endmethod
+
+.class %file
+	.field file_handle	
+	.method اطبع.سطر 2 0
+		callex file_write_line
+		ret
+	.endmethod
+	.method اكتب 2 0
+		callex file_write
+		ret
+	.endmethod	
+	.method اكتب.بعرض 3 0
+		callex file_write_using_width
+		ret
+	.endmethod	
+	.method اقرأ.سطر 1 1
+		callex file_read_line
+		ret
+	.endmethod
+
+	.method منته 0 1
+		callex file_eof
+		ret
+	.endmethod
+.endclass
+
+.method افتح.ملف 1 1
+	callex file_open
+	ret
+.endmethod
+
+.method انشيء.ملف 1 1
+	callex file_create
+	ret
+.endmethod
+
+.method الحق.بملف 1 1
+	callex file_append
+	ret
+.endmethod
+
+.method اغلق.ملف 1 0
+	callex file_close
+	ret
+.endmethod
+
+.method نهاية.الملف 1 1
+	callex file_eof
+	ret
+.endmethod

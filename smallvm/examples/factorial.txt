@@ -1,0 +1,23 @@
+.method main
+pushv 2
+call factorial
+.endmethod
+
+.method factorial 1
+popl n
+pushl n
+pushv 0
+eq
+if lbl1,lbl2
+lbl1:
+pushv 1
+ret
+lbl2:
+pushl n
+pushv 1
+sub
+call factorial
+pushl n
+mul
+ret
+.endmethod
