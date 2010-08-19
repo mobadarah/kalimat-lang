@@ -13,12 +13,10 @@
 
 int main(int argc, char *argv[])
 {
-    bool testing;
-    testing = false;
-
     qApp->setLayoutDirection(Qt::RightToLeft);
 
     QApplication a(argc, argv);
     MainWindow w;
     w.show();
+    return a.exec();
 }
