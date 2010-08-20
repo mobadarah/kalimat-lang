@@ -670,15 +670,35 @@ Statement *KalimatParser::eventHandlerStmt()
     match(WHEN);
     match(EVENT);
 
-    if(LA(KB))
+    if(LA(KEY_DOWN))
     {
-        match(KB);
-        type = KalimatKbEvent;
+        match(KEY_DOWN);
+        type = KalimatKeyDownEvent;
     }
-    else if(LA(MOUSE))
+    else if(LA(KEY_UP))
     {
-        match(MOUSE);
-        type = KalimatMouseEvent;
+        match(KEY_UP);
+        type = KalimatKeyUpEvent;
+    }
+    else if(LA(KEY_PRESS))
+    {
+        match(KEY_DOWN);
+        type = KalimatKeyPressEvent;
+    }
+    else if(LA(MOUSE_BUTTON_DOWN))
+    {
+        match(MOUSE_BUTTON_DOWN);
+        type = KalimatMouseDownEvent;
+    }
+    else if(LA(MOUSE_BUTTON_UP))
+    {
+        match(MOUSE_BUTTON_UP);
+        type = KalimatMouseUpEvent;
+    }
+    else if(LA(MOUSE_MOVE))
+    {
+        match(MOUSE_MOVE);
+        type = KalimatMouseMoveEvent;
     }
     else if(LA(COLLISION))
     {

@@ -52,17 +52,21 @@ const int DRAW_CIRCLE = 41;
 const int DRAW_SPRITE = 42;
 const int IN = 43;
 const int CLASS = 44;
-const int MOUSE = 45;
-const int KB = 46;
-const int COLLISION = 47;
-const int GLOBAL = 48;
-const int FIELD = 49;
-const int USING = 50;
-const int UNIT = 51;
-const int USING_WIDTH = 52;
-const int NOTHING = 53;
-const int LABEL = 54;
-const int GO = 55;
+const int MOUSE_BUTTON_DOWN = 45;
+const int MOUSE_BUTTON_UP = 46;
+const int MOUSE_MOVE = 47;
+const int KEY_DOWN = 48;
+const int KEY_UP = 49;
+const int KEY_PRESS = 50;
+const int COLLISION = 51;
+const int GLOBAL = 52;
+const int FIELD = 53;
+const int USING = 54;
+const int UNIT = 55;
+const int USING_WIDTH = 56;
+const int NOTHING = 57;
+const int LABEL = 58;
+const int GO = 59;
 
 const int KEYWORD_CUTOFF = 60; // As long as the ID of the token is <= KEYWORD_CUTOFF, the
                                // syntax hilighter will consider it a keyword.

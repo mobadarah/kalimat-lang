@@ -301,8 +301,12 @@ public:
 
 enum EventType
 {
-    KalimatKbEvent,
-    KalimatMouseEvent,
+    KalimatKeyDownEvent,
+    KalimatKeyUpEvent,
+    KalimatKeyPressEvent,
+    KalimatMouseUpEvent,
+    KalimatMouseDownEvent,
+    KalimatMouseMoveEvent,
     KalimatSpriteCollisionEvent
 };
 class EventStatement : public Statement

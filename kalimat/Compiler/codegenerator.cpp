@@ -625,10 +625,18 @@ void CodeGenerator::generateZoomStmt(ZoomStmt *stmt)
 void CodeGenerator::generateEventStatement(EventStatement *stmt)
 {
     QString type;
-    if(stmt->type == KalimatKbEvent)
-        type = "kb";
-    else if(stmt->type == KalimatMouseEvent)
-        type = "mouse";
+    if(stmt->type == KalimatKeyDownEvent)
+        type = "keydown";
+    else if(stmt->type == KalimatKeyUpEvent)
+        type = "keyup";
+    else if(stmt->type == KalimatKeyPressEvent)
+        type = "keypress";
+    else if(stmt->type == KalimatMouseDownEvent)
+        type = "mousedown";
+    else if(stmt->type == KalimatMouseUpEvent)
+        type = "mouseup";
+    else if(stmt->type == KalimatMouseMoveEvent)
+        type = "mousemove";
     else if(stmt->type == KalimatSpriteCollisionEvent)
         type = "collision";
     gen(stmt, QString("regev %1,%2").arg(type).arg(stmt->handler()->name));

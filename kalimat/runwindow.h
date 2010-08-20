@@ -180,6 +180,9 @@ private:
     QRect cursor();
     void clearText();
 
+    void activateMouseEvent(QMouseEvent *ev, QString evName);
+    void activateKeyEvent(QKeyEvent *ev, QString evName);
+
 
 public:
   //  void printSingleLine(QString str);
@@ -203,7 +206,12 @@ public:
     void clearAllText();
 private slots:
     void mousePressEvent(QMouseEvent *);
+    void mouseReleaseEvent(QMouseEvent *);
+    void mouseMoveEvent(QMouseEvent *);
+
+    void keyReleaseEvent(QKeyEvent *);
     void keyPressEvent(QKeyEvent *);
+
     void paintEvent(QPaintEvent *);
     void resizeEvent(QResizeEvent *event);
     void closeEvent(QCloseEvent *);

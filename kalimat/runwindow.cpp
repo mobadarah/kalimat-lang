@@ -535,14 +535,19 @@ void RunWindow::changeEvent(QEvent *e)
 
 void RunWindow::mousePressEvent(QMouseEvent *ev)
 {
-    /*
-    //wchar_t *s = L"مرحبا";
-    QStdWString ss = L"مرحبا";
+   activateMouseEvent(ev, "mousedown");
+}
+void RunWindow::mouseReleaseEvent(QMouseEvent *ev)
+{
+    activateMouseEvent(ev, "mouseup");
+}
+void RunWindow::mouseMoveEvent(QMouseEvent *ev)
+{
+    activateMouseEvent(ev, "mousemove");
+}
+void RunWindow::activateMouseEvent(QMouseEvent *ev, QString evName)
+{
 
-    QString str = QString::fromStdWString(ss);
-    print(str);
-    //*/
-    //state = rwTextInput;
     QVector<Value *> args;
     int x = ev->x();
     int y = ev->y();
@@ -554,7 +559,7 @@ void RunWindow::mousePressEvent(QMouseEvent *ev)
     bool wasRunning = vm->isRunning();
     try
     {
-        vm->ActivateEvent("mouse", args);
+        vm->ActivateEvent(evName, args);
         if(!wasRunning)
             Run();
     }
@@ -568,9 +573,8 @@ void RunWindow::mousePressEvent(QMouseEvent *ev)
         reportError(msg, err);
     }
 
-
-
 }
+
 void RunWindow::keyPressEvent(QKeyEvent *ev)
 {
     if(ev->key() == Qt::Key_Escape)
@@ -606,7 +610,46 @@ void RunWindow::keyPressEvent(QKeyEvent *ev)
             update();
         }
     }
+    else if(state == rwNormal || rwWaiting)
+    {
+        activateKeyEvent(ev, "keydown");
+    }
 }
+void RunWindow::keyReleaseEvent(QKeyEvent *ev)
+{
+    if(state == rwNormal || rwWaiting)
+    {
+        if(!ev->isAutoRepeat())
+            activateKeyEvent(ev, "keyup");
+    }
+}
+void RunWindow::activateKeyEvent(QKeyEvent *ev, QString evName)
+{
+    QVector<Value *> args;
+    int k = ev->key();
+    QString *txt = new QString(ev->text());
+
+    args.append(vm->GetAllocator().newInt(k));
+    args.append(vm->GetAllocator().newString(txt));
+
+    bool wasRunning = vm->isRunning();
+    try
+    {
+        vm->ActivateEvent(evName, args);
+        if(!wasRunning)
+            Run();
+    }
+    catch(VMError err)
+    {
+        suspend();
+        QString msg = translate_error(err);
+        if(err.args.count()==1)
+            msg = "<u>" + msg +"</u>" + ":<p>"+ err.args[0]+ "</p";
+        this->close();
+        reportError(msg, err);
+    }
+}
+
 QImage *RunWindow::GetImage()
 {
     return &this->image;

@@ -164,6 +164,7 @@ QString Value::toString()
     void *val ;
     Value *v = this;
     QLocale loc(QLocale::Arabic, QLocale::Egypt);
+    loc.setNumberOptions(QLocale::OmitGroupSeparator);
     switch(v->tag)
     {
     case Int:
