@@ -64,7 +64,7 @@ AST *KalimatParser::program()
         }
         else
         {
-            throw new ParserException(getPos(), "Expected statement or declaration");
+            throw ParserException(getPos(), "Expected statement or declaration");
         }
         newLines();
     }
@@ -92,11 +92,11 @@ AST *KalimatParser::module()
         }
         else if(LA_first_statement())
         {
-            throw new ParserException(getPos(), "Modules cannot contain statements");
+            throw ParserException(getPos(), "Modules cannot contain statements");
         }
         else
         {
-            throw new ParserException(getPos(), "Expected declaration");
+            throw ParserException(getPos(), "Expected declaration");
         }
         newLines();
     }
@@ -153,7 +153,7 @@ Statement *KalimatParser::statement()
     {
         return grfxStatement();
     }
-    throw new ParserException(getPos(), "statement not implemented");
+    throw ParserException(getPos(), "statement not implemented");
 }
 
 bool KalimatParser::LA_first_declaration()
@@ -182,7 +182,7 @@ Declaration *KalimatParser::declaration()
     {
         return globalDecl();
     }
-    throw new ParserException(getPos(), "Expected a declaration");
+    throw ParserException(getPos(), "Expected a declaration");
 }
 bool KalimatParser::LA_first_assignment_or_invokation()
 {
@@ -196,7 +196,7 @@ Statement *KalimatParser::assignmentStmt_or_Invokation(ParserState s)
         AssignableExpression *id = dynamic_cast<AssignableExpression *>(first);
         if(id == NULL)
         {
-            throw new ParserException(getPos(), "Left of = must be an assignable expression");
+            throw ParserException(getPos(), "Left of = must be an assignable expression");
         }
         Token eqToken = lookAhead;
         match(EQ);
@@ -223,7 +223,7 @@ Statement *KalimatParser::assignmentStmt_or_Invokation(ParserState s)
         Expression *invokation = expression();
         return new InvokationStmt(invokation->getPos(), invokation);
     }*/
-    throw new ParserException(getPos(), "Expected IDENTIFIER");
+    throw ParserException(getPos(), "Expected IDENTIFIER");
 }
 
 Statement *KalimatParser::ifStmt()
@@ -272,7 +272,7 @@ Statement *KalimatParser::ifStmt()
         }
         return new IfStmt(ifTok, cond, thenPart, elsePart);
     }
-    throw new ParserException(getPos(), "Expected IF");
+    throw ParserException(getPos(), "Expected IF");
 }
 Statement *KalimatParser::forEachStmt()
 {
@@ -364,7 +364,7 @@ Statement *KalimatParser::gotoStmt()
     }
     else
     {
-        throw new ParserException("An identifier or number is expected after 'goto'");
+        throw ParserException("An identifier or number is expected after 'goto'");
     }
     return new GotoStmt(pos, targetIsNum, target);
 }
@@ -472,7 +472,7 @@ Statement *KalimatParser::ioStmt()
         }
         return new ReadStmt(readTok, fileObject, prompt, vars, readNums);
     }
-    throw new ParserException(getPos(), "Expected PRINT or READ");
+    throw ParserException(getPos(), "Expected PRINT or READ");
 }
 bool KalimatParser::LA_first_grfx_statement()
 {
@@ -492,7 +492,7 @@ Statement *KalimatParser::grfxStatement()
         return drawSpriteStmt();
     if(LA(ZOOM))
         return zoomStmt();
-    throw new ParserException(getPos(), "Expected a drawing statement");
+    throw ParserException(getPos(), "Expected a drawing statement");
 }
 Statement *KalimatParser::drawPixelStmt()
 {
@@ -687,7 +687,7 @@ Statement *KalimatParser::eventHandlerStmt()
     }
     else
     {
-        throw new ParserException("Expected KB or MOUSE");
+        throw ParserException("Expected KB or MOUSE");
     }
     match(DO);
     proc = identifier();
@@ -828,7 +828,7 @@ Declaration *KalimatParser::classDecl()
         {
             Token b = lookAhead;
             if(ancestorName != NULL)
-                throw new ParserException(getPos(), "Class cannot inherit from more than one base class");
+                throw ParserException(getPos(), "Class cannot inherit from more than one base class");
             match(BUILT);
             match(ON);
             ancestorName = identifier();
@@ -1058,7 +1058,7 @@ Expression *KalimatParser::primaryExpression()
                 match(RPAREN);
                 ret = new MethodInvokation(tok, ret, methodName, args);
             }
-            catch(ParserException *ex)
+            catch(ParserException ex)
             {
                 restoreState(s);
                 break;
@@ -1181,7 +1181,7 @@ Expression *KalimatParser::primaryExpressionNonInvokation()
     }
     else
     {
-        throw new ParserException(getPos(), "Expected a literal, identifier, or parenthesized expression");
+        throw ParserException(getPos(), "Expected a literal, identifier, or parenthesized expression");
     }
     return ret;
 }
@@ -1196,7 +1196,7 @@ Identifier *KalimatParser::identifier()
             varContext.top()->addReference(ret);
         return ret;
     }
-    throw new ParserException(getPos(), "Expected Identifier");
+    throw ParserException(getPos(), "Expected Identifier");
 }
 QVector<Expression *> KalimatParser::comma_separated_expressions()
 {
@@ -1230,7 +1230,7 @@ QVector<StrLiteral *> KalimatParser::usingDirectives()
         }
         else
         {
-            throw new ParserException(getPos(), "USING keyword must be followed by a string literal");
+            throw ParserException(getPos(), "USING keyword must be followed by a string literal");
         }
     }
     return usedModules;
@@ -1270,7 +1270,7 @@ QString KalimatParser::getOperation(Token token)
     case NE:
         return "ne";
     default:
-        throw new ParserException(getPos(), "Unknown operator");
+        throw ParserException(getPos(), "Unknown operator");
     }
 }
 

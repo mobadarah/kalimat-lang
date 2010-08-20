@@ -106,7 +106,7 @@ QString Compiler::CompileFromCode(QString source, CodeDocument *doc)
     Program *p = (Program *) parser.parse();
 
     if(p->usedModuleCount()!=0)
-        throw new CompilerException(p, ProgramsCannotUseExternalModulesWithoutSavingThemFirst);
+        throw CompilerException(p, ProgramsCannotUseExternalModulesWithoutSavingThemFirst);
 
     generator.generate(p, doc);
     return generator.getOutput();

@@ -141,11 +141,11 @@ void RunWindow::Init(QString program, QMap<QString, QString>stringConstants)
         vm->Load(program);
         vm->Init();
         Run();
-        update();// final update, in case the last instruction didn't update things in time.
+
         //timerID = startTimer(0);
 
     }
-    catch(VMError *err)
+    catch(VMError err)
     {
         QString str = translate_error(err);
         QMessageBox box;
@@ -194,23 +194,23 @@ void RunWindow::Run()
 
             qApp->processEvents();
         }
-
         //else
         {
          //   killTimer(timerID);
         }
+        update();// final update, in case the last instruction didn't update things in time.
     }
-    catch(VMError *err)
+    catch(VMError err)
     {
         QString msg = translate_error(err);
-        if(err->args.count()==1)
-            msg = "<u>" + msg +"</u>" + ":<p>"+ err->args[0]+ "</p";
+        if(err.args.count()==1)
+            msg = "<u>" + msg +"</u>" + ":<p>"+ err.args[0]+ "</p";
 
         reportError(msg, err);
     }
 }
 
-void RunWindow::reportError(QString msg, VMError *err)
+void RunWindow::reportError(QString msg, VMError err)
 {
         this->suspend();
         QMessageBox box;
@@ -558,12 +558,12 @@ void RunWindow::mousePressEvent(QMouseEvent *ev)
         if(!wasRunning)
             Run();
     }
-    catch(VMError *err)
+    catch(VMError err)
     {
         suspend();
         QString msg = translate_error(err);
-        if(err->args.count()==1)
-            msg = "<u>" + msg +"</u>" + ":<p>"+ err->args[0]+ "</p";
+        if(err.args.count()==1)
+            msg = "<u>" + msg +"</u>" + ":<p>"+ err.args[0]+ "</p";
         this->close();
         reportError(msg, err);
     }
@@ -756,7 +756,7 @@ void RunWindow::TX(int &x)
 {
     x = (this->width()-1)-x;
 }
-QString RunWindow::translate_error(VMError *err)
+QString RunWindow::translate_error(VMError err)
 {
     if(ErrorMap.empty())
     {
@@ -769,7 +769,7 @@ QString RunWindow::translate_error(VMError *err)
         }
         in.close();
     }
-    return ErrorMap[err->type];
+    return ErrorMap[err.type];
 }
 
 WindowPrintMethod::WindowPrintMethod(RunWindow *parent)
@@ -892,6 +892,7 @@ void DrawLineProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
     p.drawLine(x1, y1, x2, y2);
     pen.setColor(oldcolor);
     p.setPen(pen);
+
     w->redrawWindow();
 }
 

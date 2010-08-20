@@ -12,13 +12,18 @@
 #include "frame.h"
 #include "vmerror.h"
 
+VMError::VMError()
+
+{
+    this->type = NoError;
+}
 VMError::VMError(VMErrorType type, QStack<Frame>callStack)
 {
     this->type = type;
     this->callStack = callStack;
 }
-VMError *VMError::arg(QString s)
+VMError &VMError::arg(QString s)
 {
     this->args.append(s);
-    return this;
+    return *this;
 }

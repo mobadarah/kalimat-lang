@@ -37,7 +37,7 @@ public:
     ~MainWindow();
     bool isWonderfulMonitorEnabled();
     void markCurrentInstruction(VM *vm, int &pos, int &length);
-    void handleVMError(VMError *err);
+    void handleVMError(VMError err);
     void highlightLine(QTextEdit *editor, int pos);
     void highlightToken(QTextEdit *editor, int pos, int length);
 

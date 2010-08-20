@@ -20,7 +20,7 @@ class MainWindow : public QMainWindow {
 public:
     MainWindow(QWidget *parent = 0);
     ~MainWindow();
-    QString error_message_from(VMError *err);
+    QString error_message_from(VMError err);
 protected:
     void changeEvent(QEvent *e);
 

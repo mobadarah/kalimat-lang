@@ -11,7 +11,6 @@
 VM::VM()
     :allocator(&constantPool, &stack)
 {
-    _lastError = NULL;
 }
 void VM::Init()
 {
@@ -56,25 +55,25 @@ QStack<Frame> &VM::getCallStack()
 void VM::signal(VMErrorType err)
 {
     _isRunning = false;
-    _lastError = new VMError(err, stack);
+    _lastError = VMError(err, stack);
     throw _lastError;
 }
 void VM::signal(VMErrorType err, QString arg0)
 {
     _isRunning = false;
-    _lastError = (new VMError(err, stack))->arg(arg0);
+    _lastError = VMError(err, stack).arg(arg0);
     throw _lastError;
 }
 void VM::signal(VMErrorType err, QString arg0, QString arg1)
 {
     _isRunning = false;
-    _lastError = (new VMError(err, stack))->arg(arg0)->arg(arg1);
+    _lastError = VMError(err, stack).arg(arg0).arg(arg1);
     throw _lastError;
 }
 void VM::signal(VMErrorType err, QString arg0, QString arg1, QString arg2)
 {
     _isRunning = false;
-    _lastError = (new VMError(err, stack))->arg(arg0)->arg(arg1)->arg(arg2);
+    _lastError = VMError(err, stack).arg(arg0).arg(arg1).arg(arg2);
     throw _lastError;
 }
 QString VM::toStr(int i)
@@ -82,7 +81,7 @@ QString VM::toStr(int i)
     return QString("%1").arg(i);
 }
 
-VMError *VM::GetLastError()
+VMError VM::GetLastError()
 {
     return _lastError;
 }

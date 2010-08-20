@@ -140,8 +140,8 @@ private:
     WindowPrintMethod *printMethod;
     WindowReadMethod *readMethod;
     QMap<VMErrorType, QString> ErrorMap;
-    QString translate_error(VMError *err);
-    void reportError(QString msg, VMError *);
+    QString translate_error(VMError err);
+    void reportError(QString msg, VMError );
 
 protected:
     void changeEvent(QEvent *e);
@@ -159,6 +159,7 @@ private:
     QFont textFont;
     QColor textColor;
     int timerID;
+public:
     PaintTimer updateTimer;
 private:
     Ui::RunWindow *ui;

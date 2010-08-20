@@ -51,7 +51,7 @@ void Lexer::tokenize()
                 curChar = "<EOF>";
             else
                 curChar = QString("%1").arg(buffer.read());
-            throw new UnexpectedCharException(curChar, stateMachine.GetPossibleTransitions(state), buffer.GetLine(), buffer.GetColumn(), state);
+            throw UnexpectedCharException(curChar, stateMachine.GetPossibleTransitions(state), buffer.GetLine(), buffer.GetColumn(), state);
         }
         if(accepted)
         {
@@ -80,7 +80,7 @@ void Lexer::tokenize()
     }
     else
     {
-        throw new UnexpectedEndOfFileException();
+        throw UnexpectedEndOfFileException();
     }
     */
 }

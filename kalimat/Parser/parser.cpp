@@ -56,7 +56,7 @@ bool Parser::match(TokenType tokenType)
         tokenId = tokenFormatter(tokenType);
 
     if(eof())
-        throw new ParserException(QString("EOF reached while expecting token:%1").arg(tokenId));
+        throw ParserException(QString("EOF reached while expecting token:%1").arg(tokenId));
     if(lookAhead.Type == tokenType)
     {
         if(!eof())
@@ -65,7 +65,7 @@ bool Parser::match(TokenType tokenType)
     }
     if(true)
     {
-        throw new ParserException(getPos(), QString("Exprected token of type:%1").arg(tokenId));
+        throw ParserException(getPos(), QString("Exprected token of type:%1").arg(tokenId));
     }
 }
 void Parser::advanceToken()
@@ -119,7 +119,7 @@ AST *Parser::parse()
     AST *ret = parseRoot();
     if(!eof())
     {
-        throw new ParserException
+        throw ParserException
                 (QString("Parser did not consume all input, stopped at token #%1 : %2")
                  .arg(curToken)
                  .arg(lookAhead.Lexeme));
@@ -132,7 +132,7 @@ AST *Parser::parse(AST *(*root)(Parser *p))
     AST *ret = root(this);
     if(!eof())
     {
-        throw new ParserException
+        throw ParserException
                 (QString("Parser did not consume all input, stopped at token #%1 : %2")
                  .arg(curToken)
                  .arg(lookAhead.Lexeme));

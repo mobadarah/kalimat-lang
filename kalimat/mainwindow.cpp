@@ -192,15 +192,15 @@ void MainWindow::on_actionLexize_triggered()
            ui->outputView->append(msg);
         }
     }
-    catch(UnexpectedCharException *ex)
+    catch(UnexpectedCharException ex)
     {
-        ui->outputView->append(ex->buildMessage());
+        ui->outputView->append(ex.buildMessage());
     }
-    catch(ColonUnsupportedInIdentifiersException *ex)
+    catch(ColonUnsupportedInIdentifiersException ex)
     {
         ui->outputView->append("Cannot have a ':' in a non-keyword");
     }
-    catch(UnexpectedEndOfFileException *ex)
+    catch(UnexpectedEndOfFileException ex)
     {
         ui->outputView->append("Unexpected end of file");
     }
@@ -218,17 +218,17 @@ void MainWindow::on_actionParse_triggered()
         ui->outputView->clear();
         ui->outputView->append(tree->toString());
     }
-    catch(UnexpectedCharException *ex)
+    catch(UnexpectedCharException ex)
     {
-        ui->outputView->append(ex->buildMessage());
+        ui->outputView->append(ex.buildMessage());
     }
-    catch(UnexpectedEndOfFileException *ex)
+    catch(UnexpectedEndOfFileException ex)
     {
         ui->outputView->append("Unexpected end of file");
     }
-    catch(ParserException *ex)
+    catch(ParserException ex)
     {
-        ui->outputView->append(ex->message);
+        ui->outputView->append(ex.message);
     }
 }
 
@@ -251,17 +251,17 @@ void MainWindow::on_actionCompile_triggered()
 
         ui->outputView->append(output);
     }
-    catch(UnexpectedCharException *ex)
+    catch(UnexpectedCharException ex)
     {
-        ui->outputView->append(ex->buildMessage());
+        ui->outputView->append(ex.buildMessage());
     }
-    catch(UnexpectedEndOfFileException *ex)
+    catch(UnexpectedEndOfFileException ex)
     {
         ui->outputView->append("Unexpected end of file");
     }
-    catch(ParserException *ex)
+    catch(ParserException ex)
     {
-        ui->outputView->append(ex->message);
+        ui->outputView->append(ex.message);
     }
     catch(CompilerException ex)
     {
@@ -307,30 +307,30 @@ void MainWindow::on_mnuProgramRun_triggered()
         rw->show();
         rw->Init(output, compiler.generator.getStringConstants());
     }
-    catch(UnexpectedCharException *ex)
+    catch(UnexpectedCharException ex)
     {
         //show_error(ex->buildMessage());
         show_error(QString::fromStdWString(L"خطأ في تركيب البرنامج"));
     }
-    catch(UnexpectedEndOfFileException *ex)
+    catch(UnexpectedEndOfFileException ex)
     {
         //show_error("Unexpected end of file");
         //show_error(QString::fromStdWString(L"خطأ في تركيب البرنامج"));
         show_error(QString::fromStdWString(L"انتهى البرنامج قبل أن يكون له معنى"));
     }
-    catch(ParserException *ex)
+    catch(ParserException ex)
     {
         //show_error(ex->message);
         show_error(QString::fromStdWString(L"خطأ في تركيب البرنامج"));
-        if(doc != NULL && ex->hasPosInfo)
-            highlightLine(doc->getEditor(), ex->pos.Pos);
+        if(doc != NULL && ex.hasPosInfo)
+            highlightLine(doc->getEditor(), ex.pos.Pos);
     }
     catch(CompilerException ex)
     {
        show_error(ex.getMessage());
        // show_error(QString(L"خطأ في تركيب البرنامج"));
     }
-    catch(VMError *err)
+    catch(VMError err)
     {
 
     }
@@ -446,11 +446,11 @@ void MainWindow::markCurrentInstruction(VM *vm, int &pos, int &length)
     }
 }
 
-void MainWindow::handleVMError(VMError *err)
+void MainWindow::handleVMError(VMError err)
 {
-    if(!err->callStack.empty())
+    if(!err.callStack.empty())
     {
-        Frame f = err->callStack.top();
+        Frame f = err.callStack.top();
         Instruction i = f.getPreviousRunningInstruction();
         int key = i.extra;
         CodePosition p = PositionInfo[key];
@@ -530,23 +530,23 @@ void MainWindow::on_actionLoad_Compilation_unit_triggered()
 
         ui->outputView->append(output);
     }
-    catch(UnexpectedCharException *ex)
+    catch(UnexpectedCharException ex)
     {
-        show_error(ex->buildMessage());
+        show_error(ex.buildMessage());
     }
-    catch(UnexpectedEndOfFileException *ex)
+    catch(UnexpectedEndOfFileException ex)
     {
         show_error("Unexpected end of file");
     }
-    catch(ParserException *ex)
+    catch(ParserException ex)
     {
-        show_error(ex->message);
+        show_error(ex.message);
     }
     catch(CompilerException ex)
     {
         show_error(ex.getMessage());
     }
-    catch(VMError *err)
+    catch(VMError err)
     {
 
     }

@@ -24,7 +24,8 @@ enum VMErrorType
     SubscribingNonArray, SubscribtMustBeInteger, SubscriptOutOfRange,
     ArgumentError, MD_IndexingWrongNumberOfDimensions,
     ElementAlreadyDefined, MethodAlreadyDefinedInClass,
-    RuntimeError
+    RuntimeError,
+    NoError
 
 };
 
@@ -38,7 +39,8 @@ public:
 public:
     VMError(VMErrorType type, QStack<Frame> callStack);
     VMError(VMErrorType type);
-    VMError *arg(QString s);
+    VMError();
+    VMError &arg(QString s);
 };
 
 #endif // VMERROR_H

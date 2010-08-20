@@ -298,7 +298,7 @@ void CodeGenerator::generateClassDeclaration(ClassDecl *decl)
         gen(decl->ancestor(), ".extends "+ parent);
     }
    /* if(decl->prototypeCount() > decl->methodCount())
-        throw new CompilerException(decl, QString("Class '%1' has some unimplemented methods").arg(decl->name()->name));
+        throw CompilerException(decl, QString("Class '%1' has some unimplemented methods").arg(decl->name()->name));
         */
     for(int i=0;i<decl->fieldCount();i++)
     {

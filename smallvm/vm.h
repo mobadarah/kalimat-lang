@@ -31,7 +31,7 @@ class VM
 
 
     bool _isRunning;
-    VMError *_lastError;
+    VMError _lastError;
     QMap<QString, QString> registeredEventHandlers;
 public:
     VM();
@@ -116,7 +116,7 @@ public:
     Value *_div(Value *, Value *);
     void Pop_Md_Arr_and_indexes(MultiDimensionalArray<Value *> *&theArray, QVector<int> &indexes);
 
-    VMError *GetLastError();
+    VMError GetLastError();
 private:
 
     void patchupInheritance(QMap<ValueClass *, QString> inheritanceList);

@@ -52,7 +52,7 @@ void MainWindow::on_actionGo_triggered()
             vm.RunStep();
         }
     }
-    catch(VMError *err)
+    catch(VMError err)
     {
         o = error_message_from(err);
     }
@@ -61,7 +61,7 @@ void MainWindow::on_actionGo_triggered()
         o = QString("%1").arg( vm.__top()->v.intVal);
     this->setWindowTitle(o);
 }
-QString MainWindow::error_message_from(VMError *)
+QString MainWindow::error_message_from(VMError )
 {
     return "";
 }

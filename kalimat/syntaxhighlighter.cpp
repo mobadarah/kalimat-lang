@@ -40,15 +40,15 @@ void SyntaxHighlighter::highlightBlock(const QString &text)
                setFormat(t.Pos, t.Lexeme.length(), comments);
        }
     }
-    catch(UnexpectedCharException *ex)
+    catch(UnexpectedCharException ex)
     {
 
     }
-    catch(ColonUnsupportedInIdentifiersException *ex)
+    catch(ColonUnsupportedInIdentifiersException ex)
     {
 
     }
-    catch(UnexpectedEndOfFileException *ex)
+    catch(UnexpectedEndOfFileException ex)
     {
 
     }
