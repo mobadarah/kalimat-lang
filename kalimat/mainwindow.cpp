@@ -41,6 +41,7 @@ MainWindow::MainWindow(QWidget *parent)
 {
     MainWindow::that = this;
     ui->setupUi(this);
+    ui->dockSearchReplace->hide();
     docContainer = new DocumentContainer("mohamedsamy",
                                          "kalimat 1.0",
                                          tr("Kalimat code (*.k *.* *)"),
@@ -551,4 +552,181 @@ void MainWindow::on_actionLoad_Compilation_unit_triggered()
 
     }
 
+}
+
+void MainWindow::on_action_edit_cut_triggered()
+{
+    QTextEdit *editor = currentEditor();
+    if(editor != NULL)
+    {
+        editor->cut();
+    }
+}
+
+void MainWindow::on_action_edit_copy_triggered()
+{
+    QTextEdit *editor = currentEditor();
+    if(editor != NULL)
+    {
+        editor->copy();
+    }
+}
+
+void MainWindow::on_action_edit_paste_triggered()
+{
+    QTextEdit *editor = currentEditor();
+    if(editor != NULL)
+    {
+        editor->paste();
+    }
+}
+
+void MainWindow::on_action_delete_triggered()
+{
+    QTextEdit *editor = currentEditor();
+    if(editor != NULL)
+    {
+        editor->textCursor().removeSelectedText();
+    }
+}
+
+void MainWindow::on_action_undo_triggered()
+{
+    QTextEdit *editor = currentEditor();
+    if(editor != NULL)
+    {
+        editor->undo();
+    }
+}
+
+void MainWindow::on_action_redo_triggered()
+{
+    QTextEdit *editor = currentEditor();
+    if(editor != NULL)
+    {
+        editor->redo();
+    }
+}
+
+void MainWindow::on_action_find_triggered()
+{
+    ui->dockSearchReplace->show();
+    ui->txtSearchString->setFocus();
+    ui->txtSearchString->selectAll();
+}
+
+void MainWindow::on_action_replace_triggered()
+{
+    ui->dockSearchReplace->show();
+}
+
+void ensurePositionBeforeAnchor(QTextEdit *editor)
+{
+    QTextCursor c = editor->textCursor();
+    int p = c.selectionStart();
+    int n = c.selectionEnd() - p;
+    c.clearSelection();
+    c.setPosition(p + n);
+    c.movePosition(QTextCursor::PreviousCharacter, QTextCursor::KeepAnchor, n);
+    editor->setTextCursor(c);
+
+}
+
+void MainWindow::on_btnFindPrev_clicked()
+{
+    QTextEdit *editor = currentEditor();
+    if(editor != NULL)
+    {
+        ui->lblFindStatus->setText("");
+        QString searchStr = ui->txtSearchString->text();
+        bool result = editor->find(searchStr, QTextDocument::FindBackward);
+        if(!result)
+            ui->lblFindStatus->setText(QString::fromStdWString(L"وصلنا لبداية الملف"));
+        else
+            ensurePositionBeforeAnchor(editor);
+    }
+}
+
+
+void MainWindow::on_btnFindNext_clicked()
+{
+    QTextEdit *editor = currentEditor();
+    if(editor != NULL)
+    {
+        ui->lblFindStatus->setText("");
+        QString searchStr = ui->txtSearchString->text();
+        bool result = editor->find(searchStr);
+        if(!result)
+            ui->lblFindStatus->setText(QString::fromStdWString(L"وصلنا لنهاية الملف"));
+        else
+        {
+            ensurePositionBeforeAnchor(editor);
+        }
+    }
+}
+
+void MainWindow::on_btnReplacePrev_clicked()
+{
+    QTextEdit *editor = currentEditor();
+    if(editor != NULL)
+    {
+        ui->lblFindStatus->setText("");
+        QString searchStr = ui->txtSearchString->text();
+        // See the comment in on_btnReplaceNext_clicked() to explain
+        // why we clear selection first
+        QTextCursor c =editor->textCursor();
+        c.setPosition(c.selectionStart());
+        editor->setTextCursor(c);
+        editor->textCursor().clearSelection();
+
+        bool result = editor->find(searchStr, QTextDocument::FindBackward);
+        if(result)
+        {
+            editor->textCursor().insertText(ui->txtReplacementString->text());
+            int n =  ui->txtReplacementString->text().length();
+            QTextCursor c = editor->textCursor();
+            c.movePosition(QTextCursor::PreviousCharacter, QTextCursor::KeepAnchor, n);
+            editor->setTextCursor(c);
+        }
+        else
+        {
+            ui->lblFindStatus->setText(QString::fromStdWString(L"وصلنا لبداية الملف"));
+        }
+    }
+}
+
+void MainWindow::on_btnReplaceNext_clicked()
+{
+    QTextEdit *editor = currentEditor();
+    if(editor != NULL)
+    {
+        /* We want the user to be able to enter a word and a replacement, press 'find', verify
+           that he actually wants to replace the word, then click replace.
+           Unfortunately 'find' makes the found string selected, a replace in QT 4.6.2 begins it's
+           own find operation from the selection end, so it begins from the next word after the found one.
+
+           To work around this, we clear the selection before calling replace() on the text editor.
+        */
+
+        QTextCursor c =editor->textCursor();
+        c.setPosition(c.selectionStart());
+        editor->setTextCursor(c);
+        editor->textCursor().clearSelection();
+        ui->lblFindStatus->setText("");
+        QString searchStr = ui->txtSearchString->text();
+        bool result = editor->find(searchStr);
+        if(result)
+        {
+            editor->textCursor().insertText(ui->txtReplacementString->text());
+            int n =  ui->txtReplacementString->text().length();
+            QTextCursor c = editor->textCursor();
+            c.movePosition(QTextCursor::PreviousCharacter, QTextCursor::KeepAnchor, n);
+            editor->setTextCursor(c);
+
+        }
+        else
+        {
+            ui->lblFindStatus->setText(QString::fromStdWString(L"وصلنا لنهاية الملف"));
+        }
+    }
 }

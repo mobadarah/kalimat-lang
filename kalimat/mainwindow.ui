@@ -167,6 +167,9 @@
     <addaction name="action_edit_copy"/>
     <addaction name="action_edit_paste"/>
     <addaction name="action_delete"/>
+    <addaction name="separator"/>
+    <addaction name="action_find"/>
+    <addaction name="action_replace"/>
    </widget>
    <widget class="QMenu" name="mnuPRogram">
     <property name="title">
@@ -233,6 +236,133 @@
    <addaction name="mnuProgramRun"/>
   </widget>
   <widget class="QStatusBar" name="statusBar"/>
+  <widget class="QDockWidget" name="dockSearchReplace">
+   <property name="minimumSize">
+    <size>
+     <width>52</width>
+     <height>100</height>
+    </size>
+   </property>
+   <property name="features">
+    <set>QDockWidget::DockWidgetFloatable|QDockWidget::DockWidgetMovable</set>
+   </property>
+   <attribute name="dockWidgetArea">
+    <number>4</number>
+   </attribute>
+   <widget class="QWidget" name="dockWidgetContents">
+    <widget class="QLabel" name="label">
+     <property name="geometry">
+      <rect>
+       <x>720</x>
+       <y>10</y>
+       <width>51</width>
+       <height>20</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>ابحث عن</string>
+     </property>
+    </widget>
+    <widget class="QLabel" name="label_2">
+     <property name="geometry">
+      <rect>
+       <x>710</x>
+       <y>40</y>
+       <width>61</width>
+       <height>20</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>واستبدل به</string>
+     </property>
+    </widget>
+    <widget class="QLineEdit" name="txtSearchString">
+     <property name="geometry">
+      <rect>
+       <x>332</x>
+       <y>10</y>
+       <width>351</width>
+       <height>20</height>
+      </rect>
+     </property>
+    </widget>
+    <widget class="QLineEdit" name="txtReplacementString">
+     <property name="geometry">
+      <rect>
+       <x>332</x>
+       <y>40</y>
+       <width>351</width>
+       <height>20</height>
+      </rect>
+     </property>
+    </widget>
+    <widget class="QPushButton" name="btnFindPrev">
+     <property name="geometry">
+      <rect>
+       <x>300</x>
+       <y>10</y>
+       <width>21</width>
+       <height>23</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>&lt;</string>
+     </property>
+    </widget>
+    <widget class="QPushButton" name="btnFindNext">
+     <property name="geometry">
+      <rect>
+       <x>280</x>
+       <y>10</y>
+       <width>21</width>
+       <height>23</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>&gt;</string>
+     </property>
+    </widget>
+    <widget class="QPushButton" name="btnReplacePrev">
+     <property name="geometry">
+      <rect>
+       <x>300</x>
+       <y>40</y>
+       <width>21</width>
+       <height>23</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>&lt;</string>
+     </property>
+    </widget>
+    <widget class="QPushButton" name="btnReplaceNext">
+     <property name="geometry">
+      <rect>
+       <x>280</x>
+       <y>40</y>
+       <width>21</width>
+       <height>23</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>&gt;</string>
+     </property>
+    </widget>
+    <widget class="QLabel" name="lblFindStatus">
+     <property name="geometry">
+      <rect>
+       <x>10</x>
+       <y>10</y>
+       <width>181</width>
+       <height>16</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string/>
+     </property>
+    </widget>
+   </widget>
+  </widget>
   <action name="actionLexize">
    <property name="text">
     <string>Lexize</string>
@@ -462,6 +592,19 @@
   <action name="action_shift_6">
    <property name="text">
     <string>إ     (shift+غ)</string>
+   </property>
+  </action>
+  <action name="action_find">
+   <property name="text">
+    <string>بحث...</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+F</string>
+   </property>
+  </action>
+  <action name="action_replace">
+   <property name="text">
+    <string>استبدال...</string>
    </property>
   </action>
  </widget>

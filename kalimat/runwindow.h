@@ -90,6 +90,9 @@ int popInt(QStack<Value *> &stack, RunWindow *w, VM *vm);
 QString *popString(QStack<Value *> &stack, RunWindow *w, VM *vm);
 void verifyStackNotEmpty(QStack<Value *> &stack, VM *vm);
 
+Value *ConvertStringToNumber(QString str, VM *vm);
+
+
 class WindowPrintMethod : public ExternalMethod
 {
     RunWindow *parent;
@@ -101,8 +104,11 @@ class WindowReadMethod : public ExternalMethod
 {
     RunWindow *parent;
     QStack<Value *> *operandStack;
+    VM *vm;
 public:
-    WindowReadMethod(RunWindow *parent);
+    int readNum;
+public:
+    WindowReadMethod(RunWindow *parent, VM *vm);
     void operator()(QStack<Value *> &operandStack);
     void SetReadValue(Value *v);
 };

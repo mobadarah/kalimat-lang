@@ -1,7 +1,7 @@
 /********************************************************************************
 ** Form generated from reading UI file 'mainwindow.ui'
 **
-** Created: Thu 19. Aug 04:10:04 2010
+** Created: Fri 27. Aug 00:38:53 2010
 **      by: Qt User Interface Compiler version 4.6.2
 **
 ** WARNING! All changes made in this file will be lost when recompiling UI file!
@@ -14,11 +14,15 @@
 #include <QtGui/QAction>
 #include <QtGui/QApplication>
 #include <QtGui/QButtonGroup>
+#include <QtGui/QDockWidget>
 #include <QtGui/QGraphicsView>
 #include <QtGui/QHeaderView>
+#include <QtGui/QLabel>
+#include <QtGui/QLineEdit>
 #include <QtGui/QMainWindow>
 #include <QtGui/QMenu>
 #include <QtGui/QMenuBar>
+#include <QtGui/QPushButton>
 #include <QtGui/QStatusBar>
 #include <QtGui/QTabWidget>
 #include <QtGui/QTextBrowser>
@@ -66,6 +70,8 @@ public:
     QAction *action_shift_4;
     QAction *action_shift_5;
     QAction *action_shift_6;
+    QAction *action_find;
+    QAction *action_replace;
     QWidget *centralWidget;
     QTabWidget *editorTabs;
     QTabWidget *tabWidget;
@@ -84,6 +90,17 @@ public:
     QMenu *mnuTest;
     QToolBar *mainToolBar;
     QStatusBar *statusBar;
+    QDockWidget *dockSearchReplace;
+    QWidget *dockWidgetContents;
+    QLabel *label;
+    QLabel *label_2;
+    QLineEdit *txtSearchString;
+    QLineEdit *txtReplacementString;
+    QPushButton *btnFindPrev;
+    QPushButton *btnFindNext;
+    QPushButton *btnReplacePrev;
+    QPushButton *btnReplaceNext;
+    QLabel *lblFindStatus;
 
     void setupUi(QMainWindow *MainWindow)
     {
@@ -179,6 +196,10 @@ public:
         action_shift_5->setObjectName(QString::fromUtf8("action_shift_5"));
         action_shift_6 = new QAction(MainWindow);
         action_shift_6->setObjectName(QString::fromUtf8("action_shift_6"));
+        action_find = new QAction(MainWindow);
+        action_find->setObjectName(QString::fromUtf8("action_find"));
+        action_replace = new QAction(MainWindow);
+        action_replace->setObjectName(QString::fromUtf8("action_replace"));
         centralWidget = new QWidget(MainWindow);
         centralWidget->setObjectName(QString::fromUtf8("centralWidget"));
         QSizePolicy sizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::MinimumExpanding);
@@ -270,6 +291,41 @@ public:
         statusBar = new QStatusBar(MainWindow);
         statusBar->setObjectName(QString::fromUtf8("statusBar"));
         MainWindow->setStatusBar(statusBar);
+        dockSearchReplace = new QDockWidget(MainWindow);
+        dockSearchReplace->setObjectName(QString::fromUtf8("dockSearchReplace"));
+        dockSearchReplace->setMinimumSize(QSize(52, 100));
+        dockSearchReplace->setFeatures(QDockWidget::DockWidgetFloatable|QDockWidget::DockWidgetMovable);
+        dockWidgetContents = new QWidget();
+        dockWidgetContents->setObjectName(QString::fromUtf8("dockWidgetContents"));
+        label = new QLabel(dockWidgetContents);
+        label->setObjectName(QString::fromUtf8("label"));
+        label->setGeometry(QRect(720, 10, 51, 20));
+        label_2 = new QLabel(dockWidgetContents);
+        label_2->setObjectName(QString::fromUtf8("label_2"));
+        label_2->setGeometry(QRect(710, 40, 61, 20));
+        txtSearchString = new QLineEdit(dockWidgetContents);
+        txtSearchString->setObjectName(QString::fromUtf8("txtSearchString"));
+        txtSearchString->setGeometry(QRect(332, 10, 351, 20));
+        txtReplacementString = new QLineEdit(dockWidgetContents);
+        txtReplacementString->setObjectName(QString::fromUtf8("txtReplacementString"));
+        txtReplacementString->setGeometry(QRect(332, 40, 351, 20));
+        btnFindPrev = new QPushButton(dockWidgetContents);
+        btnFindPrev->setObjectName(QString::fromUtf8("btnFindPrev"));
+        btnFindPrev->setGeometry(QRect(300, 10, 21, 23));
+        btnFindNext = new QPushButton(dockWidgetContents);
+        btnFindNext->setObjectName(QString::fromUtf8("btnFindNext"));
+        btnFindNext->setGeometry(QRect(280, 10, 21, 23));
+        btnReplacePrev = new QPushButton(dockWidgetContents);
+        btnReplacePrev->setObjectName(QString::fromUtf8("btnReplacePrev"));
+        btnReplacePrev->setGeometry(QRect(300, 40, 21, 23));
+        btnReplaceNext = new QPushButton(dockWidgetContents);
+        btnReplaceNext->setObjectName(QString::fromUtf8("btnReplaceNext"));
+        btnReplaceNext->setGeometry(QRect(280, 40, 21, 23));
+        lblFindStatus = new QLabel(dockWidgetContents);
+        lblFindStatus->setObjectName(QString::fromUtf8("lblFindStatus"));
+        lblFindStatus->setGeometry(QRect(10, 10, 181, 16));
+        dockSearchReplace->setWidget(dockWidgetContents);
+        MainWindow->addDockWidget(static_cast<Qt::DockWidgetArea>(4), dockSearchReplace);
 
         menuBar->addAction(mnuFile->menuAction());
         menuBar->addAction(mnuEdit->menuAction());
@@ -291,6 +347,9 @@ public:
         mnuEdit->addAction(action_edit_copy);
         mnuEdit->addAction(action_edit_paste);
         mnuEdit->addAction(action_delete);
+        mnuEdit->addSeparator();
+        mnuEdit->addAction(action_find);
+        mnuEdit->addAction(action_replace);
         mnuPRogram->addAction(mnuProgramRun);
         mnuPRogram->addAction(action_verify);
         mnuPRogram->addAction(garbageCollect);
@@ -372,6 +431,9 @@ public:
         action_shift_4->setText(QApplication::translate("MainWindow", "]     (shift+\331\212)", 0, QApplication::UnicodeUTF8));
         action_shift_5->setText(QApplication::translate("MainWindow", ".     (shift+\330\262)", 0, QApplication::UnicodeUTF8));
         action_shift_6->setText(QApplication::translate("MainWindow", "\330\245     (shift+\330\272)", 0, QApplication::UnicodeUTF8));
+        action_find->setText(QApplication::translate("MainWindow", "\330\250\330\255\330\253...", 0, QApplication::UnicodeUTF8));
+        action_find->setShortcut(QApplication::translate("MainWindow", "Ctrl+F", 0, QApplication::UnicodeUTF8));
+        action_replace->setText(QApplication::translate("MainWindow", "\330\247\330\263\330\252\330\250\330\257\330\247\331\204...", 0, QApplication::UnicodeUTF8));
         tabWidget->setTabText(tabWidget->indexOf(tab), QApplication::translate("MainWindow", "\330\247\331\204\330\261\330\263\330\247\330\246\331\204", 0, QApplication::UnicodeUTF8));
         tabWidget->setTabText(tabWidget->indexOf(tab_2), QApplication::translate("MainWindow", "\330\247\331\204\331\205\330\252\330\272\331\212\330\261\330\247\330\252", 0, QApplication::UnicodeUTF8));
         mnuFile->setTitle(QApplication::translate("MainWindow", "\331\205\331\204\331\201", 0, QApplication::UnicodeUTF8));
@@ -380,6 +442,13 @@ public:
         mnuPRogram->setTitle(QApplication::translate("MainWindow", "\330\250\330\261\331\206\330\247\331\205\330\254", 0, QApplication::UnicodeUTF8));
         mnuHelp->setTitle(QApplication::translate("MainWindow", "\331\205\330\263\330\247\330\271\330\257\330\251", 0, QApplication::UnicodeUTF8));
         mnuTest->setTitle(QApplication::translate("MainWindow", "\330\247\330\256\330\252\330\250\330\247\330\261", 0, QApplication::UnicodeUTF8));
+        label->setText(QApplication::translate("MainWindow", "\330\247\330\250\330\255\330\253 \330\271\331\206", 0, QApplication::UnicodeUTF8));
+        label_2->setText(QApplication::translate("MainWindow", "\331\210\330\247\330\263\330\252\330\250\330\257\331\204 \330\250\331\207", 0, QApplication::UnicodeUTF8));
+        btnFindPrev->setText(QApplication::translate("MainWindow", "<", 0, QApplication::UnicodeUTF8));
+        btnFindNext->setText(QApplication::translate("MainWindow", ">", 0, QApplication::UnicodeUTF8));
+        btnReplacePrev->setText(QApplication::translate("MainWindow", "<", 0, QApplication::UnicodeUTF8));
+        btnReplaceNext->setText(QApplication::translate("MainWindow", ">", 0, QApplication::UnicodeUTF8));
+        lblFindStatus->setText(QString());
     } // retranslateUi
 
 };

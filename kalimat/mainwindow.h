@@ -57,6 +57,18 @@ private:
     virtual QWidget *CreateEditorWidget();
     QTextEdit *currentEditor();
 private slots:
+    void on_btnReplaceNext_clicked();
+    void on_btnReplacePrev_clicked();
+    void on_btnFindNext_clicked();
+    void on_btnFindPrev_clicked();
+    void on_action_replace_triggered();
+    void on_action_find_triggered();
+    void on_action_redo_triggered();
+    void on_action_undo_triggered();
+    void on_action_delete_triggered();
+    void on_action_edit_paste_triggered();
+    void on_action_edit_copy_triggered();
+    void on_action_edit_cut_triggered();
     void on_actionLoad_Compilation_unit_triggered();
     void on_garbageCollect_triggered();
     void on_editorTabs_tabCloseRequested(int index);

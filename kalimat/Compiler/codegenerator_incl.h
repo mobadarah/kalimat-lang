@@ -5,9 +5,9 @@
 **   as described in the included license.txt file
 **************************************************************************/
 
-#include "Lexer/token.h"
-#include "Parser/ast.h"
-#include "Parser/kalimatast.h"
+#include "../Lexer/token.h"
+#include "../Parser/ast.h"
+#include "../Parser/kalimatast.h"
 #include "codedocument.h"
 #include "codeposition.h"
 #include "codegenhelper.h"

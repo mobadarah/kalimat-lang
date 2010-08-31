@@ -39,7 +39,7 @@ RunWindow::RunWindow(QWidget *parent, QString pathOfProgramsFile) :
     textColor = Qt::black;
     clearText();
     printMethod = new WindowPrintMethod(this);
-    readMethod = new WindowReadMethod(this);
+    readMethod = new WindowReadMethod(this, vm);
     vm = NULL;
     this->setFixedSize(800, 600);
 }
@@ -589,12 +589,31 @@ void RunWindow::keyPressEvent(QKeyEvent *ev)
         if(ev->key() == Qt::Key_Return)
         {
             //print(inputBuffer);
-            state = rwNormal;
-            readMethod->SetReadValue(vm->GetAllocator().newString(new QString(inputBuffer)));
-            inputBuffer = "";
-            nl();
-            update();
-            Run();
+            Value *v = NULL;
+            if(readMethod->readNum)
+            {
+                v = ConvertStringToNumber(inputBuffer, vm);
+            }
+            else
+            {
+                v = vm->GetAllocator().newString(new QString(inputBuffer));
+            }
+            if(v == NULL)
+            {
+                this->nl();
+                this->print(QString::fromStdWString(L"يجب إدخال رقم! حاول مرة اخرى"));
+                this->print("\n");
+                inputBuffer = "";
+            }
+            else
+            {
+                state = rwNormal;
+                readMethod->SetReadValue(v);
+                inputBuffer = "";
+                nl();
+                update();
+                Run();
+            }
         }
         else if(ev->key() == Qt::Key_Backspace)
         {
@@ -833,22 +852,19 @@ void WindowPrintMethod::operator ()(QStack<Value *> &operandStack)
             break;
         }
     }
-    // If a char is a number, insert an
-    // 'invisible space' character (zero width space, U+200B) after it
-    // so that printing several numbers in succession
-    // doesn't combine them into a large number
-    // and print the combination left-to-right
-    if(isnum)
-        str +=QString("%1").arg(QChar((uint) 0x200b));
+
     parent->print(str);
 }
-WindowReadMethod::WindowReadMethod(RunWindow *parent)
+WindowReadMethod::WindowReadMethod(RunWindow *parent, VM *vm)
 {
     this->parent = parent;
+    this->vm = vm;
+    this->readNum = false;
 }
 
 void WindowReadMethod::operator ()(QStack<Value *> &operandStack)
 {
+    readNum = popInt(operandStack, parent, vm);
     parent->state = rwTextInput;
     parent->update(); // We must do this, because normal updating is done
                       // by calling redrawWindow() in the instruction loop, and
@@ -1035,35 +1051,43 @@ void RandomProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
     stack.push(vm->GetAllocator().newInt(ret));
 }
 
+Value *ConvertStringToNumber(QString str, VM *vm)
+{
+    bool ok;
+    QLocale loc(QLocale::Arabic, QLocale::Egypt);
+    int i = loc.toLongLong(str, &ok,10);
+    if(ok)
+    {
+       return vm->GetAllocator().newInt(i);
+    }
+
+    i = str.toInt(&ok, 10);
+
+    if(ok)
+    {
+        return vm->GetAllocator().newInt(i);
+    }
+    double d = str.toDouble(&ok);
+    if(ok)
+    {
+        return vm->GetAllocator().newDouble(d);
+    }
+    return NULL;
+}
+
 void ToNumProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 {
 
     QString *str = popString(stack, w, vm);
-    bool ok;
-    QLocale loc(QLocale::Arabic, QLocale::Egypt);
+    Value * v = ConvertStringToNumber(*str, vm);
 
-    int i= loc.toLongLong(*str, &ok,10);
-    if(ok)
+    if(v != NULL)
+        stack.push(v);
+    else
     {
-       stack.push(vm->GetAllocator().newInt(i));
-       return;
+     //todo: We should do something like Basic's "Redo from start" when reading incorrectly-formatted input.
+      vm->signal(TypeError, QString::fromStdWString(L"القيمة المدخلة لم تكن عددية"));
     }
-
-    i = str->toInt(&ok, 10);
-
-    if(ok)
-    {
-        stack.push(vm->GetAllocator().newInt(i));
-        return;
-    }
-    double d = str->toDouble(&ok);
-    if(ok)
-    {
-        stack.push(vm->GetAllocator().newDouble(d));
-        return;
-    }
-    //todo: We should do something like Basic's "Redo from start" when reading incorrectly-formatted input.
-    vm->signal(TypeError, QString::fromStdWString(L"القيمة المدخلة لم تكن عددية"));
 
 }
 void ConcatProc(QStack<Value *> &stack, RunWindow *w, VM *vm)

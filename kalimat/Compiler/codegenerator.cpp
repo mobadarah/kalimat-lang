@@ -501,11 +501,13 @@ void CodeGenerator::generateReadStmt(ReadStmt *stmt)
         Identifier *id = stmt->variable(i);
         bool readNum = stmt->readNumberFlags[i];
 
-        gen(id,"callex input");
         if(readNum)
-        {
-            gen(id, "callex to_num");
-        }
+            gen(id, "pushv 1");
+        else
+            gen(id, "pushv 0");
+
+        gen(id,"callex input");
+
         gen(id,"popl "+id->name);
     }
     // 'read' introduces new variables into the current scope,
