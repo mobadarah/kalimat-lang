@@ -179,6 +179,9 @@
     <addaction name="action_verify"/>
     <addaction name="garbageCollect"/>
     <addaction name="action_wonderfulmonitor"/>
+    <addaction name="actionSpeedFast"/>
+    <addaction name="actionSpeedMedium"/>
+    <addaction name="actionSpeedSlow"/>
    </widget>
    <widget class="QMenu" name="mnuHelp">
     <property name="tearOffEnabled">
@@ -207,6 +210,7 @@
     <addaction name="actionLexize"/>
     <addaction name="actionParse"/>
     <addaction name="actionCompile"/>
+    <addaction name="actionCompile_without_tags"/>
     <addaction name="actionEvaluate"/>
     <addaction name="actionLoad_Compilation_unit"/>
    </widget>
@@ -239,12 +243,12 @@
   <widget class="QDockWidget" name="dockSearchReplace">
    <property name="minimumSize">
     <size>
-     <width>52</width>
+     <width>70</width>
      <height>100</height>
     </size>
    </property>
    <property name="features">
-    <set>QDockWidget::DockWidgetFloatable|QDockWidget::DockWidgetMovable</set>
+    <set>QDockWidget::AllDockWidgetFeatures</set>
    </property>
    <attribute name="dockWidgetArea">
     <number>4</number>
@@ -605,6 +609,50 @@
   <action name="action_replace">
    <property name="text">
     <string>استبدال...</string>
+   </property>
+  </action>
+  <action name="actionSpeedFast">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>سريع</string>
+   </property>
+   <property name="shortcut">
+    <string>Alt+Q</string>
+   </property>
+  </action>
+  <action name="actionSpeedMedium">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="checked">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>متوسط</string>
+   </property>
+   <property name="shortcut">
+    <string>Alt+A</string>
+   </property>
+  </action>
+  <action name="actionSpeedSlow">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="checked">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>بطيء</string>
+   </property>
+   <property name="shortcut">
+    <string>Alt+Z</string>
+   </property>
+  </action>
+  <action name="actionCompile_without_tags">
+   <property name="text">
+    <string>Compile without tags</string>
    </property>
   </action>
  </widget>

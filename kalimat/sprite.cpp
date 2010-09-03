@@ -11,10 +11,20 @@ Sprite::Sprite(QString filename)
     :image(filename)
 {
     visible = false;
-    mask = image.createMaskFromColor(image.toImage().pixel(0,0));
-    image.setMask(mask);
+    prepareMask(image);
 
 }
+void Sprite::setImage(QPixmap image)
+{
+    this->image = image;
+    prepareMask(image);
+}
+void Sprite::prepareMask(QPixmap image)
+{
+    mask = image.createMaskFromColor(image.toImage().pixel(0,0));
+    image.setMask(mask);
+}
+
 QRect Sprite::boundingRect()
 {
     return QRect(location, image.size());

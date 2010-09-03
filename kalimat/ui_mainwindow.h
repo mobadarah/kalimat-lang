@@ -1,7 +1,7 @@
 /********************************************************************************
 ** Form generated from reading UI file 'mainwindow.ui'
 **
-** Created: Fri 27. Aug 00:38:53 2010
+** Created: Fri 3. Sep 02:28:53 2010
 **      by: Qt User Interface Compiler version 4.6.2
 **
 ** WARNING! All changes made in this file will be lost when recompiling UI file!
@@ -72,6 +72,10 @@ public:
     QAction *action_shift_6;
     QAction *action_find;
     QAction *action_replace;
+    QAction *actionSpeedFast;
+    QAction *actionSpeedMedium;
+    QAction *actionSpeedSlow;
+    QAction *actionCompile_without_tags;
     QWidget *centralWidget;
     QTabWidget *editorTabs;
     QTabWidget *tabWidget;
@@ -200,6 +204,19 @@ public:
         action_find->setObjectName(QString::fromUtf8("action_find"));
         action_replace = new QAction(MainWindow);
         action_replace->setObjectName(QString::fromUtf8("action_replace"));
+        actionSpeedFast = new QAction(MainWindow);
+        actionSpeedFast->setObjectName(QString::fromUtf8("actionSpeedFast"));
+        actionSpeedFast->setCheckable(true);
+        actionSpeedMedium = new QAction(MainWindow);
+        actionSpeedMedium->setObjectName(QString::fromUtf8("actionSpeedMedium"));
+        actionSpeedMedium->setCheckable(true);
+        actionSpeedMedium->setChecked(true);
+        actionSpeedSlow = new QAction(MainWindow);
+        actionSpeedSlow->setObjectName(QString::fromUtf8("actionSpeedSlow"));
+        actionSpeedSlow->setCheckable(true);
+        actionSpeedSlow->setChecked(false);
+        actionCompile_without_tags = new QAction(MainWindow);
+        actionCompile_without_tags->setObjectName(QString::fromUtf8("actionCompile_without_tags"));
         centralWidget = new QWidget(MainWindow);
         centralWidget->setObjectName(QString::fromUtf8("centralWidget"));
         QSizePolicy sizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::MinimumExpanding);
@@ -293,8 +310,8 @@ public:
         MainWindow->setStatusBar(statusBar);
         dockSearchReplace = new QDockWidget(MainWindow);
         dockSearchReplace->setObjectName(QString::fromUtf8("dockSearchReplace"));
-        dockSearchReplace->setMinimumSize(QSize(52, 100));
-        dockSearchReplace->setFeatures(QDockWidget::DockWidgetFloatable|QDockWidget::DockWidgetMovable);
+        dockSearchReplace->setMinimumSize(QSize(70, 100));
+        dockSearchReplace->setFeatures(QDockWidget::AllDockWidgetFeatures);
         dockWidgetContents = new QWidget();
         dockWidgetContents->setObjectName(QString::fromUtf8("dockWidgetContents"));
         label = new QLabel(dockWidgetContents);
@@ -354,6 +371,9 @@ public:
         mnuPRogram->addAction(action_verify);
         mnuPRogram->addAction(garbageCollect);
         mnuPRogram->addAction(action_wonderfulmonitor);
+        mnuPRogram->addAction(actionSpeedFast);
+        mnuPRogram->addAction(actionSpeedMedium);
+        mnuPRogram->addAction(actionSpeedSlow);
         mnuHelp->addAction(action);
         mnuHelp->addAction(action_help_keyboard);
         mnuHelp->addSeparator();
@@ -366,6 +386,7 @@ public:
         mnuTest->addAction(actionLexize);
         mnuTest->addAction(actionParse);
         mnuTest->addAction(actionCompile);
+        mnuTest->addAction(actionCompile_without_tags);
         mnuTest->addAction(actionEvaluate);
         mnuTest->addAction(actionLoad_Compilation_unit);
         mainToolBar->addAction(action_new);
@@ -434,6 +455,13 @@ public:
         action_find->setText(QApplication::translate("MainWindow", "\330\250\330\255\330\253...", 0, QApplication::UnicodeUTF8));
         action_find->setShortcut(QApplication::translate("MainWindow", "Ctrl+F", 0, QApplication::UnicodeUTF8));
         action_replace->setText(QApplication::translate("MainWindow", "\330\247\330\263\330\252\330\250\330\257\330\247\331\204...", 0, QApplication::UnicodeUTF8));
+        actionSpeedFast->setText(QApplication::translate("MainWindow", "\330\263\330\261\331\212\330\271", 0, QApplication::UnicodeUTF8));
+        actionSpeedFast->setShortcut(QApplication::translate("MainWindow", "Alt+Q", 0, QApplication::UnicodeUTF8));
+        actionSpeedMedium->setText(QApplication::translate("MainWindow", "\331\205\330\252\331\210\330\263\330\267", 0, QApplication::UnicodeUTF8));
+        actionSpeedMedium->setShortcut(QApplication::translate("MainWindow", "Alt+A", 0, QApplication::UnicodeUTF8));
+        actionSpeedSlow->setText(QApplication::translate("MainWindow", "\330\250\330\267\331\212\330\241", 0, QApplication::UnicodeUTF8));
+        actionSpeedSlow->setShortcut(QApplication::translate("MainWindow", "Alt+Z", 0, QApplication::UnicodeUTF8));
+        actionCompile_without_tags->setText(QApplication::translate("MainWindow", "Compile without tags", 0, QApplication::UnicodeUTF8));
         tabWidget->setTabText(tabWidget->indexOf(tab), QApplication::translate("MainWindow", "\330\247\331\204\330\261\330\263\330\247\330\246\331\204", 0, QApplication::UnicodeUTF8));
         tabWidget->setTabText(tabWidget->indexOf(tab_2), QApplication::translate("MainWindow", "\330\247\331\204\331\205\330\252\330\272\331\212\330\261\330\247\330\252", 0, QApplication::UnicodeUTF8));
         mnuFile->setTitle(QApplication::translate("MainWindow", "\331\205\331\204\331\201", 0, QApplication::UnicodeUTF8));

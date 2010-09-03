@@ -33,7 +33,7 @@ callex to_string
 ret
 .endmethod
 
-.method قرب 1
+.method تقريب 1
 callex round
 ret
 .endmethod

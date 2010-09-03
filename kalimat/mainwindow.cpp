@@ -41,6 +41,11 @@ MainWindow::MainWindow(QWidget *parent)
 {
     MainWindow::that = this;
     ui->setupUi(this);
+    speedGroup = new QActionGroup(this);
+    speedGroup->addAction(ui->actionSpeedFast);
+    speedGroup->addAction(ui->actionSpeedMedium);
+    speedGroup->addAction(ui->actionSpeedSlow);
+
     ui->dockSearchReplace->hide();
     docContainer = new DocumentContainer("mohamedsamy",
                                          "kalimat 1.0",
@@ -83,6 +88,7 @@ void MainWindow::LoadDocIntoWidget(CodeDocument *doc, QWidget *widget)
 MainWindow::~MainWindow()
 {
     delete ui;
+    delete speedGroup;
 }
 
 class MyEdit : public QTextEdit
@@ -268,8 +274,44 @@ void MainWindow::on_actionCompile_triggered()
     {
         ui->outputView->append(ex.getMessage());
     }
+}
+void MainWindow::on_actionCompile_without_tags_triggered()
+{
+    KalimatLexer lxr;
+    KalimatParser parser;
 
+    try
+    {
+        ui->outputView->clear();
+        CodeDocument *doc = docContainer->getCurrentDocument();
+        Compiler compiler;
 
+        QString output;
+        if(doc->isDocNewFile() || doc->isFileDirty())
+            output = compiler.CompileFromCode(doc->getEditor()->document()->toPlainText(), doc);
+        else
+            output = compiler.CompileFromFile(doc->getFileName(), NULL);
+
+        QRegExp rx("@([^\n])*\n");
+        output = output.replace(rx, "\r\n");
+        ui->outputView->append(output);
+    }
+    catch(UnexpectedCharException ex)
+    {
+        ui->outputView->append(ex.buildMessage());
+    }
+    catch(UnexpectedEndOfFileException ex)
+    {
+        ui->outputView->append("Unexpected end of file");
+    }
+    catch(ParserException ex)
+    {
+        ui->outputView->append(ex.message);
+    }
+    catch(CompilerException ex)
+    {
+        ui->outputView->append(ex.getMessage());
+    }
 }
 
 void MainWindow::on_mnuProgramRun_triggered()
@@ -381,6 +423,16 @@ void MainWindow::highlightToken(QTextEdit *editor, int pos, int length)
 bool MainWindow::isWonderfulMonitorEnabled()
 {
     return ui->action_wonderfulmonitor->isChecked();
+}
+int MainWindow::wonderfulMonitorDelay()
+{
+    if(ui->actionSpeedFast->isChecked())
+        return 100;
+    if(ui->actionSpeedMedium->isChecked())
+        return 500;
+    if(ui->actionSpeedSlow->isChecked())
+        return 1500;
+    return 500;
 }
 
 void MainWindow::visualizeCallStack(QStack<Frame> &callStack, QGraphicsView *view)
@@ -730,3 +782,5 @@ void MainWindow::on_btnReplaceNext_clicked()
         }
     }
 }
+
+

@@ -20,6 +20,7 @@
 
 #include <QQueue>
 #include <QGraphicsView>
+#include <QActionGroup>
 
 namespace Ui
 {
@@ -35,7 +36,9 @@ public:
     static MainWindow *that;
     MainWindow(QWidget *parent = 0);
     ~MainWindow();
+
     bool isWonderfulMonitorEnabled();
+    int wonderfulMonitorDelay();
     void markCurrentInstruction(VM *vm, int &pos, int &length);
     void handleVMError(VMError err);
     void highlightLine(QTextEdit *editor, int pos);
@@ -47,6 +50,7 @@ public:
     QMap<int, CodePosition> PositionInfo;
     QStack<QString> pathsOfModuleClients; // must always be absolute paths
 private:
+    QActionGroup *speedGroup;
     Ui::MainWindow *ui;
     SyntaxHighlighter *syn;
     VM vm;
@@ -57,6 +61,7 @@ private:
     virtual QWidget *CreateEditorWidget();
     QTextEdit *currentEditor();
 private slots:
+    void on_actionCompile_without_tags_triggered();
     void on_btnReplaceNext_clicked();
     void on_btnReplacePrev_clicked();
     void on_btnFindNext_clicked();

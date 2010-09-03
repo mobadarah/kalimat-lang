@@ -1,7 +1,7 @@
 /********************************************************************************
 ** Form generated from reading UI file 'savechangedfiles.ui'
 **
-** Created: Fri 27. Aug 00:38:53 2010
+** Created: Wed 1. Sep 01:54:13 2010
 **      by: Qt User Interface Compiler version 4.6.2
 **
 ** WARNING! All changes made in this file will be lost when recompiling UI file!

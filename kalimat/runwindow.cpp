@@ -185,7 +185,7 @@ void RunWindow::Run()
                 //&&  (oldPos != pos ) && (oldLen != len)
                 )
             {
-                QTime dieTime = QTime::currentTime().addMSecs(500);
+                QTime dieTime = QTime::currentTime().addMSecs(mw->wonderfulMonitorDelay());
                 while( QTime::currentTime() < dieTime )
                     QCoreApplication::processEvents(QEventLoop::AllEvents, 100);
             }

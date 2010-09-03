@@ -21,7 +21,10 @@ public:
     bool visible;
 public:
     Sprite(QString filename);
+    void setImage(QPixmap image);
     QRect boundingRect();
+private:
+    void prepareMask(QPixmap image);
 };
 
 #endif // SPRITE_H
