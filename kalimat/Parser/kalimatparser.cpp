@@ -251,24 +251,59 @@ Statement *KalimatParser::ifStmt()
         else
             thenPart = statement();
 
+        QVector<Token> positions;
+        QVector<Expression *> conditions;
+        QVector<Statement *> statements;
+
+        while(LA2(ELSE, IF))
+        {
+            match(ELSE);
+            Token p2 = lookAhead;
+            positions.append(p2);
+            match(IF);
+            Expression *cond2 = expression();
+            conditions.append(cond2);
+            match(COLON);
+            Statement *otherPart;
+            if(newLine)
+            {
+                match(NEWLINE);
+                otherPart = block();
+            }
+            else
+            {
+                otherPart = statement();
+            }
+            statements.append(otherPart);
+        }
+
         if(LA(ELSE))
         {
             match(ELSE);
+
+
             match(COLON);
             if(newLine)
                 match(NEWLINE);
+
             if(newLine)
             {
                 elsePart = block();
            //     match(NEWLINE);
             }
             else
+            {
                 elsePart = statement();
+            }
         }
         if(newLine)
         {
          //  match(NEWLINE);
            match(DONE);
+        }
+        for(int i=positions.count()-1; i>=0; i--)
+        {
+            elsePart  = new IfStmt(positions[i], conditions[i], statements[i], elsePart);
         }
         return new IfStmt(ifTok, cond, thenPart, elsePart);
     }
@@ -840,7 +875,7 @@ Declaration *KalimatParser::classDecl()
                 match(COMMA);
                 Identifier *methodName = identifier();
                 QVector<Identifier *> formals= formalParamList();
-                methods[methodName->name] = MethodInfo(formals.count(), false);
+                methods[methodName->name] = MethodInfo(formals.count(), true);
             }
             match(NEWLINE);
         }
