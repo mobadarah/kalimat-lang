@@ -38,6 +38,11 @@ callex round
 ret
 .endmethod
 
+.method باقي.قسمة 2
+callex remainder
+ret
+.endmethod
+
 .method جا 1
 callex sin
 ret
@@ -50,6 +55,21 @@ ret
 
 .method ظا 1
 callex tan
+ret
+.endmethod
+
+.method معكوس.جا 1
+callex asin
+ret
+.endmethod
+
+.method معكوس.جتا 1
+callex acos
+ret
+.endmethod
+
+.method معكوس.ظا 1
+callex atan
 ret
 .endmethod
 
@@ -90,6 +110,11 @@ ret
 
 .method وسط 3
 callex str_mid
+ret
+.endmethod
+
+.method تفصيص 2 1 
+callex str_split
 ret
 .endmethod
 

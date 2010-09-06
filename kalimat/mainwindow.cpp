@@ -24,6 +24,7 @@
 
 #include <QMessageBox>
 #include <QFileDialog>
+#include <QInputDialog>
 #include <QCloseEvent>
 #include <QSplitter>
 #include <QVBoxLayout>
@@ -167,6 +168,7 @@ void MyEdit::keyPressEvent(QKeyEvent *ev)
     }
 }
 
+
 QWidget *MainWindow::CreateEditorWidget()
 {
     MyEdit *edit = new MyEdit();
@@ -248,7 +250,7 @@ void MainWindow::on_actionCompile_triggered()
     {
         ui->outputView->clear();
         CodeDocument *doc = docContainer->getCurrentDocument();
-        Compiler compiler;
+        Compiler compiler(docContainer);
 
         QString output;
         if(doc->isDocNewFile() || doc->isFileDirty())
@@ -284,7 +286,7 @@ void MainWindow::on_actionCompile_without_tags_triggered()
     {
         ui->outputView->clear();
         CodeDocument *doc = docContainer->getCurrentDocument();
-        Compiler compiler;
+        Compiler compiler(docContainer);
 
         QString output;
         if(doc->isDocNewFile() || doc->isFileDirty())
@@ -325,7 +327,7 @@ void MainWindow::on_mnuProgramRun_triggered()
 
         ui->outputView->clear();
         doc = docContainer->getCurrentDocument();
-        Compiler compiler;
+        Compiler compiler(docContainer);
 
         QString output;
         QString path;
@@ -577,7 +579,7 @@ void MainWindow::on_actionLoad_Compilation_unit_triggered()
 {
     try
     {
-        Compiler compiler;
+        Compiler compiler(docContainer);
         //QString output = compiler.CompileFromFile("c:/code/kalimat/examples/module1.k");
         QString output = compiler.CompileFromFile("c:/code/kalimat/examples/program1.k", NULL);
 
@@ -784,3 +786,21 @@ void MainWindow::on_btnReplaceNext_clicked()
 }
 
 
+
+void MainWindow::on_actionGo_to_position_triggered()
+{
+    bool ok;
+    QString text = QInputDialog::getText(this, "Go to position",
+                                         "pos:", QLineEdit::Normal,
+                                         "0", &ok);
+    if (ok && !text.isEmpty())
+    {
+        long pos = text.toLong(&ok, 10);
+        if(ok)
+        {
+            QTextCursor c = currentEditor()->textCursor();
+            c.setPosition(pos);
+            currentEditor()->setTextCursor(c);
+        }
+    }
+}

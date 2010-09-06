@@ -1,7 +1,7 @@
 /********************************************************************************
 ** Form generated from reading UI file 'runwindow.ui'
 **
-** Created: Wed 1. Sep 01:54:13 2010
+** Created: Sun 5. Sep 21:22:11 2010
 **      by: Qt User Interface Compiler version 4.6.2
 **
 ** WARNING! All changes made in this file will be lost when recompiling UI file!

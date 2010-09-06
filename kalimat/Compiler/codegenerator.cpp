@@ -233,7 +233,7 @@ void CodeGenerator::generateDeclaration(Declaration * decl)
     {
         // It'll be handled by it's owning class, the thirdPass()
         // introduced them to each other. But we need this 'else' clause
-        // to stop the final 'else' from throwing a "not supported yet" exception
+        // to stop the final 'else' from throwing a "supported yet" exception
     }
     else if(isa<GlobalDecl>(decl))
     {

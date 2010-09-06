@@ -16,6 +16,7 @@ enum VMErrorType
 
     UnrecognizedInstruction,UnrecognizedMnemonic,
     GettingFieldOnNonObject, SettingFieldOnNonObject, CallingMethodOnNonObject,
+    GettingFieldOnNull, SettingFieldOnNull, CallingMethodOnNull,
     NumericOperationOnNonNumber, LogicOperationOnNonBoolean,
 
     DivisionByZero,

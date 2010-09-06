@@ -14,12 +14,14 @@ public:
     KalimatLexer lexer;
     KalimatParser parser;
     CodeGenerator generator;
+    DocumentContainer *documentContainer;
 public:
     QMap<QString, Module *> loadedModules; // Maps from absolute path -> Module
+    QMap<Module *, QString> pathsOfModules; // Module -> absolute path
     QStack<QString> pathStack;
     QString currentSource;
 public:
-    Compiler();
+    Compiler(DocumentContainer *);
     Module *loadModule(QString path);
     Program *loadProgram(QString path);
 

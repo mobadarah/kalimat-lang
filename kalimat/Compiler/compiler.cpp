@@ -11,15 +11,16 @@
 #include "Parser/kalimatast.h"
 #include "Parser/kalimatparser.h"
 #include "codedocument.h"
+#include "documentcontainer.h"
 #include "codegenerator.h"
 
 
 
 #include "compiler.h"
 
-Compiler::Compiler()
+Compiler::Compiler(DocumentContainer *container)
 {
-    
+    this->documentContainer = container;
 }
 AST *parseModule(Parser *p)
 {
@@ -37,6 +38,7 @@ Program *Compiler::loadProgram(QString path)
         if(!loadedModules.contains(fullPath))
             loadModule(fullPath);
         Module *importedMod = loadedModules[fullPath];
+        pathsOfModules[importedMod] = fullPath;
         /*
         for(int i=0; i<importedMod->declCount(); i++)
         {
@@ -56,6 +58,7 @@ Module *Compiler::loadModule(QString path)
     parser.init(loadFileContents(path), &lexer);
     Module *m = (Module *) parser.parse(parseModule);
     loadedModules[path] = m;
+    pathsOfModules[m] = path;
     for(int i=0; i<m->usedModuleCount(); i++)
     {
         QString m2 = m->usedModule(i)->value;
@@ -63,6 +66,7 @@ Module *Compiler::loadModule(QString path)
         if(!loadedModules.contains(fullPath))
             loadModule(fullPath);
         Module *importedMod = loadedModules[fullPath];
+        pathsOfModules[importedMod] = fullPath;
         /*
         for(int i=0; i<importedMod->declCount(); i++)
         {
@@ -80,7 +84,9 @@ void Compiler::generateAllLoadedModules()
 {
     for(QMap<QString,Module *>::iterator i= loadedModules.begin(); i!=loadedModules.end(); ++i)
     {
-        generator.compileModule(*i, NULL);
+        Module *mod = *i;
+        CodeDocument *doc = documentContainer->getDocumentFromPath(pathsOfModules[mod]);
+        generator.compileModule(mod, doc);
     }
 }
 

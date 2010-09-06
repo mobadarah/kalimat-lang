@@ -1,7 +1,7 @@
 /********************************************************************************
 ** Form generated from reading UI file 'mainwindow.ui'
 **
-** Created: Fri 3. Sep 02:28:53 2010
+** Created: Sun 5. Sep 21:22:11 2010
 **      by: Qt User Interface Compiler version 4.6.2
 **
 ** WARNING! All changes made in this file will be lost when recompiling UI file!
@@ -76,6 +76,7 @@ public:
     QAction *actionSpeedMedium;
     QAction *actionSpeedSlow;
     QAction *actionCompile_without_tags;
+    QAction *actionGo_to_position;
     QWidget *centralWidget;
     QTabWidget *editorTabs;
     QTabWidget *tabWidget;
@@ -217,6 +218,8 @@ public:
         actionSpeedSlow->setChecked(false);
         actionCompile_without_tags = new QAction(MainWindow);
         actionCompile_without_tags->setObjectName(QString::fromUtf8("actionCompile_without_tags"));
+        actionGo_to_position = new QAction(MainWindow);
+        actionGo_to_position->setObjectName(QString::fromUtf8("actionGo_to_position"));
         centralWidget = new QWidget(MainWindow);
         centralWidget->setObjectName(QString::fromUtf8("centralWidget"));
         QSizePolicy sizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::MinimumExpanding);
@@ -389,6 +392,7 @@ public:
         mnuTest->addAction(actionCompile_without_tags);
         mnuTest->addAction(actionEvaluate);
         mnuTest->addAction(actionLoad_Compilation_unit);
+        mnuTest->addAction(actionGo_to_position);
         mainToolBar->addAction(action_new);
         mainToolBar->addAction(action_open);
         mainToolBar->addAction(action_save);
@@ -462,6 +466,8 @@ public:
         actionSpeedSlow->setText(QApplication::translate("MainWindow", "\330\250\330\267\331\212\330\241", 0, QApplication::UnicodeUTF8));
         actionSpeedSlow->setShortcut(QApplication::translate("MainWindow", "Alt+Z", 0, QApplication::UnicodeUTF8));
         actionCompile_without_tags->setText(QApplication::translate("MainWindow", "Compile without tags", 0, QApplication::UnicodeUTF8));
+        actionGo_to_position->setText(QApplication::translate("MainWindow", "Go to position", 0, QApplication::UnicodeUTF8));
+        actionGo_to_position->setShortcut(QApplication::translate("MainWindow", "Ctrl+G", 0, QApplication::UnicodeUTF8));
         tabWidget->setTabText(tabWidget->indexOf(tab), QApplication::translate("MainWindow", "\330\247\331\204\330\261\330\263\330\247\330\246\331\204", 0, QApplication::UnicodeUTF8));
         tabWidget->setTabText(tabWidget->indexOf(tab_2), QApplication::translate("MainWindow", "\330\247\331\204\331\205\330\252\330\272\331\212\330\261\330\247\330\252", 0, QApplication::UnicodeUTF8));
         mnuFile->setTitle(QApplication::translate("MainWindow", "\331\205\331\204\331\201", 0, QApplication::UnicodeUTF8));

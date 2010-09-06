@@ -60,11 +60,12 @@ void DocumentContainer::addDocument(QString title, QString fileName, QWidget *ed
 
     int tabIndex = tabWidget->addTab(editor, title);
     tabWidget->setCurrentIndex(tabIndex);
+
     
     if(!createNew)
-        doc = CodeDocument::openDoc(fileName, tabWidget, tabIndex, this);
+        doc = CodeDocument::openDoc(fileName, tabWidget, editor, this);
     else
-        doc = CodeDocument::newDoc(fileName, tabWidget, tabIndex, this);
+        doc = CodeDocument::newDoc(fileName, tabWidget, editor, this);
     widgetDocs[editor] = doc;
 }
 CodeDocument *DocumentContainer::getCurrentDocument()
@@ -73,6 +74,16 @@ CodeDocument *DocumentContainer::getCurrentDocument()
         return NULL;
     return widgetDocs[tabWidget->currentWidget()];
 }
+CodeDocument *DocumentContainer::getDocumentFromPath(QString path)
+{
+    for(int i=0; i<widgetDocs.values().count(); i++)
+    {
+        if(!widgetDocs.values()[i]->isDocNewFile() && widgetDocs.values()[i]->getFileName() == path)
+            return widgetDocs.values()[i];
+    }
+    return NULL;
+}
+
 CodeDocument *DocumentContainer::getDocumentFromTab(int index)
 {
     return widgetDocs[tabWidget->widget(index)];
@@ -120,7 +131,7 @@ void DocumentContainer::recentfile_triggered()
             }
         }
         if(!found)
-            addDocument(fileName, fileName, client->CreateEditorWidget(), false);
+            addDocument(QFileInfo(fileName).fileName(), fileName, client->CreateEditorWidget(), false);
     }
 
 }
@@ -151,7 +162,7 @@ void DocumentContainer::handleOpen(QWidget *editor)
         QFileInfo f = QFileInfo(fileName);
         dir = f.absoluteDir().absolutePath();
         settings.setValue("last_open_dir", dir);
-        addDocument(fileName, fileName, editor, false);
+        addDocument(QFileInfo(fileName).fileName(), fileName, editor, false);
 
     }
 }

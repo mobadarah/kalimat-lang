@@ -24,17 +24,16 @@ class CodeDocument : public QObject
     Q_OBJECT
 
 private:
-    bool isDirty, isNewFile;
+    bool _isDirty, isNewFile;
     QString _fileName;
     QTextEdit *editor;
     QTabWidget *tabs;
-    int tabIndex;
     DocumentContainer *container;
-    CodeDocument(QString fileName, QTabWidget *tabs, int tabIndex, DocumentContainer *container);
+    CodeDocument(QString fileName, QTabWidget *tabs, QWidget *tabWidget, DocumentContainer *container);
 public:
 
-    static CodeDocument *newDoc(QString fileName, QTabWidget *tabs, int tabIndex, DocumentContainer *container);
-    static CodeDocument *openDoc(QString fileName, QTabWidget *tabs, int tabIndex, DocumentContainer *container);
+    static CodeDocument *newDoc(QString fileName, QTabWidget *tabs, QWidget *tabWidget, DocumentContainer *container);
+    static CodeDocument *openDoc(QString fileName, QTabWidget *tabs, QWidget *tabWidget, DocumentContainer *container);
     virtual ~CodeDocument();
     QTextEdit *getEditor();
     void setDirty(bool dirty);
@@ -46,11 +45,13 @@ public:
     void doSaveAs();
     void setFileName(QString);
 private:
-    void initTabLink(QTabWidget *tabBar, int tabIndex);
+    void initTabLink(QTabWidget *tabBar, QWidget * tabWidget);
     void load();
     void save();
 
     bool GetSaveFilename();
+    void setTabText(QString);
+    QString getTabText();
 public slots:
     void editor_textChanged();
     void editor_cursorPositionChanged();

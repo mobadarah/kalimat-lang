@@ -125,7 +125,9 @@ private:
     void BuiltInBinaryOp(int (*intFunc)(int,int), double (*doubleFunc)(double,double), QString *(*strFunc)(QString *,QString *));
     void BinaryBoolOp(int (*intFunc)(int,int), int (*doubleFunc)(double,double), int (*objFunc)(Object *, Object *),
                       int (*strFunc)(QString *, QString *),
-                      int (*rawFunc)(void *, void *));
+                      int (*rawFunc)(void *, void *),
+                      int (*differentTypesFunc)(Value *, Value *),
+                      int (*nullFunc)());
     void BinaryLogicOp(int (*intFunc)(int,int));
     void UnaryLogicOp(int (*intFunc)(int));
 public:

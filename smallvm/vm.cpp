@@ -14,7 +14,9 @@ VM::VM()
 }
 void VM::Init()
 {
-    Method *method = (Method *) constantPool["main"]->unboxObj();
+    if(!constantPool.contains("main"))
+        signal(InternalError, "No main method in program");
+    Method *method = dynamic_cast<Method *>(constantPool["main"]->unboxObj());
     QString malaf = "%file";
     Value::FileType = (ValueClass *) constantPool[malaf]->unboxObj();
     stack.clear();
@@ -922,7 +924,11 @@ int eq_str(QString *a, QString *b)
     QString *s2 = (QString *) b;
     return QString::compare(*s1, *s2, Qt::CaseSensitive) == 0;
 }
-
+int eq_difftypes(Value *, Value *)
+{
+    return false;
+}
+int eq_bothnull() { return true;}
 
 int ne_int(int a, int b) { return a!=b;}
 int ne_double(double a, double b) { return a!=b;}
@@ -934,6 +940,11 @@ int ne_str(QString*a, QString*b)
     QString *s2 = (QString *) b;
     return QString::compare(*s1, *s2, Qt::CaseSensitive) != 0;
 }
+int ne_difftypes(Value *, Value *)
+{
+    return true;
+}
+int ne_bothnull() { return false; }
 
 void VM::DoAdd()
 {
@@ -1002,11 +1013,11 @@ void VM::DoGt()
 }
 void VM::DoEq()
 {
-    BinaryBoolOp(eq_int, eq_double, eq_obj, eq_str, eq_raw);
+    BinaryBoolOp(eq_int, eq_double, eq_obj, eq_str, eq_raw, eq_difftypes, eq_bothnull);
 }
 void VM::DoNe()
 {
-    BinaryBoolOp(ne_int, ne_double, ne_obj, ne_str, ne_raw);
+    BinaryBoolOp(ne_int, ne_double, ne_obj, ne_str, ne_raw, ne_difftypes, ne_bothnull);
 }
 void VM::DoLe()
 {
@@ -1071,6 +1082,7 @@ void VM::DoCallMethod(QString SymRef, int arity)
     QVector<Value *> args;
     Value *receiver = currentFrame()->OperandStack.pop();
 
+    assert( receiver->tag != NullVal, CallingMethodOnNull);
     assert(receiver ->tag == ObjectVal, CallingMethodOnNonObject);
     Method *method = receiver->type->lookupMethod(SymRef);
 
@@ -1136,7 +1148,7 @@ void VM::DoSetField(QString SymRef)
     Value *v = currentFrame()->OperandStack.pop();
     Value *objVal = currentFrame()->OperandStack.pop();
 
-
+    assert(objVal->tag != NullVal, SettingFieldOnNull);
     assert(objVal->tag == ObjectVal, SettingFieldOnNonObject);
     assert(objVal->type->fields.contains(SymRef), NoSuchField, SymRef);
 
@@ -1148,6 +1160,7 @@ void VM::DoGetField(QString SymRef)
     // ...object => val
     Value *objVal = currentFrame()->OperandStack.pop();
 
+    assert(objVal->tag != NullVal, GettingFieldOnNull);
     assert(objVal->tag == ObjectVal, GettingFieldOnNonObject);
     assert(objVal->type->fields.contains(SymRef), NoSuchField, SymRef);
 
@@ -1159,6 +1172,8 @@ void VM::DoGetFieldRef(QString SymRef)
 {
     // ...object => ...fieldRef
     Value *objVal = currentFrame()->OperandStack.pop();
+
+    assert(objVal->tag != NullVal, GettingFieldOnNull);
     assert(objVal->tag == ObjectVal, GettingFieldOnNonObject);
     assert(objVal->type->fields.contains(SymRef), NoSuchField, SymRef);
     Value *ref = allocator.newFieldReference(objVal->unboxObj(), SymRef);
@@ -1441,7 +1456,9 @@ void VM::BinaryBoolOp(int (*intFunc)(int,int),
                       int (*doubleFunc)(double,double),
                       int (*objFunc)(Object *, Object *),
                       int (*strFunc)(QString *, QString *),
-                      int (*rawFunc)(void *, void *))
+                      int (*rawFunc)(void *, void *),
+                      int (*differentTypesFunc)(Value *, Value *),
+                      int (*nullFunc)())
 {
     Value *v2 = currentFrame()->OperandStack.pop();
     Value *v1 = currentFrame()->OperandStack.pop();
@@ -1454,22 +1471,32 @@ void VM::BinaryBoolOp(int (*intFunc)(int,int),
     {
         v2 = allocator.newDouble(v2->v.intVal);
     }
-    assert(v1->tag == v2->tag
-           && (v1->tag == Int || v1->tag == Double || v1->tag == ObjectVal || v1->tag == StringVal || v1->tag == ObjectVal || v1->tag == RawVal), TypeError);
-
     Value *v3 = NULL;
     int result;
 
-    if(v1->tag == Int)
-        result = intFunc(v1->v.intVal, v2->v.intVal);
-    if(v1->tag == Double)
-        result = doubleFunc(v1->v.doubleVal, v2->v.doubleVal);
-    if(v1->tag == ObjectVal)
-        result = objFunc(v1->v.objVal, v2->v.objVal);
-    if(v1->tag == StringVal)
-        result = strFunc(v1->unboxStr(), v2->unboxStr());
-    if(v1->tag == RawVal)
-        result = rawFunc(v1->unboxRaw(), v2->unboxRaw());
+    // If both values are of the same type...
+    if(v1->tag == v2->tag
+           && (v1->tag == Int || v1->tag == Double || v1->tag == ObjectVal
+               || v1->tag == StringVal || v1->tag == ObjectVal || v1->tag == RawVal || v1->tag == NullVal))
+
+    {
+        if(v1->tag == Int)
+            result = intFunc(v1->v.intVal, v2->v.intVal);
+        if(v1->tag == Double)
+            result = doubleFunc(v1->v.doubleVal, v2->v.doubleVal);
+        if(v1->tag == ObjectVal)
+            result = objFunc(v1->v.objVal, v2->v.objVal);
+        if(v1->tag == StringVal)
+            result = strFunc(v1->unboxStr(), v2->unboxStr());
+        if(v1->tag == RawVal)
+            result = rawFunc(v1->unboxRaw(), v2->unboxRaw());
+        if(v1->tag == NullVal)
+            result = nullFunc();
+    }
+    else
+    {
+        result = differentTypesFunc(v1, v2);
+    }
     v3 = allocator.newInt(result);
     currentFrame()->OperandStack.push(v3);
 }

@@ -11,54 +11,55 @@
 #include <QFileDialog>
 #include <QStatusBar>
 #include <QSettings>
+#include <QGraphicsBlurEffect>
 
 #include "codedocument.h"
 #include "documentcontainer.h"
 
 //#include "mainwindow.h"
 
-CodeDocument *CodeDocument::newDoc(QString fileName, QTabWidget *tabs, int tabIndex, DocumentContainer *container)
+CodeDocument *CodeDocument::newDoc(QString fileName, QTabWidget *tabs, QWidget *tabWidget, DocumentContainer *container)
 {
-    CodeDocument *ret = new CodeDocument(fileName, tabs, tabIndex, container);
+    CodeDocument *ret = new CodeDocument(fileName, tabs, tabWidget, container);
     ret->isNewFile = true;
     return ret;
 }
 
-CodeDocument *CodeDocument::openDoc(QString fileName, QTabWidget *tabs, int tabIndex, DocumentContainer *container)
+CodeDocument *CodeDocument::openDoc(QString fileName, QTabWidget *tabs, QWidget *tabWidget, DocumentContainer *container)
 {
-    CodeDocument *ret = new CodeDocument(fileName, tabs, tabIndex, container);
+    CodeDocument *ret = new CodeDocument(fileName, tabs, tabWidget, container);
     ret->isNewFile = false;
     ret->load();
     return ret;
 }
 
-CodeDocument::CodeDocument(QString fileName, QTabWidget *tabs, int tabIndex, DocumentContainer *container) : QObject(NULL)
+CodeDocument::CodeDocument(QString fileName, QTabWidget *tabs, QWidget *tabWidget, DocumentContainer *container) : QObject(NULL)
 {
     isNewFile = true;            // prevent setFile from updating the recentFileHandler
                                  // upon construction
 
-    this->container = container; // setFileName uses the 'container' member, always set it first
+    this->container = container; // setFileName & setDirty use the 'container' member, always set it first
+    initTabLink(tabs, tabWidget);
     setFileName(fileName);
-    isDirty = false;
+    setDirty(false);
 
-    initTabLink(tabs, tabIndex);
+
 }
 CodeDocument::~CodeDocument()
 {
 
 }
 
-void CodeDocument::initTabLink(QTabWidget *tabBar, int tabIndex)
+void CodeDocument::initTabLink(QTabWidget *tabBar, QWidget * tabWidget)
 {
     this->tabs = tabBar;
-    this->tabIndex = tabIndex;
-    this->editor = (QTextEdit *) tabBar->widget(tabIndex);
+    this->editor = (QTextEdit *) tabWidget;
     bool ret = QObject::connect(this->editor, SIGNAL(textChanged()), this, SLOT(editor_textChanged()));
     ret =  QObject::connect(this->editor, SIGNAL(cursorPositionChanged()), this, SLOT(editor_cursorPositionChanged()));
 }
 bool CodeDocument::isFileDirty()
 {
-    return isDirty;
+    return _isDirty;
 }
 bool CodeDocument::isDocNewFile()
 {
@@ -67,7 +68,15 @@ bool CodeDocument::isDocNewFile()
 
 void CodeDocument::setDirty(bool dirty)
 {
-    isDirty = dirty;
+    _isDirty = dirty;
+
+    QString str = getTabText().replace("*","");
+    if(dirty)
+    {
+        str = "*" + str;
+
+    }
+    setTabText(str);
 }
 QString CodeDocument::getFileName()
 {
@@ -103,7 +112,7 @@ void CodeDocument::editor_textChanged()
     // tracing will clear the selection. Users shouldn't do that anyway, and we probably
     // should make the editor read-only when running the tracer.
     editor->extraSelections().clear();
-    isDirty = editor->document()->isModified();
+    setDirty(editor->document()->isModified());
 }
 
 void CodeDocument::editor_cursorPositionChanged()
@@ -123,13 +132,14 @@ void CodeDocument::load()
     QString fn = getFileName();
     if(!fn.isEmpty() && QFile::exists(fn))
     {
-        tabs->setTabText(tabIndex, fn);
+        QFileInfo
+        setTabText(QFileInfo(fn).fileName());
         QFile f(fn);
         f.open(QIODevice::ReadOnly | QIODevice::Text);
         QTextStream out(&f);
         editor->document()->setPlainText(out.readAll());
         f.close();
-        isDirty = false;
+        setDirty(false);
         isNewFile = false;
         setFileName(fn); // 'Touch' the file to update the recent file list
     }
@@ -146,7 +156,8 @@ void CodeDocument::save()
         out.setGenerateByteOrderMark(true);
         out << editor->document()->toPlainText();
         f.close();
-        isDirty = isNewFile = false;
+        setDirty(false);
+        isNewFile = false;
     }
 }
 bool CodeDocument::doSave()
@@ -176,7 +187,7 @@ void CodeDocument::doSaveAs()
 
 bool CodeDocument::canDiscard()
 {
-    if(isDirty == false)
+    if(isFileDirty() == false)
     {
         return true;
     }
@@ -229,8 +240,18 @@ bool CodeDocument::GetSaveFilename()
         settings.setValue("last_save_dir", dir);
 
         setFileName(fn);
-        tabs->setTabText(tabIndex, fn);
+        setTabText(QFileInfo(fn).fileName());
         return true;
     }
     return false;
+}
+void CodeDocument::setTabText(QString s)
+{
+    int tabIndex = tabs->indexOf(editor);
+    tabs->setTabText(tabIndex, s);
+}
+QString CodeDocument::getTabText()
+{
+    int tabIndex = tabs->indexOf(editor);
+    return tabs->tabText(tabIndex);
 }

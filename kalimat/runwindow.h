@@ -61,14 +61,21 @@ void RandomProc(QStack<Value *> &stack, RunWindow *, VM *w);
 void ToNumProc(QStack<Value *> &stack, RunWindow *, VM *w);
 void ToStringProc(QStack<Value *> &stack, RunWindow *, VM *);
 void RoundProc(QStack<Value *> &stack, RunWindow *, VM *);
+void RemainderProc(QStack<Value *> &stack, RunWindow *, VM *);
 void ConcatProc(QStack<Value *> &stack, RunWindow *, VM *);
 void StrFirstProc(QStack<Value *> &stack, RunWindow *, VM *);
 void StrLastProc(QStack<Value *> &stack, RunWindow *, VM *);
 void StrLenProc(QStack<Value *> &stack, RunWindow *, VM *);
 void StrMidProc(QStack<Value *> &stack, RunWindow *, VM *);
+void StrSplitProc(QStack<Value *> &stack, RunWindow *, VM *);
+
 void SinProc(QStack<Value *> &stack, RunWindow *, VM *);
 void CosProc(QStack<Value *> &stack, RunWindow *, VM *);
 void TanProc(QStack<Value *> &stack, RunWindow *, VM *);
+void ASinProc(QStack<Value *> &stack, RunWindow *, VM *);
+void ACosProc(QStack<Value *> &stack, RunWindow *, VM *);
+void ATanProc(QStack<Value *> &stack, RunWindow *, VM *);
+
 void SqrtProc(QStack<Value *> &stack, RunWindow *, VM *);
 void Log10Proc(QStack<Value *> &stack, RunWindow *, VM *);
 void LnProc(QStack<Value *> &stack, RunWindow *, VM *);

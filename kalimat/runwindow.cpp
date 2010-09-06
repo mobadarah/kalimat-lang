@@ -97,16 +97,21 @@ void RunWindow::Init(QString program, QMap<QString, QString>stringConstants)
         vm->Register("sin", new WindowProxyMethod(this, vm, SinProc));
         vm->Register("cos", new WindowProxyMethod(this, vm, CosProc));
         vm->Register("tan", new WindowProxyMethod(this, vm, TanProc));
+        vm->Register("asin", new WindowProxyMethod(this, vm, ASinProc));
+        vm->Register("acos", new WindowProxyMethod(this, vm, ACosProc));
+        vm->Register("atan", new WindowProxyMethod(this, vm, ATanProc));
         vm->Register("sqrt", new WindowProxyMethod(this, vm, SqrtProc));
         vm->Register("log10", new WindowProxyMethod(this, vm, Log10Proc));
         vm->Register("ln", new WindowProxyMethod(this, vm, LnProc));
         vm->Register("to_num", new WindowProxyMethod(this, vm, ToNumProc));
         vm->Register("to_string", new WindowProxyMethod(this, vm, ToStringProc));
         vm->Register("round", new WindowProxyMethod(this, vm, RoundProc));
+        vm->Register("remainder", new WindowProxyMethod(this, vm, RemainderProc));
         vm->Register("concat", new WindowProxyMethod(this, vm, ConcatProc));
         vm->Register("str_first", new WindowProxyMethod(this, vm, StrFirstProc));
         vm->Register("str_last", new WindowProxyMethod(this, vm, StrLastProc));
         vm->Register("str_mid", new WindowProxyMethod(this, vm, StrMidProc));
+        vm->Register("str_split", new WindowProxyMethod(this, vm, StrSplitProc));
         vm->Register("str_len", new WindowProxyMethod(this, vm, StrLenProc));
 
         vm->Register("load_sprite", new WindowProxyMethod(this, vm, LoadSpriteProc));
@@ -473,14 +478,21 @@ void RunWindow::paintEvent(QPaintEvent *)
    textFont.setRawName("Simplified Arabic Fixed");
    imgPainter.setFont(textFont);
    imgPainter.setBackgroundMode((Qt::TransparentMode));
+   QPainter::CompositionMode oldMode = imgPainter.compositionMode();
    for(int i=0; i<sprites.count(); i++)
    {
        Sprite *s = sprites[i];
        if(s->visible)
        {
+
+           imgPainter.setCompositionMode(QPainter::RasterOp_SourceAndDestination);
+           imgPainter.drawPixmap(s->location, s->mask);
+           imgPainter.setCompositionMode(QPainter::RasterOp_SourceOrDestination);
            imgPainter.drawPixmap(s->location, s->image);
+
        }
    }
+   imgPainter.setCompositionMode(oldMode);
    QPen oldPen = imgPainter.pen();
    imgPainter.setPen(textColor);
    for(int i=0; i<visibleTextBuffer.count(); i++)
@@ -1137,6 +1149,21 @@ void StrMidProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
     stack.push(vm->GetAllocator().newString(ret));
 }
 
+void StrSplitProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
+{
+    QString *str = popString(stack, w, vm);
+    QString *separator = popString(stack, w, vm);
+
+    QStringList result = str->split(*separator, QString::KeepEmptyParts);
+    Value *ret = vm->GetAllocator().newArray(result.count());
+    for(int i=0; i<result.count(); i++)
+    {
+        ret->v.arrayVal->Elements[i] = vm->GetAllocator().newString(new QString(result[i]));
+    }
+    stack.push(ret);
+}
+
+
 void ToStringProc(QStack<Value *> &stack, RunWindow *, VM *vm)
 {
     verifyStackNotEmpty(stack, vm);
@@ -1169,6 +1196,18 @@ void RoundProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 {
     double d = popDoubleOrCoercable(stack, w, vm);
     int i = (int) d;
+    stack.push(vm->GetAllocator().newInt(i));
+
+}
+
+void RemainderProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
+{
+    int n1 = popInt(stack, w, vm);
+    int n2 = popInt(stack, w, vm);
+
+    if(n2 == 0)
+        vm->signal(DivisionByZero);
+    int i = n1 % n2;
     stack.push(vm->GetAllocator().newInt(i));
 
 }
@@ -1234,6 +1273,31 @@ void TanProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
     double theta = popDoubleOrCoercable(stack, w, vm);
 
     double result = tan(theta);
+    stack.push(vm->GetAllocator().newDouble(result));
+
+}
+void ASinProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
+{
+
+    double theta = popDoubleOrCoercable(stack, w, vm);
+
+    double result = asin(theta);
+    stack.push(vm->GetAllocator().newDouble(result));
+
+}
+void ACosProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
+{
+    double theta = popDoubleOrCoercable(stack, w, vm);
+
+    double result = acos(theta);
+    stack.push(vm->GetAllocator().newDouble(result));
+
+}
+void ATanProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
+{
+    double theta = popDoubleOrCoercable(stack, w, vm);
+
+    double result = atan(theta);
     stack.push(vm->GetAllocator().newDouble(result));
 
 }

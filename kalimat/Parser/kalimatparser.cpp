@@ -40,6 +40,8 @@ void KalimatParser::init(QString s, Lexer *lxr)
 
 AST *KalimatParser::parseRoot()
 {
+    if(LA(UNIT))
+        return module();
     return program();
 }
 AST *KalimatParser::program()

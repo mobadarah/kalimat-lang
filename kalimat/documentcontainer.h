@@ -58,6 +58,7 @@ public:
     CodeDocument *getDocumentFromTab(int index);
     void addDocument(QString title, QString fileName, QWidget *editor, bool createNew);
     CodeDocument *getCurrentDocument();
+    CodeDocument *getDocumentFromPath(QString path);
     void onFileTouched(QString fileName, CodeDocument *doc);
 private slots:
     void recentfile_triggered();
