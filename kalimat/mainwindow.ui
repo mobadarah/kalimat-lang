@@ -426,7 +426,7 @@
   </action>
   <action name="mnuProgramRun">
    <property name="icon">
-    <iconset>
+    <iconset resource="icons.qrc">
      <normaloff>:/icons/icons/runIcon.png</normaloff>:/icons/icons/runIcon.png</iconset>
    </property>
    <property name="text">
@@ -446,7 +446,7 @@
   </action>
   <action name="action_save">
    <property name="icon">
-    <iconset>
+    <iconset resource="icons.qrc">
      <normaloff>:/icons/icons/saveIcon.png</normaloff>:/icons/icons/saveIcon.png</iconset>
    </property>
    <property name="text">
@@ -458,7 +458,7 @@
   </action>
   <action name="action_open">
    <property name="icon">
-    <iconset>
+    <iconset resource="icons.qrc">
      <normaloff>:/icons/icons/openIcon.png</normaloff>:/icons/icons/openIcon.png</iconset>
    </property>
    <property name="text">
@@ -470,7 +470,7 @@
   </action>
   <action name="action_verify">
    <property name="icon">
-    <iconset>
+    <iconset resource="icons.qrc">
      <normaloff>:/icons/icons/checkIcon.png</normaloff>:/icons/icons/checkIcon.png</iconset>
    </property>
    <property name="text">
@@ -479,7 +479,7 @@
   </action>
   <action name="action_new">
    <property name="icon">
-    <iconset>
+    <iconset resource="icons.qrc">
      <normaloff>:/icons/icons/newIcon.png</normaloff>:/icons/icons/newIcon.png</iconset>
    </property>
    <property name="text">
@@ -666,7 +666,9 @@
   </action>
  </widget>
  <layoutdefault spacing="6" margin="11"/>
- <resources/>
+ <resources>
+  <include location="icons.qrc"/>
+ </resources>
  <connections/>
  <slots>
   <signal>mainWindowClosed(QCloseEvent*)</signal>

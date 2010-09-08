@@ -580,7 +580,9 @@ void RunWindow::activateMouseEvent(QMouseEvent *ev, QString evName)
         suspend();
         QString msg = translate_error(err);
         if(err.args.count()==1)
-            msg = "<u>" + msg +"</u>" + ":<p>"+ err.args[0]+ "</p";
+            msg = "<u>" + msg +"</u>" + ":<p>"+ err.args[0]+ "</p>";
+        else if(err.args.count()==2)
+            msg = "<u>" + msg +"</u>" + ":<p>"+ err.args[0]+"</p"+"<p>"+ err.args[1]+"</p>";
         this->close();
         reportError(msg, err);
     }

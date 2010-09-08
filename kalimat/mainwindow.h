@@ -17,10 +17,12 @@
 #include "Compiler/codeposition.h"
 #include "Compiler/codegenerator_incl.h"
 #include "documentcontainer.h"
+#include "linetracker.h"
 
 #include <QQueue>
 #include <QGraphicsView>
 #include <QActionGroup>
+#include <QLabel>
 
 namespace Ui
 {
@@ -28,12 +30,31 @@ namespace Ui
 }
 
 const int MaxRecentFiles = 8;
+class MainWindow;
+
+class MyEdit : public QTextEdit
+{
+    Q_OBJECT
+    LineTracker lineTracker;
+    MainWindow *owner;
+    int _line, _column;
+public:
+    MyEdit(MainWindow *owner);
+    int line();
+    int column();
+    void shiftTabBehavior();
+private slots:
+    void keyPressEvent(QKeyEvent *);
+    void textChangedEvent();
+    void selectionChangedEvent();
+};
 class MainWindow : public QMainWindow, public DocumentClient
 {
     Q_OBJECT
 
 public:
     static MainWindow *that;
+    QLabel *lblEditorCurrentLine, *lblEditorCurrentColumn;
     MainWindow(QWidget *parent = 0);
     ~MainWindow();
 
@@ -43,7 +64,7 @@ public:
     void handleVMError(VMError err);
     void highlightLine(QTextEdit *editor, int pos);
     void highlightToken(QTextEdit *editor, int pos, int length);
-
+    void setLineIndicators(int line, int column);
     void visualizeCallStack(QStack<Frame> &callStack, QGraphicsView *view);
 
     DocumentContainer *docContainer;

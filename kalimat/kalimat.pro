@@ -35,7 +35,8 @@ SOURCES += main.cpp \
     ../smallvm/allocator.cpp \
     Compiler/codegenhelper.cpp \
     painttimer.cpp \
-    picture.cpp
+    picture.cpp \
+    linetracker.cpp
 HEADERS += mainwindow.h \
     codedocument.h \
     Lexer/token.h \
@@ -65,7 +66,8 @@ HEADERS += mainwindow.h \
     documentcontainer.h \
     Compiler/codegenhelper.h \
     painttimer.h \
-    picture.h
+    picture.h \
+    linetracker.h
 FORMS += mainwindow.ui \
     runwindow.ui \
     savechangedfiles.ui

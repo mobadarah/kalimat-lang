@@ -46,7 +46,12 @@ MainWindow::MainWindow(QWidget *parent)
     speedGroup->addAction(ui->actionSpeedFast);
     speedGroup->addAction(ui->actionSpeedMedium);
     speedGroup->addAction(ui->actionSpeedSlow);
+    lblEditorCurrentLine = new QLabel();
+    lblEditorCurrentColumn = new QLabel();
 
+    ui->statusBar->addWidget(lblEditorCurrentLine, 0.3);
+    ui->statusBar->addWidget(lblEditorCurrentColumn, 0.3);
+    lblEditorCurrentLine->show();
     ui->dockSearchReplace->hide();
     docContainer = new DocumentContainer("mohamedsamy",
                                          "kalimat 1.0",
@@ -90,13 +95,8 @@ MainWindow::~MainWindow()
 {
     delete ui;
     delete speedGroup;
+    delete lblEditorCurrentLine;
 }
-
-class MyEdit : public QTextEdit
-{
-public slots:
-    void keyPressEvent(QKeyEvent *);
-};
 
 bool isAfterNumber(QTextEdit *edit)
 {
@@ -124,6 +124,14 @@ bool isAfterArabicNumber(QTextEdit *edit)
     }
     return replace;
 }
+MyEdit::MyEdit(MainWindow *owner) : QTextEdit()
+{
+    this->owner = owner;
+    connect(this, SIGNAL(textChanged()), SLOT(textChangedEvent()));
+    connect(this,  SIGNAL(cursorPositionChanged()), SLOT(selectionChangedEvent()));
+    _line = _column = 0;
+}
+
 void MyEdit::keyPressEvent(QKeyEvent *ev)
 {
     static QString arabComma = QString::fromWCharArray(L"،");
@@ -132,6 +140,10 @@ void MyEdit::keyPressEvent(QKeyEvent *ev)
         //QKeyEvent *otherEvent = new QKeyEvent(ev->type(), Qt::Key_Right, ev->modifiers(), ev->text(), ev->isAutoRepeat(), ev->count());
         //QTextEdit::keyPressEvent(otherEvent);
         this->insertPlainText("    ");
+    }
+    else if(ev->key() == Qt::Key_Backtab)
+    {
+         shiftTabBehavior();
     }
     else if(ev->key() == Qt::Key_Left)
     {
@@ -168,10 +180,73 @@ void MyEdit::keyPressEvent(QKeyEvent *ev)
     }
 }
 
+void MyEdit::shiftTabBehavior()
+{
+    QTextCursor c = textCursor();
+    int a = c.selectionStart();
+    int b = c.selectionEnd();
+
+    if(b>a)
+        swap(a, b);
+    int len = b-a;
+    int totalRemoved = 0;
+    int oldLine, oldCol;
+    lineTracker.lineColumnOfPos(a, oldLine, oldCol);
+    QVector<LineInfo> lines= lineTracker.linesFromTo(a, b);
+    for(int i=0; i<lines.count(); i++)
+    {
+        QString txt = this->document()->toPlainText().mid(lines[i].start, lines[i].length);
+        if(txt.length() >=4 && txt.startsWith("    "))
+        {
+
+            if(i == 0)
+            {
+                a-=4;
+                totalRemoved += a - c.selectionStart();
+            }
+            //*
+            QTextCursor c2 = c;
+            c2.setPosition(lines[i].start);
+            c2.movePosition(QTextCursor::NextCharacter, QTextCursor::KeepAnchor, 4);
+            setTextCursor(c2);
+            c2.removeSelectedText();
+            totalRemoved += 4;
+            //*/
+
+        }
+    }
+    lineTracker.setText(this->document()->toPlainText());
+    int newPos = a;//lineTracker.posFromLineColumn(oldLine, oldCol);
+    c.setPosition(newPos);
+    c.movePosition(QTextCursor::NextCharacter, QTextCursor::KeepAnchor, len - totalRemoved);
+    setTextCursor(c);
+}
+
+void MyEdit::textChangedEvent()
+{
+    lineTracker.setText(this->document()->toPlainText());
+    lineTracker.lineColumnOfPos(this->textCursor().position(), _line, _column);
+    owner->setLineIndicators(_line, _column);
+}
+void MyEdit::selectionChangedEvent()
+{
+    lineTracker.lineColumnOfPos(this->textCursor().position(), _line, _column);
+    owner->setLineIndicators(_line, _column);
+}
+
+int MyEdit::line()
+{
+    return _line;
+}
+
+int MyEdit::column()
+{
+    return _column;
+}
 
 QWidget *MainWindow::CreateEditorWidget()
 {
-    MyEdit *edit = new MyEdit();
+    MyEdit *edit = new MyEdit(this);
     syn = new SyntaxHighlighter(edit->document(), new KalimatLexer());
     edit->textCursor().setVisualNavigation(true);
     QFont font = edit->font();
@@ -179,6 +254,11 @@ QWidget *MainWindow::CreateEditorWidget()
 
     edit->setFont(font);
     return edit;
+}
+void MainWindow::setLineIndicators(int line, int column)
+{
+    lblEditorCurrentLine->setText(QString::fromStdWString(L"السطر: %1").arg(line));
+    lblEditorCurrentColumn->setText(QString::fromStdWString(L"العمود: %1").arg(column));
 }
 
 void MainWindow::on_actionLexize_triggered()
