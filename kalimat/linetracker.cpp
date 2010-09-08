@@ -15,7 +15,7 @@ void LineTracker::setText(QString text)
     lineStartPositions.clear();
     this->text = text;
     bool startOfLine = true;
-    int count = 0, curLine = 0;
+    int count = 0;
     for(int i=0; i<text.length();i++,count++)
     {
         if(startOfLine)
@@ -38,6 +38,13 @@ void LineTracker::setText(QString text)
         int last = lineStartPositions.count() -1;
         lineStartPositions[last].length = text.count() - lineStartPositions[last].start;
     }
+}
+
+int LineTracker::lineFromPos(int pos)
+{
+   int line, col;
+   lineColumnOfPos(pos, line, col);
+   return line;
 }
 
 void LineTracker::lineColumnOfPos(int pos, int &line, int &col)
@@ -65,13 +72,13 @@ int LineTracker::posFromLineColumn(int line, int column)
     return lineStartPositions[line].start + column;
 }
 
-QVector<LineInfo> LineTracker::linesFromTo(int pos1, int pos2)
+void LineTracker::linesFromTo(int pos1, int pos2, int &lineFrom, int &lineTo)
 {
-    int line1, line2, col;
-    lineColumnOfPos(pos1, line1, col);
-    lineColumnOfPos(pos2, line2, col);
-    QVector<LineInfo> ret;
-    for(int i=line1; i<=line2; i++)
-        ret.append(lineStartPositions[i]);
-    return ret;
+    int col;
+    lineColumnOfPos(pos1, lineFrom, col);
+    lineColumnOfPos(pos2, lineTo, col);
+}
+LineInfo LineTracker::line(int i)
+{
+    return lineStartPositions[i];
 }

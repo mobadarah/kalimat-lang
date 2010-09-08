@@ -290,6 +290,9 @@
        <height>20</height>
       </rect>
      </property>
+     <property name="alignment">
+      <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+     </property>
     </widget>
     <widget class="QLineEdit" name="txtReplacementString">
      <property name="geometry">
@@ -299,6 +302,9 @@
        <width>351</width>
        <height>20</height>
       </rect>
+     </property>
+     <property name="alignment">
+      <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
      </property>
     </widget>
     <widget class="QPushButton" name="btnFindPrev">

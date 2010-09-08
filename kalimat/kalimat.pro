@@ -36,7 +36,8 @@ SOURCES += main.cpp \
     Compiler/codegenhelper.cpp \
     painttimer.cpp \
     picture.cpp \
-    linetracker.cpp
+    linetracker.cpp \
+    myedit.cpp
 HEADERS += mainwindow.h \
     codedocument.h \
     Lexer/token.h \
@@ -67,7 +68,8 @@ HEADERS += mainwindow.h \
     Compiler/codegenhelper.h \
     painttimer.h \
     picture.h \
-    linetracker.h
+    linetracker.h \
+    myedit.h
 FORMS += mainwindow.ui \
     runwindow.ui \
     savechangedfiles.ui

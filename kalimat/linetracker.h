@@ -28,8 +28,10 @@ public:
     LineTracker();
     void setText(QString);
     void lineColumnOfPos(int pos, int &line, int &col);
+    int lineFromPos(int pos);
     int posFromLineColumn(int line, int column);
-    QVector<LineInfo> linesFromTo(int pos1, int pos2);
+    void linesFromTo(int pos1, int pos2, int &lineFrom, int &lineTo);
+    LineInfo line(int i);
 };
 
 #endif // LINETRACKER_H

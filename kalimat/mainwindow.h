@@ -17,8 +17,7 @@
 #include "Compiler/codeposition.h"
 #include "Compiler/codegenerator_incl.h"
 #include "documentcontainer.h"
-#include "linetracker.h"
-
+#include "myedit.h"
 #include <QQueue>
 #include <QGraphicsView>
 #include <QActionGroup>
@@ -32,22 +31,6 @@ namespace Ui
 const int MaxRecentFiles = 8;
 class MainWindow;
 
-class MyEdit : public QTextEdit
-{
-    Q_OBJECT
-    LineTracker lineTracker;
-    MainWindow *owner;
-    int _line, _column;
-public:
-    MyEdit(MainWindow *owner);
-    int line();
-    int column();
-    void shiftTabBehavior();
-private slots:
-    void keyPressEvent(QKeyEvent *);
-    void textChangedEvent();
-    void selectionChangedEvent();
-};
 class MainWindow : public QMainWindow, public DocumentClient
 {
     Q_OBJECT
