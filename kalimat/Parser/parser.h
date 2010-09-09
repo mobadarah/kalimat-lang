@@ -33,7 +33,9 @@ public:
     Parser(QString (*tokenFormatter)(int));
     virtual ~Parser();
 
+
     virtual void init(QString s, Lexer *lxr);
+    virtual void init(QString s, Lexer *lxr, void *tag);
     AST *parse();
     AST *parse(AST *(*root)(Parser *p));
 

@@ -48,7 +48,7 @@ public:
                       QMenu *recentFileMenu);
     virtual ~DocumentContainer();
     void handleNew(QString prefix,QWidget *editor);
-    void handleOpen(QWidget *editor);
+    void handleOpen();
     void handleSave();
     void handleSaveAs();
     void handleClose(QCloseEvent *ev);

@@ -166,7 +166,6 @@ void CodeGenerator::secondPass(Declaration * decl)
             cd->setAncestorClass(QSharedPointer<ClassDecl>(ancestor));
         }
     }
-
 }
 void CodeGenerator::thirdPass(Declaration * decl)
 {
@@ -197,7 +196,6 @@ void CodeGenerator::thirdPass(Declaration * decl)
         }
         return;
     }
-
 }
 
 void CodeGenerator::checkInheritanceCycles()
@@ -249,7 +247,6 @@ void CodeGenerator::generateDeclaration(Declaration * decl)
     {
         popProcedureScope();
     }
-
 }
 
 void CodeGenerator::pushProcedureScope(ProceduralDecl *pd)
@@ -394,7 +391,6 @@ void CodeGenerator::generateStatement(Statement *stmt)
     {
         generateEventStatement(dynamic_cast<EventStatement *>(stmt));
     }
-
 }
 void CodeGenerator::generateIOStatement(IOStatement *stmt)
 {
@@ -463,7 +459,6 @@ void CodeGenerator::generatePrintStmt(PrintStmt *stmt)
             gen(stmt,"pushc new_line");
             gen(stmt, "callex print");
         }
-
     }
 }
 void CodeGenerator::generateReadStmt(ReadStmt *stmt)
@@ -548,7 +543,6 @@ void CodeGenerator::generateGraphicsStatement(GraphicsStatement *stmt)
         generateZoomStmt(dynamic_cast<ZoomStmt *>(stmt));
         return;
     }
-
 }
 void CodeGenerator::generateDrawPixelStmt(DrawPixelStmt *stmt)
 {
@@ -562,7 +556,6 @@ void CodeGenerator::generateDrawPixelStmt(DrawPixelStmt *stmt)
 }
 void CodeGenerator::generateDrawLineStmt(DrawLineStmt *stmt)
 {
-
     if(stmt->color() == NULL)
         gen(stmt, "pushv -1");
     else
@@ -576,7 +569,6 @@ void CodeGenerator::generateDrawLineStmt(DrawLineStmt *stmt)
 }
 void CodeGenerator::generateDrawRectStmt(DrawRectStmt *stmt)
 {
-
     gen(stmt, QString("pushv ")+ (stmt->filled?"1":"0"));
 
     if(stmt->color() == NULL)
@@ -688,7 +680,6 @@ void CodeGenerator::generateAssignmentStmt(AssignmentStmt *stmt)
     {
         throw CompilerException(stmt, LValueFormNotImplemented).arg(stmt->variable()->toString());
     }
-
 }
 
 void CodeGenerator::generateIfStmt(IfStmt *stmt)

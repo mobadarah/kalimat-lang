@@ -26,9 +26,9 @@ AST *parseModule(Parser *p)
 {
     return ((KalimatParser *) p)->module();
 }
-Program *Compiler::loadProgram(QString path)
+Program *Compiler::loadProgram(QString path, CodeDocument *doc)
 {
-    parser.init(loadFileContents(path), &lexer);
+    parser.init(loadFileContents(path), &lexer, doc);
     Program *p = (Program *) parser.parse();
 
     for(int i=0; i<p->usedModuleCount(); i++)
@@ -55,7 +55,7 @@ Program *Compiler::loadProgram(QString path)
 
 Module *Compiler::loadModule(QString path)
 {
-    parser.init(loadFileContents(path), &lexer);
+    parser.init(loadFileContents(path), &lexer, documentContainer->getDocumentFromPath(path));
     Module *m = (Module *) parser.parse(parseModule);
     loadedModules[path] = m;
     pathsOfModules[m] = path;
@@ -108,7 +108,7 @@ QString Compiler::combinePath(QString parent, QString child)
 
 QString Compiler::CompileFromCode(QString source, CodeDocument *doc)
 {
-    parser.init(source, &lexer);
+    parser.init(source, &lexer, doc);
     Program *p = (Program *) parser.parse();
 
     if(p->usedModuleCount()!=0)
@@ -120,7 +120,7 @@ QString Compiler::CompileFromCode(QString source, CodeDocument *doc)
 
 QString Compiler::CompileFromFile(QString pathToMainCompilationUnit, CodeDocument *doc)
 {
-    Program *p = loadProgram(pathToMainCompilationUnit);
+    Program *p = loadProgram(pathToMainCompilationUnit, doc);
     generateAllLoadedModules();
     generator.generate(p, doc);
     return generator.getOutput();

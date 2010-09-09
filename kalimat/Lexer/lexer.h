@@ -12,11 +12,12 @@ class Lexer {
 
     int state;
     QVector<Token> acceptedTokens;
-
+    void *tokenTag;
 public:
     Lexer();
     Lexer(StateMachine sm);
     void init(QString s);
+    void init(QString s, void *tag);
     void tokenize(); // runs the state machine and keeps adding accepted tokens to a vector
     QVector<Token> getTokens(); // returns all accepted tokens
 protected:

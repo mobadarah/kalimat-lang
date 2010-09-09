@@ -13,7 +13,8 @@ class KalimatParser : public Parser
 public:
     KalimatParser();
     ~KalimatParser();
-    void init(QString s, Lexer *lxr);
+    void init(QString s, Lexer *lxr, void *tag);
+
     AST *parseRoot();
     AST *module();
 private:

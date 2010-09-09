@@ -21,6 +21,7 @@ public:
     QString Lexeme;
     TokenType Type;
     int Line, Column, Pos;
+    void *tag;
 
 public:
         Token(QString lexeme, TokenType type);

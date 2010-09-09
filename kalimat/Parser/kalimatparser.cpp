@@ -17,7 +17,7 @@ KalimatParser::KalimatParser() : Parser(TokenNameFromId)
 KalimatParser::~KalimatParser()
 {
 }
-void KalimatParser::init(QString s, Lexer *lxr)
+void KalimatParser::init(QString s, Lexer *lxr, void *tag)
 {
     // Here we manually filter out comments from our token stream.
     // The comments are not automatically skipped because automatic
@@ -28,7 +28,7 @@ void KalimatParser::init(QString s, Lexer *lxr)
     // todo: Find a more efficient way for this
     // todo: This code is very tightly coupled with Parser::init(...)
 
-    Parser::init(s, lxr);
+    Parser::init(s, lxr, tag);
     QVector<Token> tokens2;
     for(int i=0; i<tokens.count(); i++)
     {

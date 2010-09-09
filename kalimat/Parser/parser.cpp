@@ -24,7 +24,12 @@ Parser::~Parser()
 }
 void Parser::init(QString s, Lexer *lxr)
 {
-    lxr->init(s);
+    init(s, lxr, NULL);
+}
+
+void Parser::init(QString s, Lexer *lxr, void *tag)
+{
+    lxr->init(s, tag);
     lxr->tokenize();
     tokens = lxr->getTokens();
     curToken = -1;

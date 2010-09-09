@@ -157,7 +157,7 @@ void MainWindow::on_actionParse_triggered()
 
     try
     {
-        parser.init(currentEditor()->document()->toPlainText(), &lxr);
+        parser.init(currentEditor()->document()->toPlainText(), &lxr, NULL);
         AST * tree = parser.parse();
         ui->outputView->clear();
         ui->outputView->append(tree->toString());
@@ -205,7 +205,12 @@ void MainWindow::on_actionCompile_triggered()
     }
     catch(ParserException ex)
     {
-        ui->outputView->append(ex.message);
+        QString fn;
+        if(ex.pos.tag!= NULL)
+        {
+            fn = ((CodeDocument *) ex.pos.tag)->getFileName();
+        }
+        ui->outputView->append(QString("File %1:\t%2").arg(fn).arg(ex.message));
     }
     catch(CompilerException ex)
     {
@@ -275,7 +280,6 @@ void MainWindow::on_mnuProgramRun_triggered()
         {
             output = compiler.CompileFromFile(doc->getFileName(), doc);
             path = doc->getFileName();
-
         }
 
         //ui->outputView->append(output);
@@ -303,7 +307,14 @@ void MainWindow::on_mnuProgramRun_triggered()
         //show_error(ex->message);
         show_error(QString::fromStdWString(L"خطأ في تركيب البرنامج"));
         if(doc != NULL && ex.hasPosInfo)
-            highlightLine(doc->getEditor(), ex.pos.Pos);
+        {
+            CodeDocument *dc = doc;
+            if(ex.pos.tag != NULL)
+            {
+                dc = (CodeDocument *) ex.pos.tag;
+            }
+            highlightLine(dc->getEditor(), ex.pos.Pos);
+        }
     }
     catch(CompilerException ex)
     {
@@ -331,6 +342,7 @@ void MainWindow::highlightLine(QTextEdit *editor, int pos)
     sel.format.setBackground(QBrush(QColor(Qt::yellow)));
     selections.append(sel);
     editor->setExtraSelections(selections);
+    ui->editorTabs->setCurrentWidget(editor);
 
 
 }
@@ -455,8 +467,7 @@ void MainWindow::handleVMError(VMError err)
             // hilight the problem when there's an error!
             QTextEdit *editor = p.doc->getEditor();
 
-            ui->editorTabs->setCurrentWidget(editor);
-            setWindowTitle(QString("Error position index=%1").arg(key));
+            setWindowTitle(QString("Error position index=%1, file=%2").arg(key).arg(p.doc->getFileName()));
             highlightLine(editor, p.pos);
         }
     }
@@ -477,7 +488,7 @@ void MainWindow::on_editorTabs_tabCloseRequested(int index)
 }
 void MainWindow::on_action_open_triggered()
 {
-    docContainer->handleOpen(CreateEditorWidget());
+    docContainer->handleOpen();
 }
 
 void MainWindow::on_action_save_triggered()

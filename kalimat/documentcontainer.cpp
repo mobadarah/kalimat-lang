@@ -136,7 +136,7 @@ void DocumentContainer::recentfile_triggered()
 
 }
 
-void DocumentContainer::handleOpen(QWidget *editor)
+void DocumentContainer::handleOpen()
 {
     QString dir = "";
     QSettings settings(settingsOrganizationName, settingsApplicationName);
@@ -152,18 +152,23 @@ void DocumentContainer::handleOpen(QWidget *editor)
                     dir,
                     documentFilter);
     QString fileName;
-    dlg.setFileMode(QFileDialog::ExistingFile);
+    dlg.setFileMode(QFileDialog::ExistingFiles);
     dlg.setAcceptMode(QFileDialog::AcceptOpen);
     if(dlg.exec())
-        fileName = dlg.selectedFiles()[0];
-
-    if(!fileName.isEmpty())
     {
-        QFileInfo f = QFileInfo(fileName);
-        dir = f.absoluteDir().absolutePath();
-        settings.setValue("last_open_dir", dir);
-        addDocument(QFileInfo(fileName).fileName(), fileName, editor, false);
+        int n = dlg.selectedFiles().count();
+        for(int i=0; i<n; i++)
+        {
+            fileName = dlg.selectedFiles()[i];
 
+            if(!fileName.isEmpty())
+            {
+                QFileInfo f = QFileInfo(fileName);
+                dir = f.absoluteDir().absolutePath();
+                settings.setValue("last_open_dir", dir);
+                addDocument(QFileInfo(fileName).fileName(), fileName, client->CreateEditorWidget(), false);
+            }
+        }
     }
 }
 void DocumentContainer::handleSave()

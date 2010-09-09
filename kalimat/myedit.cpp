@@ -198,23 +198,37 @@ void MyEdit::enterKeyBehavior()
     lxr.init(txt);
     lxr.tokenize();
     QVector<Token> toks = lxr.getTokens();
-    int classDecl[] = {CLASS, IDENTIFIER, COLON};
-    int ifStmtStart[] = { IF }, ifStmtEnd[] = {COLON};
-    int forStmtStart[] = { FORALL }, forStmtEnd[] = {COLON};
-    int whileStmtStart[] = { WHILE }, whileStmtEnd[] = {COLON};
-    int procDeclStart[] = { PROCEDURE, IDENTIFIER, LPAREN}, procDeclEnd[] = { RPAREN, COLON};
-    int funcDeclStart[] = { FUNCTION, IDENTIFIER, LPAREN}, funcDeclEnd[] = { RPAREN, COLON};
-
+    int classDecl[] = { CLASS, IDENTIFIER, COLON };
+    int ifStmtStart[] = { IF }, ifStmtEnd[] = { COLON };
+    int elsePart[] = { ELSE, COLON };
+    int elseIfStart[] = { ELSE, IF }, elseIfEnd[] = { COLON };
+    int forStmtStart[] = { FORALL }, forStmtEnd[] = { COLON };
+    int whileStmtStart[] = { WHILE }, whileStmtEnd[] = { COLON };
+    int procDeclStart[] = { PROCEDURE, IDENTIFIER, LPAREN }, procDeclEnd[] = { RPAREN, COLON };
+    int funcDeclStart[] = { FUNCTION, IDENTIFIER, LPAREN }, funcDeclEnd[] = { RPAREN, COLON };
+    int responseDeclStart[] = { RESPONSEOF, IDENTIFIER, IDENTIFIER }, responseDeclEnd[] = { RPAREN, COLON };
+    int replyDeclStart[] = { REPLYOF, IDENTIFIER, IDENTIFIER }, replyDeclEnd[] = { RPAREN, COLON };
     // todo: consider adding a newline after the 'end' that teminates top-level declarations.
     if(tokensEqual(toks, classDecl, 3) ||
        tokensBeginEnd(toks, procDeclStart, procDeclEnd, 3, 2) ||
-       tokensBeginEnd(toks, funcDeclStart, funcDeclEnd, 3, 2))
+       tokensBeginEnd(toks, funcDeclStart, funcDeclEnd, 3, 2) ||
+       tokensBeginEnd(toks, responseDeclStart, responseDeclEnd, 3, 2) ||
+       tokensBeginEnd(toks, replyDeclStart, replyDeclEnd, 3, 2)
+       )
     {
         indentAndTerminate(li, QString::fromStdWString(L"نهاية"));
     }
     else if(tokensBeginEnd(toks, ifStmtStart, ifStmtEnd, 1,1))
     {
         indentAndTerminate(li, QString::fromStdWString(L"تم"));
+    }
+    else if(tokensEqual(toks, elsePart, 2) ||
+            tokensBeginEnd(toks, elseIfStart, elseIfEnd, 2, 1))
+    {
+        int n = indentOfLine(li);
+        insertPlainText("\n");
+        for(int i=0;i<n + 4; i++)
+            insertPlainText(" ");
     }
     else if(tokensBeginEnd(toks, forStmtStart, forStmtEnd, 1,1) ||
             tokensBeginEnd(toks, whileStmtStart, whileStmtEnd, 1,1))
@@ -263,10 +277,12 @@ LineInfo MyEdit::currentLine()
 {
     return lineTracker.line(lineTracker.lineFromPos(textCursor().position()));
 }
+
 QString MyEdit::textOfLine(LineInfo li)
 {
     return this->document()->toPlainText().mid(li.start, li.length);
 }
+
 int MyEdit::indentOfLine(LineInfo li)
 {
     QString line = textOfLine(li);

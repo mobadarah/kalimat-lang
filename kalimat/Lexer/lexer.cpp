@@ -15,11 +15,17 @@ Lexer::Lexer(StateMachine sm)
 {
     stateMachine = sm;
 }
-void Lexer::init(QString s)
+void Lexer::init(QString s, void *tag)
 {
+    this->tokenTag = tag;
     state = 0; //the start state is always assumed = 0
     buffer.init(s);
     acceptedTokens.clear();
+}
+
+void Lexer::init(QString s)
+{
+    init(s, NULL);
 }
 QVector<Token> Lexer::getTokens()
 {
@@ -117,7 +123,7 @@ Token Lexer::accept(TokenType type)
     ret.Line =l;
     ret.Column = c;
     ret.Pos = p;
-
+    ret.tag = tokenTag;
 
     ret.Lexeme = lexeme;
     ret.Type = type;
