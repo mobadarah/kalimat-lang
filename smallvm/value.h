@@ -103,9 +103,6 @@ public:
     QSet<QString> fields;
     QVector<ValueClass*> BaseClasses;
     QMap<QString, Value*> methods;
-
-
-
 };
 
 struct VArray
@@ -147,24 +144,27 @@ struct Value
     QString toString();
 
 static Value *NullValue;
+};
+class BuiltInTypes
+{
+public:
+    static ValueClass *ObjectType; // Must be declare before all of the other types, since their
+                                   // Initialization depends on it
 
-static ValueClass *ObjectType; // Must be declare before all of the other types, since their
-                               // Initialization depends on it
-static ValueClass *IntType;
-static ValueClass *DoubleType;
-static ValueClass *MethodType;
-static ValueClass *ExternalMethodType;
-static ValueClass *ClassType;
-static ValueClass *ArrayType;
-static ValueClass *StringType;
-static ValueClass *SpriteType;
-static ValueClass *FileType;
-static ValueClass *RawFileType;
-static ValueClass *RefType;
-static ValueClass *FieldRefType;
-static ValueClass *ArrayRefType;
-static ValueClass *NullType;
-
+    static ValueClass *IntType;
+    static ValueClass *DoubleType;
+    static ValueClass *MethodType;
+    static ValueClass *ExternalMethodType;
+    static ValueClass *ClassType;
+    static ValueClass *ArrayType;
+    static ValueClass *StringType;
+    static ValueClass *SpriteType;
+    static ValueClass *FileType;
+    static ValueClass *RawFileType;
+    static ValueClass *RefType;
+    static ValueClass *FieldRefType;
+    static ValueClass *ArrayRefType;
+    static ValueClass *NullType;
 };
 
 #endif // VALUE_H

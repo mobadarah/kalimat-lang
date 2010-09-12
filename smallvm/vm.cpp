@@ -18,7 +18,7 @@ void VM::Init()
         signal(InternalError, "No main method in program");
     Method *method = dynamic_cast<Method *>(constantPool["main"]->unboxObj());
     QString malaf = "%file";
-    Value::FileType = (ValueClass *) constantPool[malaf]->unboxObj();
+    BuiltInTypes::FileType = (ValueClass *) constantPool[malaf]->unboxObj();
     stack.clear();
     stack.push(Frame(method));
     _isRunning = true;
@@ -101,7 +101,7 @@ Frame &VM::globalFrame()
 
 void VM::Register(QString symRef, ExternalMethod *method)
 {
-    constantPool[symRef] = allocator.newObject(method, Value::ExternalMethodType);
+    constantPool[symRef] = allocator.newObject(method, BuiltInTypes::ExternalMethodType);
 }
 void VM::ActivateEvent(QString evName, QVector<Value *>args)
 {
@@ -212,12 +212,12 @@ void VM::RunStep()
 {
     if(stack.isEmpty())
     {
-           _isRunning = false;
+       _isRunning = false;
         return;
     }
     if(currentFrame()->currentMethod == NULL)
     {
-           _isRunning = false;
+       _isRunning = false;
         return;
     }
 
@@ -510,7 +510,7 @@ void VM::Load(QString assemblyCode)
                 returnsReference = lineParts[4].trimmed()== "ref";
             }
             curMethod = new Method(curMethodName, arity, numReturnValues, returnsReference, curClass); // curClass can be null, in which case the method is global
-            Value *methodVal = allocator.newObject(curMethod, Value::MethodType);
+            Value *methodVal = allocator.newObject(curMethod, BuiltInTypes::MethodType);
             if(curClass == NULL)
             {
                 if(constantPool.contains(curMethodName))
@@ -534,11 +534,11 @@ void VM::Load(QString assemblyCode)
         else if(opcode == ".class")
         {
             curClassName = arg.trimmed();
-            curClass = new ValueClass(curClassName, Value::ObjectType);
+            curClass = new ValueClass(curClassName, BuiltInTypes::ObjectType);
             if(constantPool.contains(curClassName))
                 signal(ElementAlreadyDefined, curClassName);
             else
-                constantPool[curClassName] = allocator.newObject(curClass, Value::ClassType);
+                constantPool[curClassName] = allocator.newObject(curClass, BuiltInTypes::ClassType);
         }
         else if(opcode == ".endclass")
         {
@@ -654,37 +654,31 @@ void VM::Load(QString assemblyCode)
         }
         else if(opcode == "lt")
         {
-            QStringList two_labels = arg.split(",", QString::SkipEmptyParts, Qt::CaseInsensitive);
             Instruction i = Instruction(Lt);
             curMethod->Add(i, label, extraInfo);
         }
         else if(opcode == "gt")
         {
-            QStringList two_labels = arg.split(",", QString::SkipEmptyParts, Qt::CaseInsensitive);
             Instruction i = Instruction(Gt);
             curMethod->Add(i, label, extraInfo);
         }
         else if(opcode == "eq")
         {
-            QStringList two_labels = arg.split(",", QString::SkipEmptyParts, Qt::CaseInsensitive);
             Instruction i = Instruction(Eq);
             curMethod->Add(i, label, extraInfo);
         }
         else if(opcode == "ne")
         {
-            QStringList two_labels = arg.split(",", QString::SkipEmptyParts, Qt::CaseInsensitive);
             Instruction i = Instruction(Ne);
             curMethod->Add(i, label, extraInfo);
         }
         else if(opcode == "ge")
         {
-            QStringList two_labels = arg.split(",", QString::SkipEmptyParts, Qt::CaseInsensitive);
             Instruction i = Instruction(Ge);
             curMethod->Add(i, label, extraInfo);
         }
         else if(opcode == "le")
         {
-            QStringList two_labels = arg.split(",", QString::SkipEmptyParts, Qt::CaseInsensitive);
             Instruction i = Instruction(Le);
             curMethod->Add(i, label, extraInfo);
         }
@@ -812,13 +806,13 @@ void VM::patchupInheritance(QMap<ValueClass *, QString> inheritanceList)
         Value *classObj = (Value*) constantPool[parentName];
         ValueClass *parent = dynamic_cast<ValueClass *>(classObj->v.objVal);
 
-        // In VM::Load we always initialize a class with a base of Value::ObjectType
+        // In VM::Load we always initialize a class with a base of BuiltInTypes::ObjectType
         // now that we found a class's real parent, we don't need this default
         // value any more.
         // This code assumes only one base class at a time
         // TODO: either change BaseClasses from a vector to a single class
         // or remove the assumption in this code
-        if(c->BaseClasses.contains(Value::ObjectType))
+        if(c->BaseClasses.contains(BuiltInTypes::ObjectType))
         {
             c->BaseClasses.clear();
         }
@@ -1079,7 +1073,6 @@ void VM::DoCallMethod(QString SymRef, int arity)
     // callm expects the arguments in reverse order, and the last pushed argument is 'this'
     // but the execution site pops them in the correct order, i.e the first popped is 'this'
     // followed by the first normal argument...and so on.
-    QVector<Value *> args;
     Value *receiver = currentFrame()->OperandStack.pop();
 
     assert( receiver->tag != NullVal, CallingMethodOnNull);
@@ -1089,13 +1082,13 @@ void VM::DoCallMethod(QString SymRef, int arity)
     assert(method!=NULL, NoSuchMethod,SymRef);
     assert(arity == -1 || method->Arity() ==-1 || arity == method->Arity(), WrongNumberOfArguments);
 
+    QVector<Value *> args;
     args.append(receiver);
 
     for(int i=0; i<method->Arity()-1; i++)
     {
         Value *v = currentFrame()->OperandStack.pop();
         args.append(v);
-
     }
 
     stack.push(Frame(method));
@@ -1353,7 +1346,7 @@ void VM::DoMD_ArrDimensions()
 
 void VM::DoRegisterEvent(Value *evname, QString SymRef)
 {
-    assert(evname->type == Value::StringType, TypeError);
+    assert(evname->type == BuiltInTypes::StringType, TypeError);
     assert(constantPool.contains(SymRef), NoSuchProcedure);
     QString *evName = evname->unboxStr();
     registeredEventHandlers[*evName] = SymRef;

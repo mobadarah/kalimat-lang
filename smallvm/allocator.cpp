@@ -60,7 +60,7 @@ Value *Allocator::newInt(int i, bool gcMonitor=true)
 {
     Value *ret = allocateNewValue(gcMonitor);
     ret->tag = Int;
-    ret->type = Value::IntType;
+    ret->type = BuiltInTypes::IntType;
     ret->v.intVal = i;
     return ret;
 }
@@ -74,7 +74,7 @@ Value *Allocator::newDouble(double d, bool gcMonitor)
 {
     Value *ret = allocateNewValue(gcMonitor);
     ret->tag = Double;
-    ret->type = Value::DoubleType;
+    ret->type = BuiltInTypes::DoubleType;
     ret->v.doubleVal = d;
     return ret;
 }
@@ -100,7 +100,7 @@ Value *Allocator::null()
     {
         Value::NullValue = allocateNewValue();
         Value::NullValue->tag = NullVal;
-        Value::NullValue->type = Value::NullType;
+        Value::NullValue->type = BuiltInTypes::NullType;
     }
 
     return Value::NullValue;
@@ -110,7 +110,7 @@ Value *Allocator::newArray(int size)
 {
     Value *ret = allocateNewValue();
     ret->tag = ArrayVal;
-    ret->type = Value::ArrayType;
+    ret->type = BuiltInTypes::ArrayType;
     ret->v.arrayVal = new VArray();
     ret->v.arrayVal->Elements = new Value*[size];
     ret->v.arrayVal->count = size;
@@ -122,7 +122,7 @@ Value *Allocator::newMultiDimensionalArray(QVector<int>dimensions)
 {
     Value *ret = allocateNewValue();
     ret->tag = MultiDimensionalArrayVal;
-    ret->type = Value::ArrayType;
+    ret->type = BuiltInTypes::ArrayType;
     ret->v.multiDimensionalArrayVal = new MultiDimensionalArray<Value *>(dimensions);
     //TODO: init all elementes with a Kalimat-compaitble null value
     // instead of null pointers
@@ -133,7 +133,7 @@ Value *Allocator::newString(QString *str)
 {
     Value *ret = allocateNewValue();
     ret->tag = StringVal;
-    ret->type = Value::StringType;
+    ret->type = BuiltInTypes::StringType;
     ret->v.strVal = str;
     return ret;
 }
@@ -154,7 +154,7 @@ Value *Allocator::newFieldReference(Object *obj, QString SymRef)
 
     Value *ret = allocateNewValue();
     ret->tag = RefVal;
-    ret->type = Value::FieldRefType;
+    ret->type = BuiltInTypes::FieldRefType;
     ret->v.refVal = ref;
     return ret;
 }
@@ -167,7 +167,7 @@ Value *Allocator::newArrayReference(VArray *array, int index)
 
     Value *ret = allocateNewValue();
     ret->tag = RefVal;
-    ret->type = Value::ArrayRefType;
+    ret->type = BuiltInTypes::ArrayRefType;
     ret->v.refVal = ref;
     return ret;
 }
@@ -179,7 +179,7 @@ Value *Allocator::newMultiDimensionalArrayReference(MultiDimensionalArray<Value 
 
     Value *ret = allocateNewValue();
     ret->tag = RefVal;
-    ret->type = Value::ArrayRefType;
+    ret->type = BuiltInTypes::ArrayRefType;
     ret->v.refVal = ref;
     return ret;
 }
@@ -204,12 +204,15 @@ void Allocator::mark()
 {
     currentAllocationInBytes = 0;
     QStack<Value *> reachable;
-    reachable.clear();
+
     for(int i=0; i<constantPool->values().count(); i++)
-        reachable.push(constantPool->values()[i]);
+    {
+        Value * v = constantPool->values()[i];
+        reachable.push(v);
+    }
     for(int i=0; i<stack->count(); i++)
     {
-        Frame f = stack->at(i);
+        const Frame &f = stack->at(i);
         for(int j=0; j<f.Locals.count(); j++)
         {
             reachable.push(f.Locals.values()[j]);
@@ -219,6 +222,7 @@ void Allocator::mark()
             reachable.push(f.OperandStack.value(j));
         }
     }
+
     while(!reachable.empty())
     {
         Value *v = reachable.pop();
@@ -246,6 +250,15 @@ void Allocator::mark()
                 if(!v2->mark)
                     reachable.push(v2);
             }
+            ValueClass *c = dynamic_cast<ValueClass *>(v->v.objVal);
+            if(c)
+            {
+                QMap<QString, Value *>::const_iterator j;
+                for(j= c->methods.begin(); j != c->methods.end(); ++j)
+                {
+                    reachable.push(*j);
+                }
+            }
         }
     }
 }
@@ -253,7 +266,8 @@ void Allocator::sweep()
 {
     objsDeleted = 0;
     QVector<Value *> toDel;
-    for(QSet<Value *>::iterator i=heap.begin(); i!=heap.end(); ++i)
+    QSet<Value *>::const_iterator i;
+    for (i = heap.begin(); i != heap.end(); ++i)
     {
         Value *v = *i;
         if(v->mark)
@@ -266,12 +280,17 @@ void Allocator::sweep()
     for(int i=0; i<toDel.count(); i++)
     {
         Value *v = toDel[i];
+        if(v->tag == ObjectVal)
+        {
+            Method *m = dynamic_cast<Method *> (v->unboxObj());
+            if(m != NULL)
+            {
+                int x =8;
+            }
+        }
         objsDeleted++;
         heap.remove(v);
         delete v;
-
     }
-  //  wcout << objsDeleted <<" objects deleted in garbage collection\n";
-  //  cout.flush();
 }
 

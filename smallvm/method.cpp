@@ -12,7 +12,8 @@ Method::Method(QString name,int arity)
 {
     this->name = name;
     this->arity = arity;
-    this->numReturnValues = numReturnValues;
+    this->numReturnValues = 0;
+    this->returnsReference = false;
     receiver = NULL; // 'tis a global method, not a member of a class
 }
 

@@ -36,12 +36,13 @@ RunWindow::RunWindow(QWidget *parent, QString pathOfProgramsFile) :
     im.fill(qRgb(255,255,255));
     image = im;
     state = rwNormal;
-    textColor = Qt::black;
-    clearText();
+
     printMethod = new WindowPrintMethod(this);
     readMethod = new WindowReadMethod(this, vm);
     vm = NULL;
     this->setFixedSize(800, 600);
+    textColor = Qt::black;
+    textLayer.clearText();
 }
 
 void RunWindow::closeEvent(QCloseEvent *ev)
@@ -212,6 +213,7 @@ void RunWindow::Run()
             msg = "<u>" + msg +"</u>" + ":<p>"+ err.args[0]+ "</p";
 
         reportError(msg, err);
+        this->close();
     }
 }
 
@@ -292,128 +294,7 @@ void RunWindow::typeError(ValueClass *)
 {
     vm->assert(false, TypeError);
 }
-void RunWindow::clearText()
-{
-    cursor_col = 0;
-    cursor_line = 0;
-    visibleTextLines = 25;
 
-
-    textLineWidth = 54;
-    visibleTextBuffer.clear();
-    visibleTextBuffer.resize(25);
-}
-
-void RunWindow::print(QString str)
-{
-    for(int i=0; i<str.length(); i++)
-    {
-        printChar(str[i]);
-    }
-    redrawWindow();
-}
-void RunWindow::printChar(QChar c)
-{
-    if(c == '\n')
-        nl();
-    else
-    {
-        if(cursor_col>= textLineWidth)
-            nl();
-
-        if(cursor_line >= visibleTextBuffer.count())
-            visibleTextBuffer.resize(cursor_line+1);
-
-        QString s = visibleTextBuffer[cursor_line];
-        if(s.length() <= cursor_col)
-        {
-            int n = cursor_col - s.length() +1;
-                s.append(QString(n, ' '));
-        }
-        s[cursor_col] = c;
-        visibleTextBuffer[cursor_line] = s;
-        cursor_col++;
-    }
-}
-
-QString RunWindow::formatStringUsingWidth(QString str, int width)
-{
-    if(str.length()<width)
-    {
-        int n = width - str.length();
-        QString sp = "";
-        for(int i=0; i<n; i++)
-            sp += " ";
-        str+=sp;
-    }
-    else if(str.length() > width)
-    {
-        str = "";
-        for(int i=0; i<width; i++)
-        {
-            str += "#";
-        }
-    }
-    return str;
-}
-
-void RunWindow::print(QString str, int width)
-{
-    if(str == "\n")
-    {
-        // todo: How does string formatting with a certain width affect printing of a newline, anyway?
-        nl();
-    }
-    else
-    {
-        str = formatStringUsingWidth(str, width);
-        print(str);
-    }
-}
-void RunWindow::println(QString str)
-{
-    print(str);
-    nl();
-}
-
-bool RunWindow::setCursorPos(int row, int col)
-{
-    if(row < 0 || row >= visibleTextLines || col < 0 || col>=textLineWidth)
-    {
-        return false;
-    }
-    cursor_col = col;
-    cursor_line = row;
-    return true;
-}
-
-int RunWindow::getCursorRow()
-{
-    return cursor_line;
-}
-int RunWindow::getCursorCol()
-{
-    return cursor_col;
-}
-void RunWindow::cr()
-{
-    cursor_col = 0;
-}
-void RunWindow::lf()
-{
-    cursor_line++;
-    if(cursor_line ==visibleTextLines)
-    {
-        visibleTextBuffer.pop_front();
-        visibleTextBuffer.append("");
-        cursor_line--;
-    }
-}
-void RunWindow::nl()
-{
-    cr();
-    lf();
-}
 void RunWindow::suspend()
 {
     state = rwWaiting;
@@ -424,31 +305,7 @@ void RunWindow::resume()
     state = rwNormal;
 }
 
-QRect RunWindow::cursor()
-{
-    QPainter p(GetImage());
 
-    p.setFont(textFont);
-    QString line = visibleTextBuffer[cursor_line].left(cursor_col);
-    int w = p.fontMetrics().tightBoundingRect(line).width();
-    int h = textFont.pixelSize();
-
-    int x = width() - w;
-
-
-    int y = cursor_line * h;
-
-    return QRect(x-2, y, 2, h);
-
-}
-void RunWindow::backSpace()
-{
-    QString s = visibleTextBuffer[cursor_line];
-
-    s = s.left(cursor_col-1) + s.mid(cursor_col, s.length() - cursor_col);
-    visibleTextBuffer[cursor_line] = s;
-    cursor_col --;
-}
 void RunWindow::redrawWindow()
 {
     if(updateTimer.canUpdateNow())
@@ -479,9 +336,9 @@ void RunWindow::paintEvent(QPaintEvent *)
    imgPainter.setFont(textFont);
    imgPainter.setBackgroundMode((Qt::TransparentMode));
    QPainter::CompositionMode oldMode = imgPainter.compositionMode();
-   for(int i=0; i<sprites.count(); i++)
+   for(int i=0; i < spriteLayer.sprites().count(); ++i)
    {
-       Sprite *s = sprites[i];
+       Sprite *s = spriteLayer.sprites()[i];
        if(s->visible)
        {
 
@@ -495,10 +352,10 @@ void RunWindow::paintEvent(QPaintEvent *)
    imgPainter.setCompositionMode(oldMode);
    QPen oldPen = imgPainter.pen();
    imgPainter.setPen(textColor);
-   for(int i=0; i<visibleTextBuffer.count(); i++)
+   for(int i=0; i<textLayer.lines().count(); i++)
    {
        QRect rct(0, i* textFont.pixelSize(), width()-1, height());
-       imgPainter.drawText(rct, visibleTextBuffer[i], options);
+       imgPainter.drawText(rct, textLayer.lines()[i], options);
    }
    imgPainter.setPen(oldPen);
    if(state == rwTextInput)
@@ -522,6 +379,24 @@ void RunWindow::resizeEvent(QResizeEvent *event)
     QWidget::resizeEvent(event);
 
 }
+QRect RunWindow::cursor()
+{
+    QPainter p(GetImage());
+
+    p.setFont(textFont);
+    QString line = textLayer.currentLine().left(textLayer.cursorColumn());
+    int w = p.fontMetrics().tightBoundingRect(line).width();
+    int h = textFont.pixelSize();
+
+    int x = width() - w;
+
+
+    int y = textLayer.cursorLine() * h;
+
+    return QRect(x-2, y, 2, h);
+
+}
+
 void RunWindow::resizeImage(QImage *image, const QSize &newSize)
  {
      if (image->size() == newSize)
@@ -614,9 +489,9 @@ void RunWindow::keyPressEvent(QKeyEvent *ev)
             }
             if(v == NULL)
             {
-                this->nl();
-                this->print(QString::fromStdWString(L"يجب إدخال رقم! حاول مرة اخرى"));
-                this->print("\n");
+                textLayer.nl();
+                textLayer.print(QString::fromStdWString(L"يجب إدخال رقم! حاول مرة اخرى"));
+                textLayer.print("\n");
                 inputBuffer = "";
             }
             else
@@ -624,7 +499,7 @@ void RunWindow::keyPressEvent(QKeyEvent *ev)
                 state = rwNormal;
                 readMethod->SetReadValue(v);
                 inputBuffer = "";
-                nl();
+                textLayer.nl();
                 update();
                 Run();
             }
@@ -632,18 +507,18 @@ void RunWindow::keyPressEvent(QKeyEvent *ev)
         else if(ev->key() == Qt::Key_Backspace)
         {
             inputBuffer = inputBuffer.left(inputBuffer.length()-1);
-            backSpace();
+            textLayer.backSpace();
             update();
         }
         else if(ev->text() != "")
         {
             QString s = ev->text();
             inputBuffer += s;
-            print(s);
+            textLayer.print(s);
             update();
         }
     }
-    else if(state == rwNormal || rwWaiting)
+    else if(state == rwNormal || state == rwWaiting)
     {
         activateKeyEvent(ev, "keydown");
     }
@@ -666,20 +541,13 @@ void RunWindow::activateKeyEvent(QKeyEvent *ev, QString evName)
     args.append(vm->GetAllocator().newString(txt));
 
     bool wasRunning = vm->isRunning();
-    try
+    vm->ActivateEvent(evName, args);
+    if(!wasRunning)
     {
-        vm->ActivateEvent(evName, args);
-        if(!wasRunning)
-            Run();
-    }
-    catch(VMError err)
-    {
-        suspend();
-        QString msg = translate_error(err);
-        if(err.args.count()==1)
-            msg = "<u>" + msg +"</u>" + ":<p>"+ err.args[0]+ "</p";
-        this->close();
-        reportError(msg, err);
+        resume(); // If the VM was not running (say from a wait() call) the a key event should wake it up
+                  // TODO: This means a key event in the middle of a long wait will resume execution
+                  // prematurely after the event is handled. We should resolve this.
+        Run();
     }
 }
 
@@ -687,10 +555,7 @@ QImage *RunWindow::GetImage()
 {
     return &this->image;
 }
-void RunWindow::AddSprite(Sprite *s)
-{
-    sprites.append(s);
-}
+
 
 QColor RunWindow::GetColor(int color)
 {
@@ -771,40 +636,6 @@ QColor RunWindow::GetColor(int color)
         return Qt::white;
     }
 }
-void RunWindow::showSprite(Sprite *s)
-{
-    visibleSprites.insert(s);
-}
-void RunWindow::hideSprite(Sprite *s)
-{
-    visibleSprites.remove(s);
-}
-
-void RunWindow::checkCollision(Sprite *s)
-{
-    QMap<Sprite *, Sprite *> collides;
-    for(QSet<Sprite *>::iterator i = visibleSprites.begin(); i!=visibleSprites.end(); ++i)
-    {
-        Sprite *s2 = *i;
-        if(s != s2)
-        {
-            if(s->boundingRect().intersects(s2->boundingRect()))
-            {
-                collides[s] = s2;
-            }
-        }
-    }
-    for(QMap<Sprite *, Sprite *>::iterator i = collides.begin(); i!= collides.end(); ++i)
-    {
-        Sprite *s1 = i.key();
-        Sprite *s2 = i.value();
-        QVector<Value *> args;
-
-        args.append(vm->GetAllocator().newRaw(s1, Value::SpriteType));
-        args.append(vm->GetAllocator().newRaw(s2, Value::SpriteType));
-        vm->ActivateEvent("collision", args);
-    }
-}
 
 void RunWindow::zoom(int x1, int y1, int x2, int y2)
 {
@@ -814,18 +645,38 @@ void RunWindow::cls()
 {
     QPainter p(GetImage());
     p.fillRect(0,0,GetImage()->width(), GetImage()->height(), Qt::white);
-    clearText();
+    textLayer.clearText();
     redrawWindow();
 }
 void RunWindow::clearAllText()
 {
-    clearText();
+    textLayer.clearText();
     redrawWindow();
 }
 
 void RunWindow::setTextColor(QColor color)
 {
     textColor = color;
+}
+
+void RunWindow::checkCollision(Sprite *s)
+{
+    class MyListener : public CollisionListener
+    {
+        RunWindow *owner;
+    public:
+        MyListener(RunWindow *owner) { this->owner = owner; }
+        void operator() (Sprite *s1, Sprite *s2) { owner->onCollision(s1, s2); }
+    } callBack(this);
+
+    spriteLayer.checkCollision(s, &callBack);
+}
+void RunWindow::onCollision(Sprite *s1, Sprite *s2)
+{
+    QVector<Value *> args;
+    args.append(vm->GetAllocator().newRaw(s1, BuiltInTypes::SpriteType));
+    args.append(vm->GetAllocator().newRaw(s2, BuiltInTypes::SpriteType));
+    vm->ActivateEvent("collision", args);
 }
 
 void RunWindow::TX(int &x)
@@ -857,17 +708,8 @@ void WindowPrintMethod::operator ()(QStack<Value *> &operandStack)
 {
     Value *v = operandStack.pop();
     QString str = v->toString();
-    bool isnum = true;
-    for(int i=0; i<str.length(); i++)
-    {
-        if(!str[i].isNumber())
-        {
-            isnum = false;
-            break;
-        }
-    }
 
-    parent->print(str);
+    parent->textLayer.print(str);
 }
 WindowReadMethod::WindowReadMethod(RunWindow *parent, VM *vm)
 {
@@ -904,17 +746,17 @@ void SetCursorPosProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 {
     int line = popInt(stack, w, vm);
     int col = popInt(stack, w, vm);
-    bool result = w->setCursorPos(line, col);
+    bool result = w->textLayer.setCursorPos(line, col);
     w->assert(result, ArgumentError, QString::fromStdWString(L"قيم غير صحيحة لتحديد موقع المؤشر"));
 }
 void GetCursorRowProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 {
-    int r = w->getCursorRow();
+    int r = w->textLayer.getCursorRow();
     stack.push(vm->GetAllocator().newInt(r));
 }
 void GetCursorColProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 {
-    int c = w->getCursorCol();
+    int c = w->textLayer.getCursorCol();
     stack.push(vm->GetAllocator().newInt(c));
 }
 
@@ -922,10 +764,10 @@ void GetCursorColProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 void PrintUsingWidthProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 {
     Value *v = stack.pop();
-    w->typeCheck(stack.top(), Value::IntType);
+    w->typeCheck(stack.top(), BuiltInTypes::IntType);
     int wid = stack.pop()->unboxInt();
     QString str = v->toString();
-    w->print(str, wid);
+    w->textLayer.print(str, wid);
 }
 
 void DrawPixelProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
@@ -1328,7 +1170,7 @@ void LnProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 void LoadSpriteProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 {
     verifyStackNotEmpty(stack, vm);
-    w->typeCheck(stack.top(), Value::StringType);
+    w->typeCheck(stack.top(), BuiltInTypes::StringType);
     QString *fname = stack.pop()->unboxStr();
     *fname = w->ensureCompletePath(*fname);
 
@@ -1337,13 +1179,13 @@ void LoadSpriteProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
         w->assert(false, ArgumentError, QString::fromStdWString(L"تحميل طيف من ملف غير موجود"));
     }
     Sprite *sprite = new Sprite(*fname);
-    w->AddSprite(sprite);
-    stack.push(vm->GetAllocator().newRaw(sprite, Value::SpriteType));
+    w->spriteLayer.AddSprite(sprite);
+    stack.push(vm->GetAllocator().newRaw(sprite, BuiltInTypes::SpriteType));
 }
 void DrawSpriteProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 {
 
-    w->typeCheck(stack.top(), Value::SpriteType);
+    w->typeCheck(stack.top(), BuiltInTypes::SpriteType);
     void *rawVal = stack.pop()->unboxRaw();
     Sprite  *sprite = (Sprite *) rawVal;
 
@@ -1355,23 +1197,23 @@ void DrawSpriteProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
     x-= sprite->image.width();
     sprite->location = QPoint(x,y);
     sprite->visible = true;
-    w->showSprite(sprite);
+    w->spriteLayer.showSprite(sprite);
     w->checkCollision(sprite);
     w->redrawWindow();
 }
 void HideSpriteProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 {
-    w->typeCheck(stack.top(), Value::SpriteType);
+    w->typeCheck(stack.top(), BuiltInTypes::SpriteType);
     void *rawVal = stack.pop()->unboxRaw();
     Sprite  *sprite = (Sprite *) rawVal;
     
     sprite->visible = false;
-    w->hideSprite(sprite);
+    w->spriteLayer.hideSprite(sprite);
     w->redrawWindow();
 }
 void GetSpriteLeftProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 {
-    w->typeCheck(stack.top(), Value::SpriteType);
+    w->typeCheck(stack.top(), BuiltInTypes::SpriteType);
     void *rawVal = stack.pop()->unboxRaw();
     Sprite  *sprite = (Sprite *) rawVal;
 
@@ -1382,7 +1224,7 @@ void GetSpriteLeftProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 
 void GetSpriteRightProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 {
-    w->typeCheck(stack.top(), Value::SpriteType);
+    w->typeCheck(stack.top(), BuiltInTypes::SpriteType);
     void *rawVal = stack.pop()->unboxRaw();
     Sprite  *sprite = (Sprite *) rawVal;
 
@@ -1393,7 +1235,7 @@ void GetSpriteRightProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 
 void GetSpriteTopProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 {
-    w->typeCheck(stack.top(), Value::SpriteType);
+    w->typeCheck(stack.top(), BuiltInTypes::SpriteType);
     void *rawVal = stack.pop()->unboxRaw();
     Sprite  *sprite = (Sprite *) rawVal;
 
@@ -1403,7 +1245,7 @@ void GetSpriteTopProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 
 void GetSpriteBottomProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 {
-    w->typeCheck(stack.top(), Value::SpriteType);
+    w->typeCheck(stack.top(), BuiltInTypes::SpriteType);
     void *rawVal = stack.pop()->unboxRaw();
     Sprite  *sprite = (Sprite *) rawVal;
 
@@ -1413,7 +1255,7 @@ void GetSpriteBottomProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 
 void GetSpriteWidthProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 {
-    w->typeCheck(stack.top(), Value::SpriteType);
+    w->typeCheck(stack.top(), BuiltInTypes::SpriteType);
     void *rawVal = stack.pop()->unboxRaw();
     Sprite  *sprite = (Sprite *) rawVal;
 
@@ -1423,7 +1265,7 @@ void GetSpriteWidthProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 
 void GetSpriteHeightProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 {
-    w->typeCheck(stack.top(), Value::SpriteType);
+    w->typeCheck(stack.top(), BuiltInTypes::SpriteType);
     void *rawVal = stack.pop()->unboxRaw();
     Sprite  *sprite = (Sprite *) rawVal;
 
@@ -1433,12 +1275,12 @@ void GetSpriteHeightProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 
 void ShowSpriteProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 {
-    w->typeCheck(stack.top(), Value::SpriteType);
+    w->typeCheck(stack.top(), BuiltInTypes::SpriteType);
     void *rawVal = stack.pop()->unboxRaw();
     Sprite  *sprite = (Sprite *) rawVal;
 
     sprite->visible = true;
-    w->showSprite(sprite);
+    w->spriteLayer.showSprite(sprite);
     w->checkCollision(sprite);
     w->redrawWindow();
 }
@@ -1485,10 +1327,10 @@ struct FileBlob
 FileBlob *popFileBlob(QStack<Value *> &stack, RunWindow *w, VM *vm)
 {
     verifyStackNotEmpty(stack, vm);
-    w->typeCheck(stack.top(), Value::FileType);
+    w->typeCheck(stack.top(), BuiltInTypes::FileType);
     Object *ob = stack.pop()->unboxObj();
     Value *rawFile = ob->getSlotValue("file_handle");
-    w->typeCheck(rawFile, Value::RawFileType);
+    w->typeCheck(rawFile, BuiltInTypes::RawFileType);
     void *fileObj = rawFile->unboxRaw();
     FileBlob *f = (FileBlob *) fileObj;
     return f;
@@ -1497,14 +1339,14 @@ FileBlob *popFileBlob(QStack<Value *> &stack, RunWindow *w, VM *vm)
 QString *popString(QStack<Value *> &stack, RunWindow *w, VM *vm)
 {
     verifyStackNotEmpty(stack, vm);
-    w->typeCheck(stack.top(), Value::StringType);
+    w->typeCheck(stack.top(), BuiltInTypes::StringType);
     QString *s = stack.pop()->unboxStr();
     return s;
 }
 int popInt(QStack<Value *> &stack, RunWindow *w, VM *vm)
 {
     verifyStackNotEmpty(stack, vm);
-    w->typeCheck(stack.top(), Value::IntType);
+    w->typeCheck(stack.top(), BuiltInTypes::IntType);
     int i = stack.pop()->unboxInt();
     return i;
 }
@@ -1526,6 +1368,9 @@ void FileWriteProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 {
     DoFileWrite(stack, w, vm, false);
 }
+
+
+
 void FileWriteUsingWidthProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 {
 
@@ -1535,7 +1380,7 @@ void FileWriteUsingWidthProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
     QString *s = popString(stack, w, vm);
     int width = popInt(stack, w, vm);
 
-    QString s2 = w->formatStringUsingWidth(*s, width);
+    QString s2 = w->textLayer.formatStringUsingWidth(*s, width);
     *(f->stream) << s2;
 }
 void FileWriteLineProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
@@ -1578,8 +1423,8 @@ void FileOpenProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
     FileBlob *blob = new FileBlob();
     blob->file = f;
     blob->stream = stream;
-    Value *v = vm->GetAllocator().newObject(Value::FileType);
-    v->v.objVal->_slots["file_handle"] = vm->GetAllocator().newRaw(blob, Value::RawFileType);
+    Value *v = vm->GetAllocator().newObject(BuiltInTypes::FileType);
+    v->v.objVal->_slots["file_handle"] = vm->GetAllocator().newRaw(blob, BuiltInTypes::RawFileType);
     stack.push(v);
 }
 
@@ -1594,8 +1439,8 @@ void FileCreateProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
     FileBlob *blob = new FileBlob();
     blob->file = f;
     blob->stream = stream;
-    Value *v = vm->GetAllocator().newObject(Value::FileType);
-    v->v.objVal->_slots["file_handle"] = vm->GetAllocator().newRaw(blob, Value::RawFileType);
+    Value *v = vm->GetAllocator().newObject(BuiltInTypes::FileType);
+    v->v.objVal->_slots["file_handle"] = vm->GetAllocator().newRaw(blob, BuiltInTypes::RawFileType);
     stack.push(v);
 }
 
@@ -1606,22 +1451,22 @@ void FileAppendProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
     QFile *f = new QFile(*fname);
     bool ret = f->open(QIODevice::WriteOnly | QIODevice::Text | QIODevice::Append);
     w->assert(ret, ArgumentError, QString::fromStdWString(L"لم ينجح فتح الملف"));
-    Value *v = vm->GetAllocator().newObject(Value::FileType);
+    Value *v = vm->GetAllocator().newObject(BuiltInTypes::FileType);
     QTextStream *stream = new QTextStream(f);
     FileBlob *blob = new FileBlob();
     blob->file = f;
     blob->stream = stream;
-    v->v.objVal->_slots["file_handle"] = vm->GetAllocator().newRaw(blob, Value::RawFileType);
+    v->v.objVal->_slots["file_handle"] = vm->GetAllocator().newRaw(blob, BuiltInTypes::RawFileType);
     stack.push(v);
 }
 
 void FileCloseProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 {
     // TODO: use popFileblob
-    w->typeCheck(stack.top(), Value::FileType);
+    w->typeCheck(stack.top(), BuiltInTypes::FileType);
     Object *ob = stack.pop()->unboxObj();
     Value *rawFile = ob->getSlotValue("file_handle");
-    w->typeCheck(rawFile, Value::RawFileType);
+    w->typeCheck(rawFile, BuiltInTypes::RawFileType);
     void *fileObj = rawFile->unboxRaw();
     FileBlob *f = (FileBlob *) fileObj;
     f->file->close();

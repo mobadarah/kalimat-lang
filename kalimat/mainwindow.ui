@@ -182,6 +182,7 @@
     <addaction name="actionSpeedFast"/>
     <addaction name="actionSpeedMedium"/>
     <addaction name="actionSpeedSlow"/>
+    <addaction name="actionSpeedSuper"/>
    </widget>
    <widget class="QMenu" name="mnuHelp">
     <property name="tearOffEnabled">
@@ -432,7 +433,7 @@
   </action>
   <action name="mnuProgramRun">
    <property name="icon">
-    <iconset resource="icons.qrc">
+    <iconset>
      <normaloff>:/icons/icons/runIcon.png</normaloff>:/icons/icons/runIcon.png</iconset>
    </property>
    <property name="text">
@@ -452,7 +453,7 @@
   </action>
   <action name="action_save">
    <property name="icon">
-    <iconset resource="icons.qrc">
+    <iconset>
      <normaloff>:/icons/icons/saveIcon.png</normaloff>:/icons/icons/saveIcon.png</iconset>
    </property>
    <property name="text">
@@ -464,7 +465,7 @@
   </action>
   <action name="action_open">
    <property name="icon">
-    <iconset resource="icons.qrc">
+    <iconset>
      <normaloff>:/icons/icons/openIcon.png</normaloff>:/icons/icons/openIcon.png</iconset>
    </property>
    <property name="text">
@@ -476,7 +477,7 @@
   </action>
   <action name="action_verify">
    <property name="icon">
-    <iconset resource="icons.qrc">
+    <iconset>
      <normaloff>:/icons/icons/checkIcon.png</normaloff>:/icons/icons/checkIcon.png</iconset>
    </property>
    <property name="text">
@@ -485,7 +486,7 @@
   </action>
   <action name="action_new">
    <property name="icon">
-    <iconset resource="icons.qrc">
+    <iconset>
      <normaloff>:/icons/icons/newIcon.png</normaloff>:/icons/icons/newIcon.png</iconset>
    </property>
    <property name="text">
@@ -670,11 +671,14 @@
     <string>Ctrl+G</string>
    </property>
   </action>
+  <action name="actionSpeedSuper">
+   <property name="text">
+    <string>خارق</string>
+   </property>
+  </action>
  </widget>
  <layoutdefault spacing="6" margin="11"/>
- <resources>
-  <include location="icons.qrc"/>
- </resources>
+ <resources/>
  <connections/>
  <slots>
   <signal>mainWindowClosed(QCloseEvent*)</signal>

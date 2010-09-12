@@ -46,6 +46,7 @@ MainWindow::MainWindow(QWidget *parent)
     speedGroup->addAction(ui->actionSpeedFast);
     speedGroup->addAction(ui->actionSpeedMedium);
     speedGroup->addAction(ui->actionSpeedSlow);
+    speedGroup->addAction(ui->actionSpeedSuper);
     lblEditorCurrentLine = new QLabel();
     lblEditorCurrentColumn = new QLabel();
 
@@ -123,6 +124,7 @@ void MainWindow::on_actionLexize_triggered()
     lxr.init(currentEditor()->document()->toPlainText());
     try
     {
+        ui->tabWidget->setCurrentWidget(ui->outputView);
         lxr.tokenize();
         QVector<Token> tokens = lxr.getTokens();
         ui->outputView->clear();
@@ -133,6 +135,7 @@ void MainWindow::on_actionLexize_triggered()
 
            lexeme = lexeme.replace("\n", "\\n");
            QString msg = QString("%1/type=%2, line=%3\n").arg(t.Lexeme).arg(TokenNameFromId(t.Type)).arg(t.Line);
+
            ui->outputView->append(msg);
         }
     }
@@ -142,6 +145,7 @@ void MainWindow::on_actionLexize_triggered()
     }
     catch(ColonUnsupportedInIdentifiersException ex)
     {
+
         ui->outputView->append("Cannot have a ':' in a non-keyword");
     }
     catch(UnexpectedEndOfFileException ex)
@@ -157,6 +161,7 @@ void MainWindow::on_actionParse_triggered()
 
     try
     {
+        ui->tabWidget->setCurrentWidget(ui->outputView);
         parser.init(currentEditor()->document()->toPlainText(), &lxr, NULL);
         AST * tree = parser.parse();
         ui->outputView->clear();
@@ -183,6 +188,7 @@ void MainWindow::on_actionCompile_triggered()
 
     try
     {
+        ui->tabWidget->setCurrentWidget(ui->outputView);
         ui->outputView->clear();
         CodeDocument *doc = docContainer->getCurrentDocument();
         Compiler compiler(docContainer);
@@ -224,6 +230,7 @@ void MainWindow::on_actionCompile_without_tags_triggered()
 
     try
     {
+        ui->tabWidget->setCurrentWidget(ui->outputView);
         ui->outputView->clear();
         CodeDocument *doc = docContainer->getCurrentDocument();
         Compiler compiler(docContainer);
@@ -381,6 +388,8 @@ int MainWindow::wonderfulMonitorDelay()
         return 500;
     if(ui->actionSpeedSlow->isChecked())
         return 1500;
+    if(ui->actionSpeedSuper->isChecked())
+        return 5;
     return 500;
 }
 
@@ -420,8 +429,7 @@ void MainWindow::visualizeCallStack(QStack<Frame> &callStack, QGraphicsView *vie
     }
     view->setAlignment(Qt::AlignRight| Qt::AlignTop);
     view->setLayoutDirection(Qt::RightToLeft);
-
-
+    ui->tabWidget->setCurrentWidget(ui->graphicsView);
     view->setScene(scene);
 }
 
@@ -456,7 +464,7 @@ void MainWindow::handleVMError(VMError err)
         Instruction i = f.getPreviousRunningInstruction();
         int key = i.extra;
         CodePosition p = PositionInfo[key];
-
+        visualizeCallStack(err.callStack, ui->graphicsView);
         if(p.doc != NULL)
         {
             // p.doc can be null if the source of the error is from a module
@@ -528,6 +536,7 @@ void MainWindow::on_actionLoad_Compilation_unit_triggered()
         Compiler compiler(docContainer);
         //QString output = compiler.CompileFromFile("c:/code/kalimat/examples/module1.k");
         QString output = compiler.CompileFromFile("c:/code/kalimat/examples/program1.k", NULL);
+
 
         ui->outputView->append(output);
     }

@@ -16,6 +16,8 @@
 #include "../smallvm/externalmethod.h"
 #include "sprite.h"
 #include "painttimer.h"
+#include "textlayer.h"
+#include "spritelayer.h"
 
 namespace Ui {
     class RunWindow;
@@ -99,7 +101,6 @@ void verifyStackNotEmpty(QStack<Value *> &stack, VM *vm);
 
 Value *ConvertStringToNumber(QString str, VM *vm);
 
-
 class WindowPrintMethod : public ExternalMethod
 {
     RunWindow *parent;
@@ -139,12 +140,8 @@ public:
     void InitVMPrelude(VM *vm);
     QImage *GetImage();
     QColor GetColor(int color);
-    void AddSprite(Sprite *);
     void assert(bool condition,  VMErrorType errorType, QString errorMsg);
     void setTextColor(QColor);
-    int getCursorCol();
-    int getCursorRow();
-    bool setCursorPos(int row, int col);
     QString pathOfRunningProgram();
     QString ensureCompletePath(QString fileName);
 private:
@@ -158,62 +155,40 @@ private:
 
 protected:
     void changeEvent(QEvent *e);
-
 private:
-    QVector<QString> visibleTextBuffer;
-    int visibleTextLines;
-    int textLineWidth;
-    int cursor_col, cursor_line;
     QImage image;
-    QVector<Sprite *> sprites;
-    QSet<Sprite *> visibleSprites;
     RunWindowState state;
     QString inputBuffer;
+
+public:
+    TextLayer textLayer;
+    SpriteLayer spriteLayer;
+    void checkCollision(Sprite *s);
+    void onCollision(Sprite *s1, Sprite *s2);
+private:
     QFont textFont;
     QColor textColor;
+
     int timerID;
 public:
     PaintTimer updateTimer;
 private:
     Ui::RunWindow *ui;
-
-  //  void showStr(QString);
-   // void moveCursorFwd(QString);
-    void print(QString);
-    void println(QString);
-    void printChar(QChar c);
-    void cr();
-    void lf();
-    void nl();
-
-
-
-    void backSpace();
     void resizeImage(QImage *image, const QSize &newSize);
-    QRect cursor();
-    void clearText();
 
     void activateMouseEvent(QMouseEvent *ev, QString evName);
     void activateKeyEvent(QKeyEvent *ev, QString evName);
 
 
 public:
-  //  void printSingleLine(QString str);
-    void print(QString str, int width);
-
-    QString formatStringUsingWidth(QString str, int width);
-
     void redrawWindow();
-
+    QRect cursor();
     void TX(int &);
     void resetTimer(int interval);
     void suspend();
     void resume();
     void typeCheck(Value *val, ValueClass *type);
     void typeError(ValueClass *givenType);
-    void showSprite(Sprite *s);
-    void hideSprite(Sprite *s);
-    void checkCollision(Sprite *s);
     void zoom(int x1, int y1, int x2, int y2);
     void cls();
     void clearAllText();

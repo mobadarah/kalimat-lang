@@ -15,21 +15,21 @@
 #include "value.h"
 
 
-ValueClass *Value::ObjectType = new ValueClass("Object", NULL);
-ValueClass *Value::IntType = new ValueClass("Integer", Value::ObjectType);
-ValueClass *Value::DoubleType = new ValueClass("Double", Value::ObjectType);
-ValueClass *Value::MethodType = new ValueClass("Method", Value::ObjectType);
-ValueClass *Value::ExternalMethodType = new ValueClass("ExternalMethod", Value::ObjectType);
-ValueClass *Value::ClassType = new ValueClass("Class", Value::ObjectType);
-ValueClass *Value::ArrayType = new ValueClass("Array", Value::ObjectType);
-ValueClass *Value::StringType = new ValueClass("String", Value::ObjectType);
-ValueClass *Value::SpriteType = new ValueClass("Sprite", Value::ObjectType);
-ValueClass *Value::FileType = NULL;
-ValueClass *Value::RawFileType = new ValueClass("RawFile", Value::ObjectType);
-ValueClass *Value::RefType = new ValueClass("Reference", Value::ObjectType);
-ValueClass *Value::FieldRefType = new ValueClass("FieldReference", Value::ObjectType);
-ValueClass *Value::ArrayRefType = new ValueClass("ArrayReference", Value::ObjectType);
-ValueClass *Value::NullType = new ValueClass("Null", Value::ObjectType);
+ValueClass *BuiltInTypes::ObjectType = new ValueClass("Object", NULL);
+ValueClass *BuiltInTypes::IntType = new ValueClass("Integer", BuiltInTypes::ObjectType);
+ValueClass *BuiltInTypes::DoubleType = new ValueClass("Double", BuiltInTypes::ObjectType);
+ValueClass *BuiltInTypes::MethodType = new ValueClass("Method", BuiltInTypes::ObjectType);
+ValueClass *BuiltInTypes::ExternalMethodType = new ValueClass("ExternalMethod", BuiltInTypes::ObjectType);
+ValueClass *BuiltInTypes::ClassType = new ValueClass("Class", BuiltInTypes::ObjectType);
+ValueClass *BuiltInTypes::ArrayType = new ValueClass("Array", BuiltInTypes::ObjectType);
+ValueClass *BuiltInTypes::StringType = new ValueClass("String", BuiltInTypes::ObjectType);
+ValueClass *BuiltInTypes::SpriteType = new ValueClass("Sprite", BuiltInTypes::ObjectType);
+ValueClass *BuiltInTypes::FileType = NULL;
+ValueClass *BuiltInTypes::RawFileType = new ValueClass("RawFile", BuiltInTypes::ObjectType);
+ValueClass *BuiltInTypes::RefType = new ValueClass("Reference", BuiltInTypes::ObjectType);
+ValueClass *BuiltInTypes::FieldRefType = new ValueClass("FieldReference", BuiltInTypes::ObjectType);
+ValueClass *BuiltInTypes::ArrayRefType = new ValueClass("ArrayReference", BuiltInTypes::ObjectType);
+ValueClass *BuiltInTypes::NullType = new ValueClass("Null", BuiltInTypes::ObjectType);
 
 Value *Value::NullValue;
 Value::Value()
