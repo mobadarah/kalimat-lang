@@ -14,18 +14,18 @@
 #include "documentcontainer.h"
 #include "codegenerator.h"
 
-
-
 #include "compiler.h"
 
 Compiler::Compiler(DocumentContainer *container)
 {
     this->documentContainer = container;
 }
+
 AST *parseModule(Parser *p)
 {
     return ((KalimatParser *) p)->module();
 }
+
 Program *Compiler::loadProgram(QString path, CodeDocument *doc)
 {
     parser.init(loadFileContents(path), &lexer, doc);
@@ -66,6 +66,7 @@ Module *Compiler::loadModule(QString path)
         if(!loadedModules.contains(fullPath))
             loadModule(fullPath);
         Module *importedMod = loadedModules[fullPath];
+
         pathsOfModules[importedMod] = fullPath;
         /*
         for(int i=0; i<importedMod->declCount(); i++)
@@ -80,6 +81,7 @@ Module *Compiler::loadModule(QString path)
     }
     return m;
 }
+
 void Compiler::generateAllLoadedModules()
 {
     for(QMap<QString,Module *>::iterator i= loadedModules.begin(); i!=loadedModules.end(); ++i)

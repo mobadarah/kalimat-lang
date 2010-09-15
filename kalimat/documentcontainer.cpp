@@ -67,7 +67,9 @@ void DocumentContainer::addDocument(QString title, QString fileName, QWidget *ed
     else
         doc = CodeDocument::newDoc(fileName, tabWidget, editor, this);
     widgetDocs[editor] = doc;
+    editor->setFocus();
 }
+
 CodeDocument *DocumentContainer::getCurrentDocument()
 {
     if(tabWidget->count() == 0)
@@ -88,6 +90,7 @@ CodeDocument *DocumentContainer::getDocumentFromTab(int index)
 {
     return widgetDocs[tabWidget->widget(index)];
 }
+
 void DocumentContainer::updateRecentFiles()
 {
     QSettings settings(settingsOrganizationName, settingsApplicationName);

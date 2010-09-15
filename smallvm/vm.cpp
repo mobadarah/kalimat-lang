@@ -12,6 +12,7 @@ VM::VM()
     :allocator(&constantPool, &stack)
 {
 }
+
 void VM::Init()
 {
     if(!constantPool.contains("main"))
@@ -66,18 +67,21 @@ void VM::signal(VMErrorType err, QString arg0)
     _lastError = VMError(err, stack).arg(arg0);
     throw _lastError;
 }
+
 void VM::signal(VMErrorType err, QString arg0, QString arg1)
 {
     _isRunning = false;
     _lastError = VMError(err, stack).arg(arg0).arg(arg1);
     throw _lastError;
 }
+
 void VM::signal(VMErrorType err, QString arg0, QString arg1, QString arg2)
 {
     _isRunning = false;
     _lastError = VMError(err, stack).arg(arg0).arg(arg1).arg(arg2);
     throw _lastError;
 }
+
 QString VM::toStr(int i)
 {
     return QString("%1").arg(i);
@@ -94,6 +98,7 @@ Frame *VM::currentFrame()
         return NULL;
     return &stack.top();
 }
+
 Frame &VM::globalFrame()
 {
     return stack[0];
@@ -103,6 +108,7 @@ void VM::Register(QString symRef, ExternalMethod *method)
 {
     constantPool[symRef] = allocator.newObject(method, BuiltInTypes::ExternalMethodType);
 }
+
 void VM::ActivateEvent(QString evName, QVector<Value *>args)
 {
     //assert(registeredEventHandlers.contains(evName), NoSuchEvent, evName);
@@ -124,7 +130,6 @@ void VM::ActivateEvent(QString evName, QVector<Value *>args)
     }
     DoCall(procName, args.count());
     _isRunning = true;
-
 }
 
 void VM::DefineStringConstant(QString symRef, QString strValue)
@@ -153,20 +158,24 @@ bool VM::hasRunningInstruction()
     return true;
 
 }
+
 Instruction VM::getCurrentInstruction()
 {
     //todo: use this to retrieve the current instruction in RunStep()
     Instruction i= currentFrame()->currentMethod->Get(currentFrame()->ip);
     return i;
 }
+
 Allocator &VM::GetAllocator()
 {
     return allocator;
 }
+
 void VM::gc()
 {
     allocator.gc();
 }
+
 int VM::popIntOrCoercedDouble()
 {
     QStack<Value *> &stack = currentFrame()->OperandStack;
@@ -795,6 +804,7 @@ void VM::Load(QString assemblyCode)
     } // end for(lines)
     patchupInheritance(inheritanceList);
 }
+
 void VM::patchupInheritance(QMap<ValueClass *, QString> inheritanceList)
 {
     // todo: walking the inheritanceList is unordered!
@@ -824,40 +834,48 @@ void VM::DoPushVal(Value *Arg)
 {
     currentFrame()->OperandStack.push(Arg);
 }
+
 void VM::DoPushLocal(QString SymRef)
 {
     assert(currentFrame()->Locals.contains(SymRef), NoSuchVariable);
     currentFrame()->OperandStack.push(currentFrame()->Locals[SymRef]);
 }
+
 void VM::DoPushGlobal(QString SymRef)
 {
     assert(globalFrame().Locals.contains(SymRef), NoSuchVariable);
     currentFrame()->OperandStack.push(globalFrame().Locals[SymRef]);
 }
+
 void VM::DoPushConstant(QString SymRef)
 {
     currentFrame()->OperandStack.push(constantPool[SymRef]);
 }
+
 void VM::DoPopLocal(QString SymRef)
 {
     Value *v = currentFrame()->OperandStack.pop();
     currentFrame()->Locals[SymRef] = v;
 }
+
 void VM::DoPopGlobal(QString SymRef)
 {
     Value *v = currentFrame()->OperandStack.pop();
     globalFrame().Locals[SymRef] = v;
 }
+
 void VM::DoPushNull()
 {
     currentFrame()->OperandStack.push(allocator.null());
 }
+
 void VM::DoGetRef()
 {
     // ... ref => ... val
     Reference *ref = currentFrame()->OperandStack.pop()->unboxRef();
     currentFrame()->OperandStack.push(ref->Get());
 }
+
 void VM::DoSetRef()
 {
     // ...ref val => ...
@@ -869,14 +887,14 @@ void VM::DoSetRef()
 
 int add_int(int a, int b) { return a + b;}
 double add_double(double a, double b) { return a + b;}
-QString *add_str(QString *a, QString *b)
-{
-    return new QString((*a) + (*b));
-}
+QString *add_str(QString *a, QString *b){ return new QString((*a) + (*b));}
+
 int sub_int(int a, int b) { return a - b;}
 double sub_double(double a, double b) { return a - b;}
+
 int mul_int(int a, int b) { return a * b;}
 double mul_double(double a, double b) { return a * b;}
+
 int div_int(int a, int b) { return a / b;}
 double div_double(double a, double b) { return a / b;}
 
@@ -886,54 +904,51 @@ int _not(int a) { return !a;}
 
 int lt_int(int a, int b) { return a<b;}
 int lt_double(double a, double b) { return a<b;}
-int lt_str(QString *a, QString *b)
-{
-    return (*a) < (*b);
-}
+int lt_str(QString *a, QString *b) { return (*a) < (*b); }
+
 int gt_int(int a, int b) { return a>b;}
 int gt_double(double a, double b) { return a>b;}
-int gt_str(QString *a, QString *b)
-{
-    return (*a) > (*b);
-}
+int gt_str(QString *a, QString *b) { return (*a) > (*b); }
+
 int le_int(int a, int b) { return a<=b;}
 int le_double(double a, double b) { return a<=b;}
-int le_str(QString *a, QString *b)
-{
-    return (*a) <= (*b);
-}
+int le_str(QString *a, QString *b) { return (*a) <= (*b); }
+
 int ge_int(int a, int b) { return a>=b;}
 int ge_double(double a, double b) { return a>=b;}
-int ge_str(QString *a, QString *b)
-{
-    return (*a) >= (*b);
-}
+int ge_str(QString *a, QString *b) { return (*a) >= (*b); }
+
 int eq_int(int a, int b) { return a==b;}
 int eq_double(double a, double b) { return a==b;}
 int eq_obj(Object *a, Object *b){ return a==b;}
 int eq_raw(void *a, void *b){ return a==b;}
+
 int eq_str(QString *a, QString *b)
 {
     QString *s1 = (QString *) a;
     QString *s2 = (QString *) b;
     return QString::compare(*s1, *s2, Qt::CaseSensitive) == 0;
 }
+
 int eq_difftypes(Value *, Value *)
 {
     return false;
 }
+
 int eq_bothnull() { return true;}
 
 int ne_int(int a, int b) { return a!=b;}
 int ne_double(double a, double b) { return a!=b;}
 int ne_obj(Object *a, Object *b) { return a!=b;}
 int ne_raw(void *a, void *b) { return a!=b;}
+
 int ne_str(QString*a, QString*b)
 {
     QString *s1 = (QString *) a;
     QString *s2 = (QString *) b;
     return QString::compare(*s1, *s2, Qt::CaseSensitive) != 0;
 }
+
 int ne_difftypes(Value *, Value *)
 {
     return true;
@@ -944,14 +959,17 @@ void VM::DoAdd()
 {
     BuiltInBinaryOp(add_int, add_double, add_str);
 }
+
 void VM::DoSub()
 {
     NumericBinaryOp(sub_int, sub_double);
 }
+
 void VM::DoMul()
 {
     NumericBinaryOp(mul_int, mul_double);
 }
+
 void VM::DoDiv()
 {
     // can't convert till we can handle div by zero situation :(
@@ -962,6 +980,7 @@ void VM::DoDiv()
 
     currentFrame()->OperandStack.push(v3);
 }
+
 void VM::DoNeg()
 {
     Value *v1 = currentFrame()->OperandStack.pop();
@@ -980,55 +999,68 @@ void VM::DoAnd()
 {
     BinaryLogicOp(_and);
 }
+
 void VM::DoOr()
 {
     BinaryLogicOp(_or);
 }
+
 void VM::DoNot()
 {
     UnaryLogicOp(_not);
 }
+
 void VM::DoJmp(QString label)
 {
     currentFrame()->ip = currentFrame()->currentMethod->GetIp(label);
 }
+
 void VM::DoIf(QString trueLabel, QString falseLabel)
 {
     Value *v = currentFrame()->OperandStack.pop();
     test(!(v->tag == Int && v->v.intVal == 0), trueLabel, falseLabel);
 }
+
 void VM::DoLt()
 {
     BuiltInBinaryBoolOp(lt_int, lt_double, lt_str);
 }
+
 void VM::DoGt()
 {
     BuiltInBinaryBoolOp(gt_int, gt_double , gt_str);
 }
+
 void VM::DoEq()
 {
     BinaryBoolOp(eq_int, eq_double, eq_obj, eq_str, eq_raw, eq_difftypes, eq_bothnull);
 }
+
 void VM::DoNe()
 {
     BinaryBoolOp(ne_int, ne_double, ne_obj, ne_str, ne_raw, ne_difftypes, ne_bothnull);
 }
+
 void VM::DoLe()
 {
     BuiltInBinaryBoolOp(le_int, le_double, le_str);
 }
+
 void VM::DoGe()
 {
     BuiltInBinaryBoolOp(ge_int, ge_double, ge_str);
 }
+
 void VM::DoCall(QString symRef, int arity)
 {
     CallImpl(symRef, true, arity);
 }
+
 void VM::DoCallRef(QString symRef, int arity)
 {
     CallImpl(symRef, false, arity);
 }
+
 void VM::CallImpl(QString symRef, bool wantValueNotRef, int arity)
 {
     // call expects the arguments on the operand stack in reverse order,
@@ -1103,6 +1135,7 @@ void VM::DoCallMethod(QString SymRef, int arity)
         currentFrame()->OperandStack.push(v);
     }
 }
+
 void VM::DoRet()
 {
     Value *v = NULL;
@@ -1127,6 +1160,7 @@ void VM::DoRet()
             DoGetRef();
     }
 }
+
 void VM::DoCallExternal(QString symRef, int arity)
 {
     assert(constantPool.contains(symRef), NoSuchExternalMethod, symRef);
@@ -1135,6 +1169,7 @@ void VM::DoCallExternal(QString symRef, int arity)
     assert(arity == -1 || method->Arity() ==-1 || arity == method->Arity(), WrongNumberOfArguments);
     (*method)(currentFrame()->OperandStack);
 }
+
 void VM::DoSetField(QString SymRef)
 {
     // ...obj val  => ...
@@ -1148,6 +1183,7 @@ void VM::DoSetField(QString SymRef)
     Object *obj = objVal->unboxObj();
     obj->setSlotValue(SymRef, v);
 }
+
 void VM::DoGetField(QString SymRef)
 {
     // ...object => val
@@ -1161,6 +1197,7 @@ void VM::DoGetField(QString SymRef)
     Value *v = obj->getSlotValue(SymRef);
     currentFrame()->OperandStack.push(v);
 }
+
 void VM::DoGetFieldRef(QString SymRef)
 {
     // ...object => ...fieldRef
@@ -1172,6 +1209,7 @@ void VM::DoGetFieldRef(QString SymRef)
     Value *ref = allocator.newFieldReference(objVal->unboxObj(), SymRef);
     currentFrame()->OperandStack.push(ref);
 }
+
 void VM::DoSetArr()
 {
     // ...arr index val => ...
@@ -1189,6 +1227,7 @@ void VM::DoSetArr()
     arr->Elements[i-1] = v;
 
 }
+
 void VM::DoGetArr()
 {
     // ...arr index => ...value
@@ -1205,13 +1244,12 @@ void VM::DoGetArr()
     Value *v = arr->Elements[i-1];
     currentFrame()->OperandStack.push(v);
 }
+
 void VM::DoGetArrRef()
 {
     // ...arr index => ...arrref
     Value *index  = currentFrame()->OperandStack.pop();
     Value *arrVal= currentFrame()->OperandStack.pop();
-
-
 
     assert(arrVal->tag == ArrayVal, SubscribingNonArray);
     assert(index->tag == Int, SubscribtMustBeInteger);
@@ -1233,6 +1271,7 @@ void VM::DoNew(QString SymRef)
     Value *newObj = allocator.newObject(theClass);
     currentFrame()->OperandStack.push(newObj);
 }
+
 void VM::DoNewArr()
 {
     assert(__top()->tag == Int, TypeError);
@@ -1251,6 +1290,7 @@ void VM::DoArrLength()
     Value *len = allocator.newInt(arr->count);
     currentFrame()->OperandStack.push(len);
 }
+
 void VM::DoNewMD_Arr()
 {
     // ... dimensions => ... md_arr
@@ -1266,6 +1306,7 @@ void VM::DoNewMD_Arr()
     Value *mdarr = allocator.newMultiDimensionalArray(dimensions);
     currentFrame()->OperandStack.push(mdarr);
 }
+
 void VM::Pop_Md_Arr_and_indexes(MultiDimensionalArray<Value *> *&theArray, QVector<int> &indexes)
 {
 
@@ -1362,6 +1403,7 @@ void VM::test(bool cond, QString trueLabel, QString falseLabel)
 
     currentFrame()->ip = newIp;
 }
+
 void VM::BuiltInBinaryOp(int (*intFunc)(int,int), double (*doubleFunc)(double,double), QString *(*strFunc)(QString *,QString *))
 {
     Value *v2 = currentFrame()->OperandStack.pop();
@@ -1416,6 +1458,7 @@ void VM::NumericBinaryOp(int (*intFunc)(int,int), double (*doubleFunc)(double,do
 
     currentFrame()->OperandStack.push(v3);
 }
+
 void VM::BuiltInBinaryBoolOp(int (*intFunc)(int,int), int (*doubleFunc)(double,double),int (*strFunc)(QString *, QString *))
 {
     Value *v2 = currentFrame()->OperandStack.pop();
@@ -1493,6 +1536,7 @@ void VM::BinaryBoolOp(int (*intFunc)(int,int),
     v3 = allocator.newInt(result);
     currentFrame()->OperandStack.push(v3);
 }
+
 void VM::BinaryLogicOp(int (*intFunc)(int,int))
 {
     Value *v2 = currentFrame()->OperandStack.pop();
@@ -1504,6 +1548,7 @@ void VM::BinaryLogicOp(int (*intFunc)(int,int))
 
     currentFrame()->OperandStack.push(v3);
 }
+
 void VM::UnaryLogicOp(int (*intFunc)(int))
 {
     Value *v1 = currentFrame()->OperandStack.pop();
@@ -1514,6 +1559,7 @@ void VM::UnaryLogicOp(int (*intFunc)(int))
 
     currentFrame()->OperandStack.push(v2);
 }
+
 Value *VM::_div(Value *v1, Value *v2)
 {
     if (v1->tag == Int && v2->tag == Double)
@@ -1539,11 +1585,13 @@ Value *VM::_div(Value *v1, Value *v2)
     }
     return NULL;
 }
+
 Value *VM::__top()
 {
     assert(!stack.empty(), InternalError);
     return currentFrame()->OperandStack.top();
 }
+
 bool VM::isRunning()
 {
     return _isRunning;

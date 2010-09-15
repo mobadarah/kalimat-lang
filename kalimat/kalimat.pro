@@ -35,11 +35,12 @@ SOURCES += main.cpp \
     ../smallvm/allocator.cpp \
     Compiler/codegenhelper.cpp \
     painttimer.cpp \
-    picture.cpp \
     linetracker.cpp \
     myedit.cpp \
     textlayer.cpp \
-    spritelayer.cpp
+    spritelayer.cpp \
+    builtinmethods.cpp \
+    paintsurface.cpp
 HEADERS += mainwindow.h \
     codedocument.h \
     Lexer/token.h \
@@ -69,11 +70,12 @@ HEADERS += mainwindow.h \
     documentcontainer.h \
     Compiler/codegenhelper.h \
     painttimer.h \
-    picture.h \
     linetracker.h \
     myedit.h \
     textlayer.h \
-    spritelayer.h
+    spritelayer.h \
+    builtinmethods.h \
+    paintsurface.h
 FORMS += mainwindow.ui \
     runwindow.ui \
     savechangedfiles.ui

@@ -9,6 +9,8 @@
 
 TextLayer::TextLayer()
 {
+    state = Normal;
+    mode = Overwrite;
     clearText();
 }
 
@@ -50,7 +52,11 @@ void TextLayer::printChar(QChar c)
             int n = cursor_col - s.length() +1;
                 s.append(QString(n, ' '));
         }
-        s[cursor_col] = c;
+        if(mode == Overwrite)
+            s[cursor_col] = c;
+        else
+            s.insert(cursor_col, c);
+
         visibleTextBuffer[cursor_line] = s;
         cursor_col++;
     }
@@ -76,6 +82,39 @@ void TextLayer::println(QString str)
     nl();
 }
 
+void TextLayer::beginInput()
+{
+    state = Input;
+    inputBuffer = "";
+    inputStartLine = cursor_line;
+    inputStartCol = cursor_col;
+    oldMode = mode;
+    mode = Insert;
+}
+
+QString TextLayer::endInput()
+{
+    state = Normal;
+    mode = oldMode;
+    return inputBuffer;
+}
+
+void TextLayer::typeIn(QString s)
+{
+    if(mode == Insert)
+        inputBuffer.insert(inputCursorPos(), s);
+    else
+    {
+        inputBuffer.replace(inputCursorPos(), s.length(), s);
+    }
+    print(s);
+}
+
+bool TextLayer::inputState()
+{
+    return state == Input;
+}
+
 bool TextLayer::setCursorPos(int row, int col)
 {
     if(row < 0 || row >= visibleTextLines || col < 0 || col>=textLineWidth)
@@ -85,6 +124,19 @@ bool TextLayer::setCursorPos(int row, int col)
     cursor_col = col;
     cursor_line = row;
     return true;
+}
+
+bool TextLayer::cursorFwd()
+{
+    if(cursor_col + 1 < currentLine().length())
+
+        cursor_col++;
+}
+
+bool TextLayer::cursortBack()
+{
+    if(cursor_col > 0)
+        cursor_col--;
 }
 
 int TextLayer::getCursorRow()
@@ -115,11 +167,26 @@ void TextLayer::nl()
     lf();
 }
 
-void TextLayer::backSpace()
+void TextLayer::del()
 {
     QString s = visibleTextBuffer[cursor_line];
+    if(cursor_col >= s.length())
+        return;
+    if(state == Input)
+        inputBuffer = inputBuffer.remove(inputCursorPos(), 1);
 
-    s = s.left(cursor_col-1) + s.mid(cursor_col, s.length() - cursor_col);
+    s = s.remove(cursor_col, 1);
+    visibleTextBuffer[cursor_line] = s;
+}
+
+void TextLayer::backSpace()
+{
+    if(cursor_col == 0)
+        return;
+    if(state == Input)
+        inputBuffer = inputBuffer.remove(inputCursorPos()-1, 1);
+    QString s = visibleTextBuffer[cursor_line];
+    s = s.remove(cursor_col-1, 1);
     visibleTextBuffer[cursor_line] = s;
     cursor_col --;
 }

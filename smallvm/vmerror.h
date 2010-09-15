@@ -27,7 +27,6 @@ enum VMErrorType
     ElementAlreadyDefined, MethodAlreadyDefinedInClass,
     RuntimeError,
     NoError
-
 };
 
 class VMError

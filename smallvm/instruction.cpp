@@ -34,6 +34,7 @@ Instruction &Instruction::wArg(Value *arg)
     this->Arg = arg;
     return *this;
 }
+
 Instruction &Instruction::wArgParse(QString argS, Allocator *allocator)
 {
     bool ok;
@@ -66,12 +67,14 @@ Instruction &Instruction::wArgParse(QString argS, Allocator *allocator)
 
     return *this;
 }
+
 Instruction &Instruction::wLabels(QString l1, QString l2)
 {
     this->True = l1;
     this->False = l2;
     return *this;
 }
+
 Instruction &Instruction::wRef(QString ref)
 {
     this->SymRef = ref;

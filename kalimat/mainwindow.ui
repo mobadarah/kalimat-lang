@@ -194,7 +194,7 @@
     <property name="separatorsCollapsible">
      <bool>false</bool>
     </property>
-    <addaction name="action"/>
+    <addaction name="actionKalimatManual"/>
     <addaction name="action_help_keyboard"/>
     <addaction name="separator"/>
     <addaction name="action_walkthroughs"/>
@@ -213,7 +213,6 @@
     <addaction name="actionCompile"/>
     <addaction name="actionCompile_without_tags"/>
     <addaction name="actionEvaluate"/>
-    <addaction name="actionLoad_Compilation_unit"/>
     <addaction name="actionGo_to_position"/>
    </widget>
    <addaction name="mnuFile"/>
@@ -396,7 +395,7 @@
     <string>Evaluate</string>
    </property>
   </action>
-  <action name="action">
+  <action name="actionKalimatManual">
    <property name="text">
     <string>البرمجة بكلمات</string>
    </property>
@@ -433,7 +432,7 @@
   </action>
   <action name="mnuProgramRun">
    <property name="icon">
-    <iconset>
+    <iconset resource="icons.qrc">
      <normaloff>:/icons/icons/runIcon.png</normaloff>:/icons/icons/runIcon.png</iconset>
    </property>
    <property name="text">
@@ -453,7 +452,7 @@
   </action>
   <action name="action_save">
    <property name="icon">
-    <iconset>
+    <iconset resource="icons.qrc">
      <normaloff>:/icons/icons/saveIcon.png</normaloff>:/icons/icons/saveIcon.png</iconset>
    </property>
    <property name="text">
@@ -465,7 +464,7 @@
   </action>
   <action name="action_open">
    <property name="icon">
-    <iconset>
+    <iconset resource="icons.qrc">
      <normaloff>:/icons/icons/openIcon.png</normaloff>:/icons/icons/openIcon.png</iconset>
    </property>
    <property name="text">
@@ -477,7 +476,7 @@
   </action>
   <action name="action_verify">
    <property name="icon">
-    <iconset>
+    <iconset resource="icons.qrc">
      <normaloff>:/icons/icons/checkIcon.png</normaloff>:/icons/icons/checkIcon.png</iconset>
    </property>
    <property name="text">
@@ -486,7 +485,7 @@
   </action>
   <action name="action_new">
    <property name="icon">
-    <iconset>
+    <iconset resource="icons.qrc">
      <normaloff>:/icons/icons/newIcon.png</normaloff>:/icons/icons/newIcon.png</iconset>
    </property>
    <property name="text">
@@ -556,11 +555,6 @@
   <action name="actionDummy">
    <property name="text">
     <string>dummy</string>
-   </property>
-  </action>
-  <action name="actionLoad_Compilation_unit">
-   <property name="text">
-    <string>Load Compilation unit</string>
    </property>
   </action>
   <action name="action_wonderfulmonitor">
@@ -678,7 +672,9 @@
   </action>
  </widget>
  <layoutdefault spacing="6" margin="11"/>
- <resources/>
+ <resources>
+  <include location="icons.qrc"/>
+ </resources>
  <connections/>
  <slots>
   <signal>mainWindowClosed(QCloseEvent*)</signal>

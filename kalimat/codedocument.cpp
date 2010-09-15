@@ -138,6 +138,9 @@ void CodeDocument::load()
         f.open(QIODevice::ReadOnly | QIODevice::Text);
         QTextStream out(&f);
         editor->document()->setPlainText(out.readAll());
+        QTextCursor c = editor->textCursor();
+        c.setPosition(0);
+        editor->setTextCursor(c);
         f.close();
         setDirty(false);
         isNewFile = false;

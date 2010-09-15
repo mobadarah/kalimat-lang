@@ -10,6 +10,7 @@
 LineTracker::LineTracker()
 {
 }
+
 void LineTracker::setText(QString text)
 {
     lineStartPositions.clear();

@@ -5,11 +5,7 @@
 **   as described in the included license.txt file
 **************************************************************************/
 
-
-#include <QtCore>
-
 #include "statemachine_incl.h"
-
 
 void StateMachine::add(State s, Predicate *c, State s2)
 {

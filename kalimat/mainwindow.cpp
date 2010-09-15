@@ -36,9 +36,6 @@ MainWindow *MainWindow::that = NULL;
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent),
     ui(new Ui::MainWindow)
-
-
-
 {
     MainWindow::that = this;
     ui->setupUi(this);
@@ -62,7 +59,6 @@ MainWindow::MainWindow(QWidget *parent)
                                          MaxRecentFiles,
                                          ui->mnuRecentFiles_2);
 
-
     QSplitter *splitter = new QSplitter(Qt::Vertical, this);
     splitter->addWidget(ui->editorTabs);
     splitter->addWidget(ui->tabWidget);
@@ -71,8 +67,9 @@ MainWindow::MainWindow(QWidget *parent)
     this->setWindowTitle(QString::fromWCharArray(L"كلمات"));
     this->showMaximized();
 
-    docContainer->addDocument(QString::fromWCharArray(L"بدون عنوان"), "untitled", this->CreateEditorWidget(), true);
+    docContainer->addDocument(QString::fromWCharArray(L"بدون عنوان"), "untitled", CreateEditorWidget(), true);
 }
+
 QWidget *MainWindow::GetParentWindow()
 {
     return this;
@@ -99,7 +96,6 @@ MainWindow::~MainWindow()
     delete lblEditorCurrentLine;
 }
 
-
 QWidget *MainWindow::CreateEditorWidget()
 {
     MyEdit *edit = new MyEdit(this);
@@ -111,6 +107,7 @@ QWidget *MainWindow::CreateEditorWidget()
     edit->setFont(font);
     return edit;
 }
+
 void MainWindow::setLineIndicators(int line, int column)
 {
     lblEditorCurrentLine->setText(QString::fromStdWString(L"السطر: %1").arg(line));
@@ -223,6 +220,7 @@ void MainWindow::on_actionCompile_triggered()
         ui->outputView->append(ex.getMessage());
     }
 }
+
 void MainWindow::on_actionCompile_without_tags_triggered()
 {
     KalimatLexer lxr;
@@ -333,6 +331,7 @@ void MainWindow::on_mnuProgramRun_triggered()
 
     }
 }
+
 void MainWindow::highlightLine(QTextEdit *editor, int pos)
 {
     QList<QTextEdit::ExtraSelection> selections;
@@ -350,9 +349,8 @@ void MainWindow::highlightLine(QTextEdit *editor, int pos)
     selections.append(sel);
     editor->setExtraSelections(selections);
     ui->editorTabs->setCurrentWidget(editor);
-
-
 }
+
 void MainWindow::highlightToken(QTextEdit *editor, int pos, int length)
 {
     QList<QTextEdit::ExtraSelection> selections;
@@ -372,14 +370,13 @@ void MainWindow::highlightToken(QTextEdit *editor, int pos, int length)
     sel.format.setBackground(QBrush(QColor(Qt::yellow)));
     selections.append(sel);
     editor->setExtraSelections(selections);
-
 }
-
 
 bool MainWindow::isWonderfulMonitorEnabled()
 {
     return ui->action_wonderfulmonitor->isChecked();
 }
+
 int MainWindow::wonderfulMonitorDelay()
 {
     if(ui->actionSpeedFast->isChecked())
@@ -485,15 +482,18 @@ void MainWindow::on_action_new_triggered()
 {
     docContainer->handleNew("new program ", CreateEditorWidget());
 }
+
 void MainWindow::closeEvent(QCloseEvent *ev)
 {
     docContainer->handleClose(ev);
     QObject::connectNotify("mainWindowClosed");
 }
+
 void MainWindow::on_editorTabs_tabCloseRequested(int index)
 {
     docContainer->handleTabCloseRequested(index);
 }
+
 void MainWindow::on_action_open_triggered()
 {
     docContainer->handleOpen();
@@ -509,11 +509,11 @@ void MainWindow::on_action_saveas_triggered()
     docContainer->handleSaveAs();
 }
 
-
 void MainWindow::on_action_exit_triggered()
 {
     this->close();
 }
+
 void MainWindow::show_error(QString msg)
 {
     QMessageBox box;
@@ -522,44 +522,8 @@ void MainWindow::show_error(QString msg)
     box.exec();
 }
 
-
-
 void MainWindow::on_garbageCollect_triggered()
 {
-
-}
-
-void MainWindow::on_actionLoad_Compilation_unit_triggered()
-{
-    try
-    {
-        Compiler compiler(docContainer);
-        //QString output = compiler.CompileFromFile("c:/code/kalimat/examples/module1.k");
-        QString output = compiler.CompileFromFile("c:/code/kalimat/examples/program1.k", NULL);
-
-
-        ui->outputView->append(output);
-    }
-    catch(UnexpectedCharException ex)
-    {
-        show_error(ex.buildMessage());
-    }
-    catch(UnexpectedEndOfFileException ex)
-    {
-        show_error("Unexpected end of file");
-    }
-    catch(ParserException ex)
-    {
-        show_error(ex.message);
-    }
-    catch(CompilerException ex)
-    {
-        show_error(ex.getMessage());
-    }
-    catch(VMError err)
-    {
-
-    }
 
 }
 
@@ -638,7 +602,6 @@ void ensurePositionBeforeAnchor(QTextEdit *editor)
     c.setPosition(p + n);
     c.movePosition(QTextCursor::PreviousCharacter, QTextCursor::KeepAnchor, n);
     editor->setTextCursor(c);
-
 }
 
 void MainWindow::on_btnFindPrev_clicked()
@@ -655,7 +618,6 @@ void MainWindow::on_btnFindPrev_clicked()
             ensurePositionBeforeAnchor(editor);
     }
 }
-
 
 void MainWindow::on_btnFindNext_clicked()
 {
@@ -739,8 +701,6 @@ void MainWindow::on_btnReplaceNext_clicked()
         }
     }
 }
-
-
 
 void MainWindow::on_actionGo_to_position_triggered()
 {

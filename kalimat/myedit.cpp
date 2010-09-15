@@ -56,7 +56,7 @@ void MyEdit::keyPressEvent(QKeyEvent *ev)
     }
     else if(ev->key() == Qt::Key_Return)
     {
-        enterKeyBehavior();
+        enterKeyBehavior(ev);
     }
     else if(ev->key() == Qt::Key_Left)
     {
@@ -86,7 +86,6 @@ void MyEdit::keyPressEvent(QKeyEvent *ev)
         else
             this->insertPlainText(QString::fromWCharArray(L"٫"));
     }
-
     else
     {
         QTextEdit::keyPressEvent(ev);
@@ -100,6 +99,7 @@ void MyEdit::tabBehavior()
 
 void MyEdit::shiftTabBehavior()
 {
+    textCursor().beginEditBlock();
     QTextCursor c = textCursor();
     int a = c.selectionStart();
     int b = c.selectionEnd();
@@ -158,6 +158,7 @@ void MyEdit::shiftTabBehavior()
     c.setPosition(aPos);
     c.movePosition(QTextCursor::NextCharacter, QTextCursor::KeepAnchor, bPos - aPos);
     setTextCursor(c);
+    textCursor().endEditBlock();
 }
 
 bool tokensEqual(QVector<Token> toks, int ids[], int count)
@@ -189,13 +190,13 @@ bool tokensBeginEnd(QVector<Token> toks, int ids1[], int ids2[], int count1, int
     return true;
 }
 
-void MyEdit::enterKeyBehavior()
+void MyEdit::enterKeyBehavior(QKeyEvent *ev)
 {
     LineInfo li = currentLine();
     QString txt = textOfLine(li);
-    txt = txt.trimmed();
+    QString lexedTxt = txt.trimmed();
     KalimatLexer lxr;
-    lxr.init(txt);
+    lxr.init(lexedTxt);
     lxr.tokenize();
     QVector<Token> toks = lxr.getTokens();
     int classDecl[] = { CLASS, IDENTIFIER, COLON };
@@ -208,44 +209,61 @@ void MyEdit::enterKeyBehavior()
     int funcDeclStart[] = { FUNCTION, IDENTIFIER, LPAREN }, funcDeclEnd[] = { RPAREN, COLON };
     int responseDeclStart[] = { RESPONSEOF, IDENTIFIER, IDENTIFIER }, responseDeclEnd[] = { RPAREN, COLON };
     int replyDeclStart[] = { REPLYOF, IDENTIFIER, IDENTIFIER }, replyDeclEnd[] = { RPAREN, COLON };
+
+
+    QString tail = txt.right(txt.length() - column()).trimmed();
+    bool endOfLine = tail == "";
+    bool indented = false;
     // todo: consider adding a newline after the 'end' that teminates top-level declarations.
-    if(tokensEqual(toks, classDecl, 3) ||
-       tokensBeginEnd(toks, procDeclStart, procDeclEnd, 3, 2) ||
-       tokensBeginEnd(toks, funcDeclStart, funcDeclEnd, 3, 2) ||
-       tokensBeginEnd(toks, responseDeclStart, responseDeclEnd, 3, 2) ||
-       tokensBeginEnd(toks, replyDeclStart, replyDeclEnd, 3, 2)
-       )
+    textCursor().beginEditBlock();
+    if(endOfLine)
     {
-        indentAndTerminate(li, QString::fromStdWString(L"نهاية"));
+        if(tokensEqual(toks, classDecl, 3) ||
+           tokensBeginEnd(toks, procDeclStart, procDeclEnd, 3, 2) ||
+           tokensBeginEnd(toks, funcDeclStart, funcDeclEnd, 3, 2) ||
+           tokensBeginEnd(toks, responseDeclStart, responseDeclEnd, 3, 2) ||
+           tokensBeginEnd(toks, replyDeclStart, replyDeclEnd, 3, 2)
+           )
+        {
+            indented = true;
+            indentAndTerminate(li, QString::fromStdWString(L"نهاية"));
+        }
+        else if(tokensBeginEnd(toks, ifStmtStart, ifStmtEnd, 1,1))
+        {
+            indented = true;
+            indentAndTerminate(li, QString::fromStdWString(L"تم"));
+        }
+        else if(tokensEqual(toks, elsePart, 2) ||
+                tokensBeginEnd(toks, elseIfStart, elseIfEnd, 2, 1))
+        {
+            indented = true;
+            int n = indentOfLine(li);
+            insertPlainText("\n");
+            for(int i=0;i<n + 4; i++)
+                insertPlainText(" ");
+        }
+        else if(tokensBeginEnd(toks, forStmtStart, forStmtEnd, 1,1) ||
+                tokensBeginEnd(toks, whileStmtStart, whileStmtEnd, 1,1))
+        {
+            indented = true;
+            indentAndTerminate(li, QString::fromStdWString(L"تابع"));
+        }
     }
-    else if(tokensBeginEnd(toks, ifStmtStart, ifStmtEnd, 1,1))
-    {
-        indentAndTerminate(li, QString::fromStdWString(L"تم"));
-    }
-    else if(tokensEqual(toks, elsePart, 2) ||
-            tokensBeginEnd(toks, elseIfStart, elseIfEnd, 2, 1))
-    {
-        int n = indentOfLine(li);
-        insertPlainText("\n");
-        for(int i=0;i<n + 4; i++)
-            insertPlainText(" ");
-    }
-    else if(tokensBeginEnd(toks, forStmtStart, forStmtEnd, 1,1) ||
-            tokensBeginEnd(toks, whileStmtStart, whileStmtEnd, 1,1))
-    {
-        indentAndTerminate(li, QString::fromStdWString(L"تابع"));
-    }
-    else
+    if(endOfLine && !indented)
     {
         int n = indentOfLine(li);
         insertPlainText("\n");
         for(int i=0;i<n; i++)
             insertPlainText(" ");
     }
+    else if(!indented)
+    {
+        QTextEdit::keyPressEvent(ev);
+    }
+    textCursor().endEditBlock();
 }
 void MyEdit::indentAndTerminate(LineInfo prevLine, QString termination)
 {
-
     int n = indentOfLine(prevLine);
     this->insertPlainText("\n");
     for(int i=0; i<4 + n; i++)
@@ -267,6 +285,7 @@ void MyEdit::textChangedEvent()
     lineTracker.lineColumnOfPos(this->textCursor().position(), _line, _column);
     owner->setLineIndicators(_line, _column);
 }
+
 void MyEdit::selectionChangedEvent()
 {
     lineTracker.lineColumnOfPos(this->textCursor().position(), _line, _column);

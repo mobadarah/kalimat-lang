@@ -79,7 +79,6 @@ private slots:
     void on_action_edit_paste_triggered();
     void on_action_edit_copy_triggered();
     void on_action_edit_cut_triggered();
-    void on_actionLoad_Compilation_unit_triggered();
     void on_garbageCollect_triggered();
     void on_editorTabs_tabCloseRequested(int index);
     void on_action_exit_triggered();

@@ -205,9 +205,9 @@ void Allocator::mark()
     currentAllocationInBytes = 0;
     QStack<Value *> reachable;
 
-    for(int i=0; i<constantPool->values().count(); i++)
+    for(QMap<QString, Value *>::const_iterator i=constantPool->begin(); i != constantPool->end(); ++i)
     {
-        Value * v = constantPool->values()[i];
+        Value * v = i.value();
         reachable.push(v);
     }
     for(int i=0; i<stack->count(); i++)
@@ -264,7 +264,6 @@ void Allocator::mark()
 }
 void Allocator::sweep()
 {
-    objsDeleted = 0;
     QVector<Value *> toDel;
     QSet<Value *>::const_iterator i;
     for (i = heap.begin(); i != heap.end(); ++i)
@@ -280,15 +279,6 @@ void Allocator::sweep()
     for(int i=0; i<toDel.count(); i++)
     {
         Value *v = toDel[i];
-        if(v->tag == ObjectVal)
-        {
-            Method *m = dynamic_cast<Method *> (v->unboxObj());
-            if(m != NULL)
-            {
-                int x =8;
-            }
-        }
-        objsDeleted++;
         heap.remove(v);
         delete v;
     }

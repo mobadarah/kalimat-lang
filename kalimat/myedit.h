@@ -25,7 +25,7 @@ public:
     int column();
     void tabBehavior();
     void shiftTabBehavior();
-    void enterKeyBehavior();
+    void enterKeyBehavior(QKeyEvent *ev);
     LineInfo currentLine();
     int indentOfLine(LineInfo li);
     QString textOfLine(LineInfo line);
