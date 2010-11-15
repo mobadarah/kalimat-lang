@@ -42,6 +42,7 @@ class LAStr : public Predicate
     QString str;
 public:
     LAStr(QString s);
+    LAStr(QStdWString s);
     virtual bool operator()(Buffer &b);
 };
 

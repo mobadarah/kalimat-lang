@@ -41,27 +41,38 @@ Instruction &Instruction::wArgParse(QString argS, Allocator *allocator)
     int iVal;
     double dVal;
 
-    iVal = argS.toInt(&ok, 10);
-    if(ok)
+    if(argS.trimmed() == "true")
     {
-        // We don't want the GC to remove the values
-        // embedded in an instruction's opcode!
-        // TODO: We should manually destroy the 'Arg' member if it isn't GCd
-        this->Arg = allocator->newInt(iVal, false);
+        this->Arg = allocator->newBool(true, false);
+    }
+    else if(argS.trimmed() == "false")
+    {
+        this->Arg = allocator->newBool(false, false);
     }
     else
     {
-        dVal = argS.toDouble(&ok);
+    iVal = argS.toInt(&ok, 10);
         if(ok)
         {
             // We don't want the GC to remove the values
             // embedded in an instruction's opcode!
             // TODO: We should manually destroy the 'Arg' member if it isn't GCd
-            this->Arg = allocator->newDouble(dVal, false);
+            this->Arg = allocator->newInt(iVal, false);
         }
         else
         {
-            //todo:error!
+            dVal = argS.toDouble(&ok);
+            if(ok)
+            {
+                // We don't want the GC to remove the values
+                // embedded in an instruction's opcode!
+                // TODO: We should manually destroy the 'Arg' member if it isn't GCd
+                this->Arg = allocator->newDouble(dVal, false);
+            }
+            else
+            {
+                //todo:error!
+            }
         }
     }
 

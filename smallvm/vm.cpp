@@ -19,7 +19,8 @@ void VM::Init()
         signal(InternalError, "No main method in program");
     Method *method = dynamic_cast<Method *>(constantPool["main"]->unboxObj());
     QString malaf = "%file";
-    BuiltInTypes::FileType = (ValueClass *) constantPool[malaf]->unboxObj();
+    if(constantPool.contains(malaf))
+        BuiltInTypes::FileType = (ValueClass *) constantPool[malaf]->unboxObj();
     stack.clear();
     stack.push(Frame(method));
     _isRunning = true;
@@ -44,7 +45,12 @@ void VM::assert(bool cond, VMErrorType toSignal, QString arg0, QString arg1)
         signal(toSignal, arg0, arg1);
 }
 
-void VM::assert(bool cond, VMErrorType toSignal, QString arg0, QString arg1, QString arg2)\
+void VM::assert(bool cond, VMErrorType toSignal, ValueClass *arg0, ValueClass *arg1)
+{
+    assert(cond, toSignal, arg0->toString(), arg1->toString());
+}
+
+void VM::assert(bool cond, VMErrorType toSignal, QString arg0, QString arg1, QString arg2)
 {
     if(!cond)
         signal(toSignal, arg0, arg1, arg2);
@@ -383,6 +389,9 @@ void VM::RunStep()
     case RegisterEvent:
         this->DoRegisterEvent(i.Arg, i.SymRef);
         break;
+    case Isa:
+        this->DoIsa(i.SymRef);
+        break;
     default:
         signal(UnrecognizedInstruction);
         break;
@@ -455,7 +464,7 @@ void VM::Load(QString assemblyCode)
         QString line = lines[i];
         int  extraInfo = -1;
         line = line.replace("\t"," ",Qt::CaseSensitive).replace("\r","",Qt::CaseSensitive).trimmed();
-        if(line == "")
+        if(line == "" || line.startsWith("//"))
             continue;
 
         if(line.contains("@",Qt::CaseSensitive))
@@ -796,6 +805,11 @@ void VM::Load(QString assemblyCode)
             Instruction i = Instruction(RegisterEvent).wArg(name).wRef(procSymRef);
             curMethod->Add(i, label, extraInfo);
         }
+        else if(opcode == "isa")
+        {
+            Instruction i = Instruction(Isa).wRef(arg);
+            curMethod->Add(i, label, extraInfo);
+        }
         else
         {
             signal(UnrecognizedMnemonic,opcode,toStr(i));
@@ -898,76 +912,78 @@ double mul_double(double a, double b) { return a * b;}
 int div_int(int a, int b) { return a / b;}
 double div_double(double a, double b) { return a / b;}
 
-int _and(int a, int b) { return a && b;}
-int _or(int a, int b) { return a || b;}
-int _not(int a) { return !a;}
+bool _and(bool a, bool b) { return a && b;}
+bool _or(bool a, bool b) { return a || b;}
+bool _not(bool a) { return !a;}
 
-int lt_int(int a, int b) { return a<b;}
-int lt_double(double a, double b) { return a<b;}
-int lt_str(QString *a, QString *b) { return (*a) < (*b); }
+bool lt_int(int a, int b) { return a<b;}
+bool lt_double(double a, double b) { return a<b;}
+bool lt_str(QString *a, QString *b) { return (*a) < (*b); }
 
-int gt_int(int a, int b) { return a>b;}
-int gt_double(double a, double b) { return a>b;}
-int gt_str(QString *a, QString *b) { return (*a) > (*b); }
+bool gt_int(int a, int b) { return a>b;}
+bool gt_double(double a, double b) { return a>b;}
+bool gt_str(QString *a, QString *b) { return (*a) > (*b); }
 
-int le_int(int a, int b) { return a<=b;}
-int le_double(double a, double b) { return a<=b;}
-int le_str(QString *a, QString *b) { return (*a) <= (*b); }
+bool le_int(int a, int b) { return a<=b;}
+bool le_double(double a, double b) { return a<=b;}
+bool le_str(QString *a, QString *b) { return (*a) <= (*b); }
 
-int ge_int(int a, int b) { return a>=b;}
-int ge_double(double a, double b) { return a>=b;}
-int ge_str(QString *a, QString *b) { return (*a) >= (*b); }
+bool ge_int(int a, int b) { return a>=b;}
+bool ge_double(double a, double b) { return a>=b;}
+bool ge_str(QString *a, QString *b) { return (*a) >= (*b); }
 
-int eq_int(int a, int b) { return a==b;}
-int eq_double(double a, double b) { return a==b;}
-int eq_obj(Object *a, Object *b){ return a==b;}
-int eq_raw(void *a, void *b){ return a==b;}
+bool  eq_int(int a, int b) { return a==b;}
+bool  eq_double(double a, double b) { return a==b;}
+bool  eq_bool(bool a, bool b) { return a==b;}
+bool  eq_obj(Object *a, Object *b){ return a==b;}
+bool  eq_raw(void *a, void *b){ return a==b;}
 
-int eq_str(QString *a, QString *b)
+bool  eq_str(QString *a, QString *b)
 {
     QString *s1 = (QString *) a;
     QString *s2 = (QString *) b;
     return QString::compare(*s1, *s2, Qt::CaseSensitive) == 0;
 }
 
-int eq_difftypes(Value *, Value *)
+bool  eq_difftypes(Value *, Value *)
 {
     return false;
 }
 
-int eq_bothnull() { return true;}
+bool  eq_bothnull() { return true;}
 
-int ne_int(int a, int b) { return a!=b;}
-int ne_double(double a, double b) { return a!=b;}
-int ne_obj(Object *a, Object *b) { return a!=b;}
-int ne_raw(void *a, void *b) { return a!=b;}
+bool ne_int(int a, int b) { return a!=b;}
+bool  ne_double(double a, double b) { return a!=b;}
+bool  ne_bool(bool a, bool b) { return a!=b;}
+bool  ne_obj(Object *a, Object *b) { return a!=b;}
+bool  ne_raw(void *a, void *b) { return a!=b;}
 
-int ne_str(QString*a, QString*b)
+bool  ne_str(QString*a, QString*b)
 {
     QString *s1 = (QString *) a;
     QString *s2 = (QString *) b;
     return QString::compare(*s1, *s2, Qt::CaseSensitive) != 0;
 }
 
-int ne_difftypes(Value *, Value *)
+bool  ne_difftypes(Value *, Value *)
 {
     return true;
 }
-int ne_bothnull() { return false; }
+bool  ne_bothnull() { return false; }
 
 void VM::DoAdd()
 {
-    BuiltInBinaryOp(add_int, add_double, add_str);
+    BuiltInAddOp(add_int, add_double, add_str);
 }
 
 void VM::DoSub()
 {
-    NumericBinaryOp(sub_int, sub_double);
+    BuiltInArithmeticOp(sub_int, sub_double);
 }
 
 void VM::DoMul()
 {
-    NumericBinaryOp(mul_int, mul_double);
+    BuiltInArithmeticOp(mul_int, mul_double);
 }
 
 void VM::DoDiv()
@@ -1018,37 +1034,38 @@ void VM::DoJmp(QString label)
 void VM::DoIf(QString trueLabel, QString falseLabel)
 {
     Value *v = currentFrame()->OperandStack.pop();
-    test(!(v->tag == Int && v->v.intVal == 0), trueLabel, falseLabel);
+    assert(v->tag == Boolean, TypeError, BuiltInTypes::BoolType, v->type);
+    test(v->unboxBool(), trueLabel, falseLabel);
 }
 
 void VM::DoLt()
 {
-    BuiltInBinaryBoolOp(lt_int, lt_double, lt_str);
+    BuiltInComparisonOp(lt_int, lt_double, lt_str);
 }
 
 void VM::DoGt()
 {
-    BuiltInBinaryBoolOp(gt_int, gt_double , gt_str);
+    BuiltInComparisonOp(gt_int, gt_double , gt_str);
 }
 
 void VM::DoEq()
 {
-    BinaryBoolOp(eq_int, eq_double, eq_obj, eq_str, eq_raw, eq_difftypes, eq_bothnull);
+    EqualityRelatedOp(eq_int, eq_double, eq_bool, eq_obj, eq_str, eq_raw, eq_difftypes, eq_bothnull);
 }
 
 void VM::DoNe()
 {
-    BinaryBoolOp(ne_int, ne_double, ne_obj, ne_str, ne_raw, ne_difftypes, ne_bothnull);
+    EqualityRelatedOp(ne_int, ne_double, ne_bool, ne_obj, ne_str, ne_raw, ne_difftypes, ne_bothnull);
 }
 
 void VM::DoLe()
 {
-    BuiltInBinaryBoolOp(le_int, le_double, le_str);
+    BuiltInComparisonOp(le_int, le_double, le_str);
 }
 
 void VM::DoGe()
 {
-    BuiltInBinaryBoolOp(ge_int, ge_double, ge_str);
+    BuiltInComparisonOp(ge_int, ge_double, ge_str);
 }
 
 void VM::DoCall(QString symRef, int arity)
@@ -1107,7 +1124,7 @@ void VM::DoCallMethod(QString SymRef, int arity)
     // followed by the first normal argument...and so on.
     Value *receiver = currentFrame()->OperandStack.pop();
 
-    assert( receiver->tag != NullVal, CallingMethodOnNull);
+    assert(receiver->tag != NullVal, CallingMethodOnNull);
     assert(receiver ->tag == ObjectVal, CallingMethodOnNonObject);
     Method *method = receiver->type->lookupMethod(SymRef);
 
@@ -1274,7 +1291,7 @@ void VM::DoNew(QString SymRef)
 
 void VM::DoNewArr()
 {
-    assert(__top()->tag == Int, TypeError);
+    assert(__top()->tag == Int, TypeError, BuiltInTypes::IntType, __top()->type);
     int size = currentFrame()->OperandStack.pop()->unboxInt();
 
     Value *newArr = allocator.newArray(size);
@@ -1284,7 +1301,7 @@ void VM::DoNewArr()
 void VM::DoArrLength()
 {
     // ... arr => ... length
-    assert(__top()->tag == ArrayVal, TypeError);
+    assert(__top()->tag == ArrayVal, TypeError, BuiltInTypes::ArrayType, __top()->type);
     Value *arrVal= currentFrame()->OperandStack.pop();
     VArray *arr = arrVal->unboxArray();
     Value *len = allocator.newInt(arr->count);
@@ -1294,7 +1311,7 @@ void VM::DoArrLength()
 void VM::DoNewMD_Arr()
 {
     // ... dimensions => ... md_arr
-    assert(__top()->tag == ArrayVal, TypeError);
+    assert(__top()->tag == ArrayVal, TypeError, BuiltInTypes::ArrayType, __top()->type);
     Value *arrVal= currentFrame()->OperandStack.pop();
     VArray *arr = arrVal->unboxArray();
     QVector<int> dimensions;
@@ -1393,6 +1410,25 @@ void VM::DoRegisterEvent(Value *evname, QString SymRef)
     registeredEventHandlers[*evName] = SymRef;
 }
 
+void VM::DoIsa(QString SymRef)
+{
+    // ...value => ...bool
+    Value *v = currentFrame()->OperandStack.pop();
+    ValueClass *cls = NULL;
+    Value *classObj = NULL;
+    if(constantPool.contains(SymRef))
+    {
+        classObj = constantPool[SymRef];
+        if(classObj->type == BuiltInTypes::ClassType)
+        {
+            cls = dynamic_cast<ValueClass *>(classObj->unboxObj());
+        }
+    }
+    assert(cls != NULL, NoSuchClass);
+    bool b = v->type->subclassOf(cls);
+    currentFrame()->OperandStack.push(allocator.newBool(b));
+}
+
 void VM::test(bool cond, QString trueLabel, QString falseLabel)
 {
     int newIp;
@@ -1404,7 +1440,7 @@ void VM::test(bool cond, QString trueLabel, QString falseLabel)
     currentFrame()->ip = newIp;
 }
 
-void VM::BuiltInBinaryOp(int (*intFunc)(int,int), double (*doubleFunc)(double,double), QString *(*strFunc)(QString *,QString *))
+void VM::BuiltInAddOp(int (*intFunc)(int,int), double (*doubleFunc)(double,double), QString *(*strFunc)(QString *,QString *))
 {
     Value *v2 = currentFrame()->OperandStack.pop();
     Value *v1 = currentFrame()->OperandStack.pop();
@@ -1433,7 +1469,7 @@ void VM::BuiltInBinaryOp(int (*intFunc)(int,int), double (*doubleFunc)(double,do
     currentFrame()->OperandStack.push(v3);
 }
 
-void VM::NumericBinaryOp(int (*intFunc)(int,int), double (*doubleFunc)(double,double))
+void VM::BuiltInArithmeticOp(int (*intFunc)(int,int), double (*doubleFunc)(double,double))
 {
     Value *v2 = currentFrame()->OperandStack.pop();
     Value *v1 = currentFrame()->OperandStack.pop();
@@ -1459,7 +1495,9 @@ void VM::NumericBinaryOp(int (*intFunc)(int,int), double (*doubleFunc)(double,do
     currentFrame()->OperandStack.push(v3);
 }
 
-void VM::BuiltInBinaryBoolOp(int (*intFunc)(int,int), int (*doubleFunc)(double,double),int (*strFunc)(QString *, QString *))
+void VM::BuiltInComparisonOp(bool (*intFunc)(int,int),
+                             bool (*doubleFunc)(double,double),
+                             bool (*strFunc)(QString *, QString *))
 {
     Value *v2 = currentFrame()->OperandStack.pop();
     Value *v1 = currentFrame()->OperandStack.pop();
@@ -1476,7 +1514,7 @@ void VM::BuiltInBinaryBoolOp(int (*intFunc)(int,int), int (*doubleFunc)(double,d
     assert(v1->tag == v2->tag && (v1->tag == Int || v1->tag == Double || v1->tag == StringVal), BuiltInOperationOnNonBuiltn);
 
     Value *v3 = NULL;
-    int result;
+    bool result;
 
     if(v1->tag == Int)
         result = intFunc(v1->v.intVal, v2->v.intVal);
@@ -1485,16 +1523,18 @@ void VM::BuiltInBinaryBoolOp(int (*intFunc)(int,int), int (*doubleFunc)(double,d
     else if(v1->tag == StringVal)
         result = strFunc(v1->v.strVal, v2->v.strVal);
 
-    v3 = allocator.newInt(result);
+    v3 = allocator.newBool(result);
     currentFrame()->OperandStack.push(v3);
 }
-void VM::BinaryBoolOp(int (*intFunc)(int,int),
-                      int (*doubleFunc)(double,double),
-                      int (*objFunc)(Object *, Object *),
-                      int (*strFunc)(QString *, QString *),
-                      int (*rawFunc)(void *, void *),
-                      int (*differentTypesFunc)(Value *, Value *),
-                      int (*nullFunc)())
+
+void VM::EqualityRelatedOp(bool(*intFunc)(int, int),
+                           bool(*doubleFunc)(double, double),
+                           bool(*boolFunc)(bool, bool),
+                           bool(*objFunc)(Object *, Object *),
+                           bool(*strFunc)(QString *, QString *),
+                           bool(*rawFunc)(void *, void *),
+                           bool(*differentTypesFunc)(Value *, Value *),
+                           bool(*nullFunc)())
 {
     Value *v2 = currentFrame()->OperandStack.pop();
     Value *v1 = currentFrame()->OperandStack.pop();
@@ -1508,11 +1548,11 @@ void VM::BinaryBoolOp(int (*intFunc)(int,int),
         v2 = allocator.newDouble(v2->v.intVal);
     }
     Value *v3 = NULL;
-    int result;
+    bool result;
 
     // If both values are of the same type...
     if(v1->tag == v2->tag
-           && (v1->tag == Int || v1->tag == Double || v1->tag == ObjectVal
+           && (v1->tag == Int || v1->tag == Double || v1->tag == Boolean || v1->tag == ObjectVal
                || v1->tag == StringVal || v1->tag == ObjectVal || v1->tag == RawVal || v1->tag == NullVal))
 
     {
@@ -1520,6 +1560,8 @@ void VM::BinaryBoolOp(int (*intFunc)(int,int),
             result = intFunc(v1->v.intVal, v2->v.intVal);
         if(v1->tag == Double)
             result = doubleFunc(v1->v.doubleVal, v2->v.doubleVal);
+        if(v1->tag == Boolean)
+            result = boolFunc(v1->unboxBool(), v2->unboxBool());
         if(v1->tag == ObjectVal)
             result = objFunc(v1->v.objVal, v2->v.objVal);
         if(v1->tag == StringVal)
@@ -1533,29 +1575,29 @@ void VM::BinaryBoolOp(int (*intFunc)(int,int),
     {
         result = differentTypesFunc(v1, v2);
     }
-    v3 = allocator.newInt(result);
+    v3 = allocator.newBool(result);
     currentFrame()->OperandStack.push(v3);
 }
 
-void VM::BinaryLogicOp(int (*intFunc)(int,int))
+void VM::BinaryLogicOp(bool (*boolFunc)(bool, bool))
 {
     Value *v2 = currentFrame()->OperandStack.pop();
     Value *v1 = currentFrame()->OperandStack.pop();
     Value *v3 = NULL;
 
-    assert(v1->tag == Int && v2->tag == Int, LogicOperationOnNonBoolean);
-    v3 =allocator.newInt(intFunc(v1->v.intVal, v2->v.intVal));
+    assert(v1->tag == Boolean && v2->tag == Boolean, LogicOperationOnNonBoolean);
+    v3 = allocator.newBool(boolFunc(v1->unboxBool(), v2->unboxBool()));
 
     currentFrame()->OperandStack.push(v3);
 }
 
-void VM::UnaryLogicOp(int (*intFunc)(int))
+void VM::UnaryLogicOp(bool(*boolFunc)(bool))
 {
     Value *v1 = currentFrame()->OperandStack.pop();
     Value *v2 = NULL;
 
-    assert(v1->tag == Int, LogicOperationOnNonBoolean);
-    v2 =allocator.newInt(intFunc(v1->v.intVal));
+    assert(v1->tag == Boolean, LogicOperationOnNonBoolean);
+    v2 = allocator.newBool(boolFunc(v1->unboxBool()));
 
     currentFrame()->OperandStack.push(v2);
 }

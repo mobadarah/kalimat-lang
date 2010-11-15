@@ -54,6 +54,7 @@ void DocumentContainer::handleNew(QString prefix, QWidget *editor)
     QString name = QString("%1 %2").arg(prefix).arg(++newDocCount);
     addDocument(name, name, editor, true);
 }
+
 void DocumentContainer::addDocument(QString title, QString fileName, QWidget *editor, bool createNew)
 {
     CodeDocument *doc;
@@ -76,6 +77,7 @@ CodeDocument *DocumentContainer::getCurrentDocument()
         return NULL;
     return widgetDocs[tabWidget->currentWidget()];
 }
+
 CodeDocument *DocumentContainer::getDocumentFromPath(QString path)
 {
     for(int i=0; i<widgetDocs.values().count(); i++)
@@ -174,6 +176,7 @@ void DocumentContainer::handleOpen()
         }
     }
 }
+
 void DocumentContainer::handleSave()
 {
     CodeDocument *doc = getCurrentDocument();
@@ -182,6 +185,7 @@ void DocumentContainer::handleSave()
         doc->doSave();
     }
 }
+
 void DocumentContainer::handleSaveAs()
 {
     CodeDocument *doc = getCurrentDocument();
@@ -190,6 +194,7 @@ void DocumentContainer::handleSaveAs()
         doc->doSaveAs();
     }
 }
+
 void DocumentContainer::handleClose(QCloseEvent *ev)
 {
     bool moveOn;
@@ -259,6 +264,7 @@ void DocumentContainer::handleClose(QCloseEvent *ev)
         ev->ignore();
     }
 }
+
 void DocumentContainer::handleTabCloseRequested(int index)
 {
     CodeDocument *doc = getDocumentFromTab(index);

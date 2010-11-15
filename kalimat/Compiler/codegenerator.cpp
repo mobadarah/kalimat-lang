@@ -703,6 +703,7 @@ void CodeGenerator::generateIfStmt(IfStmt *stmt)
     }
     gen(stmt, endLabel+":");
 }
+
 void CodeGenerator::generateWhileStmt(WhileStmt *stmt)
 {
     /*
@@ -729,6 +730,7 @@ void CodeGenerator::generateWhileStmt(WhileStmt *stmt)
     gen(stmt, "jmp "+testLabel);
     gen(stmt, endLabel+":");
 }
+
 void CodeGenerator::generateForAllStmt(ForAllStmt *stmt)
 {
     /*
@@ -775,6 +777,7 @@ void CodeGenerator::generateForAllStmt(ForAllStmt *stmt)
     gen(stmt, "jmp "+testLabel);
     gen(stmt, endLabel+":");
 }
+
 void CodeGenerator::generateLabelStmt(LabelStmt *stmt)
 {
     Expression *target = stmt->target();
@@ -791,6 +794,7 @@ void CodeGenerator::generateLabelStmt(LabelStmt *stmt)
         throw CompilerException(stmt, TargetOfLabelMustBeNumberOrIdentifier);
     }
 }
+
 void CodeGenerator::generateGotoStmt(GotoStmt *stmt)
 {
     if(stmt->numericTarget())
@@ -819,6 +823,7 @@ void CodeGenerator::generateReturnStmt(ReturnStmt *stmt)
     generateExpression(stmt->returnVal());
     gen(stmt,"ret");
 }
+
 void CodeGenerator::generateBlockStmt(BlockStmt *stmt)
 {
     for(int i=0; i<stmt->statementCount(); i++)
@@ -826,10 +831,12 @@ void CodeGenerator::generateBlockStmt(BlockStmt *stmt)
         generateStatement(stmt->statement(i));
     }
 }
+
 void CodeGenerator::generateInvokationStmt(InvokationStmt *stmt)
 {
     generateExpression(stmt->expression());
 }
+
 void CodeGenerator::generateExpression(Expression *expr)
 {
     if(isa<BinaryOperation>(expr))
@@ -904,17 +911,20 @@ void CodeGenerator::generateExpression(Expression *expr)
     }
     throw CompilerException(expr, UnimplementedExpressionForm).arg(expr->toString());
 }
+
 void CodeGenerator::generateBinaryOperation(BinaryOperation *expr)
 {
     generateExpression(expr->operand1());
     generateExpression(expr->operand2());
     gen(expr, expr->_operator);
 }
+
 void CodeGenerator::generateUnaryOperation(UnaryOperation *expr)
 {
     generateExpression(expr->operand());
     gen(expr, expr->_operator);
 }
+
 void CodeGenerator::generateIdentifier(Identifier *expr)
 {
     if(!scopeStack.empty() && scopeStack.top().bindings.contains(expr->name))
@@ -925,6 +935,7 @@ void CodeGenerator::generateIdentifier(Identifier *expr)
         throw CompilerException(expr, UndefinedVariable).arg(expr->name);
 
 }
+
 void CodeGenerator::generateNumLiteral(NumLiteral *expr)
 {
     if(!expr->valueRecognized)
@@ -936,25 +947,30 @@ void CodeGenerator::generateNumLiteral(NumLiteral *expr)
     else
         gen(expr, "pushv "+ QString("%1").arg(expr->dValue));
 }
+
 void CodeGenerator::generateStrLiteral(StrLiteral *expr)
 {
     generateStringConstant(expr, expr->value);
 }
+
 void CodeGenerator::generateNullLiteral(NullLiteral *expr)
 {
     gen(expr, "pushnull");
 }
+
 void CodeGenerator::generateBoolLiteral(BoolLiteral *expr)
 {
     if(expr->value)
-        gen(expr, "pushv", 1);
+        gen(expr, "pushv true");
     else
-        gen(expr, "pushv", 0);
+        gen(expr, "pushv false");
 }
+
 void CodeGenerator::generateArrayLiteral(ArrayLiteral *expr)
 {
     QString newVar = generateArrayFromValues(expr, expr->dataVector());
 }
+
 void CodeGenerator::generateInvokation(Invokation *expr)
 {
     for(int i=expr->argumentCount()-1; i>=0; i--)
@@ -964,6 +980,7 @@ void CodeGenerator::generateInvokation(Invokation *expr)
     gen(expr->functor(), QString("call %1,%2").arg(expr->functor()->toString()).arg(expr->argumentCount()));
 
 }
+
 void CodeGenerator::generateMethodInvokation(MethodInvokation *expr)
 {
     for(int i=expr->argumentCount()-1; i>=0; i--)
@@ -979,18 +996,21 @@ void CodeGenerator::generateIdafa(Idafa *expr)
     generateExpression(expr->modaf_elaih());
     gen(expr->modaf(), "getfld "+expr->modaf()->name);
 }
+
 void CodeGenerator::generateArrayIndex(ArrayIndex *expr)
 {
     generateExpression(expr->array());
     generateExpression(expr->index());
     gen(expr, "getarr");
 }
+
 void CodeGenerator::generateMultiDimensionalArrayIndex(MultiDimensionalArrayIndex *expr)
 {
     generateExpression(expr->array());
     generateArrayFromValues(expr, expr->indexes());
     gen(expr, "getmdarr");
 }
+
 QString CodeGenerator::generateArrayFromValues(AST *src, QVector<QSharedPointer<Expression> >values)
 {
     QString newVar = _asm.uniqueVariable();
@@ -1021,6 +1041,7 @@ void CodeGenerator::generateStringConstant(AST *src, QString str)
 
     gen(src, "pushc "+ constId);
 }
+
 void CodeGenerator::gen(QString str)
 {
     _asm.gen(str);
@@ -1035,6 +1056,7 @@ void CodeGenerator::gen(QString str, double d)
 {
     _asm.gen(str, d);
 }
+
 void CodeGenerator::gen(AST *src,QString str)
 {
     CodePosition pos;
@@ -1069,6 +1091,7 @@ QString CompilerException::getMessage()
         ret = ret.arg(args.at(i));
     return ret;
 }
+
 QString CompilerException::translateErrorMessage(CompilerError error)
 {
     if(errorMap.empty())

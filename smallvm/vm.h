@@ -15,10 +15,8 @@ template <typename T> bool isa(void * obj)
     return value != NULL;
 }
 
-
 class VM
 {
-
     QMap<QString, Value*> constantPool;
     QStack<Frame> stack;
 
@@ -27,8 +25,6 @@ class VM
     Allocator allocator;
     Frame *currentFrame();
     Frame &globalFrame();
-
-
 
     bool _isRunning;
     VMError _lastError;
@@ -61,6 +57,7 @@ public:
     void assert(bool cond, VMErrorType toSignal);
     void assert(bool cond, VMErrorType toSignal, QString arg0);
     void assert(bool cond, VMErrorType toSignal, QString arg0, QString arg1);
+    void assert(bool cond, VMErrorType toSignal, ValueClass *arg0, ValueClass *arg1);
     void assert(bool cond, VMErrorType toSignal, QString arg0, QString arg1, QString arg2);
 
     QStack<Frame> &getCallStack();
@@ -110,6 +107,7 @@ public:
     void DoGetMD_ArrRef();
     void DoMD_ArrDimensions();
     void DoRegisterEvent(Value *evname, QString SymRef);
+    void DoIsa(QString SymRef);
 
     void CallImpl(QString sym, bool wantValueNotRef, int arity);
     void test(bool, QString, QString);
@@ -120,16 +118,21 @@ public:
 private:
 
     void patchupInheritance(QMap<ValueClass *, QString> inheritanceList);
-    void NumericBinaryOp(int (*intFunc)(int,int), double (*doubleFunc)(double,double));
-    void BuiltInBinaryBoolOp(int (*intFunc)(int,int), int (*doubleFunc)(double,double), int (*strFunc)(QString *, QString *));
-    void BuiltInBinaryOp(int (*intFunc)(int,int), double (*doubleFunc)(double,double), QString *(*strFunc)(QString *,QString *));
-    void BinaryBoolOp(int (*intFunc)(int,int), int (*doubleFunc)(double,double), int (*objFunc)(Object *, Object *),
-                      int (*strFunc)(QString *, QString *),
-                      int (*rawFunc)(void *, void *),
-                      int (*differentTypesFunc)(Value *, Value *),
-                      int (*nullFunc)());
-    void BinaryLogicOp(int (*intFunc)(int,int));
-    void UnaryLogicOp(int (*intFunc)(int));
+    void BuiltInArithmeticOp(int (*intFunc)(int,int), double (*doubleFunc)(double,double));
+    void BuiltInComparisonOp(bool  (*intFunc)(int,int),
+                             bool (*doubleFunc)(double,double),
+                             bool (*strFunc)(QString *, QString *));
+    void BuiltInAddOp(int (*intFunc)(int,int), double (*doubleFunc)(double,double), QString *(*strFunc)(QString *,QString *));
+    void EqualityRelatedOp(bool  (*intFunc)(int,int),
+                           bool  (*doubleFunc)(double,double),
+                           bool  (*boolFunc)(bool, bool),
+                           bool  (*objFunc)(Object *, Object *),
+                           bool  (*strFunc)(QString *, QString *),
+                           bool  (*rawFunc)(void *, void *),
+                           bool  (*differentTypesFunc)(Value *, Value *),
+                           bool  (*nullFunc)());
+    void BinaryLogicOp(bool (*boolFunc)(bool, bool));
+    void UnaryLogicOp(bool (*boolFunc)(bool));
 public:
     int popIntOrCoercedDouble();
     double popDoubleOrCoercedInt();

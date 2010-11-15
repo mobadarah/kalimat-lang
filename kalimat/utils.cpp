@@ -7,6 +7,11 @@
 
 #include "utils.h"
 
+QString _ws(QStdWString str)
+{
+    return QString::fromStdWString(str);
+}
+
 LineIterator Utils::readResourceTextFile(QString fileName)
 {
     LineIterator iter;
@@ -19,10 +24,12 @@ LineIterator Utils::readResourceTextFile(QString fileName)
     iter.stream = in;
     return iter;
 }
+
 QString LineIterator::readLine()
 {
     return stream->readLine();
 }
+
 QString LineIterator::readAll()
 {
     return stream->readAll();
@@ -32,13 +39,14 @@ bool LineIterator::atEnd()
 {
     return stream->atEnd();
 }
+
 void LineIterator::close()
 {
     stream->device()->close();
 }
+
 LineIterator::~LineIterator()
 {
     delete stream;
     delete file;
-
 }

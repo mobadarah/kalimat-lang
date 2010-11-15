@@ -35,6 +35,7 @@ KalimatLexer::KalimatLexer() : Lexer()
     StateMachine &sm = stateMachine;
     sm.add          (READY,   la(arabicDigit),  AR_NUM);
     sm.add          (READY,   la(europeanDigit),  EU_NUM);
+    sm.addAccepting (READY,   returnWith,       READY, RETURN_WITH);
     sm.add          (READY,   la(letter), ID);
     sm.add          (READY,   la(quote),  STR);
     sm.addAccepting (READY,   seq(     sol,
@@ -168,7 +169,9 @@ void KalimatLexer::InitCharPredicates()
     noneNl = new CharNotEqual('\n');
     retract = new Retract();
     lineComment = new LAStr("--");
+    returnWith = seq(new LAStr(L"ارجع"), la(space), loop(la(space)), new LAStr(L"ب:"));
 }
+
 Token KalimatLexer::accept(TokenType t)
 {
 

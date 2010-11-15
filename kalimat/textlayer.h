@@ -46,7 +46,9 @@ public:
     int getCursorRow();
     bool setCursorPos(int row, int col);
     bool cursorFwd();
-    bool cursortBack();
+    bool cursorBack();
+    bool cursorDown();
+    bool cursorUp();
 
     void beginInput();
     QString endInput();

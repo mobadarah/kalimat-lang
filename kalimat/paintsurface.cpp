@@ -6,6 +6,8 @@
 **************************************************************************/
 
 #include "paintsurface.h"
+#include <QFontDatabase>
+
 PaintSurface::PaintSurface(QSize size, QFont font)
 {
     textColor = Qt::black;
@@ -36,7 +38,7 @@ void PaintSurface::drawTextLayer(QPainter &imgPainter, TextLayer &textLayer)
     options.setTextDirection(Qt::RightToLeft);
 
     textFont.setPixelSize(image.height()/25);
-    textFont.setRawName("Simplified Arabic Fixed");
+    //textFont.setRawName("Simplified Arabic Fixed");
     imgPainter.setFont(textFont);
 
     QPen oldPen = imgPainter.pen();

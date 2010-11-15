@@ -98,7 +98,12 @@ MainWindow::~MainWindow()
 
 QWidget *MainWindow::CreateEditorWidget()
 {
+    QTextOption opt;
+    opt.setTextDirection(Qt::RightToLeft);
     MyEdit *edit = new MyEdit(this);
+    edit->setLayoutDirection(Qt::RightToLeft);
+    edit->setLocale(QLocale::Arabic);
+    edit->document()->setDefaultTextOption(opt);
     syn = new SyntaxHighlighter(edit->document(), new KalimatLexer());
     edit->textCursor().setVisualNavigation(true);
     QFont font = edit->font();
@@ -718,4 +723,9 @@ void MainWindow::on_actionGo_to_position_triggered()
             currentEditor()->setTextCursor(c);
         }
     }
+}
+
+void MainWindow::on_action_software_update_triggered()
+{
+
 }

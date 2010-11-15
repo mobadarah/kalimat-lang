@@ -28,7 +28,7 @@ bool isAfterArabicNumber(QTextEdit *edit)
     if(edit->textCursor().position()>=1)
     {
         QChar at = edit->document()->characterAt(edit->textCursor().position()-1);
-        if(at.unicode() >= L'٠' && at.unicode() < L'٩' )
+        if(at.unicode() >= L'0' && at.unicode() < L'9' )
         {
             replace = true;
         }
@@ -84,7 +84,11 @@ void MyEdit::keyPressEvent(QKeyEvent *ev)
         if(!replace)
             QTextEdit::keyPressEvent(ev);
         else
-            this->insertPlainText(QString::fromWCharArray(L"٫"));
+            this->insertPlainText(QString::fromWCharArray(L"?"));
+    }
+    else if(ev->text() == ":")
+    {
+        colonBehavior(ev);
     }
     else
     {
@@ -118,30 +122,13 @@ void MyEdit::shiftTabBehavior()
     {
         LineInfo li = lineTracker.line(i);
         QString txt = textOfLine(li);
-        int toErase = 0;
-        for (int j=0; j<4; j++)
-        {
-            if(j==txt.length())
-                break;
-            if(txt[j]!=' ') // todo: handle real tab characters
-                break;
-            toErase++;
-        }
+        int toErase = calculateDeindent(4, txt);
         if(i == lineStart)
             erasedFromA = toErase;
         if(i == lineEnd)
             erasedFromB = toErase;
-        if(toErase != 0)
-        {
-            QTextCursor c2 = textCursor();
-            c2.setPosition(li.start);
-            c2.movePosition(QTextCursor::NextCharacter, QTextCursor::KeepAnchor, toErase);
-            setTextCursor(c2);
-            c2.removeSelectedText();
 
-            // todo: This recalculates line info every time, we could optimize.
-            lineTracker.setText(this->document()->toPlainText());
-        }
+        eraseFromBeginOfLine(li, toErase);
     }
     lineTracker.setText(this->document()->toPlainText());
 
@@ -160,6 +147,36 @@ void MyEdit::shiftTabBehavior()
     setTextCursor(c);
     textCursor().endEditBlock();
 }
+
+void MyEdit::eraseFromBeginOfLine(LineInfo li, int toErase)
+{
+    if(toErase != 0)
+    {
+        QTextCursor c2 = textCursor();
+        c2.setPosition(li.start);
+        c2.movePosition(QTextCursor::NextCharacter, QTextCursor::KeepAnchor, toErase);
+        setTextCursor(c2);
+        c2.removeSelectedText();
+
+        // todo: This recalculates line info every time, we could optimize.
+        lineTracker.setText(this->document()->toPlainText());
+    }
+}
+
+int MyEdit::calculateDeindent(int by, QString lineText)
+{
+    int toErase = 0;
+    for (int j=0; j<4; j++)
+    {
+        if(j==lineText.length())
+            break;
+        if(lineText[j]!=' ') // todo: handle real tab characters
+            break;
+        toErase++;
+    }
+    return toErase;
+}
+
 
 bool tokensEqual(QVector<Token> toks, int ids[], int count)
 {
@@ -196,8 +213,27 @@ void MyEdit::enterKeyBehavior(QKeyEvent *ev)
     QString txt = textOfLine(li);
     QString lexedTxt = txt.trimmed();
     KalimatLexer lxr;
-    lxr.init(lexedTxt);
-    lxr.tokenize();
+    bool tokenized = false;
+    try
+    {
+        lxr.init(lexedTxt);
+        lxr.tokenize();
+        tokenized = true;
+    }
+    catch(UnexpectedCharException ex)
+    {
+    }
+    catch(ColonUnsupportedInIdentifiersException ex)
+    {
+    }
+    catch(UnexpectedEndOfFileException ex)
+    {
+    }
+    if(!tokenized)
+    {
+        QTextEdit::keyPressEvent(ev);
+        return;
+    }
     QVector<Token> toks = lxr.getTokens();
     int classDecl[] = { CLASS, IDENTIFIER, COLON };
     int ifStmtStart[] = { IF }, ifStmtEnd[] = { COLON };
@@ -262,6 +298,55 @@ void MyEdit::enterKeyBehavior(QKeyEvent *ev)
     }
     textCursor().endEditBlock();
 }
+
+void MyEdit::colonBehavior(QKeyEvent *ev)
+{
+    int elsePart[] = { ELSE, COLON };
+    int elseIfStart[] = { ELSE, IF }, elseIfEnd[] = { COLON };
+
+    textCursor().beginEditBlock();
+    textCursor().insertText(":");
+    textChangedEvent();
+    try
+    {
+        LineInfo li = currentLine();
+        QString txt = textOfLine(li);
+
+        QString lexedTxt = txt.trimmed();
+        KalimatLexer lxr;
+        lxr.init(lexedTxt);
+        lxr.tokenize();
+        QVector<Token> toks = lxr.getTokens();
+
+        QString tail = txt.right(txt.length() - column()).trimmed();
+        bool endOfLine = tail == "";
+
+        if(endOfLine)
+        {
+            if(tokensBeginEnd(toks, elseIfStart, elseIfEnd, 2, 1) ||
+               tokensEqual(toks, elsePart, 2))
+            {
+                int toErase = calculateDeindent(4, txt);
+                eraseFromBeginOfLine(li, toErase);
+                QTextCursor c = textCursor();
+                c.movePosition(QTextCursor::EndOfLine, QTextCursor::MoveAnchor);
+                setTextCursor(c);
+            }
+        }
+    }
+    catch(UnexpectedCharException ex)
+    {
+    }
+    catch(ColonUnsupportedInIdentifiersException ex)
+    {
+    }
+    catch(UnexpectedEndOfFileException ex)
+    {
+    }
+
+    textCursor().endEditBlock();
+}
+
 void MyEdit::indentAndTerminate(LineInfo prevLine, QString termination)
 {
     int n = indentOfLine(prevLine);
@@ -277,6 +362,10 @@ void MyEdit::indentAndTerminate(LineInfo prevLine, QString termination)
     QTextCursor c = textCursor();
     c.movePosition(QTextCursor::PreviousCharacter, QTextCursor::MoveAnchor, termination.length() + 1 + n);
     setTextCursor(c);
+}
+
+void MyEdit::deindentLine(int line, int by)
+{
 }
 
 void MyEdit::textChangedEvent()

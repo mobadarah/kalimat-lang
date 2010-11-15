@@ -23,28 +23,3 @@ ExternalMethod::ExternalMethod(int arity) :
 {
     this->arity = arity;
 }
-Print::Print() : ExternalMethod()
-{
-
-}
-
-void Print::operator ()(QStack<Value *> &operandStack)
-{
-    /*
-    Value *v = operandStack.pop();
-    switch(v->tag)
-    {
-    case Int:
-        cout << v->v.intVal;
-        break;
-    case Double:
-        cout << v->v.doubleVal;
-    case ObjectVal:
-        cout << "obj:"<< v->v.objVal;
-        break;
-    default:
-        break;
-    }
-    cout.flush();
-    */
-}

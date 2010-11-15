@@ -417,7 +417,7 @@ void RunWindow::keyPressEvent(QKeyEvent *ev)
         }
         else if(ev->key() == Qt::Key_Right)
         {
-            textLayer.cursortBack();
+            textLayer.cursorBack();
             update();
         }
         else if(ev->modifiers() & Qt::ControlModifier && ev->key() == Qt::Key_V)

@@ -21,6 +21,7 @@ SyntaxHighlighter::SyntaxHighlighter(QTextDocument *parent, KalimatLexer *_lexer
     stringLiterals.setForeground(Qt::darkMagenta);
 
 }
+
 void SyntaxHighlighter::highlightBlock(const QString &text)
 {
     this->lexer->init(text);

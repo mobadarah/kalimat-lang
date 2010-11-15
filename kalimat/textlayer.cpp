@@ -6,6 +6,8 @@
 **************************************************************************/
 
 #include "textlayer.h"
+#include <algorithm>
+using namespace std;
 
 TextLayer::TextLayer()
 {
@@ -129,28 +131,60 @@ bool TextLayer::setCursorPos(int row, int col)
 bool TextLayer::cursorFwd()
 {
     if(cursor_col + 1 < currentLine().length())
-
+    {
         cursor_col++;
+        return true;
+    }
+    return false;
 }
 
-bool TextLayer::cursortBack()
+bool TextLayer::cursorBack()
 {
     if(cursor_col > 0)
+    {
         cursor_col--;
+        return true;
+    }
+    return false;
+}
+
+bool TextLayer::cursorDown()
+{
+    if(cursor_line + 1 < lines().count())
+    {
+        cursor_line++;
+        cursor_col = min(cursor_col, currentLine().length());
+        return true;
+    }
+    return false;
+}
+
+bool TextLayer::cursorUp()
+{
+    if(cursor_line > 0)
+    {
+        cursor_line--;
+        cursor_col = min(cursor_col, currentLine().length());
+        return true;
+    }
+    return false;
 }
 
 int TextLayer::getCursorRow()
 {
     return cursor_line;
 }
+
 int TextLayer::getCursorCol()
 {
     return cursor_col;
 }
+
 void TextLayer::cr()
 {
     cursor_col = 0;
 }
+
 void TextLayer::lf()
 {
     cursor_line++;
@@ -161,8 +195,17 @@ void TextLayer::lf()
         cursor_line--;
     }
 }
+
 void TextLayer::nl()
 {
+    if(state == Input && mode == Insert)
+    {
+        QString s = currentLine();
+        QString s1 = s.left(cursor_col);
+        QString s2 = s.right(s.length() - cursor_col);
+        visibleTextBuffer[cursor_line] = s1;
+        visibleTextBuffer.insert(cursor_line+1, s2);
+    }
     cr();
     lf();
 }

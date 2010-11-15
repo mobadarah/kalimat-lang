@@ -26,10 +26,14 @@ public:
     void tabBehavior();
     void shiftTabBehavior();
     void enterKeyBehavior(QKeyEvent *ev);
+    void colonBehavior(QKeyEvent *ev);
     LineInfo currentLine();
     int indentOfLine(LineInfo li);
     QString textOfLine(LineInfo line);
     void indentAndTerminate(LineInfo prevLine, QString termination);
+    int calculateDeindent(int by, QString lineText);
+    void eraseFromBeginOfLine(LineInfo li, int toErase);
+    void deindentLine(int line, int by);
 private slots:
     void keyPressEvent(QKeyEvent *);
     void textChangedEvent();

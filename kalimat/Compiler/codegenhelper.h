@@ -29,6 +29,9 @@ public:
     void gen(QString str);
     void gen(QString str, int i);
     void gen(QString str, double d);
+    void genFmt(QString fmtStr);
+    void genFmt(QString fmtStr, QString str);
+    void genFmt(QString fmtStr, QString str0, QString str1);
     void genWithMetaData(int metaData, QString str);
 
 

@@ -11,6 +11,7 @@ SmallVMCodeGenerator::SmallVMCodeGenerator()
 {
     Init();
 }
+
 void SmallVMCodeGenerator::Init()
 {
     Output.clear();
@@ -18,6 +19,7 @@ void SmallVMCodeGenerator::Init()
     uniqueStringConstantCount = 0;
     uniqueVariableCount = 0;
 }
+
 QString SmallVMCodeGenerator::getOutput()
 {
     return Output.join("");
@@ -32,10 +34,12 @@ QString SmallVMCodeGenerator::makeStringConstant(QString str)
     }
     return StringConstants[str];
 }
+
 QString SmallVMCodeGenerator::uniqueLabel()
 {
     return QString("%%label%1").arg(uniqueLabelCount++);
 }
+
 QString SmallVMCodeGenerator::uniqueVariable()
 {
     return QString("%%var%1").arg(uniqueVariableCount++);
@@ -55,6 +59,22 @@ void SmallVMCodeGenerator::gen(QString str, double d)
 {
     gen(QString(str).arg(d));
 }
+
+void SmallVMCodeGenerator::genFmt(QString fmtStr)
+{
+    gen(fmtStr);
+}
+
+void SmallVMCodeGenerator::genFmt(QString fmtStr, QString str)
+{
+    gen(fmtStr.arg(str));
+}
+
+void SmallVMCodeGenerator::genFmt(QString fmtStr, QString str0, QString str1)
+{
+    gen(fmtStr.arg(str0).arg(str1));
+}
+
 void SmallVMCodeGenerator::genWithMetaData(int metaData, QString str)
 {
     gen(str+ "@"+ QString("%1").arg(metaData));

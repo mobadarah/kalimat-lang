@@ -79,6 +79,20 @@ Value *Allocator::newDouble(double d, bool gcMonitor)
     return ret;
 }
 
+Value *Allocator::newBool(bool b)
+{
+    return newBool(b, true);
+}
+
+Value *Allocator::newBool(bool b, bool gcMonitor)
+{
+    Value *ret = allocateNewValue(gcMonitor);
+    ret->tag = Boolean;
+    ret->type = BuiltInTypes::BoolType;
+    ret->v.boolVal = b;
+    return ret;
+}
+
 Value *Allocator::newObject(ValueClass *_class)
 {
     Object *newObj = new Object();

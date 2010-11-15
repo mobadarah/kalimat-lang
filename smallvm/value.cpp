@@ -18,6 +18,7 @@
 ValueClass *BuiltInTypes::ObjectType = new ValueClass("Object", NULL);
 ValueClass *BuiltInTypes::IntType = new ValueClass("Integer", BuiltInTypes::ObjectType);
 ValueClass *BuiltInTypes::DoubleType = new ValueClass("Double", BuiltInTypes::ObjectType);
+ValueClass *BuiltInTypes::BoolType = new ValueClass("Bool", BuiltInTypes::ObjectType);
 ValueClass *BuiltInTypes::MethodType = new ValueClass("Method", BuiltInTypes::ObjectType);
 ValueClass *BuiltInTypes::ExternalMethodType = new ValueClass("ExternalMethod", BuiltInTypes::ObjectType);
 ValueClass *BuiltInTypes::ClassType = new ValueClass("Class", BuiltInTypes::ObjectType);
@@ -47,6 +48,7 @@ Value::~Value()
     {
     case Int:
     case Double:
+    case Boolean:
     case RawVal:
         break;
     case ObjectVal:
@@ -64,6 +66,8 @@ Value::~Value()
         break;
     case RefVal:
         delete v.refVal;
+        break;
+    case NullVal:
         break;
     }
 }
@@ -121,6 +125,12 @@ double Value::unboxDouble()
 {
     return v.doubleVal;
 }
+
+bool Value::unboxBool()
+{
+    return v.boolVal;
+}
+
 Object *Value::unboxObj()
 {
     return v.objVal;
@@ -163,7 +173,8 @@ QString Value::toString()
     QString ret = "<unprintable value>";
     void *val ;
     Value *v = this;
-    QLocale loc(QLocale::Arabic, QLocale::Egypt);
+    //QLocale loc(QLocale::Arabic, QLocale::Egypt);
+    QLocale loc(QLocale::English, QLocale::UnitedStates);
     loc.setNumberOptions(QLocale::OmitGroupSeparator);
     switch(v->tag)
     {
@@ -192,6 +203,9 @@ QString Value::toString()
     case ArrayVal:
         ret = ArrayToString(v->unboxArray());
         break;
+    case Boolean:
+        ret = v->unboxBool()? QString::fromStdWString(L"صحيح") : QString::fromStdWString(L"خطأ");
+        break;
     }
     QString str = ret;
     return str;
@@ -204,14 +218,17 @@ ValueClass::ValueClass(QString name, ValueClass *baseClass)
         this->BaseClasses.append(baseClass);
 
 }
+
 bool ValueClass::hasSlot(QString name)
 {
     return false;
 }
+
 Value *ValueClass::getSlotValue(QString name)
 {
     return NULL;
 }
+
 void ValueClass::setSlotValue(QString name, Value *val)
 {
 

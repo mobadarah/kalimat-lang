@@ -12,6 +12,8 @@
 #include <QTextStream>
 #include <QString>
 
+QString _ws(QStdWString str);
+
 class LineIterator
 {
 public:

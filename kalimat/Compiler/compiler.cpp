@@ -103,6 +103,7 @@ QString Compiler::directoryFromFullPath(QString path)
 {
     return QFileInfo(path).absolutePath();
 }
+
 QString Compiler::combinePath(QString parent, QString child)
 {
     return QFileInfo(parent, child).absoluteFilePath();
@@ -127,6 +128,7 @@ QString Compiler::CompileFromFile(QString pathToMainCompilationUnit, CodeDocumen
     generator.generate(p, doc);
     return generator.getOutput();
 }
+
 QString Compiler::loadFileContents(QString path)
 {
     QFile file(path);

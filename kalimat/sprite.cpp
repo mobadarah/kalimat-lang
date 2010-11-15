@@ -14,11 +14,13 @@ Sprite::Sprite(QString filename)
     prepareMask(image);
 
 }
+
 void Sprite::setImage(QPixmap image)
 {
     this->image = image;
     prepareMask(image);
 }
+
 void Sprite::prepareMask(QPixmap image)
 {
     mask = image.createHeuristicMask(false);

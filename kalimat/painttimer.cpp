@@ -12,6 +12,7 @@ PaintTimer::PaintTimer(int frameRate)
         minTime = CLOCKS_PER_SEC / frameRate;
         first = true;
 }
+
 bool PaintTimer::canUpdateNow()
 {
     if(first)
@@ -37,4 +38,3 @@ bool PaintTimer::canUpdateNow()
         }
     }
 }
-

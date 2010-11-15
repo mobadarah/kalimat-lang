@@ -65,9 +65,10 @@ void LineTracker::lineColumnOfPos(int pos, int &line, int &col)
         int last = lineStartPositions.count()-1;
         line = last;
         col = pos - lineStartPositions[last].start;
+        return;
     }
-    return;
 }
+
 int LineTracker::posFromLineColumn(int line, int column)
 {
     return lineStartPositions[line].start + column;
@@ -79,6 +80,7 @@ void LineTracker::linesFromTo(int pos1, int pos2, int &lineFrom, int &lineTo)
     lineColumnOfPos(pos1, lineFrom, col);
     lineColumnOfPos(pos2, lineTo, col);
 }
+
 LineInfo LineTracker::line(int i)
 {
     return lineStartPositions[i];

@@ -77,6 +77,10 @@ public:
     void typeCheck(Value *val, ValueClass *type);
     void typeError(ValueClass *givenType);
     void beginInput();
+    void Run();
+    friend class WindowPrintMethod;
+    friend class WindowReadMethod;
+
 private slots:
     void mousePressEvent(QMouseEvent *);
     void mouseReleaseEvent(QMouseEvent *);
@@ -89,11 +93,7 @@ private slots:
     void resizeEvent(QResizeEvent *event);
     void closeEvent(QCloseEvent *);
     void parentDestroyed(QObject *);
-    friend class WindowPrintMethod;
-    friend class WindowReadMethod;
-
     void timerEvent(QTimerEvent *);
-    void Run();
     void on_actionGC_triggered();
 };
 

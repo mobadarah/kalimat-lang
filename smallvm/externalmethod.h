@@ -18,11 +18,5 @@ public:
     virtual void operator ()(QStack<Value *> &operandStack) =0;
 };
 
-class Print : public ExternalMethod
-{
-public:
-    Print();
-    void operator ()(QStack<Value *> &operandStack);
-};
 
 #endif // EXTERNALMETHOD_H

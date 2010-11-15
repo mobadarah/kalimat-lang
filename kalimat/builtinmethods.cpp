@@ -704,6 +704,7 @@ void FileWriteUsingWidthProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
     QString s2 = w->textLayer.formatStringUsingWidth(*s, width);
     *(f->stream) << s2;
 }
+
 void FileWriteLineProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 {
     DoFileWrite(stack, w, vm, true);
@@ -719,6 +720,7 @@ void FileReadLineProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
     Value *v = vm->GetAllocator().newString(s);
     stack.push(v);
 }
+
 void FileEofProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 {
     FileBlob *f = popFileBlob(stack, w, vm);
@@ -732,8 +734,6 @@ void FileEofProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 
 void FileOpenProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 {
-
-
     QString *fname = popString(stack, w, vm);
     *fname = w->ensureCompletePath(*fname);
     w->assert(QFile::exists(*fname), ArgumentError, QString::fromStdWString(L"محاولة فتح ملف غير موجود"));
@@ -798,4 +798,3 @@ void FileCloseProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
     delete f->stream;
     f->file = NULL;
 }
-

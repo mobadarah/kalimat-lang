@@ -34,6 +34,8 @@ public:
     Value *newInt(int i, bool gcMonitor);
     Value *newDouble(double d);
     Value *newDouble(double d, bool gcMonitor);
+    Value *newBool(bool b);
+    Value *newBool(bool b, bool gcMonitor);
     Value *newObject(ValueClass *);
     Value *newString(QString *);
     Value *newObject(Object *, ValueClass *);

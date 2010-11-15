@@ -4,7 +4,6 @@
 TARGET = smallvm
 TEMPLATE = app
 SOURCES += main.cpp \
-    mainwindow.cpp \
     value.cpp \
     instruction.cpp \
     vm.cpp \
@@ -14,7 +13,7 @@ SOURCES += main.cpp \
     vmerror.cpp \
     multidimensionalarray.cpp \
     allocator.cpp
-HEADERS += mainwindow.h \
+HEADERS += \
     value.h \
     instruction.h \
     vm.h \
@@ -25,5 +24,5 @@ HEADERS += mainwindow.h \
     vmerror.h \
     multidimensionalarray.h \
     allocator.h
-FORMS += mainwindow.ui
+FORMS +=
 RESOURCES += asm.qrc

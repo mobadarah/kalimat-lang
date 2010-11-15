@@ -17,7 +17,7 @@ struct VArray;
 
 enum Tag
 {
-    Int, Double, ObjectVal, NullVal, StringVal, RawVal,
+    Int, Double, Boolean, ObjectVal, NullVal, StringVal, RawVal,
     RefVal, ArrayVal, MultiDimensionalArrayVal
 };
 
@@ -115,6 +115,7 @@ union ValueItem
 {
     int intVal;
     double doubleVal;
+    bool boolVal;
     Object *objVal;
     void *rawVal;
     QString *strVal;
@@ -134,6 +135,7 @@ struct Value
     ~Value();
     int unboxInt();
     double unboxDouble();
+    bool unboxBool();
     Object *unboxObj();
     VArray *unboxArray();
     MultiDimensionalArray<Value *> *unboxMultiDimensionalArray();
@@ -143,8 +145,9 @@ struct Value
 
     QString toString();
 
-static Value *NullValue;
+    static Value *NullValue;
 };
+
 class BuiltInTypes
 {
 public:
@@ -153,6 +156,7 @@ public:
 
     static ValueClass *IntType;
     static ValueClass *DoubleType;
+    static ValueClass *BoolType;
     static ValueClass *MethodType;
     static ValueClass *ExternalMethodType;
     static ValueClass *ClassType;

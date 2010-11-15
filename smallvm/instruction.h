@@ -17,7 +17,7 @@ enum Opcode
     SetField, GetField, GetFieldRef, GetArr, SetArr, GetArrRef, New, NewArr, ArrLength,
     New_MD_Arr, Get_MD_Arr, Set_MD_Arr, Get_MD_ArrRef, MD_ArrDimensions,
     PushConstant, Neg, // todo!
-    RegisterEvent
+    RegisterEvent, Isa
 };
 
 struct Instruction

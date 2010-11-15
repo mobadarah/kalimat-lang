@@ -147,6 +147,7 @@ void CodeDocument::load()
         setFileName(fn); // 'Touch' the file to update the recent file list
     }
 }
+
 void CodeDocument::save()
 {
     QString fn = getFileName();
@@ -163,6 +164,7 @@ void CodeDocument::save()
         isNewFile = false;
     }
 }
+
 bool CodeDocument::doSave()
 {
     bool gotTheName = true;
@@ -176,6 +178,7 @@ bool CodeDocument::doSave()
     }
     return false;
 }
+
 void CodeDocument::doSaveAs()
 {
     bool r = GetSaveFilename();
@@ -187,7 +190,6 @@ void CodeDocument::doSaveAs()
     }
 }
 
-
 bool CodeDocument::canDiscard()
 {
     if(isFileDirty() == false)
@@ -195,7 +197,7 @@ bool CodeDocument::canDiscard()
         return true;
     }
     QMessageBox box(QMessageBox::Warning,
-                    QString::fromWCharArray(L"كلمات"), "Save modified file?",
+                    QString::fromWCharArray(L"كلمات"), QString("Save modified file '%1'?").arg(getFileName()),
                     QMessageBox::Yes|QMessageBox::No| QMessageBox::Cancel,
                     NULL);
     int ret = box.exec();
@@ -248,11 +250,13 @@ bool CodeDocument::GetSaveFilename()
     }
     return false;
 }
+
 void CodeDocument::setTabText(QString s)
 {
     int tabIndex = tabs->indexOf(editor);
     tabs->setTabText(tabIndex, s);
 }
+
 QString CodeDocument::getTabText()
 {
     int tabIndex = tabs->indexOf(editor);

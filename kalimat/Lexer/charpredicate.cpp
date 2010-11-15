@@ -32,6 +32,12 @@ LAStr::LAStr(QString s) :Predicate()
 {
     this->str = s;
 }
+
+LAStr::LAStr(QStdWString s) : Predicate()
+{
+    this->str = QString::fromStdWString(s);
+}
+
 bool LAStr::operator ()(Buffer &buffer)
 {
     BufferState s = buffer.saveState();

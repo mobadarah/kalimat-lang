@@ -13,6 +13,7 @@
 #include "../Lexer/token.h"
 #include "ast.h"
 #include "kalimatast.h"
+#include "utils.h"
 
 CompilationUnit::CompilationUnit(Token pos) : AST(pos)
 {
@@ -28,6 +29,7 @@ Program::Program(Token pos ,QVector<TopLevel* > elements, QVector<StrLiteral *> 
     for(int i=0; i<usedModules.count(); i++)
         _usedModules.append(QSharedPointer<StrLiteral>(usedModules[i]));
 }
+
 QString Program::toString()
 {
     QStringList ret;
@@ -35,8 +37,9 @@ QString Program::toString()
     {
         ret.append(element(i)->toString());
     }
-    return QString("program(").append(ret.join(", ")).append(")");
+    return _ws(L"برنامج(").append(ret.join(_ws(L"، "))).append(")");
 }
+
 Module::Module(Token pos, Identifier *name, QVector<Declaration *>module, QVector<StrLiteral *>usedModules)
     :CompilationUnit(pos),
     _name(name)
@@ -47,6 +50,7 @@ Module::Module(Token pos, Identifier *name, QVector<Declaration *>module, QVecto
     for(int i=0; i<usedModules.count(); i++)
         _usedModules.append(QSharedPointer<StrLiteral>(usedModules[i]));
 }
+
 QString Module::toString()
 {
     QStringList ret;
@@ -54,7 +58,7 @@ QString Module::toString()
     {
         ret.append(decl(i)->toString());
     }
-    return QString("module(").append(ret.join(", ")).append(")");
+    return _ws(L"وحدة(").append(ret.join(_ws(L"، "))).append(")");
 }
 
 TopLevel::TopLevel(Token pos)
@@ -94,8 +98,6 @@ GraphicsStatement::GraphicsStatement(Token pos) : Statement(pos)
 
 }
 
-
-
 AssignmentStmt::AssignmentStmt(Token pos ,AssignableExpression *_variable, Expression *_value)
     :Statement(pos),
     _variable(_variable),
@@ -105,7 +107,7 @@ AssignmentStmt::AssignmentStmt(Token pos ,AssignableExpression *_variable, Expre
 
 QString AssignmentStmt::toString()
 {
-    return QString("=(%1,%2)").arg(variable()->toString(),value()->toString());
+    return QString("=(%1، %2)").arg(variable()->toString(),value()->toString());
 }
 
 IfStmt::IfStmt(Token pos ,Expression *cond, Statement *_thenStmt, Statement *elseStmt)
@@ -116,13 +118,14 @@ IfStmt::IfStmt(Token pos ,Expression *cond, Statement *_thenStmt, Statement *els
 {
 
 }
+
 QString IfStmt::toString()
 {
     if(elsePart() == NULL)
-        return QString("If(%1,%2)").arg(condition()->toString())
+        return _ws(L"إذا(%1، %2)").arg(condition()->toString())
                                    .arg(thenPart()->toString());
     else
-        return QString("If(%1,%2,%3)").arg(condition()->toString())
+        return _ws(L"إذا(%1، %2، %3)").arg(condition()->toString())
                                       .arg(thenPart()->toString())
                                       .arg(elsePart()->toString());
 }
@@ -137,7 +140,7 @@ WhileStmt::WhileStmt(Token pos ,Expression *condition, Statement *statement)
 QString WhileStmt::toString()
 {
 
-    return QString("While(%1,%2)").arg(condition()->toString())
+    return _ws(L"طالما(%1، %2)").arg(condition()->toString())
                                .arg(statement()->toString());
 }
 
@@ -159,7 +162,7 @@ QVector<Identifier *> ForAllStmt::getIntroducedVariables()
 QString ForAllStmt::toString()
 {
 
-    return QString("ForEach(%1,%2,%3,%4)")
+    return _ws(L"لكل(%1، %2، %3، %4)")
             .arg(variable()->toString())
             .arg(from()->toString())
             .arg(to()->toString())
@@ -173,7 +176,7 @@ ReturnStmt::ReturnStmt(Token pos ,Expression *returnVal)
 }
 QString ReturnStmt::toString()
 {
-    return QString("return(%1)").arg(returnVal()->toString());
+    return _ws(L"ارجع(%1)").arg(returnVal()->toString());
 }
 
 LabelStmt::LabelStmt(Token pos, Expression *target)
@@ -184,7 +187,7 @@ LabelStmt::LabelStmt(Token pos, Expression *target)
 }
 QString LabelStmt::toString()
 {
-    return QString("label(%1)").arg(target()->toString());
+    return _ws(L"علامة(%1)").arg(target()->toString());
 }
 
 GotoStmt::GotoStmt(Token pos, bool _targetIsNumber, Expression *target)
@@ -198,7 +201,7 @@ GotoStmt::GotoStmt(Token pos, bool _targetIsNumber, Expression *target)
 }
 QString GotoStmt::toString()
 {
-    return QString("goto(%1)").arg(targetIsNumber? _numericTarget.data()->toString(): _idTarget.data()->toString());
+    return _ws(L"اذهب(%1)").arg(targetIsNumber? _numericTarget.data()->toString(): _idTarget.data()->toString());
 }
 
 PrintStmt::PrintStmt(Token pos, Expression *fileObject, QVector<Expression *>args, QVector<Expression *> widths, bool printOnSameLine)
@@ -219,7 +222,7 @@ QString PrintStmt::toString()
     {
         ret.append(arg(i)->toString());
     }
-    return QString("print(").append(ret.join(", ")).append(")");
+    return _ws(L"اطبع(").append(ret.join(_ws(L"، "))).append(")");
 }
 
 ReadStmt::ReadStmt(Token pos, Expression *fileObject, QString prompt, QVector<Identifier *>variables, QVector<bool>readNumberFlags)
@@ -239,7 +242,7 @@ QString ReadStmt::toString()
     {
         ret.append(variable(i)->toString());
     }
-    return QString("read(\"").append(prompt).append("\",").append(ret.join(", ")).append("}");
+    return _ws(L"اقرأ(\"").append(prompt).append("\"،").append(ret.join(_ws(L"، "))).append("}");
 }
 DrawPixelStmt::DrawPixelStmt(Token pos ,Expression *x, Expression *y, Expression *color)
     :GraphicsStatement(pos),
@@ -250,7 +253,7 @@ DrawPixelStmt::DrawPixelStmt(Token pos ,Expression *x, Expression *y, Expression
 }
 QString DrawPixelStmt::toString()
 {
-    return QString("DrawPixel(%1,%2,%3)")
+    return _ws(L"رسم.نقطة(%1، %2، %3)")
             .arg(x()->toString())
             .arg(y()->toString())
             .arg(color()? color()->toString(): "default");
@@ -267,7 +270,7 @@ DrawLineStmt::DrawLineStmt(Token pos ,Expression *x1, Expression *y1, Expression
 }
 QString DrawLineStmt::toString()
 {
-    return QString("DrawLine([%1,%2],[%3,%4],%5)")
+    return _ws(L"رسم.خط([%1، %2]، [%3، %4]، %5)")
             .arg(x1()? x1()->toString(): "current")
             .arg(y1()? y1()->toString(): "current")
             .arg(x2()->toString())
@@ -288,7 +291,7 @@ DrawRectStmt::DrawRectStmt(Token pos ,Expression *x1, Expression *y1, Expression
 }
 QString DrawRectStmt::toString()
 {
-    return QString("DrawLine([%1,%2],[%3,%4],%5,%6)")
+    return _ws(L"رسم.مستطيل([%1، %2]، [%3، %4],%5، %6)")
             .arg(x1()? x1()->toString() : "current")
             .arg(y1()? y1()->toString() : "current")
             .arg(x2()->toString())
@@ -308,7 +311,7 @@ DrawCircleStmt::DrawCircleStmt(Token pos ,Expression *cx, Expression *cy, Expres
 }
 QString DrawCircleStmt::toString()
 {
-    return QString("DrawCircle([%1,%2],%3,%4,%5)")
+    return _ws(L"رسم.دائرة([%1، %2]، %3، %4، %5)")
             .arg(cx()->toString())
             .arg(cy()->toString())
             .arg(radius()->toString())
@@ -325,7 +328,7 @@ DrawSpriteStmt::DrawSpriteStmt(Token pos ,Expression *x, Expression *y, Expressi
 }
 QString DrawSpriteStmt::toString()
 {
-    return QString("DrawSprite(%1,[%2,%3])")
+    return _ws(L"رسم.طيف(%، [%2، %3])")
             .arg(number()->toString())
             .arg(x()->toString())
             .arg(y()->toString());
@@ -340,7 +343,7 @@ ZoomStmt::ZoomStmt(Token pos ,Expression *x1, Expression *y1, Expression *x2, Ex
 }
 QString ZoomStmt::toString()
 {
-    return QString("Zoom([%1,%2],[%3,%4])")
+    return _ws(L"زووم([%1,%2],[%3,%4])")
             .arg(x1()->toString())
             .arg(y1()->toString())
             .arg(x2()->toString())
@@ -356,7 +359,7 @@ EventStatement::EventStatement(Token pos ,EventType type, Identifier *handler)
 }
 QString EventStatement::toString()
 {
-    return QString("on(%1,%2)").arg(type).arg(handler()->toString());
+    return _ws(L"عند(%1، %2)").arg(type).arg(handler()->toString());
 }
 
 BlockStmt::BlockStmt(Token pos ,QVector<Statement *> statements)
@@ -383,7 +386,7 @@ QString BlockStmt::toString()
     {
         ret.append(statement(i)->toString());
     }
-    return QString("{").append(ret.join(", ")).append("}");
+    return QString("{ ").append(ret.join(_ws(L"، "))).append(" }");
 }
 
 InvokationStmt::InvokationStmt(Token pos ,Expression *expression)
@@ -416,7 +419,7 @@ BinaryOperation::BinaryOperation(Token pos ,QString op, Expression *op1, Express
 }
 QString BinaryOperation::toString()
 {
-    return QString("BinOp(%1,%2,%3)")
+    return _ws(L"عملية(%1، %2، %3)")
             .arg(_operator)
             .arg(operand1()->toString())
             .arg(operand2()->toString());
@@ -430,7 +433,7 @@ UnaryOperation::UnaryOperation(Token pos ,QString __operator, Expression *operan
 }
 QString UnaryOperation::toString()
 {
-    return QString("UnOp(%1,%2)")
+    return _ws(L"عملية(%1، %2)")
             .arg(_operator)
             .arg(operand()->toString());
 }
@@ -458,7 +461,7 @@ NumLiteral::NumLiteral(Token pos ,QString lexeme) :Expression(pos)
 }
 QString NumLiteral::toString()
 {
-    return QString("Num(%1)")
+    return _ws(L"عدد(%1)")
             .arg(longNotDouble? lValue: dValue);
 }
 
@@ -469,7 +472,7 @@ StrLiteral::StrLiteral(Token pos ,QString value) : Expression(pos)
 }
 QString StrLiteral::toString()
 {
-    return QString("Str(%1)")
+    return _ws(L"نص(%1)")
             .arg(value);
 }
 NullLiteral::NullLiteral(Token pos) : Expression(pos)
@@ -478,7 +481,7 @@ NullLiteral::NullLiteral(Token pos) : Expression(pos)
 }
 QString NullLiteral::toString()
 {
-    return "null";
+    return _ws(L"لاشيء");
 }
 BoolLiteral::BoolLiteral(Token pos, bool _value) : Expression(pos)
 {
@@ -497,7 +500,7 @@ ArrayLiteral::ArrayLiteral(Token pos, QVector<Expression *>data)
 }
 QString ArrayLiteral::toString()
 {
-    return QString("array(%1)").arg(vector_toString(_data));
+    return _ws(L"مصفوفة(%1)").arg(vector_toString(_data));
 }
 
 IInvokation::IInvokation(Token pos)
@@ -516,7 +519,7 @@ Invokation::Invokation(Token pos ,Expression *functor, QVector<Expression *>argu
 
 QString Invokation::toString()
 {
-    return QString("Call(%1,%2)").arg(functor()->toString()).arg(vector_toString(_arguments));
+    return _ws(L"نداء(%1، %2)").arg(functor()->toString()).arg(vector_toString(_arguments));
 }
 
 MethodInvokation::MethodInvokation(Token pos ,Expression *receiver, Identifier *methodSelector, QVector<Expression *>arguments)
@@ -527,9 +530,10 @@ MethodInvokation::MethodInvokation(Token pos ,Expression *receiver, Identifier *
     for(int i=0; i<arguments.count(); i++)
         _arguments.append(QSharedPointer<Expression>(arguments[i]));
 }
+
 QString MethodInvokation::toString()
 {
-    return QString("CallMethod(%1,%2, %3)")
+    return _ws(L"نداء.وسيلة(%1، %2، %3)")
             .arg(receiver()->toString())
             .arg(methodSelector()->toString())
             .arg(vector_toString(_arguments));
@@ -544,14 +548,16 @@ Idafa::Idafa(Token pos ,Identifier *modaf, Expression *modaf_elaih)
 
 QString Idafa::toString()
 {
-    return QString("Idafa(%1,%2").arg(modaf()->toString(), modaf_elaih()->toString());
+    return _ws(L"اضافة(%1، %2").arg(modaf()->toString(), modaf_elaih()->toString());
 }
+
 ArrayIndex::ArrayIndex(Token pos ,Expression *array, Expression *index)
     :AssignableExpression(pos),
     _array(array),
     _index(index)
 {
 }
+
 QString ArrayIndex::toString()
 {
     return QString("%1[%2]").arg(array()->toString(), index()->toString());
@@ -564,20 +570,22 @@ MultiDimensionalArrayIndex::MultiDimensionalArrayIndex(Token pos, Expression *ar
     for(int i=0; i<indexes.count(); i++)
         _indexes.append(QSharedPointer<Expression>(indexes[i]));
 }
+
 QString MultiDimensionalArrayIndex::toString()
 {
     return QString("%1[%2]").arg(array()->toString(), vector_toString(_indexes));
 }
+
 ObjectCreation::ObjectCreation(Token pos ,Identifier *className)
     :Expression(pos),
     _className(className)
 {
 }
+
 QString ObjectCreation::toString()
 {
-    return QString("new(%1)").arg(className()->name);
+    return QString("جديد(%1)").arg(className()->name);
 }
-
 
 ProceduralDecl::ProceduralDecl(Token pos ,Identifier *procName, QVector<Identifier *>formals, BlockStmt *body, bool isPublic)
     :Declaration(pos, isPublic),
@@ -587,6 +595,7 @@ ProceduralDecl::ProceduralDecl(Token pos ,Identifier *procName, QVector<Identifi
     for(int i=0; i<formals.count(); i++)
         _formals.append(QSharedPointer<Identifier>(formals[i]));
 }
+
 QVector<Identifier *> ProceduralDecl::getIntroducedVariables()
 {
     QVector<Identifier *> ret;
@@ -600,30 +609,40 @@ ProcedureDecl::ProcedureDecl(Token pos ,Identifier *procName, QVector<Identifier
 {
 
 }
+
 QString ProcedureDecl::toString()
 {
-    return QString("Procedure(%1,%2,%3)")
+    QString pname = procName()->toString();
+    // todo: Rename the actual 'main' procedure
+    if(pname=="%main")
+        pname = _ws(L"<البداية>");
+
+    return _ws(L"إجراء(%1، %2، %3)")
             .arg(procName()->toString())
             .arg(vector_toString(_formals))
             .arg(body()->toString());
 }
+
 FunctionDecl::FunctionDecl(Token pos ,Identifier *procName, QVector<Identifier *>formals, BlockStmt *body, bool isPublic)
     :ProceduralDecl(pos, procName, formals, body, isPublic)
 {
 
 }
+
 QString FunctionDecl::toString()
 {
-    return QString("Function(%1,%2,%3)")
+    return _ws(L"دالة(%1، %2، %3)")
             .arg(procName()->toString())
             .arg(vector_toString(_formals))
             .arg(body()->toString());
 }
+
 MethodInfo::MethodInfo(int arity, bool isFunction)
 {
     this->arity = arity;
     this->isFunction = isFunction;
 }
+
 // Degenerate constructor, create only to allow usage in QMap<>...etc
 MethodInfo::MethodInfo()
 {
@@ -645,6 +664,7 @@ ClassDecl::ClassDecl(Token pos,
     for(int i=0; i<fields.count(); i++)
         _fields.append(QSharedPointer<Identifier>(fields[i]));
 }
+
 ClassDecl::ClassDecl(Token pos,
                      Identifier *ancestorName,
                      Identifier *name,
@@ -672,16 +692,18 @@ QString ClassDecl::toString()
     }
     QString map = lst.join(",");
 
-    return QString("Class(%1,%2,%3")
+    return _ws(L"فصيلة(%1، %2، %3")
             .arg(name()->toString())
             .arg(vector_toString(_fields))
             .arg(map);
 
 }
+
 void ClassDecl::insertMethod(QString name, QSharedPointer<MethodDecl>m)
 {
     _methods[name] = m;
 }
+
 bool ClassDecl::containsMethod(QString name)
 {
     if(_methods.contains(name))
@@ -690,6 +712,7 @@ bool ClassDecl::containsMethod(QString name)
         return true;
     return false;
 }
+
 MethodDecl *ClassDecl::method(QString name)
 {
     if(_methods.contains(name))
@@ -707,17 +730,18 @@ bool ClassDecl::containsPrototype(QString name)
         return true;
     return false;
 }
+
 MethodInfo ClassDecl::methodPrototype(QString name)
 {
     if(_methodPrototypes.contains(name))
         return _methodPrototypes[name];
     return _ancestorClass.data()->methodPrototype(name);
 }
+
 void ClassDecl::setAncestorClass(QSharedPointer<ClassDecl> cd)
 {
     _ancestorClass = cd;
 }
-
 
 GlobalDecl::GlobalDecl(Token pos ,QString varName, bool isPublic)
     :Declaration(pos, isPublic)
@@ -726,7 +750,7 @@ GlobalDecl::GlobalDecl(Token pos ,QString varName, bool isPublic)
 }
 QString GlobalDecl::toString()
 {
-    return QString("global(%1)").arg(varName);
+    return _ws(L"مشترك(%1)").arg(varName);
 }
 
 MethodDecl::MethodDecl(Token pos ,Identifier *className, Identifier *receiverName, Identifier *methodName
@@ -739,10 +763,13 @@ MethodDecl::MethodDecl(Token pos ,Identifier *className, Identifier *receiverNam
     this->isFunctionNotProcedure = isFunctionNotProcedure;
     this->_formals.prepend(QSharedPointer<Identifier>(receiverName));
 }
+
 QString MethodDecl::toString()
 {
-    return QString("Method%1(%2,%3,%4)")
-            .arg(isFunctionNotProcedure?"Reply":"Response")
+    return QString("%1(%2,%3,%4)")
+            .arg(isFunctionNotProcedure?_ws(L"رد")
+                :
+                _ws(L"استجابة"))
             .arg(procName()->toString())
             .arg(vector_toString(_formals))
             .arg(body()->toString());

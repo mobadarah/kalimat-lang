@@ -14,9 +14,11 @@
 KalimatParser::KalimatParser() : Parser(TokenNameFromId)
 {
 }
+
 KalimatParser::~KalimatParser()
 {
 }
+
 void KalimatParser::init(QString s, Lexer *lxr, void *tag)
 {
     // Here we manually filter out comments from our token stream.
@@ -44,6 +46,7 @@ AST *KalimatParser::parseRoot()
         return module();
     return program();
 }
+
 AST *KalimatParser::program()
 {
     QVector<TopLevel *> elements;
@@ -105,10 +108,9 @@ AST *KalimatParser::module()
     return new Module(Token(), modName, elements, usedModules);
 }
 
-
 bool KalimatParser::LA_first_statement()
 {
-    return LA(IF) || LA(FORALL) || LA(WHILE) || LA(RETURN) || LA(LABEL) || LA(GO) || LA(WHEN) || LA_first_io_statement() || LA_first_grfx_statement()
+    return LA(IF) || LA(FORALL) || LA(WHILE) || LA(RETURN_WITH) || LA(LABEL) || LA(GO) || LA(WHEN) || LA_first_io_statement() || LA_first_grfx_statement()
             || LA_first_assignment_or_invokation();
 }
 
@@ -131,7 +133,7 @@ Statement *KalimatParser::statement()
     {
         return whileStmt();
     }
-    if(LA(RETURN))
+    if(LA(RETURN_WITH))
     {
         return returnStmt();
     }
@@ -162,6 +164,7 @@ bool KalimatParser::LA_first_declaration()
 {
     return LA(PROCEDURE) || LA(FUNCTION) || LA(CLASS) || LA_first_method_declaration() || LA2(IDENTIFIER, GLOBAL) ;
 }
+
 Declaration *KalimatParser::declaration()
 {
     if(LA(PROCEDURE))
@@ -367,8 +370,7 @@ Statement *KalimatParser::whileStmt()
 Statement *KalimatParser::returnStmt()
 {
     Token returnTok  = lookAhead;
-    match(RETURN);
-    match(WITH);
+    match(RETURN_WITH);
     Expression *retVal = expression();
     return new ReturnStmt(returnTok, retVal);
 }
@@ -1242,6 +1244,7 @@ Expression *KalimatParser::primaryExpressionNonInvokation()
     }
     return ret;
 }
+
 Identifier *KalimatParser::identifier()
 {
     Identifier *ret = NULL;
