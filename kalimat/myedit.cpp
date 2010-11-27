@@ -28,7 +28,7 @@ bool isAfterArabicNumber(QTextEdit *edit)
     if(edit->textCursor().position()>=1)
     {
         QChar at = edit->document()->characterAt(edit->textCursor().position()-1);
-        if(at.unicode() >= L'0' && at.unicode() < L'9' )
+        if(at.unicode() >= '\u0660' && at.unicode() < L'\u0669' )
         {
             replace = true;
         }
@@ -40,6 +40,8 @@ MyEdit::MyEdit(MainWindow *owner) : QTextEdit()
     this->owner = owner;
     connect(this, SIGNAL(textChanged()), SLOT(textChangedEvent()));
     connect(this,  SIGNAL(cursorPositionChanged()), SLOT(selectionChangedEvent()));
+    QKeyEvent ev(QKeyEvent::KeyPress, Qt::Key_Direction_R, 0, "");
+    emit keyPressEvent(&ev);
     _line = _column = 0;
 }
 
@@ -58,6 +60,7 @@ void MyEdit::keyPressEvent(QKeyEvent *ev)
     {
         enterKeyBehavior(ev);
     }
+    /*
     else if(ev->key() == Qt::Key_Left)
     {
         QKeyEvent *otherEvent = new QKeyEvent(ev->type(), Qt::Key_Right, ev->modifiers(), ev->text(), ev->isAutoRepeat(), ev->count());
@@ -68,6 +71,7 @@ void MyEdit::keyPressEvent(QKeyEvent *ev)
         QKeyEvent *otherEvent = new QKeyEvent(ev->type(), Qt::Key_Left, ev->modifiers(), ev->text(), ev->isAutoRepeat(), ev->count());;
         QTextEdit::keyPressEvent(otherEvent);
     }
+    */
     else if(ev->text() == "," || ev->text() == arabComma)
     {
         bool rightAfterNumber = isAfterNumber(this);
@@ -84,7 +88,7 @@ void MyEdit::keyPressEvent(QKeyEvent *ev)
         if(!replace)
             QTextEdit::keyPressEvent(ev);
         else
-            this->insertPlainText(QString::fromWCharArray(L"?"));
+            this->insertPlainText(QString::fromWCharArray(L"٫"));
     }
     else if(ev->text() == ":")
     {
@@ -189,6 +193,7 @@ bool tokensEqual(QVector<Token> toks, int ids[], int count)
     }
     return true;
 }
+
 bool tokensBeginEnd(QVector<Token> toks, int ids1[], int ids2[], int count1, int count2)
 {
     if(toks.count()< count1 || toks.count()< count2)
@@ -297,13 +302,13 @@ void MyEdit::enterKeyBehavior(QKeyEvent *ev)
         QTextEdit::keyPressEvent(ev);
     }
     textCursor().endEditBlock();
+    ensureCursorVisible();
 }
 
 void MyEdit::colonBehavior(QKeyEvent *ev)
 {
     int elsePart[] = { ELSE, COLON };
     int elseIfStart[] = { ELSE, IF }, elseIfEnd[] = { COLON };
-
     textCursor().beginEditBlock();
     textCursor().insertText(":");
     textChangedEvent();

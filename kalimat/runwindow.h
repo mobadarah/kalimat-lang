@@ -53,6 +53,7 @@ protected:
     void changeEvent(QEvent *e);
 private:
     RunWindowState state;
+    bool asleep;
 public:
     TextLayer textLayer;
     SpriteLayer spriteLayer;
@@ -74,6 +75,10 @@ public:
     void resetTimer(int interval);
     void suspend();
     void resume();
+
+    void setAsleep();
+    bool isAsleep();
+
     void typeCheck(Value *val, ValueClass *type);
     void typeError(ValueClass *givenType);
     void beginInput();

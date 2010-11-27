@@ -197,7 +197,7 @@ bool CodeDocument::canDiscard()
         return true;
     }
     QMessageBox box(QMessageBox::Warning,
-                    QString::fromWCharArray(L"كلمات"), QString("Save modified file '%1'?").arg(getFileName()),
+                    QString::fromWCharArray(L"كلمات"), QString::fromStdWString(L"حفظ التغييرات في الملف '%1'؟").arg(getFileName()),
                     QMessageBox::Yes|QMessageBox::No| QMessageBox::Cancel,
                     NULL);
     int ret = box.exec();

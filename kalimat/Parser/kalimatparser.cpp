@@ -588,7 +588,7 @@ Statement *KalimatParser::drawRectStmt()
     Expression *x1 = NULL, *y1 = NULL;
     Expression *x2, *y2;
     Expression *color = NULL;
-    bool filled = false;
+    Expression *filled = NULL;
 
     Token tok  = lookAhead;
     match(DRAW_RECT);
@@ -618,8 +618,7 @@ Statement *KalimatParser::drawRectStmt()
         if(LA(COMMA))
         {
             match(COMMA);
-            expression();
-            filled = true;
+            filled = expression();
         }
     }
     return new DrawRectStmt(tok, x1, y1, x2, y2, color, filled);
@@ -629,7 +628,7 @@ Statement *KalimatParser::drawCircleStmt()
     Expression *cx, *cy;
     Expression *radius;
     Expression *color = NULL;
-    bool filled = false;
+    Expression *filled = NULL;
 
     Token tok  = lookAhead;
     match(DRAW_CIRCLE);
@@ -651,8 +650,7 @@ Statement *KalimatParser::drawCircleStmt()
         if(LA(COMMA))
         {
             match(COMMA);
-            expression();
-            filled = true;
+            filled = expression();
         }
     }
     return new DrawCircleStmt(tok, cx, cy, radius, color, filled);

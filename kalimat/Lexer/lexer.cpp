@@ -15,6 +15,7 @@ Lexer::Lexer(StateMachine sm)
 {
     stateMachine = sm;
 }
+
 void Lexer::init(QString s, void *tag)
 {
     this->tokenTag = tag;
@@ -27,10 +28,12 @@ void Lexer::init(QString s)
 {
     init(s, NULL);
 }
+
 QVector<Token> Lexer::getTokens()
 {
     return acceptedTokens;
 }
+
 void Lexer::tokenize()
 {
     QChar c;

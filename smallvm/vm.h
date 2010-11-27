@@ -23,12 +23,13 @@ class VM
     // The allocator must be declared after the 'constantPool' and 'stack'
     // members, since it's initialized with them in VMs constructor initializer list!!
     Allocator allocator;
-    Frame *currentFrame();
-    Frame &globalFrame();
 
     bool _isRunning;
     VMError _lastError;
     QMap<QString, QString> registeredEventHandlers;
+private:
+    Frame *currentFrame();
+    Frame &globalFrame();
 public:
     VM();
     void Init();

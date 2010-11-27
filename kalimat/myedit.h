@@ -19,6 +19,7 @@ class MyEdit : public QTextEdit
     LineTracker lineTracker;
     MainWindow *owner;
     int _line, _column;
+
 public:
     MyEdit(MainWindow *owner);
     int line();

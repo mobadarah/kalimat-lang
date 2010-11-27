@@ -278,17 +278,28 @@ QString DrawLineStmt::toString()
             .arg(color()? color()->toString(): "default");
 }
 
-DrawRectStmt::DrawRectStmt(Token pos ,Expression *x1, Expression *y1, Expression *x2, Expression *y2, Expression *color, bool filled)
+DrawRectStmt::DrawRectStmt(Token pos ,
+                           Expression *x1,
+                           Expression *y1,
+                           Expression *x2,
+                           Expression *y2,
+                           Expression *color,
+                           Expression *filled)
         :GraphicsStatement(pos),
         _x1(x1),
         _y1(x2),
         _x2(y1),
         _y2(y2),
-        _color(color)
+        _color(color),
+        _filled(filled)
 
 {
-    this->filled = filled;
+    if(this->filled() == NULL)
+    {
+        _filled = QSharedPointer<Expression>(new BoolLiteral(getPos(), false));
+    }
 }
+
 QString DrawRectStmt::toString()
 {
     return _ws(L"رسم.مستطيل([%1، %2]، [%3، %4],%5، %6)")
@@ -297,18 +308,27 @@ QString DrawRectStmt::toString()
             .arg(x2()->toString())
             .arg(y2()->toString())
             .arg(color()? color()->toString(): "default")
-            .arg(filled);
+            .arg(filled()->toString());
 }
-DrawCircleStmt::DrawCircleStmt(Token pos ,Expression *cx, Expression *cy, Expression *radius, Expression *color, bool filled)
+
+DrawCircleStmt::DrawCircleStmt(Token pos,
+                               Expression *cx,
+                               Expression *cy,
+                               Expression *radius,
+                               Expression *color,
+                               Expression *filled)
         :GraphicsStatement(pos),
         _cx(cx),
         _cy(cy),
         _radius(radius),
-        _color(color)
+        _color(color),
+        _filled(filled)
 
 {
-    this->filled = filled;
+    if(this->filled() == NULL)
+        _filled = QSharedPointer<Expression>(new BoolLiteral(getPos(), false));
 }
+
 QString DrawCircleStmt::toString()
 {
     return _ws(L"رسم.دائرة([%1، %2]، %3، %4، %5)")
@@ -316,7 +336,7 @@ QString DrawCircleStmt::toString()
             .arg(cy()->toString())
             .arg(radius()->toString())
             .arg(color()? color()->toString(): "default")
-            .arg(filled);
+            .arg(filled()->toString());
 }
 DrawSpriteStmt::DrawSpriteStmt(Token pos ,Expression *x, Expression *y, Expression *number)
         :GraphicsStatement(pos),

@@ -220,6 +220,7 @@ void KalimatLexer::InitArabChars()
     in.close();
 
 }
+
 QString TokenNameFromId(int id)
 {
     if(KalimatLexer::tokenNameMap.count()==0)

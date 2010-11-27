@@ -9,7 +9,7 @@
 #include "runwindow.h"
 #include "builtinmethods.h"
 
-
+#include <QApplication>
 #include <QPainter>
 #include <QFile>
 #include <QTextStream>
@@ -41,10 +41,12 @@ void WindowReadMethod::operator ()(QStack<Value *> &operandStack)
                       // here we suspend the instruction loop...
     this->operandStack = &operandStack;
 }
+
 void WindowReadMethod::SetReadValue(Value *v)
 {
     operandStack->push(v);
 }
+
 WindowProxyMethod::WindowProxyMethod(RunWindow *parent, VM *vm, VM_PROC proc)
 {
     this->vm = vm;
@@ -136,7 +138,7 @@ void DrawRectProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
     w->paintSurface->TX(x1);
     w->paintSurface->TX(x2);
     int color = popInt(stack, w, vm);
-    int filled = popInt(stack, w, vm);
+    bool filled = popBool(stack, w, vm);
 
     if(color ==-1)
         color = 0;
@@ -185,7 +187,7 @@ void DrawCircleProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 
     int color = popInt(stack, w, vm);
 
-    int filled = popInt(stack, w, vm);
+    bool filled = popBool(stack, w, vm);
     w->paintSurface->TX(cx);
     QPainter p(w->paintSurface->GetImage());
     if(color ==-1)
@@ -604,9 +606,18 @@ void WaitProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 {
     int ms = stack.pop()->unboxInt();
     w->suspend();
+    w->setAsleep();
     //w->resetTimer(ms);
     w->startTimer(ms);
 }
+
+void CheckAsleepProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
+{
+    qApp->processEvents();
+    bool res = w->isAsleep();
+    stack.push(vm->GetAllocator().newBool(res));
+}
+
 void ZoomProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 {
     int x1 = popIntOrCoercable(stack, w , vm);
@@ -670,6 +681,14 @@ int popInt(QStack<Value *> &stack, RunWindow *w, VM *vm)
     w->typeCheck(stack.top(), BuiltInTypes::IntType);
     int i = stack.pop()->unboxInt();
     return i;
+}
+
+bool popBool(QStack<Value *> &stack, RunWindow *w, VM *vm)
+{
+    verifyStackNotEmpty(stack, vm);
+    w->typeCheck(stack.top(), BuiltInTypes::BoolType);
+    bool b = stack.pop()->unboxBool();
+    return b;
 }
 
 void DoFileWrite(QStack<Value *> &stack, RunWindow *w, VM *vm, bool newLine)

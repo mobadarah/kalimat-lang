@@ -244,14 +244,15 @@ class DrawRectStmt : public GraphicsStatement
 public:
     QScopedPointer<Expression> _x1, _y1, _x2, _y2;
     QScopedPointer<Expression> _color;
-    bool filled;
+    QSharedPointer<Expression> _filled;
 public:
-    DrawRectStmt(Token pos, Expression *x1, Expression *y1, Expression *x2, Expression *y2, Expression *color, bool filled);
+    DrawRectStmt(Token pos, Expression *x1, Expression *y1, Expression *x2, Expression *y2, Expression *color, Expression *filled);
     Expression *x1() { return _x1.data();}
     Expression *y1() { return _y1.data();}
     Expression *x2() { return _x2.data();}
     Expression *y2() { return _y2.data();}
     Expression *color() { return _color.data();}
+    Expression *filled() { return _filled.data(); }
     QString toString();
 };
 
@@ -262,13 +263,14 @@ public:
     QScopedPointer<Expression> _radius;
     QScopedPointer<Expression> _color;
 
-    bool filled;
+    QSharedPointer<Expression> _filled;
 public:
-    DrawCircleStmt(Token pos, Expression *cx, Expression *cy, Expression *radius, Expression *color, bool filled);
+    DrawCircleStmt(Token pos, Expression *cx, Expression *cy, Expression *radius, Expression *color, Expression *filled);
     Expression *cx() { return _cx.data();}
     Expression *cy() { return _cy.data();}
     Expression *radius() { return _radius.data();}
     Expression *color() { return _color.data();}
+    Expression *filled() { return _filled.data(); }
     QString toString();
 };
 

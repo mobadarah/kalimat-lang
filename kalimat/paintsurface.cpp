@@ -130,6 +130,7 @@ void PaintSurface::clearImage()
     p.fillRect(0,0,GetImage()->width(), GetImage()->height(), Qt::white);
 
 }
+
 void PaintSurface::TX(int &x)
 {
     x = (this->image.width()-1)-x;

@@ -36,6 +36,8 @@ void GetSpriteWidthProc(QStack<Value *> &stack, RunWindow *w, VM *vm);
 void GetSpriteHeightProc(QStack<Value *> &stack, RunWindow *w, VM *vm);
 
 void WaitProc(QStack<Value *> &, RunWindow *, VM *);
+void CheckAsleepProc(QStack<Value *> &stack, RunWindow *w, VM *vm);
+
 void ClsProc(QStack<Value *> &stack, RunWindow *, VM *w);
 void ClearTextProc(QStack<Value *> &stack, RunWindow *w, VM *vm);
 void SetTextColorProc(QStack<Value *> &stack, RunWindow *, VM *w);
@@ -77,6 +79,7 @@ double verifyNumeric(Value *v, RunWindow *w); // TODO: make this a method of Run
 int popIntOrCoercable(QStack<Value *> &stack, RunWindow *w, VM *vm);
 double popDoubleOrCoercable(QStack<Value *> &stack, RunWindow *w, VM *vm);
 int popInt(QStack<Value *> &stack, RunWindow *w, VM *vm);
+bool popBool(QStack<Value *> &stack, RunWindow *w, VM *vm);
 QString *popString(QStack<Value *> &stack, RunWindow *w, VM *vm);
 void verifyStackNotEmpty(QStack<Value *> &stack, VM *vm);
 

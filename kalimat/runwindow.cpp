@@ -19,6 +19,7 @@
 
 RunWindow::RunWindow(QWidget *parent, QString pathOfProgramsFile) :
     QMainWindow(parent),
+    asleep(false),
     updateTimer(20),
     ui(new Ui::RunWindow)
 {
@@ -115,6 +116,7 @@ void RunWindow::Init(QString program, QMap<QString, QString>stringConstants)
         vm->Register("getspriteheight", new WindowProxyMethod(this, vm, GetSpriteHeightProc));
 
         vm->Register("wait", new WindowProxyMethod(this, vm, WaitProc));
+        vm->Register("check_asleep", new WindowProxyMethod(this, vm, CheckAsleepProc));
 
         vm->Register("file_write", new WindowProxyMethod(this, vm, FileWriteProc));
         vm->Register("file_write_using_width", new WindowProxyMethod(this, vm, FileWriteUsingWidthProc));
@@ -236,9 +238,10 @@ QString RunWindow::ensureCompletePath(QString fileName)
 
 void RunWindow::timerEvent(QTimerEvent *ev)
 {
+    asleep = false;
+    killTimer(ev->timerId());
     if(state == rwWaiting)
     {
-       killTimer(ev->timerId());
        resume();
        Run();
     }
@@ -273,6 +276,16 @@ void RunWindow::suspend()
 void RunWindow::resume()
 {
     state = rwNormal;
+}
+
+void RunWindow::setAsleep()
+{
+    asleep = true;
+}
+
+bool RunWindow::isAsleep()
+{
+    return asleep;
 }
 
 void RunWindow::redrawWindow()
@@ -461,7 +474,8 @@ void RunWindow::activateKeyEvent(QKeyEvent *ev, QString evName)
 
         vm->ActivateEvent(evName, args);
         if(state != rwTextInput)
-            resume(); // If the RunWindow was not in a running state (say from a wait() call) then a key event should wake it up
+            resume(); // If the RunWindow was not in a running state (say from a wait() call) then a key
+                      // event should wake it up.
                       // TODO: This means a key event in the middle of a long wait will resume execution
                       // prematurely after the event is handled. We should resolve this.
 

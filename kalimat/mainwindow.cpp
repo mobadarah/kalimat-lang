@@ -30,6 +30,7 @@
 #include <QVBoxLayout>
 #include <QGraphicsTextItem>
 #include <QDir>
+#include <QToolBar>
 
 MainWindow *MainWindow::that = NULL;
 
@@ -39,6 +40,12 @@ MainWindow::MainWindow(QWidget *parent)
 {
     MainWindow::that = this;
     ui->setupUi(this);
+
+    QToolBar *notice = new QToolBar("");
+    notice->addAction(QString::fromStdWString(L"هذه هي النسخة الأولية لشهر نوفمبر 2010. حمل أحدث نسخة من www.kalimat-lang.com"));
+
+    addToolBarBreak();
+    addToolBar(Qt::TopToolBarArea, notice);
     speedGroup = new QActionGroup(this);
     speedGroup->addAction(ui->actionSpeedFast);
     speedGroup->addAction(ui->actionSpeedMedium);
@@ -98,12 +105,17 @@ MainWindow::~MainWindow()
 
 QWidget *MainWindow::CreateEditorWidget()
 {
-    QTextOption opt;
-    opt.setTextDirection(Qt::RightToLeft);
     MyEdit *edit = new MyEdit(this);
+
+    QTextOption opt = edit->document()->defaultTextOption();
+    opt.setTextDirection(Qt::RightToLeft);
+    edit->document()->setDefaultTextOption(opt);
+
     edit->setLayoutDirection(Qt::RightToLeft);
     edit->setLocale(QLocale::Arabic);
-    edit->document()->setDefaultTextOption(opt);
+    //QKeyEvent ev(QEvent::KeyPress, )
+    //emit edit->keyPressEvent()
+
     syn = new SyntaxHighlighter(edit->document(), new KalimatLexer());
     edit->textCursor().setVisualNavigation(true);
     QFont font = edit->font();

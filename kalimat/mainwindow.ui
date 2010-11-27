@@ -202,7 +202,6 @@
     <addaction name="separator"/>
     <addaction name="action_walkthroughs"/>
     <addaction name="action_report_bug"/>
-    <addaction name="action_software_update"/>
     <addaction name="action_contact_us"/>
     <addaction name="separator"/>
     <addaction name="action_about_kalimat"/>
@@ -254,7 +253,6 @@
    <addaction name="action_save"/>
    <addaction name="separator"/>
    <addaction name="mnuProgramRun"/>
-   <addaction name="action_software_update"/>
   </widget>
   <widget class="QStatusBar" name="statusBar"/>
   <widget class="QDockWidget" name="dockSearchReplace">
@@ -424,11 +422,6 @@
   <action name="action_report_bug">
    <property name="text">
     <string>إبلاغ عن خطأ بالبرنامج</string>
-   </property>
-  </action>
-  <action name="action_software_update">
-   <property name="text">
-    <string>تحديث لآخر نسخة</string>
    </property>
   </action>
   <action name="action_contact_us">
