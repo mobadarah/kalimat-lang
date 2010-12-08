@@ -10,19 +10,19 @@
 
 enum VMErrorType
 {
-    NoSuchVariable, NoSuchProcedure, NoSuchProcedureOrFunction,
-    NoSuchField, NoSuchMethod, NoSuchExternalMethod, NoSuchEvent,
+    NoSuchVariable1, NoSuchProcedure1, NoSuchProcedureOrFunction1,
+    NoSuchField2, NoSuchMethod2, NoSuchExternalMethod1, NoSuchEvent,
     NoSuchClass, NameDoesntIndicateAClass,
 
     UnrecognizedInstruction,UnrecognizedMnemonic,
     GettingFieldOnNonObject, SettingFieldOnNonObject, CallingMethodOnNonObject,
     GettingFieldOnNull, SettingFieldOnNull, CallingMethodOnNull,
-    NumericOperationOnNonNumber, LogicOperationOnNonBoolean,
+    NumericOperationOnNonNumber1, LogicOperationOnNonBoolean,
 
     DivisionByZero,
     BuiltInOperationOnNonBuiltn,
-    TypeError, InternalError, WrongNumberOfArguments, FunctionDidntReturnAValue,
-    SubscribingNonArray, SubscribtMustBeInteger, SubscriptOutOfRange,
+    TypeError2, InternalError, WrongNumberOfArguments, FunctionDidntReturnAValue,
+    SubscribingNonArray, SubscribtMustBeInteger, SubscriptOutOfRange2, SubscriptOutOfRange3,
     ArgumentError, MD_IndexingWrongNumberOfDimensions,
     ElementAlreadyDefined, MethodAlreadyDefinedInClass,
     RuntimeError,

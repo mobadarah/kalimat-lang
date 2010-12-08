@@ -42,7 +42,7 @@ MainWindow::MainWindow(QWidget *parent)
     ui->setupUi(this);
 
     QToolBar *notice = new QToolBar("");
-    notice->addAction(QString::fromStdWString(L"هذه هي النسخة الأولية لشهر نوفمبر 2010. حمل أحدث نسخة من www.kalimat-lang.com"));
+    notice->addAction(QString::fromStdWString(L"هذه هي النسخة الأولية لشهر ديسمبر 2010. حمل أحدث نسخة من www.kalimat-lang.com"));
 
     addToolBarBreak();
     addToolBar(Qt::TopToolBarArea, notice);
@@ -89,11 +89,6 @@ QTextEdit *MainWindow::currentEditor()
 
 void MainWindow::LoadDocIntoWidget(CodeDocument *doc, QWidget *widget)
 {
-    // Does nothing, the CodeDocument
-    // already loads the file contents into the
-    // QTextEdit. This is for possible future extensiblity
-    // where we might have editing widgets that are not
-    // QTextEdit
 }
 
 MainWindow::~MainWindow()
@@ -106,16 +101,6 @@ MainWindow::~MainWindow()
 QWidget *MainWindow::CreateEditorWidget()
 {
     MyEdit *edit = new MyEdit(this);
-
-    QTextOption opt = edit->document()->defaultTextOption();
-    opt.setTextDirection(Qt::RightToLeft);
-    edit->document()->setDefaultTextOption(opt);
-
-    edit->setLayoutDirection(Qt::RightToLeft);
-    edit->setLocale(QLocale::Arabic);
-    //QKeyEvent ev(QEvent::KeyPress, )
-    //emit edit->keyPressEvent()
-
     syn = new SyntaxHighlighter(edit->document(), new KalimatLexer());
     edit->textCursor().setVisualNavigation(true);
     QFont font = edit->font();
@@ -296,14 +281,20 @@ void MainWindow::on_mnuProgramRun_triggered()
         if(doc->isDocNewFile() || doc->isFileDirty())
         {
             output = compiler.CompileFromCode(doc->getEditor()->document()->toPlainText(), doc);
-            path = "";
         }
         else
         {
             output = compiler.CompileFromFile(doc->getFileName(), doc);
-            path = doc->getFileName();
         }
 
+        if(doc->isDocNewFile())
+        {
+            path = "";
+        }
+        else
+        {
+            path = doc->getFileName();
+        }
         //ui->outputView->append(output);
 
 

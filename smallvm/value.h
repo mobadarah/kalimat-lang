@@ -154,6 +154,7 @@ public:
     static ValueClass *ObjectType; // Must be declare before all of the other types, since their
                                    // Initialization depends on it
 
+    static ValueClass *NumericType;
     static ValueClass *IntType;
     static ValueClass *DoubleType;
     static ValueClass *BoolType;

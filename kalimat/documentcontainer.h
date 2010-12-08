@@ -56,7 +56,7 @@ public:
 
     void updateRecentFiles();
     CodeDocument *getDocumentFromTab(int index);
-    void addDocument(QString title, QString fileName, QWidget *editor, bool createNew);
+    CodeDocument *addDocument(QString title, QString fileName, QWidget *editor, bool createNew);
     CodeDocument *getCurrentDocument();
     CodeDocument *getDocumentFromPath(QString path);
     void onFileTouched(QString fileName, CodeDocument *doc);

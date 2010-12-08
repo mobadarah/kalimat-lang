@@ -51,7 +51,9 @@ void TextLayer::printChar(QChar c)
         QString s = visibleTextBuffer[cursor_line];
         if(s.length() <= cursor_col)
         {
-            int n = cursor_col - s.length() +1;
+            int n = cursor_col - s.length() + 1; // TODO: is this the source of
+                                                 // the 'delete key slightly shifts text display'
+                                                 // bug?
                 s.append(QString(n, ' '));
         }
         if(mode == Overwrite)
@@ -63,7 +65,6 @@ void TextLayer::printChar(QChar c)
         cursor_col++;
     }
 }
-
 
 void TextLayer::print(QString str, int width)
 {
@@ -78,6 +79,7 @@ void TextLayer::print(QString str, int width)
         print(str);
     }
 }
+
 void TextLayer::println(QString str)
 {
     print(str);

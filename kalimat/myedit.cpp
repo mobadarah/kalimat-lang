@@ -22,27 +22,37 @@ bool isAfterNumber(QTextEdit *edit)
     }
     return replace;
 }
+
 bool isAfterArabicNumber(QTextEdit *edit)
 {
     bool replace = false;
     if(edit->textCursor().position()>=1)
     {
         QChar at = edit->document()->characterAt(edit->textCursor().position()-1);
-        if(at.unicode() >= '\u0660' && at.unicode() < L'\u0669' )
+        if(at.unicode() >= L'\u0660' && at.unicode() < L'\u0669' )
         {
             replace = true;
         }
     }
     return replace;
 }
+
 MyEdit::MyEdit(MainWindow *owner) : QTextEdit()
 {
     this->owner = owner;
     connect(this, SIGNAL(textChanged()), SLOT(textChangedEvent()));
     connect(this,  SIGNAL(cursorPositionChanged()), SLOT(selectionChangedEvent()));
+    setRtl();
+    _line = _column = 0;
+}
+
+void MyEdit::setRtl()
+{
     QKeyEvent ev(QKeyEvent::KeyPress, Qt::Key_Direction_R, 0, "");
     emit keyPressEvent(&ev);
-    _line = _column = 0;
+    QTextOption opt = document()->defaultTextOption();
+    opt.setTextDirection(Qt::RightToLeft);
+    document()->setDefaultTextOption(opt);
 }
 
 void MyEdit::keyPressEvent(QKeyEvent *ev)
@@ -60,7 +70,7 @@ void MyEdit::keyPressEvent(QKeyEvent *ev)
     {
         enterKeyBehavior(ev);
     }
-    /*
+    //*
     else if(ev->key() == Qt::Key_Left)
     {
         QKeyEvent *otherEvent = new QKeyEvent(ev->type(), Qt::Key_Right, ev->modifiers(), ev->text(), ev->isAutoRepeat(), ev->count());
@@ -71,7 +81,7 @@ void MyEdit::keyPressEvent(QKeyEvent *ev)
         QKeyEvent *otherEvent = new QKeyEvent(ev->type(), Qt::Key_Left, ev->modifiers(), ev->text(), ev->isAutoRepeat(), ev->count());;
         QTextEdit::keyPressEvent(otherEvent);
     }
-    */
+    //*/
     else if(ev->text() == "," || ev->text() == arabComma)
     {
         bool rightAfterNumber = isAfterNumber(this);
@@ -396,12 +406,17 @@ QString MyEdit::textOfLine(LineInfo li)
     return this->document()->toPlainText().mid(li.start, li.length);
 }
 
+bool isSpace(QChar c)
+{
+    //todo: handle tabs
+    return c == ' ' || c == '\t';
+}
+
 int MyEdit::indentOfLine(LineInfo li)
 {
     QString line = textOfLine(li);
     int n =0;
-    //todo: handle tabs
-    while(n<line.length() && line[n].isSpace())
+    while(n<line.length() && isSpace(line[n]))
     {
         n++;
     }

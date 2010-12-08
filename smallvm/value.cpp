@@ -14,29 +14,32 @@
 #include <QLocale>
 #include "value.h"
 
+#define QSTR(x) QString::fromStdWString(x)
 
-ValueClass *BuiltInTypes::ObjectType = new ValueClass("Object", NULL);
-ValueClass *BuiltInTypes::IntType = new ValueClass("Integer", BuiltInTypes::ObjectType);
-ValueClass *BuiltInTypes::DoubleType = new ValueClass("Double", BuiltInTypes::ObjectType);
-ValueClass *BuiltInTypes::BoolType = new ValueClass("Bool", BuiltInTypes::ObjectType);
+ValueClass *BuiltInTypes::ObjectType = new ValueClass(QSTR(L"شيء"), NULL);
+ValueClass *BuiltInTypes::NumericType = new ValueClass(QSTR(L"عدد"), BuiltInTypes::ObjectType);
+ValueClass *BuiltInTypes::IntType = new ValueClass(QSTR(L"عدد.صحيح"), BuiltInTypes::NumericType);
+ValueClass *BuiltInTypes::DoubleType = new ValueClass(QSTR(L"عدد.حقيقي"), BuiltInTypes::NumericType);
+ValueClass *BuiltInTypes::BoolType = new ValueClass(QSTR(L"قيمة.منطقية"), BuiltInTypes::ObjectType);
 ValueClass *BuiltInTypes::MethodType = new ValueClass("Method", BuiltInTypes::ObjectType);
 ValueClass *BuiltInTypes::ExternalMethodType = new ValueClass("ExternalMethod", BuiltInTypes::ObjectType);
 ValueClass *BuiltInTypes::ClassType = new ValueClass("Class", BuiltInTypes::ObjectType);
-ValueClass *BuiltInTypes::ArrayType = new ValueClass("Array", BuiltInTypes::ObjectType);
-ValueClass *BuiltInTypes::StringType = new ValueClass("String", BuiltInTypes::ObjectType);
-ValueClass *BuiltInTypes::SpriteType = new ValueClass("Sprite", BuiltInTypes::ObjectType);
+ValueClass *BuiltInTypes::ArrayType = new ValueClass(QSTR(L"مصفوفة"), BuiltInTypes::ObjectType);
+ValueClass *BuiltInTypes::StringType = new ValueClass(QSTR(L"نص"), BuiltInTypes::ObjectType);
+ValueClass *BuiltInTypes::SpriteType = new ValueClass(QSTR(L"طيف"), BuiltInTypes::ObjectType);
 ValueClass *BuiltInTypes::FileType = NULL;
 ValueClass *BuiltInTypes::RawFileType = new ValueClass("RawFile", BuiltInTypes::ObjectType);
 ValueClass *BuiltInTypes::RefType = new ValueClass("Reference", BuiltInTypes::ObjectType);
 ValueClass *BuiltInTypes::FieldRefType = new ValueClass("FieldReference", BuiltInTypes::ObjectType);
 ValueClass *BuiltInTypes::ArrayRefType = new ValueClass("ArrayReference", BuiltInTypes::ObjectType);
-ValueClass *BuiltInTypes::NullType = new ValueClass("Null", BuiltInTypes::ObjectType);
+ValueClass *BuiltInTypes::NullType = new ValueClass(QSTR(L"لاشيء"), BuiltInTypes::ObjectType);
 
 Value *Value::NullValue;
 Value::Value()
 {
     mark = 0;
 }
+
 Value::~Value()
 {
     // In the cases of RefVal, ArrayVal and StringVal
@@ -278,6 +281,7 @@ ValueClass::~ValueClass()
 {
 
 }
+
 QString ValueClass::toString()
 {
     return "class "+ name;

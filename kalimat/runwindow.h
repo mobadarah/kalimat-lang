@@ -53,7 +53,7 @@ protected:
     void changeEvent(QEvent *e);
 private:
     RunWindowState state;
-    bool asleep;
+    QMap<int, int> asleep;
 public:
     TextLayer textLayer;
     SpriteLayer spriteLayer;
@@ -76,11 +76,11 @@ public:
     void suspend();
     void resume();
 
-    void setAsleep();
-    bool isAsleep();
+    void setAsleep(int cookie);
+    bool isAsleep(int cookie);
 
     void typeCheck(Value *val, ValueClass *type);
-    void typeError(ValueClass *givenType);
+    void typeError(ValueClass *expected, ValueClass *given);
     void beginInput();
     void Run();
     friend class WindowPrintMethod;

@@ -55,7 +55,7 @@ void DocumentContainer::handleNew(QString prefix, QWidget *editor)
     addDocument(name, name, editor, true);
 }
 
-void DocumentContainer::addDocument(QString title, QString fileName, QWidget *editor, bool createNew)
+CodeDocument *DocumentContainer::addDocument(QString title, QString fileName, QWidget *editor, bool createNew)
 {
     CodeDocument *doc;
 
@@ -69,6 +69,7 @@ void DocumentContainer::addDocument(QString title, QString fileName, QWidget *ed
         doc = CodeDocument::newDoc(fileName, tabWidget, editor, this);
     widgetDocs[editor] = doc;
     editor->setFocus();
+    return doc;
 }
 
 CodeDocument *DocumentContainer::getCurrentDocument()
@@ -171,7 +172,8 @@ void DocumentContainer::handleOpen()
                 QFileInfo f = QFileInfo(fileName);
                 dir = f.absoluteDir().absolutePath();
                 settings.setValue("last_open_dir", dir);
-                addDocument(QFileInfo(fileName).fileName(), fileName, client->CreateEditorWidget(), false);
+                CodeDocument *doc = addDocument(QFileInfo(fileName).fileName(), fileName, client->CreateEditorWidget(), false);
+                client->LoadDocIntoWidget(doc, doc->getEditor());
             }
         }
     }

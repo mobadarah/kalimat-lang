@@ -260,7 +260,7 @@ void ToNumProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
     else
     {
      //todo: We should do something like Basic's "Redo from start" when reading incorrectly-formatted input.
-      vm->signal(TypeError, QString::fromStdWString(L"القيمة المدخلة لم تكن عددية"));
+      vm->signal(TypeError2, QString::fromStdWString(L"عدد"), v->type->getName());
     }
 
 }
@@ -374,7 +374,6 @@ void RemainderProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 
 }
 
-
 int popIntOrCoercable(QStack<Value *> &stack, RunWindow *w, VM *vm)
 {
     if(stack.empty())
@@ -384,12 +383,13 @@ int popIntOrCoercable(QStack<Value *> &stack, RunWindow *w, VM *vm)
     Value *v = stack.pop();
     if(v->tag != Int && v->tag != Double)
     {
-        w->typeError(v->type);
+        w->typeError(BuiltInTypes::NumericType, v->type);
     }
     if(v->tag == Double)
         v = vm->GetAllocator().newInt((int) v->unboxDouble());
     return v->unboxInt();
 }
+
 double popDoubleOrCoercable(QStack<Value *> &stack, RunWindow *w, VM *vm)
 {
     if(stack.empty())
@@ -399,12 +399,13 @@ double popDoubleOrCoercable(QStack<Value *> &stack, RunWindow *w, VM *vm)
     Value *v = stack.pop();
     if(v->tag != Int && v->tag != Double)
     {
-        w->typeError(v->type);
+        w->typeError(BuiltInTypes::NumericType, v->type);
     }
     if(v->tag == Int)
         v = vm->GetAllocator().newDouble(v->unboxInt());
     return v->unboxDouble();
 }
+
 void verifyStackNotEmpty(QStack<Value *> &stack, VM *vm)
 {
     if(stack.empty())
@@ -606,15 +607,16 @@ void WaitProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 {
     int ms = stack.pop()->unboxInt();
     w->suspend();
-    w->setAsleep();
-    //w->resetTimer(ms);
-    w->startTimer(ms);
+    int cookie = w->startTimer(ms);
+    w->setAsleep(cookie);
+    stack.push(vm->GetAllocator().newInt(cookie));
 }
 
 void CheckAsleepProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 {
     qApp->processEvents();
-    bool res = w->isAsleep();
+    int cookie = popInt(stack, w, vm);
+    bool res = w->isAsleep(cookie);
     stack.push(vm->GetAllocator().newBool(res));
 }
 

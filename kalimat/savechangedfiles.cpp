@@ -10,6 +10,7 @@
 
 #include <QMessageBox>
 #include <QDesktopWidget>
+
 void CenterWidget(QWidget *widget)
 {
         QDesktopWidget desktopWidget;

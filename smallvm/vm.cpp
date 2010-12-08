@@ -8,6 +8,13 @@
 #include "vm_incl.h"
 #include "vm.h"
 
+#define QSTR(x) QString::fromStdWString(x)
+
+QString str(int n)
+{
+    return QString("%1").arg(n);
+}
+
 VM::VM()
     :allocator(&constantPool, &stack)
 {
@@ -16,7 +23,7 @@ VM::VM()
 void VM::Init()
 {
     if(!constantPool.contains("main"))
-        signal(InternalError, "No main method in program");
+        signal(InternalError,QSTR(L"لا يوجد برنامج أساسي لينفّذ"));
     Method *method = dynamic_cast<Method *>(constantPool["main"]->unboxObj());
     QString malaf = "%file";
     if(constantPool.contains(malaf))
@@ -47,7 +54,7 @@ void VM::assert(bool cond, VMErrorType toSignal, QString arg0, QString arg1)
 
 void VM::assert(bool cond, VMErrorType toSignal, ValueClass *arg0, ValueClass *arg1)
 {
-    assert(cond, toSignal, arg0->toString(), arg1->toString());
+    assert(cond, toSignal, arg0->getName(), arg1->getName());
 }
 
 void VM::assert(bool cond, VMErrorType toSignal, QString arg0, QString arg1, QString arg2)
@@ -189,7 +196,7 @@ int VM::popIntOrCoercedDouble()
         this->signal(InternalError);
     Value *v = stack.top();
     if(v->tag != Int && v->tag != Double)
-        this->signal(TypeError);
+        this->signal(TypeError2, QString::fromStdWString(L"عدد"), v->type->getName());
     v = stack.pop();
     int ret;
     if(v->tag == Double)
@@ -206,7 +213,7 @@ double VM::popDoubleOrCoercedInt()
         this->signal(InternalError);
     Value *v = stack.top();
     if(v->tag != Int && v->tag != Double)
-        this->signal(TypeError);
+        this->signal(TypeError2, QString::fromStdWString(L"عدد"), v->type->getName());
     v = stack.pop();
     double ret;
     if(v->tag == Double)
@@ -851,13 +858,13 @@ void VM::DoPushVal(Value *Arg)
 
 void VM::DoPushLocal(QString SymRef)
 {
-    assert(currentFrame()->Locals.contains(SymRef), NoSuchVariable);
+    assert(currentFrame()->Locals.contains(SymRef), NoSuchVariable1, SymRef);
     currentFrame()->OperandStack.push(currentFrame()->Locals[SymRef]);
 }
 
 void VM::DoPushGlobal(QString SymRef)
 {
-    assert(globalFrame().Locals.contains(SymRef), NoSuchVariable);
+    assert(globalFrame().Locals.contains(SymRef), NoSuchVariable1, SymRef);
     currentFrame()->OperandStack.push(globalFrame().Locals[SymRef]);
 }
 
@@ -978,12 +985,12 @@ void VM::DoAdd()
 
 void VM::DoSub()
 {
-    BuiltInArithmeticOp(sub_int, sub_double);
+    BuiltInArithmeticOp(QSTR(L"طرح"), sub_int, sub_double);
 }
 
 void VM::DoMul()
 {
-    BuiltInArithmeticOp(mul_int, mul_double);
+    BuiltInArithmeticOp(QSTR(L"ضرب"), mul_int, mul_double);
 }
 
 void VM::DoDiv()
@@ -1002,7 +1009,7 @@ void VM::DoNeg()
     Value *v1 = currentFrame()->OperandStack.pop();
     Value *v2 = NULL;
 
-    assert(v1->tag == Int || v1->tag == Double, NumericOperationOnNonNumber);
+    assert(v1->tag == Int || v1->tag == Double, NumericOperationOnNonNumber1, "-");
     if(v1->tag == Int)
         v2 = allocator.newInt(-v1->unboxInt());
     if(v1->tag == Double)
@@ -1034,7 +1041,7 @@ void VM::DoJmp(QString label)
 void VM::DoIf(QString trueLabel, QString falseLabel)
 {
     Value *v = currentFrame()->OperandStack.pop();
-    assert(v->tag == Boolean, TypeError, BuiltInTypes::BoolType, v->type);
+    assert(v->tag == Boolean, TypeError2, BuiltInTypes::BoolType, v->type);
     test(v->unboxBool(), trueLabel, falseLabel);
 }
 
@@ -1095,7 +1102,7 @@ void VM::CallImpl(QString symRef, bool wantValueNotRef, int arity)
     // pop b
     // pop c
     // ...code
-    assert(constantPool.contains(symRef), NoSuchProcedureOrFunction, symRef);
+    assert(constantPool.contains(symRef), NoSuchProcedureOrFunction1, symRef);
     Method *method = (Method *) constantPool[symRef]->v.objVal;
 
 
@@ -1128,7 +1135,7 @@ void VM::DoCallMethod(QString SymRef, int arity)
     assert(receiver ->tag == ObjectVal, CallingMethodOnNonObject);
     Method *method = receiver->type->lookupMethod(SymRef);
 
-    assert(method!=NULL, NoSuchMethod,SymRef);
+    assert(method!=NULL, NoSuchMethod2,SymRef, receiver->type->getName());
     assert(arity == -1 || method->Arity() ==-1 || arity == method->Arity(), WrongNumberOfArguments);
 
     QVector<Value *> args;
@@ -1180,7 +1187,7 @@ void VM::DoRet()
 
 void VM::DoCallExternal(QString symRef, int arity)
 {
-    assert(constantPool.contains(symRef), NoSuchExternalMethod, symRef);
+    assert(constantPool.contains(symRef), NoSuchExternalMethod1, symRef);
 
     ExternalMethod *method = (ExternalMethod*) constantPool[symRef]->v.objVal;
     assert(arity == -1 || method->Arity() ==-1 || arity == method->Arity(), WrongNumberOfArguments);
@@ -1195,7 +1202,7 @@ void VM::DoSetField(QString SymRef)
 
     assert(objVal->tag != NullVal, SettingFieldOnNull);
     assert(objVal->tag == ObjectVal, SettingFieldOnNonObject);
-    assert(objVal->type->fields.contains(SymRef), NoSuchField, SymRef);
+    assert(objVal->type->fields.contains(SymRef), NoSuchField2, SymRef, objVal->type->getName());
 
     Object *obj = objVal->unboxObj();
     obj->setSlotValue(SymRef, v);
@@ -1208,7 +1215,7 @@ void VM::DoGetField(QString SymRef)
 
     assert(objVal->tag != NullVal, GettingFieldOnNull);
     assert(objVal->tag == ObjectVal, GettingFieldOnNonObject);
-    assert(objVal->type->fields.contains(SymRef), NoSuchField, SymRef);
+    assert(objVal->type->fields.contains(SymRef), NoSuchField2, SymRef, objVal->type->getName());
 
     Object *obj = objVal->v.objVal;
     Value *v = obj->getSlotValue(SymRef);
@@ -1222,7 +1229,7 @@ void VM::DoGetFieldRef(QString SymRef)
 
     assert(objVal->tag != NullVal, GettingFieldOnNull);
     assert(objVal->tag == ObjectVal, GettingFieldOnNonObject);
-    assert(objVal->type->fields.contains(SymRef), NoSuchField, SymRef);
+    assert(objVal->type->fields.contains(SymRef), NoSuchField2, SymRef, objVal->type->getName());
     Value *ref = allocator.newFieldReference(objVal->unboxObj(), SymRef);
     currentFrame()->OperandStack.push(ref);
 }
@@ -1239,7 +1246,7 @@ void VM::DoSetArr()
     int i = index->unboxInt();
     VArray *arr = arrVal->unboxArray();
 
-    assert(i>=1 && i<=arr->count, SubscriptOutOfRange);
+    assert(i>=1 && i<=arr->count, SubscriptOutOfRange2, str(i), str(arr->count));
 
     arr->Elements[i-1] = v;
 
@@ -1256,7 +1263,7 @@ void VM::DoGetArr()
     int i = index->unboxInt();
     VArray *arr = arrVal->unboxArray();
 
-    assert(i>=1 && i<=arr->count, SubscriptOutOfRange);
+    assert(i>=1 && i<=arr->count, SubscriptOutOfRange2, str(i), str(arr->count));
 
     Value *v = arr->Elements[i-1];
     currentFrame()->OperandStack.push(v);
@@ -1273,7 +1280,7 @@ void VM::DoGetArrRef()
     int i = index->unboxInt();
     VArray *arr = arrVal->unboxArray();
 
-    assert(i>=1 && i<=arr->count, SubscriptOutOfRange);
+    assert(i>=1 && i<=arr->count, SubscriptOutOfRange2, str(i), str(arr->count));
 
     Value *ref = allocator.newArrayReference(arr, i-1);
     currentFrame()->OperandStack.push(ref);
@@ -1291,7 +1298,7 @@ void VM::DoNew(QString SymRef)
 
 void VM::DoNewArr()
 {
-    assert(__top()->tag == Int, TypeError, BuiltInTypes::IntType, __top()->type);
+    assert(__top()->tag == Int, TypeError2, BuiltInTypes::IntType, __top()->type);
     int size = currentFrame()->OperandStack.pop()->unboxInt();
 
     Value *newArr = allocator.newArray(size);
@@ -1301,7 +1308,7 @@ void VM::DoNewArr()
 void VM::DoArrLength()
 {
     // ... arr => ... length
-    assert(__top()->tag == ArrayVal, TypeError, BuiltInTypes::ArrayType, __top()->type);
+    assert(__top()->tag == ArrayVal, TypeError2, BuiltInTypes::ArrayType, __top()->type);
     Value *arrVal= currentFrame()->OperandStack.pop();
     VArray *arr = arrVal->unboxArray();
     Value *len = allocator.newInt(arr->count);
@@ -1311,13 +1318,13 @@ void VM::DoArrLength()
 void VM::DoNewMD_Arr()
 {
     // ... dimensions => ... md_arr
-    assert(__top()->tag == ArrayVal, TypeError, BuiltInTypes::ArrayType, __top()->type);
+    assert(__top()->tag == ArrayVal, TypeError2, BuiltInTypes::ArrayType, __top()->type);
     Value *arrVal= currentFrame()->OperandStack.pop();
     VArray *arr = arrVal->unboxArray();
     QVector<int> dimensions;
     for(int i=0; i<arr->count; i++)
     {
-        assert(arr->Elements[i]->tag == Int, TypeError, "Multidimensional array index must be an integer");
+        assert(arr->Elements[i]->tag == Int, TypeError2, BuiltInTypes::IntType, arr->Elements[i]->type);
         dimensions.append(arr->Elements[i]->unboxInt());
     }
     Value *mdarr = allocator.newMultiDimensionalArray(dimensions);
@@ -1328,11 +1335,11 @@ void VM::Pop_Md_Arr_and_indexes(MultiDimensionalArray<Value *> *&theArray, QVect
 {
 
     // ... arr index => ...
-    assert(__top()->tag == ArrayVal, TypeError);
+    assert(__top()->tag == ArrayVal, TypeError2, BuiltInTypes::ArrayType, __top()->type);
     Value *arrVal= currentFrame()->OperandStack.pop();
     VArray *boxedIndexes= arrVal->unboxArray();
 
-    assert(__top()->tag == MultiDimensionalArrayVal, TypeError);
+    assert(__top()->tag == MultiDimensionalArrayVal, TypeError2, QString::fromStdWString(L"مصفوفة متعددة"), __top()->type->getName());
     Value *md_arrVal= currentFrame()->OperandStack.pop();
     theArray= md_arrVal->unboxMultiDimensionalArray();
 
@@ -1342,9 +1349,9 @@ void VM::Pop_Md_Arr_and_indexes(MultiDimensionalArray<Value *> *&theArray, QVect
 
     for(int i=0; i<boxedIndexes->count; i++)
     {
-        assert(boxedIndexes->Elements[i]->tag == Int, TypeError, "Multidimensional array index must be an integer");
+        assert(boxedIndexes->Elements[i]->tag == Int, TypeError2, BuiltInTypes::IntType, boxedIndexes->Elements[i]->type);
         int n = boxedIndexes->Elements[i]->unboxInt();
-        assert(n>=1 && n<=theArray->dimensions[i], SubscriptOutOfRange, QString("%1 of 1..%2").arg(n).arg(theArray->dimensions[i]));
+        assert(n>=1 && n<=theArray->dimensions[i], SubscriptOutOfRange3, str(i+1), str(n), str(theArray->dimensions[i]));
         indexes.append(n-1); // We're one-based, remember
     }
 }
@@ -1388,7 +1395,7 @@ void VM::DoGetMD_ArrRef()
 void VM::DoMD_ArrDimensions()
 {
     // ... md_arr => ... dimensions
-    assert(__top()->tag == MultiDimensionalArrayVal, TypeError);
+    assert(__top()->tag == MultiDimensionalArrayVal, TypeError2, BuiltInTypes::ArrayType, __top()->type);
     Value *arrVal= currentFrame()->OperandStack.pop();
     MultiDimensionalArray<Value *> *arr = arrVal->unboxMultiDimensionalArray();
     Value *v = allocator.newArray(arr->dimensions.count());
@@ -1404,8 +1411,8 @@ void VM::DoMD_ArrDimensions()
 
 void VM::DoRegisterEvent(Value *evname, QString SymRef)
 {
-    assert(evname->type == BuiltInTypes::StringType, TypeError);
-    assert(constantPool.contains(SymRef), NoSuchProcedure);
+    assert(evname->type == BuiltInTypes::StringType, TypeError2, BuiltInTypes::StringType, evname->type);
+    assert(constantPool.contains(SymRef), NoSuchProcedure1, SymRef);
     QString *evName = evname->unboxStr();
     registeredEventHandlers[*evName] = SymRef;
 }
@@ -1469,7 +1476,7 @@ void VM::BuiltInAddOp(int (*intFunc)(int,int), double (*doubleFunc)(double,doubl
     currentFrame()->OperandStack.push(v3);
 }
 
-void VM::BuiltInArithmeticOp(int (*intFunc)(int,int), double (*doubleFunc)(double,double))
+void VM::BuiltInArithmeticOp(QString opName, int (*intFunc)(int,int), double (*doubleFunc)(double,double))
 {
     Value *v2 = currentFrame()->OperandStack.pop();
     Value *v1 = currentFrame()->OperandStack.pop();
@@ -1483,7 +1490,7 @@ void VM::BuiltInArithmeticOp(int (*intFunc)(int,int), double (*doubleFunc)(doubl
         v2 = allocator.newDouble(v2->v.intVal);
     }
 
-    assert((v1->tag == v2->tag) && (v1->tag == Int || v1->tag == Double), NumericOperationOnNonNumber);
+    assert((v1->tag == v2->tag) && (v1->tag == Int || v1->tag == Double), NumericOperationOnNonNumber1 , opName);
 
     Value *v3 = NULL;
 
@@ -1612,7 +1619,7 @@ Value *VM::_div(Value *v1, Value *v2)
     {
         v2 = allocator.newDouble(v2->v.intVal);
     }
-    assert((v1->tag == v2->tag) &&( v1->tag == Double || v1->tag == Int ), NumericOperationOnNonNumber);
+    assert((v1->tag == v2->tag) &&( v1->tag == Double || v1->tag == Int ), NumericOperationOnNonNumber1, QSTR(L"قسمة"));
 
     if(v1->tag == Int && v2->tag == Int)
     {

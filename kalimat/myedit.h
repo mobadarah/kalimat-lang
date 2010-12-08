@@ -22,6 +22,7 @@ class MyEdit : public QTextEdit
 
 public:
     MyEdit(MainWindow *owner);
+    void setRtl();
     int line();
     int column();
     void tabBehavior();

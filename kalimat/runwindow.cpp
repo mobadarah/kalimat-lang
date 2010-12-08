@@ -19,7 +19,6 @@
 
 RunWindow::RunWindow(QWidget *parent, QString pathOfProgramsFile) :
     QMainWindow(parent),
-    asleep(false),
     updateTimer(20),
     ui(new Ui::RunWindow)
 {
@@ -196,8 +195,12 @@ void RunWindow::reportError(VMError err)
 {
         this->suspend();
         QString msg = translate_error(err);
-        if(err.args.count()==1)
-            msg = "<u>" + msg +"</u>" + ":<p>"+ err.args[0]+ "</p";
+        /*
+            if(err.args.count()==1)
+                msg = "<u>" + msg +"</u>" + ":<p>"+ err.args[0]+ "</p";
+        */
+        for(int i=0; i<err.args.count(); i++)
+            msg = msg.arg(err.args[i]);
 
         QMessageBox box;
         box.setTextFormat(Qt::RichText);
@@ -238,7 +241,7 @@ QString RunWindow::ensureCompletePath(QString fileName)
 
 void RunWindow::timerEvent(QTimerEvent *ev)
 {
-    asleep = false;
+    asleep[ev->timerId()] = false;
     killTimer(ev->timerId());
     if(state == rwWaiting)
     {
@@ -255,7 +258,7 @@ void RunWindow::resetTimer(int interval)
 
 void RunWindow::typeCheck(Value *val, ValueClass *type)
 {
-    vm->assert(val->type->subclassOf(type), TypeError);
+    vm->assert(val->type->subclassOf(type), TypeError2, type, val->type);
 }
 
 void RunWindow::assert(bool condition, VMErrorType errorType, QString errorMsg)
@@ -263,9 +266,9 @@ void RunWindow::assert(bool condition, VMErrorType errorType, QString errorMsg)
     vm->assert(condition, errorType, errorMsg);
 }
 
-void RunWindow::typeError(ValueClass *)
+void RunWindow::typeError(ValueClass *expected, ValueClass *given)
 {
-    vm->assert(false, TypeError);
+    vm->assert(false, TypeError2, expected, given);
 }
 
 void RunWindow::suspend()
@@ -278,14 +281,14 @@ void RunWindow::resume()
     state = rwNormal;
 }
 
-void RunWindow::setAsleep()
+void RunWindow::setAsleep(int cookie)
 {
-    asleep = true;
+    asleep[cookie] = true;
 }
 
-bool RunWindow::isAsleep()
+bool RunWindow::isAsleep(int cookie)
 {
-    return asleep;
+    return asleep[cookie];
 }
 
 void RunWindow::redrawWindow()

@@ -119,7 +119,7 @@ public:
 private:
 
     void patchupInheritance(QMap<ValueClass *, QString> inheritanceList);
-    void BuiltInArithmeticOp(int (*intFunc)(int,int), double (*doubleFunc)(double,double));
+    void BuiltInArithmeticOp(QString opName, int (*intFunc)(int,int), double (*doubleFunc)(double,double));
     void BuiltInComparisonOp(bool  (*intFunc)(int,int),
                              bool (*doubleFunc)(double,double),
                              bool (*strFunc)(QString *, QString *));

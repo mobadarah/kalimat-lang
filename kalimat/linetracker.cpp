@@ -17,27 +17,35 @@ void LineTracker::setText(QString text)
     this->text = text;
     bool startOfLine = true;
     int count = 0;
-    for(int i=0; i<text.length();i++,count++)
+    if(text.length() == 0)
     {
-        if(startOfLine)
-        {
-            lineStartPositions.append(LineInfo(count));
-        }
-        if(text[i] == '\n')
-        {
-            startOfLine = true;
-        }
-        else
-            startOfLine = false;
+        LineInfo li(0,0);
+        lineStartPositions.append(li);
     }
-    for(int i=0; i< lineStartPositions.count()-1; i++)
+    else
     {
-        lineStartPositions[i].length = lineStartPositions[i+1].start - lineStartPositions[i].start;
-    }
-    if(lineStartPositions.count()>0)
-    {
-        int last = lineStartPositions.count() -1;
-        lineStartPositions[last].length = text.count() - lineStartPositions[last].start;
+        for(int i=0; i<text.length();i++,count++)
+        {
+            if(startOfLine)
+            {
+                lineStartPositions.append(LineInfo(count));
+            }
+            if(text[i] == '\n')
+            {
+                startOfLine = true;
+            }
+            else
+                startOfLine = false;
+        }
+        for(int i=0; i< lineStartPositions.count()-1; i++)
+        {
+            lineStartPositions[i].length = lineStartPositions[i+1].start - lineStartPositions[i].start;
+        }
+        if(lineStartPositions.count()>0)
+        {
+            int last = lineStartPositions.count() -1;
+            lineStartPositions[last].length = text.count() - lineStartPositions[last].start;
+        }
     }
 }
 
