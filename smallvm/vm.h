@@ -33,7 +33,8 @@ private:
 public:
     VM();
     void Init();
-    static void LoadCallInstruction(Opcode type, QString arg, Allocator &allocator, Method *method, QString label, int extraInfo);
+    static void LoadCallInstruction(Opcode type, QString arg, Allocator &allocator,
+                                    Method *method, QString label, int extraInfo, bool tailCall);
     void Load(QString assemblyCode);
 
     void Register(QString symRef, ExternalMethod *method);
@@ -88,9 +89,9 @@ public:
     void DoNe();
     void DoLe();
     void DoGe();
-    void DoCall(QString symRef, int arity);
-    void DoCallRef(QString symRef, int arity);
-    void DoCallMethod(QString SymRef, int arity);
+    void DoCall(QString symRef, int arity, bool tailCall);
+    void DoCallRef(QString symRef, int arity, bool tailCall);
+    void DoCallMethod(QString SymRef, int arity, bool tailCall);
     void DoRet();
     void DoCallExternal(QString symRef, int arity);
     void DoSetField(QString SymRef);
@@ -110,7 +111,7 @@ public:
     void DoRegisterEvent(Value *evname, QString SymRef);
     void DoIsa(QString SymRef);
 
-    void CallImpl(QString sym, bool wantValueNotRef, int arity);
+    void CallImpl(QString sym, bool wantValueNotRef, int arity, bool tailCall);
     void test(bool, QString, QString);
     Value *_div(Value *, Value *);
     void Pop_Md_Arr_and_indexes(MultiDimensionalArray<Value *> *&theArray, QVector<int> &indexes);

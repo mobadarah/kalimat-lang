@@ -20,6 +20,7 @@ Instruction::Instruction()
 {
     this->Arg = NULL;
     this->extra = -1;
+    this->tailCall = false;
 }
 
 Instruction::Instruction(Opcode opcode)
@@ -27,6 +28,7 @@ Instruction::Instruction(Opcode opcode)
     this->opcode = opcode;
     this->extra = -1;
     this->Arg = NULL;
+    this->tailCall = false;
 }
 
 Instruction &Instruction::wArg(Value *arg)
@@ -95,5 +97,11 @@ Instruction &Instruction::wRef(QString ref)
 Instruction &Instruction::wExtra(int info)
 {
     this->extra = info;
+    return *this;
+}
+
+Instruction &Instruction::wTailCall(bool tail)
+{
+    this->tailCall = tail;
     return *this;
 }

@@ -52,7 +52,13 @@ void StrFirstProc(QStack<Value *> &stack, RunWindow *, VM *);
 void StrLastProc(QStack<Value *> &stack, RunWindow *, VM *);
 void StrLenProc(QStack<Value *> &stack, RunWindow *, VM *);
 void StrMidProc(QStack<Value *> &stack, RunWindow *, VM *);
+
+void StrBeginsWithProc(QStack<Value *> &stack, RunWindow *w, VM *vm);
+void StrEndsWithProc(QStack<Value *> &stack, RunWindow *w, VM *vm);
+void StrContainsProc(QStack<Value *> &stack, RunWindow *w, VM *vm);
+
 void StrSplitProc(QStack<Value *> &stack, RunWindow *, VM *);
+void StrTrimProc(QStack<Value *> &stack, RunWindow *w, VM *vm);
 
 void SinProc(QStack<Value *> &stack, RunWindow *, VM *);
 void CosProc(QStack<Value *> &stack, RunWindow *, VM *);

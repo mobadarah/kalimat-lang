@@ -39,6 +39,7 @@ private:
     Statement *forEachStmt();
     Statement *whileStmt();
     Statement *returnStmt();
+    Statement *delegateStmt();
     Statement *labelStmt();
     Statement *gotoStmt();
 

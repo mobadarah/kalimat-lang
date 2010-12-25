@@ -13,7 +13,7 @@ enum Opcode
 {
     PushV, PushLocal, PopLocal, PushGlobal, PopGlobal, PushNull, GetRef, SetRef,
     Add, Sub, Mul, Div, And, Or, Not, Jmp, If, Lt, Gt, Eq, Ne, Le, Ge,
-    Call, CallMethod, CallRef, Ret, CallExternal, Nop,
+    Tail, Call, CallMethod, CallRef, Ret, CallExternal, Nop,
     SetField, GetField, GetFieldRef, GetArr, SetArr, GetArrRef, New, NewArr, ArrLength,
     New_MD_Arr, Get_MD_Arr, Set_MD_Arr, Get_MD_ArrRef, MD_ArrDimensions,
     PushConstant, Neg, // todo!
@@ -26,7 +26,7 @@ struct Instruction
     Value *Arg;
     QString SymRef;
     QString True, False;
-
+    bool tailCall;
     int extra;
 
     Instruction();
@@ -36,6 +36,7 @@ struct Instruction
     Instruction &wLabels(QString, QString);
     Instruction &wRef(QString);
     Instruction &wExtra(int info);
+    Instruction &wTailCall(bool);
 };
 
 

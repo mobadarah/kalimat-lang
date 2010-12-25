@@ -179,6 +179,17 @@ QString ReturnStmt::toString()
     return _ws(L"ارجع(%1)").arg(returnVal()->toString());
 }
 
+DelegationStmt::DelegationStmt(Token pos, IInvokation *invokation)
+    :Statement(pos),
+    _invokation(invokation)
+{
+}
+
+QString DelegationStmt::toString()
+{
+    return _ws(L"وكل إلى(%1)").arg(invokation()->toString());
+}
+
 LabelStmt::LabelStmt(Token pos, Expression *target)
     : Statement(pos),
       _target(target)

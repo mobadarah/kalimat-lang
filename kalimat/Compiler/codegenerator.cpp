@@ -375,6 +375,10 @@ void CodeGenerator::generateStatement(Statement *stmt)
     {
         generateGotoStmt(dynamic_cast<GotoStmt*>(stmt));
     }
+    else if(isa<DelegationStmt>(stmt))
+    {
+        generateDelegationStmt(dynamic_cast<DelegationStmt *>(stmt));
+    }
     else if(isa<ReturnStmt>(stmt))
     {
         generateReturnStmt(dynamic_cast<ReturnStmt *>(stmt));
@@ -390,6 +394,10 @@ void CodeGenerator::generateStatement(Statement *stmt)
     else if(isa<EventStatement>(stmt))
     {
         generateEventStatement(dynamic_cast<EventStatement *>(stmt));
+    }
+    else
+    {
+        throw new CompilerException(stmt, UnimplementedStatementForm);
     }
 }
 void CodeGenerator::generateIOStatement(IOStatement *stmt)
@@ -783,13 +791,20 @@ void CodeGenerator::generateForAllStmt(ForAllStmt *stmt)
 void CodeGenerator::generateLabelStmt(LabelStmt *stmt)
 {
     Expression *target = stmt->target();
+    QString labelName = target->toString();
+    if(scopeStack.top().labels.contains(labelName))
+    {
+        throw CompilerException(stmt, DuplicateLabel).arg(labelName).arg(getCurrentFunctionNameFormatted());
+    }
+    scopeStack.top().labels.insert(labelName);
+
     if(isa<NumLiteral>(target))
     {
-        gen(stmt, target->toString()+ ": ");
+        gen(stmt, labelName + ": ");
     }
     else if(isa<Identifier>(target))
     {
-        gen(stmt, target->toString()+ ": ");
+        gen(stmt, labelName + ": ");
     }
     else
     {
@@ -824,6 +839,23 @@ void CodeGenerator::generateReturnStmt(ReturnStmt *stmt)
         throw CompilerException(stmt, ReturnCanBeUsedOnlyInFunctions);
     generateExpression(stmt->returnVal());
     gen(stmt,"ret");
+}
+
+void CodeGenerator::generateDelegationStmt(DelegationStmt *stmt)
+{
+    IInvokation *expr = stmt->invokation();
+    if(isa<Invokation>(expr))
+    {
+        generateInvokation(dynamic_cast<Invokation *>(expr), TailCall);
+        return;
+    }
+    if(isa<MethodInvokation>(expr))
+    {
+        generateMethodInvokation(dynamic_cast<MethodInvokation *>(expr), TailCall);
+        return;
+    }
+
+    throw CompilerException(expr, UnimplementedInvokationForm).arg(expr->toString());
 }
 
 void CodeGenerator::generateBlockStmt(BlockStmt *stmt)
@@ -973,23 +1005,31 @@ void CodeGenerator::generateArrayLiteral(ArrayLiteral *expr)
     QString newVar = generateArrayFromValues(expr, expr->dataVector());
 }
 
-void CodeGenerator::generateInvokation(Invokation *expr)
+void CodeGenerator::generateInvokation(Invokation *expr, MethodCallStyle style)
 {
     for(int i=expr->argumentCount()-1; i>=0; i--)
     {
         generateExpression(expr->argument(i));
     }
+    if(style == TailCall)
+    {
+        gen(expr->functor(), "tail");
+    }
     gen(expr->functor(), QString("call %1,%2").arg(expr->functor()->toString()).arg(expr->argumentCount()));
 
 }
 
-void CodeGenerator::generateMethodInvokation(MethodInvokation *expr)
+void CodeGenerator::generateMethodInvokation(MethodInvokation *expr, MethodCallStyle style)
 {
     for(int i=expr->argumentCount()-1; i>=0; i--)
     {
         generateExpression(expr->argument(i));
     }
     generateExpression(expr->receiver());
+    if(style == TailCall)
+    {
+        gen(expr->methodSelector(), "tail");
+    }
     gen(expr->methodSelector(), QString("callm %1,%2").arg(expr->methodSelector()->name).arg(expr->argumentCount()+1));
 }
 
@@ -1078,6 +1118,16 @@ void CodeGenerator::gen(AST *src,QString str, int i)
 void CodeGenerator::gen(AST *src,QString str, double d)
 {
     gen(src, QString(str)+" "+ QString("%1").arg(d));
+}
+
+QString CodeGenerator::getCurrentFunctionNameFormatted()
+{
+    QString fname = scopeStack.top().proc->procName()->name;
+    if(fname == "%main")
+        fname = _ws(L"البرنامج الرئيسي");
+    else
+        fname = QString("'%1'").arg(fname);
+    return fname;
 }
 
 QMap<CompilerError, QString> CompilerException::errorMap;

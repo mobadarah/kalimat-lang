@@ -298,6 +298,7 @@ void StrLastProc(QStack<Value *> &stack, RunWindow *w,VM *vm)
     QString *ret = new QString(str->right(n));
     stack.push(vm->GetAllocator().newString(ret));
 }
+
 void StrMidProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 {
     QString *str = popString(stack, w, vm);
@@ -307,8 +308,37 @@ void StrMidProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 
     int n = popInt(stack, w, vm);
 
-    QString *ret = new QString(str->mid(i,n));
+    // We make indexing one-based instead of QT's zero-based
+    // todo: range checking in StrMidProc()
+    QString *ret = new QString(str->mid(i -1 ,n));
     stack.push(vm->GetAllocator().newString(ret));
+}
+
+void StrBeginsWithProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
+{
+    QString *strMain = popString(stack, w, vm);
+    QString *strSub = popString(stack, w, vm);
+
+    bool ret = strMain->startsWith(*strSub, Qt::CaseSensitive);
+    stack.push(vm->GetAllocator().newBool(ret));
+}
+
+void StrEndsWithProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
+{
+    QString *strMain = popString(stack, w, vm);
+    QString *strSub = popString(stack, w, vm);
+
+    bool ret = strMain->endsWith(*strSub, Qt::CaseSensitive);
+    stack.push(vm->GetAllocator().newBool(ret));
+}
+
+void StrContainsProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
+{
+    QString *strMain = popString(stack, w, vm);
+    QString *strSub = popString(stack, w, vm);
+
+    bool ret = strMain->contains(*strSub, Qt::CaseSensitive);
+    stack.push(vm->GetAllocator().newBool(ret));
 }
 
 void StrSplitProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
@@ -325,6 +355,13 @@ void StrSplitProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
     stack.push(ret);
 }
 
+void StrTrimProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
+{
+    QString *str = popString(stack, w, vm);
+    QString *str2 = new QString(str->trimmed());
+    Value *ret = vm->GetAllocator().newString(str2);
+    stack.push(ret);
+}
 
 void ToStringProc(QStack<Value *> &stack, RunWindow *, VM *vm)
 {
@@ -352,8 +389,8 @@ void ToStringProc(QStack<Value *> &stack, RunWindow *, VM *vm)
         break;
     }
     stack.push(vm->GetAllocator().newString(new QString(ret)));
-
 }
+
 void RoundProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 {
     double d = popDoubleOrCoercable(stack, w, vm);

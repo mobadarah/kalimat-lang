@@ -16,6 +16,8 @@ class MethodDecl;
 class NumLiteral;
 class StrLiteral;
 
+class IInvokation;
+
 using namespace std;
 
 class TopLevel : public AST
@@ -159,6 +161,17 @@ public:
     Expression *returnVal() { return _returnVal.data(); }
     QString toString();
 };
+
+class DelegationStmt : public Statement
+{
+public:
+    QScopedPointer<IInvokation> _invokation;
+public:
+    DelegationStmt(Token pos, IInvokation *invokation);
+    IInvokation *invokation() { return _invokation.data(); }
+    QString toString();
+};
+
 class LabelStmt : public Statement
 {
     QSharedPointer<Expression> _target;
@@ -167,6 +180,7 @@ public:
     Expression *target() { return _target.data(); }
     QString toString();
 };
+
 
 class GotoStmt : public Statement
 {

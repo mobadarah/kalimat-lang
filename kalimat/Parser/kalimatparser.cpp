@@ -110,7 +110,9 @@ AST *KalimatParser::module()
 
 bool KalimatParser::LA_first_statement()
 {
-    return LA(IF) || LA(FORALL) || LA(WHILE) || LA(RETURN_WITH) || LA(LABEL) || LA(GO) || LA(WHEN) || LA_first_io_statement() || LA_first_grfx_statement()
+    return LA(IF) || LA(FORALL) || LA(WHILE) || LA(RETURN_WITH)
+            || LA(DELEGATE) || LA(LABEL) || LA(GO) || LA(WHEN)
+            || LA_first_io_statement() || LA_first_grfx_statement()
             || LA_first_assignment_or_invokation();
 }
 
@@ -136,6 +138,10 @@ Statement *KalimatParser::statement()
     if(LA(RETURN_WITH))
     {
         return returnStmt();
+    }
+    if(LA(DELEGATE))
+    {
+        return delegateStmt();
     }
     if(LA(LABEL))
     {
@@ -367,12 +373,33 @@ Statement *KalimatParser::whileStmt()
     match(CONTINUE);
     return new WhileStmt(whileTok, cond, theStmt);
 }
+
 Statement *KalimatParser::returnStmt()
 {
     Token returnTok  = lookAhead;
     match(RETURN_WITH);
     Expression *retVal = expression();
     return new ReturnStmt(returnTok, retVal);
+}
+
+Statement *KalimatParser::delegateStmt()
+{
+    Token returnTok  = lookAhead;
+    match(DELEGATE);
+    match(TO);
+    Expression *expr = expression();
+    IInvokation *invokation = dynamic_cast<IInvokation *>(expr);
+    if(invokation !=NULL)
+    {
+        return new DelegationStmt(returnTok, invokation);
+    }
+    else
+    {
+        throw new ParserException(expr->getPos(),
+            QString::fromStdWString(L"لا يمكن التوكيل لغير استدعاء إجراء أو دالة") );
+    }
+
+
 }
 
 Statement *KalimatParser::labelStmt()
@@ -412,6 +439,7 @@ bool KalimatParser::LA_first_io_statement()
 {
     return LA(PRINT) || LA(READ);
 }
+
 Statement *KalimatParser::ioStmt()
 {
     if(LA(PRINT))
@@ -513,10 +541,12 @@ Statement *KalimatParser::ioStmt()
     }
     throw ParserException(getPos(), "Expected PRINT or READ");
 }
+
 bool KalimatParser::LA_first_grfx_statement()
 {
     return LA(DRAW_PIXEL) || LA(DRAW_LINE) || LA(DRAW_RECT) || LA(DRAW_CIRCLE) || LA(DRAW_SPRITE) || LA(ZOOM);
 }
+
 Statement *KalimatParser::grfxStatement()
 {
     if(LA(DRAW_PIXEL))
@@ -1150,13 +1180,20 @@ Expression *KalimatParser::primaryExpression()
                 ret = new ArrayIndex(tok, ret, index);
             }
         }
-
     }
     return ret;
 }
 bool KalimatParser::LA_first_primary_expression()
 {
-    return LA(NUM_LITERAL) || LA(NOTHING) || LA(STR_LITERAL) || LA(IDENTIFIER) || LA(LPAREN) || LA(FIELD);
+    return LA(NUM_LITERAL) ||
+            LA(STR_LITERAL) ||
+            LA(NOTHING) ||
+            LA(C_TRUE) ||
+            LA(C_FALSE) ||
+            LA(LBRACKET) ||
+            LA(IDENTIFIER) ||
+            LA(LPAREN) ||
+            LA(FIELD);
 }
 
 Expression *KalimatParser::primaryExpressionNonInvokation()
@@ -1212,7 +1249,7 @@ Expression *KalimatParser::primaryExpressionNonInvokation()
             Expression *modaf_elaih = primaryExpression();
             ret = new Idafa(id->getPos(), id, modaf_elaih);
         }
-        else if(LA_first_primary_expression() && !LA(LPAREN))
+        else if(LA_first_primary_expression() && !LA(LPAREN) && !LA(LBRACKET))
         {
             ParserState s = saveState();
             Expression *modaf_elaih = primaryExpression();
@@ -1265,6 +1302,7 @@ QVector<Expression *> KalimatParser::comma_separated_expressions()
         while(LA(COMMA))
         {
             match(COMMA);
+            newLines();
             ret.append(expression());
         }
     }

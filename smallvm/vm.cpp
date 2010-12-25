@@ -141,7 +141,7 @@ void VM::ActivateEvent(QString evName, QVector<Value *>args)
     {
         DoPushVal(args[i]);
     }
-    DoCall(procName, args.count());
+    DoCall(procName, args.count(), false);
     _isRunning = true;
 }
 
@@ -335,13 +335,13 @@ void VM::RunStep()
         this->DoGe();
         break;
     case Call:
-        this->DoCall(i.SymRef, getInstructionArity(i));
+        this->DoCall(i.SymRef, getInstructionArity(i), i.tailCall);
         break;
     case CallRef:
-        this->DoCallRef(i.SymRef, getInstructionArity(i));
+        this->DoCallRef(i.SymRef, getInstructionArity(i), i.tailCall);
         break;
     case CallMethod:
-        this->DoCallMethod(i.SymRef, getInstructionArity(i));
+        this->DoCallMethod(i.SymRef, getInstructionArity(i), i.tailCall);
         break;
     case Ret:
         this->DoRet();
@@ -438,19 +438,23 @@ end
 */
 
 // This is a helper function for the next function - VM::Load()
-void VM::LoadCallInstruction(Opcode type, QString arg, Allocator &allocator, Method *method, QString label, int extraInfo)
+void VM::LoadCallInstruction(Opcode type, QString arg, Allocator &allocator,
+                             Method *method, QString label, int extraInfo, bool tailCall)
 {
     if(arg.contains(","))
     {
         QStringList ref_arity= arg.split(",", QString::SkipEmptyParts, Qt::CaseInsensitive);
         ref_arity[0] = ref_arity[0].trimmed();
         ref_arity[1] = ref_arity[1].trimmed();
-        Instruction i = Instruction(type).wRef(ref_arity[0]).wArgParse(ref_arity[1], &allocator);
+        Instruction i = Instruction(type)
+                        .wRef(ref_arity[0])
+                        .wArgParse(ref_arity[1], &allocator)
+                        .wTailCall(tailCall);
         method->Add(i, label, extraInfo);
     }
     else
     {
-        Instruction i = Instruction(type).wRef(arg);
+        Instruction i = Instruction(type).wRef(arg).wTailCall(tailCall);
         method->Add(i, label, extraInfo);
     }
 }
@@ -466,8 +470,10 @@ void VM::Load(QString assemblyCode)
 
     QString curClassName = "";
     ValueClass *curClass = NULL;
+    bool tailCall = false;
     for(int i =0; i<lines.count(); i++)
     {
+
         QString line = lines[i];
         int  extraInfo = -1;
         line = line.replace("\t"," ",Qt::CaseSensitive).replace("\r","",Qt::CaseSensitive).trimmed();
@@ -707,13 +713,19 @@ void VM::Load(QString assemblyCode)
             Instruction i = Instruction(Le);
             curMethod->Add(i, label, extraInfo);
         }
+        else if(opcode == "tail")
+        {
+            tailCall = true;
+        }
         else if(opcode == "call")
         {
-            LoadCallInstruction(Call, arg, allocator, curMethod, label, extraInfo);
+            LoadCallInstruction(Call, arg, allocator, curMethod, label, extraInfo, tailCall);
+            tailCall = false;
         }
         else if(opcode == "callr")
         {
-            LoadCallInstruction(CallRef, arg, allocator, curMethod, label, extraInfo);
+            LoadCallInstruction(CallRef, arg, allocator, curMethod, label, extraInfo, tailCall);
+            tailCall = false;
         }
         else if(opcode == "ret")
         {
@@ -722,7 +734,7 @@ void VM::Load(QString assemblyCode)
         }
         else if(opcode == "callex")
         {
-            LoadCallInstruction(CallExternal, arg, allocator, curMethod, label, extraInfo);
+            LoadCallInstruction(CallExternal, arg, allocator, curMethod, label, extraInfo, false);
         }
         else if(opcode == "nop")
         {
@@ -761,7 +773,8 @@ void VM::Load(QString assemblyCode)
         }
         else if(opcode == "callm")
         {
-            LoadCallInstruction(CallMethod, arg, allocator, curMethod, label, extraInfo);
+            LoadCallInstruction(CallMethod, arg, allocator, curMethod, label, extraInfo, tailCall);
+            tailCall = false;
         }
         else if(opcode == "new")
         {
@@ -1075,17 +1088,17 @@ void VM::DoGe()
     BuiltInComparisonOp(ge_int, ge_double, ge_str);
 }
 
-void VM::DoCall(QString symRef, int arity)
+void VM::DoCall(QString symRef, int arity, bool tailCall)
 {
-    CallImpl(symRef, true, arity);
+    CallImpl(symRef, true, arity, tailCall);
 }
 
-void VM::DoCallRef(QString symRef, int arity)
+void VM::DoCallRef(QString symRef, int arity, bool tailCall)
 {
-    CallImpl(symRef, false, arity);
+    CallImpl(symRef, false, arity, tailCall);
 }
 
-void VM::CallImpl(QString symRef, bool wantValueNotRef, int arity)
+void VM::CallImpl(QString symRef, bool wantValueNotRef, int arity, bool tailCall)
 {
     // call expects the arguments on the operand stack in reverse order,
     // but the callee pops them in the right order
@@ -1114,6 +1127,11 @@ void VM::CallImpl(QString symRef, bool wantValueNotRef, int arity)
         args.append(v);
     }
 
+    if(tailCall)
+    {
+        stack.pop();
+    }
+
     stack.push(Frame(method));
     currentFrame()->returnReferenceIfRefMethod = !wantValueNotRef;
 
@@ -1124,7 +1142,7 @@ void VM::CallImpl(QString symRef, bool wantValueNotRef, int arity)
     }
 }
 
-void VM::DoCallMethod(QString SymRef, int arity)
+void VM::DoCallMethod(QString SymRef, int arity, bool tailCall)
 {
     // callm expects the arguments in reverse order, and the last pushed argument is 'this'
     // but the execution site pops them in the correct order, i.e the first popped is 'this'
@@ -1145,6 +1163,11 @@ void VM::DoCallMethod(QString SymRef, int arity)
     {
         Value *v = currentFrame()->OperandStack.pop();
         args.append(v);
+    }
+
+    if(tailCall)
+    {
+        stack.pop();
     }
 
     stack.push(Frame(method));

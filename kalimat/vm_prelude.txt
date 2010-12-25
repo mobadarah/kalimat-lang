@@ -111,11 +111,32 @@ ret
 .method وسط 3
 callex str_mid
 ret
+
+.method يبدأ 2 1
+callex str_begins_with
+ret
+.endmethod
+
+.method ينتهي 2 1
+callex str_ends_with
+ret
+.endmethod
+
+.method يحتوي 2 1
+callex str_contains
+ret
+
+
 .endmethod
 
 .method تفصيص 2 1 
 callex str_split
 ret
+
+.method تقليم 1 1
+callex str_trim
+ret
+
 .endmethod
 
 .method حمل.طيف 1

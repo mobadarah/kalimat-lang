@@ -101,7 +101,11 @@ void RunWindow::Init(QString program, QMap<QString, QString>stringConstants)
         vm->Register("str_first", new WindowProxyMethod(this, vm, StrFirstProc));
         vm->Register("str_last", new WindowProxyMethod(this, vm, StrLastProc));
         vm->Register("str_mid", new WindowProxyMethod(this, vm, StrMidProc));
+        vm->Register("str_begins_with", new WindowProxyMethod(this, vm, StrBeginsWithProc));
+        vm->Register("str_ends_with", new WindowProxyMethod(this, vm, StrEndsWithProc));
+        vm->Register("str_contains", new WindowProxyMethod(this, vm, StrContainsProc));
         vm->Register("str_split", new WindowProxyMethod(this, vm, StrSplitProc));
+        vm->Register("str_trim", new WindowProxyMethod(this, vm, StrTrimProc));
         vm->Register("str_len", new WindowProxyMethod(this, vm, StrLenProc));
 
         vm->Register("load_sprite", new WindowProxyMethod(this, vm, LoadSpriteProc));

@@ -9,10 +9,18 @@
 #define CODEGENERATOR_H
 #include "codeposition.h"
 #include "codegenhelper.h"
+
+enum MethodCallStyle
+{
+    NonTailCall,
+    TailCall
+};
+
 struct Context
 {
     ProceduralDecl *proc;
     QSet<QString> bindings;
+    QSet<QString> labels;
 };
 
 
@@ -62,6 +70,7 @@ private:
     void generateLabelStmt(LabelStmt *stmt);
     void generateGotoStmt(GotoStmt *stmt);
     void generateReturnStmt(ReturnStmt *stmt);
+    void generateDelegationStmt(DelegationStmt *stmt);
     void generateBlockStmt(BlockStmt *stmt);
     void generateInvokationStmt(InvokationStmt *stmt);
     void generatePrintStmt(PrintStmt *stmt);
@@ -81,8 +90,8 @@ private:
     void generateNullLiteral(NullLiteral *expr);
     void generateBoolLiteral(BoolLiteral *expr);
     void generateArrayLiteral(ArrayLiteral *expr);
-    void generateInvokation(Invokation *expr);
-    void generateMethodInvokation(MethodInvokation *expr);
+    void generateInvokation(Invokation *expr, MethodCallStyle style = NonTailCall);
+    void generateMethodInvokation(MethodInvokation *expr, MethodCallStyle style = NonTailCall);
     void generateIdafa(Idafa *expr);
     void generateArrayIndex(ArrayIndex *expr);
     void generateMultiDimensionalArrayIndex(MultiDimensionalArrayIndex *expr);
@@ -108,6 +117,8 @@ private:
     void gen(AST *src, QString str, int i);
     void gen(AST *src, QString str, double d);
 
+    QString getCurrentFunctionNameFormatted();
+
 };
 enum CompilerError
 {
@@ -123,12 +134,15 @@ MethodXwasDeclaredAprocedureButImplementedAsFunctionInClassY,
 ReadFromCannotContainAPrompt,
 ReadFromCanReadOnlyOneVariable,
 TargetOfLabelMustBeNumberOrIdentifier,
+DuplicateLabel,
 ReturnCanBeUsedOnlyInFunctions,
 UndefinedVariable,
 UnacceptableNumberLiteral,
 DeclarationNotSupported,
 LValueFormNotImplemented,
 UnimplementedExpressionForm,
+UnimplementedStatementForm,
+UnimplementedInvokationForm,
 ProgramsCannotUseExternalModulesWithoutSavingThemFirst
 };
 

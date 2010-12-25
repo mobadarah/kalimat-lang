@@ -184,12 +184,12 @@ void MainWindow::on_actionCompile_triggered()
 {
     KalimatLexer lxr;
     KalimatParser parser;
-
+    CodeDocument *doc = NULL;
     try
     {
         ui->tabWidget->setCurrentWidget(ui->outputView);
         ui->outputView->clear();
-        CodeDocument *doc = docContainer->getCurrentDocument();
+        doc = docContainer->getCurrentDocument();
         Compiler compiler(docContainer);
 
         QString output;
@@ -220,6 +220,15 @@ void MainWindow::on_actionCompile_triggered()
     catch(CompilerException ex)
     {
         ui->outputView->append(ex.getMessage());
+        if(doc != NULL)
+        {
+            CodeDocument *dc = doc;
+            if(ex.source->getPos().tag != NULL)
+            {
+                dc = (CodeDocument *) ex.source->getPos().tag;
+            }
+            highlightLine(dc->getEditor(), ex.source->getPos().Pos);
+        }
     }
 }
 
@@ -227,12 +236,12 @@ void MainWindow::on_actionCompile_without_tags_triggered()
 {
     KalimatLexer lxr;
     KalimatParser parser;
-
+    CodeDocument *doc = NULL;
     try
     {
         ui->tabWidget->setCurrentWidget(ui->outputView);
         ui->outputView->clear();
-        CodeDocument *doc = docContainer->getCurrentDocument();
+        doc = docContainer->getCurrentDocument();
         Compiler compiler(docContainer);
 
         QString output;
@@ -260,6 +269,15 @@ void MainWindow::on_actionCompile_without_tags_triggered()
     catch(CompilerException ex)
     {
         ui->outputView->append(ex.getMessage());
+        if(doc != NULL)
+        {
+            CodeDocument *dc = doc;
+            if(ex.source->getPos().tag != NULL)
+            {
+                dc = (CodeDocument *) ex.source->getPos().tag;
+            }
+            highlightLine(dc->getEditor(), ex.source->getPos().Pos);
+        }
     }
 }
 
@@ -333,6 +351,15 @@ void MainWindow::on_mnuProgramRun_triggered()
     {
        show_error(ex.getMessage());
        // show_error(QString(L"خطأ في تركيب البرنامج"));
+       if(doc != NULL)
+       {
+           CodeDocument *dc = doc;
+           if(ex.source->getPos().tag != NULL)
+           {
+               dc = (CodeDocument *) ex.source->getPos().tag;
+           }
+           highlightLine(dc->getEditor(), ex.source->getPos().Pos);
+       }
     }
     catch(VMError err)
     {
