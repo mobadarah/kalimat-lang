@@ -545,7 +545,7 @@ void VM::Load(QString assemblyCode)
             if(curClass == NULL)
             {
                 if(constantPool.contains(curMethodName))
-                    signal(ElementAlreadyDefined, curMethodName);
+                    signal(ElementAlreadyDefined1, curMethodName);
                 else
                     constantPool[curMethodName] = methodVal;
             }
@@ -567,7 +567,7 @@ void VM::Load(QString assemblyCode)
             curClassName = arg.trimmed();
             curClass = new ValueClass(curClassName, BuiltInTypes::ObjectType);
             if(constantPool.contains(curClassName))
-                signal(ElementAlreadyDefined, curClassName);
+                signal(ElementAlreadyDefined1, curClassName);
             else
                 constantPool[curClassName] = allocator.newObject(curClass, BuiltInTypes::ClassType);
         }

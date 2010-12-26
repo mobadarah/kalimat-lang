@@ -38,6 +38,9 @@ class UnexpectedCharException
 public:
     UnexpectedCharException(QString _gotThis, QVector<Predicate *> possibleTransitions, int line, int column, int state);
     QString buildMessage();
+
+    int getLine() { return line; }
+    QString getCulprit() { return gotThis; }
 };
 
 

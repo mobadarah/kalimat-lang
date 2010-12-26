@@ -325,7 +325,12 @@ void MainWindow::on_mnuProgramRun_triggered()
     catch(UnexpectedCharException ex)
     {
         //show_error(ex->buildMessage());
-        show_error(QString::fromStdWString(L"خطأ في تركيب البرنامج"));
+        show_error(QString::fromStdWString(L"لا يمكن كتابة هذا الرمز هنا '%1'").arg(ex.getCulprit()));
+        if(doc != NULL)
+        {
+            CodeDocument *dc = doc;
+            highlightLine(dc->getEditor(), ex.getLine());
+        }
     }
     catch(UnexpectedEndOfFileException ex)
     {
@@ -753,9 +758,4 @@ void MainWindow::on_actionGo_to_position_triggered()
             currentEditor()->setTextCursor(c);
         }
     }
-}
-
-void MainWindow::on_action_software_update_triggered()
-{
-
 }

@@ -65,7 +65,6 @@ private:
     virtual QWidget *CreateEditorWidget();
     QTextEdit *currentEditor();
 private slots:
-    void on_action_software_update_triggered();
     void on_actionGo_to_position_triggered();
     void on_actionCompile_without_tags_triggered();
     void on_btnReplaceNext_clicked();
@@ -92,7 +91,6 @@ private slots:
     void on_actionLexize_triggered();
     void on_actionParse_triggered();
     void closeEvent(QCloseEvent *);
-
 };
 
 #endif // MAINWINDOW_H

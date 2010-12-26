@@ -24,7 +24,7 @@ enum VMErrorType
     TypeError2, InternalError, WrongNumberOfArguments, FunctionDidntReturnAValue,
     SubscribingNonArray, SubscribtMustBeInteger, SubscriptOutOfRange2, SubscriptOutOfRange3,
     ArgumentError, MD_IndexingWrongNumberOfDimensions,
-    ElementAlreadyDefined, MethodAlreadyDefinedInClass,
+    ElementAlreadyDefined1, MethodAlreadyDefinedInClass,
     RuntimeError,
     NoError
 };
