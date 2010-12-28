@@ -97,7 +97,7 @@ void DrawPixelProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
     QColor clr = w->paintSurface->GetColor(color);
     w->paintSurface->TX(x);
     QPainter p(w->paintSurface->GetImage());
-    p.fillRect(x, y, 1, 1, color);
+    p.fillRect(x, y, 1, 1, clr);
     w->redrawWindow();
 }
 
@@ -218,6 +218,7 @@ void DrawCircleProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 
     w->redrawWindow();
 }
+
 void RandomProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 {
     int max = popIntOrCoercable(stack, w, vm);
@@ -264,6 +265,7 @@ void ToNumProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
     }
 
 }
+
 void ConcatProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 {
     QString *str1 = popString(stack, w, vm);
@@ -274,6 +276,7 @@ void ConcatProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
     stack.push(vm->GetAllocator().newString(ret));
 
 }
+
 void StrLenProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 {
     QString *str = popString(stack, w, vm);
@@ -281,6 +284,7 @@ void StrLenProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
     int ret = str->length();
     stack.push(vm->GetAllocator().newInt(ret));
 }
+
 void StrFirstProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 {
     int n = popInt(stack, w, vm);
@@ -289,6 +293,7 @@ void StrFirstProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
     QString *ret = new QString(str->left(n));
     stack.push(vm->GetAllocator().newString(ret));
 }
+
 void StrLastProc(QStack<Value *> &stack, RunWindow *w,VM *vm)
 {
     int n = popInt(stack, w, vm);
@@ -785,8 +790,7 @@ void FileEofProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
     if(f->file == NULL)
         w->assert(false, ArgumentError, QString::fromStdWString(L"لا يمكن التعامل مع ملف مغلق"));
     bool ret = f->stream->atEnd();
-    int r = ret? 1:0;
-    Value *v = vm->GetAllocator().newInt(r);
+    Value *v = vm->GetAllocator().newBool(ret);
     stack.push(v);
 }
 

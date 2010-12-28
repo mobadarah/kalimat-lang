@@ -512,15 +512,22 @@ Statement *KalimatParser::ioStmt()
             match(STR_LITERAL);
             match(COMMA);
         }
-        QVector<Identifier *> vars;
+        QVector<AssignableExpression *> vars;
         QVector<bool> readNums;
         bool readInt = false;
+        AssignableExpression *var = NULL;
         if(LA(HASH))
         {
             match(HASH);
             readInt = true;
         }
-        vars.append(identifier());
+        Expression *lvalue = expression();
+        var = dynamic_cast<AssignableExpression *>(lvalue);
+        if(var == NULL)
+        {
+            throw ParserException(getPos(), "Item in read statement must be an assignable expression");
+        }
+        vars.append(var);
         readNums.append(readInt);
         while(LA(COMMA))
         {
@@ -534,7 +541,13 @@ Statement *KalimatParser::ioStmt()
             {
                 readInt = false;
             }
-            vars.append(identifier());
+            lvalue = expression();
+            var = dynamic_cast<AssignableExpression *>(lvalue);
+            if(var == NULL)
+            {
+                throw ParserException(getPos(), "Item in read statement must be an assignable expression");
+            }
+            vars.append(var);
             readNums.append(readInt);
         }
         return new ReadStmt(readTok, fileObject, prompt, vars, readNums);

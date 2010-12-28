@@ -24,6 +24,11 @@ struct Context
 };
 
 
+struct Thunk
+{
+    virtual void operator()()=0;
+};
+
 class CodeGenerator
 {
 
@@ -98,6 +103,9 @@ private:
     void generateObjectCreation(ObjectCreation* expr);
 
     QString generateArrayFromValues(AST *src, QVector<QSharedPointer<Expression> > values);
+    void generateAssignmentToLvalue(AST *src, AssignableExpression *lval,
+                                        Thunk &);
+
     void firstPass(Declaration * decl);
     void secondPass(Declaration * decl);
     void thirdPass(Declaration * decl);

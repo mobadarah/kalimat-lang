@@ -169,7 +169,6 @@ void CodeGenerator::secondPass(Declaration * decl)
 }
 void CodeGenerator::thirdPass(Declaration * decl)
 {
-
     if(isa<MethodDecl>(decl))
     {
         MethodDecl *md = (MethodDecl *) decl;
@@ -273,6 +272,7 @@ void CodeGenerator::generateProcedureDeclaration(ProcedureDecl * decl)
     gen(decl, "ret");
     gen(decl,".endmethod");
 }
+
 void CodeGenerator::generateFunctionDeclaration(FunctionDecl * decl)
 {
     gen(decl, QString(".method %1 %2 1").arg(decl->procName()->name).arg(decl->formalCount()));
@@ -471,13 +471,29 @@ void CodeGenerator::generatePrintStmt(PrintStmt *stmt)
 }
 void CodeGenerator::generateReadStmt(ReadStmt *stmt)
 {
+    struct GenerateRvalue : public Thunk
+    {
+        AST *_src; CodeGenerator *_g; QString _v;
+        GenerateRvalue(AST *src, CodeGenerator *g, QString v):_src(src),_g(g), _v(v){}
+        void operator()()
+        {
+            _g->gen(_src, "pushl " + _v);
+        }
+    };
+
     if(stmt->fileObject() != NULL)
     {
         if(stmt->prompt != NULL)
             throw CompilerException(stmt, ReadFromCannotContainAPrompt);
         if(stmt->variableCount() !=1)
             throw CompilerException(stmt, ReadFromCanReadOnlyOneVariable);
-        Identifier *id = stmt->variable(0);
+        AssignableExpression *lvalue = stmt->variable(0);
+
+        // We first read the data into a temporary variable,
+        // then we generate the equivalent of a hidden assignment statement that assigns
+        // the value of the temp. variable to the lvalue that we wanted to read.
+        QString readVar = _asm.uniqueVariable();
+        defineInCurrentScope(readVar);
         bool readNum = stmt->readNumberFlags[0];
 
         QString fileVar = _asm.uniqueVariable();
@@ -488,10 +504,16 @@ void CodeGenerator::generateReadStmt(ReadStmt *stmt)
         gen(stmt, "callm " + QString::fromStdWString(L"اقرأ.سطر"));
         if(readNum)
         {
-            gen(id, "callex to_num");
+            gen(lvalue, "callex to_num");
         }
-        gen(id, "popl " + id->name);
-        defineInCurrentScope(id->name);
+        gen(lvalue, "popl " + readVar);
+        // The read statement is one of the methods to introduce a new variable
+        // into scope,but since in this current implementation generateAssignmentToLvalue(..)
+        // already adds the lvalue to the current scope if it's an identifier, we don't need to do so here.
+        GenerateRvalue genReadVar(lvalue, this, readVar);
+
+        generateAssignmentToLvalue(lvalue, lvalue, genReadVar);
+
         return;
     }
     if(stmt->prompt !=NULL)
@@ -499,24 +521,25 @@ void CodeGenerator::generateReadStmt(ReadStmt *stmt)
         generateStringConstant(stmt, stmt->prompt);
         gen(stmt, "callex print");
     }
+
     for(int i=0; i<stmt->variableCount(); i++)
     {
-        Identifier *id = stmt->variable(i);
+        AssignableExpression *lvalue = stmt->variable(i);
+        QString readVar = _asm.uniqueVariable();
+        defineInCurrentScope(readVar);
+
         bool readNum = stmt->readNumberFlags[i];
 
         if(readNum)
-            gen(id, "pushv 1");
+            gen(lvalue, "pushv 1");
         else
-            gen(id, "pushv 0");
+            gen(lvalue, "pushv 0");
 
-        gen(id,"callex input");
+        gen(lvalue,"callex input");
 
-        gen(id,"popl "+id->name);
-    }
-    // 'read' introduces new variables into the current scope,
-    for(int i=0; i<stmt->variableCount(); i++)
-    {
-        defineInCurrentScope(stmt->variable(i)->name);
+        gen(lvalue, "popl "+readVar);
+        GenerateRvalue genReadVar(lvalue, this, readVar);
+        generateAssignmentToLvalue(lvalue, lvalue, genReadVar);
     }
 }
 void CodeGenerator::generateGraphicsStatement(GraphicsStatement *stmt)
@@ -646,49 +669,62 @@ void CodeGenerator::generateEventStatement(EventStatement *stmt)
     gen(stmt, QString("regev %1,%2").arg(type).arg(stmt->handler()->name));
 }
 
+
 void CodeGenerator::generateAssignmentStmt(AssignmentStmt *stmt)
 {
     AssignableExpression *lval = stmt->variable();
 
+    struct GenerateExpr : public Thunk
+    {
+        CodeGenerator *_g; Expression *_e;
+        GenerateExpr(CodeGenerator *g, Expression *e):_g(g),_e(e) {}
+        void operator() (){ _g->generateExpression(_e); }
+    } myGen(this, stmt->value());
+
+    generateAssignmentToLvalue(stmt, lval, myGen);
+}
+
+void CodeGenerator::generateAssignmentToLvalue(AST *src, AssignableExpression *lval,
+                                               Thunk &genValue)
+{
     if(isa<Identifier>(lval))
     {
         Identifier *variable = (Identifier *) lval;
-        generateExpression(stmt->value());
+        genValue();
         if(declaredGlobalVariables.contains(variable->name))
-            gen(stmt, "popg "+variable->name);
+            gen(src, "popg "+variable->name);
         else
         {
             defineInCurrentScope(variable->name);
-            gen(stmt, "popl "+variable->name);
+            gen(src, "popl "+variable->name);
         }
     }
     else if(isa<Idafa>(lval))
     {
         Idafa *fieldAccess = (Idafa *) lval;
         generateExpression(fieldAccess->modaf_elaih());
-        generateExpression(stmt->value());
-        gen(stmt, "setfld "+ fieldAccess->modaf()->name);
+        genValue();
+        gen(src, "setfld "+ fieldAccess->modaf()->name);
     }
     else if(isa<ArrayIndex>(lval))
     {
         ArrayIndex *arri= (ArrayIndex *) lval;
         generateExpression(arri->array());
         generateExpression(arri->index());
-        generateExpression(stmt->value());
-        gen(stmt, "setarr");
+        genValue();
+        gen(src, "setarr");
     }
     else if(isa<MultiDimensionalArrayIndex>(lval))
     {
         MultiDimensionalArrayIndex *arri = (MultiDimensionalArrayIndex *) lval;
         generateExpression(arri->array());
         generateArrayFromValues(lval, arri->indexes());
-        generateExpression(stmt->value());
-        gen(stmt, "setmdarr");
-
+        genValue();
+        gen(src, "setmdarr");
     }
     else
     {
-        throw CompilerException(stmt, LValueFormNotImplemented).arg(stmt->variable()->toString());
+        throw CompilerException(src, LValueFormNotImplemented).arg(lval->toString());
     }
 }
 
@@ -1131,11 +1167,13 @@ QString CodeGenerator::getCurrentFunctionNameFormatted()
 }
 
 QMap<CompilerError, QString> CompilerException::errorMap;
+
 CompilerException::CompilerException(AST *source, CompilerError error)
 {
     this->source = source;
     this->message = translateErrorMessage(error);
 }
+
 QString CompilerException::getMessage()
 {
     QString ret = message;

@@ -236,14 +236,16 @@ QString PrintStmt::toString()
     return _ws(L"اطبع(").append(ret.join(_ws(L"، "))).append(")");
 }
 
-ReadStmt::ReadStmt(Token pos, Expression *fileObject, QString prompt, QVector<Identifier *>variables, QVector<bool>readNumberFlags)
+ReadStmt::ReadStmt(Token pos, Expression *fileObject, QString prompt,
+                   const QVector<AssignableExpression *>&variables, QVector<bool>readNumberFlags)
     :IOStatement(pos),
      _fileObject(fileObject)
 {
     this->prompt = prompt;
     for(int i=0; i<variables.count(); i++)
-        this->_variables.append(QSharedPointer<Identifier>(variables[i]));
+        this->_variables.append(variables[i]);
     this->readNumberFlags = readNumberFlags;
+    cookie = 1798;
 }
 
 QString ReadStmt::toString()

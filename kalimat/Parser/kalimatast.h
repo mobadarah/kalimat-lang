@@ -215,12 +215,13 @@ class ReadStmt : public IOStatement
 public:
     QString prompt;
     QSharedPointer<Expression> _fileObject;
-    QVector<QSharedPointer<Identifier > > _variables;
+    QVector<AssignableExpression*> _variables;
     QVector<bool> readNumberFlags;
+    int cookie;
 public:
-    ReadStmt(Token pos, Expression *fileObject, QString prompt, QVector<Identifier *> variables, QVector<bool> readNumberFlags);
+    ReadStmt(Token pos, Expression *fileObject, QString prompt, const QVector<AssignableExpression*> &variables, QVector<bool> readNumberFlags);
     int variableCount() { return _variables.count();}
-    Identifier *variable(int i) { return _variables[i].data();}
+    AssignableExpression *variable(int i) { return _variables[i];}
     Expression *fileObject() { return _fileObject.data();}
     QString toString();
 };

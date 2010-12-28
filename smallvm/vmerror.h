@@ -10,6 +10,8 @@
 
 enum VMErrorType
 {
+    // The number after sme of the errors indicates the # of arguments
+    // required to complete the error message string
     NoSuchVariable1, NoSuchProcedure1, NoSuchProcedureOrFunction1,
     NoSuchField2, NoSuchMethod2, NoSuchExternalMethod1, NoSuchEvent,
     NoSuchClass, NameDoesntIndicateAClass,
