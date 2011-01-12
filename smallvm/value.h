@@ -37,6 +37,9 @@ struct Object : public IObject
     virtual QString toString();
 public:
     QMap<QString, Value *> _slots;
+    // For when we need to traverse slots in order of definition
+    // todo: this should be in the class, to save memory
+    QVector<QString> slotNames;
 
 };
 struct Reference
@@ -52,6 +55,7 @@ struct FieldReference : public Reference
 
     void Set(Value *val);
     Value *Get();
+    FieldReference(Object *_object, QString fieldName) { object = _object; SymRef = fieldName; }
 };
 struct ArrayReference : public Reference
 {
@@ -60,6 +64,7 @@ struct ArrayReference : public Reference
 
     void Set(Value *val);
     Value *Get();
+    ArrayReference(VArray *arr, int ind) { array = arr; index = ind;}
 };
 struct MultiDimensionalArrayReference : public Reference
 {
@@ -101,6 +106,7 @@ struct ValueClass : public IClass, public Object
 public:
     QString name;
     QSet<QString> fields;
+    QVector<QString> fieldNames; // In order of definition
     QVector<ValueClass*> BaseClasses;
     QMap<QString, Value*> methods;
 };

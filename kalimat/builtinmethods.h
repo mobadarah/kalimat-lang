@@ -81,6 +81,8 @@ void FileCreateProc(QStack<Value *> &stack, RunWindow *, VM *);
 void FileAppendProc(QStack<Value *> &stack, RunWindow *, VM *);
 void FileCloseProc(QStack<Value *> &stack, RunWindow *, VM *);
 
+void EditProc(QStack<Value *> &stack, RunWindow *w, VM *vm);
+
 double verifyNumeric(Value *v, RunWindow *w); // TODO: make this a method of RunWindow
 int popIntOrCoercable(QStack<Value *> &stack, RunWindow *w, VM *vm);
 double popDoubleOrCoercable(QStack<Value *> &stack, RunWindow *w, VM *vm);

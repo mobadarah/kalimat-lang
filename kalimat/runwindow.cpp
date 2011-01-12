@@ -131,6 +131,8 @@ void RunWindow::Init(QString program, QMap<QString, QString>stringConstants)
         vm->Register("file_append", new WindowProxyMethod(this, vm, FileAppendProc));
         vm->Register("file_close", new WindowProxyMethod(this, vm, FileCloseProc));
 
+        vm->Register("edit", new WindowProxyMethod(this, vm, EditProc));
+
         for(int i=0; i<stringConstants.keys().count(); i++)
         {
             QString strValue = stringConstants.keys()[i];

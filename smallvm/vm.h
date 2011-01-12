@@ -15,6 +15,11 @@ template <typename T> bool isa(void * obj)
     return value != NULL;
 }
 
+class Process
+{
+    QStack<Frame> stack;
+};
+
 class VM
 {
     QMap<QString, Value*> constantPool;

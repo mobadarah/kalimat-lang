@@ -40,7 +40,8 @@ SOURCES += main.cpp \
     textlayer.cpp \
     spritelayer.cpp \
     builtinmethods.cpp \
-    paintsurface.cpp
+    paintsurface.cpp \
+    guieditwidgethandler.cpp
 HEADERS += mainwindow.h \
     codedocument.h \
     Lexer/token.h \
@@ -75,7 +76,8 @@ HEADERS += mainwindow.h \
     textlayer.h \
     spritelayer.h \
     builtinmethods.h \
-    paintsurface.h
+    paintsurface.h \
+    guieditwidgethandler.h
 FORMS += mainwindow.ui \
     runwindow.ui \
     savechangedfiles.ui

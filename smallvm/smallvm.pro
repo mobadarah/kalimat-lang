@@ -23,6 +23,7 @@ HEADERS += \
     frame.h \
     vmerror.h \
     multidimensionalarray.h \
-    allocator.h
+    allocator.h \
+    dequeue.h
 FORMS +=
 RESOURCES += asm.qrc

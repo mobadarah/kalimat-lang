@@ -695,7 +695,9 @@ ClassDecl::ClassDecl(Token pos,
         _ancestorClass(NULL)
 {
     for(int i=0; i<fields.count(); i++)
+    {
         _fields.append(QSharedPointer<Identifier>(fields[i]));
+    }
 }
 
 ClassDecl::ClassDecl(Token pos,

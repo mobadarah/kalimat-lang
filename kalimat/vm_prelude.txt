@@ -280,3 +280,8 @@ ret
 	callex file_eof
 	ret
 .endmethod
+
+.method حرر 1 1
+	callex edit
+	ret
+.endmethod

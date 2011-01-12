@@ -8,8 +8,21 @@
 
 #include "runwindow.h"
 #include "builtinmethods.h"
+#include "guieditwidgethandler.h"
 
 #include <QApplication>
+#include <QDialog>
+#include <QPushButton>
+#include <QLineEdit>
+#include <QCheckBox>
+#include <QLabel>
+#include <QFrame>
+#include <QScrollArea>
+#include <QGroupBox>
+#include <QVBoxLayout>
+
+#include <QString>
+#include <QMap>
 #include <QPainter>
 #include <QFile>
 #include <QTextStream>
@@ -753,11 +766,8 @@ void FileWriteProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
     DoFileWrite(stack, w, vm, false);
 }
 
-
-
 void FileWriteUsingWidthProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 {
-
     FileBlob *f = popFileBlob(stack, w, vm);
     if(f->file == NULL)
         w->assert(false, ArgumentError, QString::fromStdWString(L"لا يمكن الكتابة في ملف مغلق"));
@@ -860,3 +870,118 @@ void FileCloseProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
     delete f->stream;
     f->file = NULL;
 }
+
+Value *editAndReturn(Value *v, RunWindow *w, VM *vm);
+void EditProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
+{
+    Value *v = stack.pop();
+    v = editAndReturn(v, w, vm);
+    stack.push(v);
+}
+
+
+void setupChildren(QGridLayout *layout,Value *v, Reference *ref, QString label, int row, VM *vm)
+{
+    QCheckBox *cb;
+    QGroupBox *qf;
+    QScrollArea *sa;
+    Object *obj;
+    QGridLayout *vb;
+    QLineEdit *le;
+
+    int subRow;
+    VArray *arr;
+    switch(v->tag)
+    {
+    case Int:
+    case Double:
+    case StringVal:
+        layout->addWidget(new QLabel(label), row, 0);
+        le = new QLineEdit(v->toString());
+        if(ref != NULL)
+        {
+
+            QObject::connect(le,
+                       SIGNAL(textChanged(QString)),
+                       new GUIEditWidgetHandler(
+                           ref,
+                           le,
+                           vm),
+                       SLOT(lineEditChanged()));
+        }
+
+        layout->addWidget(le, row, 1);
+        break;
+    case Boolean:
+        cb = new QCheckBox();
+        cb->setChecked(v->unboxBool());
+        if(ref != NULL)
+        {
+            QObject::connect(cb,
+                       SIGNAL(stateChanged(int)),
+                       new GUIEditWidgetHandler(
+                           ref,
+                           cb,
+                           vm),
+                       SLOT(checkboxChanged(int)));
+        }
+        layout->addWidget(new QLabel(label), row, 0);
+        layout->addWidget(cb, row, 1);
+        break;
+    case ObjectVal:
+        qf = new QGroupBox(label);
+        layout->addWidget(qf, row, 0, 1, 2);
+        obj = v->unboxObj();
+        vb = new QGridLayout();
+        subRow = 0;
+        for(QVector<QString>::iterator i = obj->slotNames.begin(); i!= obj->slotNames.end(); ++i)
+        {
+            setupChildren(vb, obj->_slots[*i], new FieldReference(obj, *i), *i, subRow++,vm);
+        }
+        qf->setLayout(vb);
+
+        break;
+    case ArrayVal:
+        sa = new QScrollArea();
+        vb = new QGridLayout();
+        layout->addWidget(sa, row, 0, 1, 2);
+        arr = v->unboxArray();
+        vb->addWidget(new QLabel(label), 0, 0, 1, 2);
+        for(int i=0; i<arr->count; i++)
+        {
+            setupChildren(vb, arr->Elements[i], new ArrayReference(arr, i),QString("%1").arg(i+1), i+1, vm);
+        }
+        sa->setLayout(vb);
+        sa->adjustSize();
+        break;
+    case NullVal:
+    case RawVal:
+    case RefVal:
+    case MultiDimensionalArrayVal:
+        break;
+    }
+}
+
+Value *editAndReturn(Value *v, RunWindow *w, VM *vm)
+{
+    QDialog *dlg = new QDialog(w);
+    QVBoxLayout *ly = new QVBoxLayout(dlg);
+
+    QFrame *frame = new QFrame();
+    QGridLayout *gl = new QGridLayout();
+    setupChildren(gl, v, NULL, "", 0, vm);
+    frame->setLayout(gl);
+    ly->addWidget(frame);
+
+    QPushButton *ok = new QPushButton(QString::fromStdWString(L"حسناً"));
+    ly->addWidget(ok);
+    dlg->setLayout(ly);
+    dlg->setLayoutDirection(Qt::RightToLeft);
+    dlg->connect(ok, SIGNAL(clicked()), dlg, SLOT(accept()));
+
+    dlg->exec();
+
+    //v = clone(v, vm, &bindings);
+    return v;
+}
+

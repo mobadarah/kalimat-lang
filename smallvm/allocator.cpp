@@ -15,6 +15,7 @@ Allocator::Allocator(QMap<QString, Value *> *constantPool, QStack<Frame> *stack)
     currentAllocationInBytes = 0;
     maxAllocationInBytes = NORMAL_MAX_HEAP;
 }
+
 Value *Allocator::allocateNewValue(bool gcMonitor)
 {
     if((currentAllocationInBytes + sizeof(Value)) > (maxAllocationInBytes))
@@ -162,9 +163,7 @@ Value *Allocator::newRaw(void *ptr, ValueClass *_class)
 
 Value *Allocator::newFieldReference(Object *obj, QString SymRef)
 {
-    FieldReference *ref = new FieldReference();
-    ref->object = obj;
-    ref->SymRef = SymRef;
+    FieldReference *ref = new FieldReference(obj, SymRef);
 
     Value *ret = allocateNewValue();
     ret->tag = RefVal;
@@ -175,9 +174,7 @@ Value *Allocator::newFieldReference(Object *obj, QString SymRef)
 
 Value *Allocator::newArrayReference(VArray *array, int index)
 {
-    ArrayReference *ref = new ArrayReference();
-    ref->array = array;
-    ref->index = index;
+    ArrayReference *ref = new ArrayReference(array, index);
 
     Value *ret = allocateNewValue();
     ret->tag = RefVal;
@@ -207,6 +204,10 @@ void Allocator::InitObjectLayout(Object *object, ValueClass *_class)
     for(QSet<QString>::iterator i = _class->fields.begin(); i!=_class->fields.end();  ++i)
     {
         object->setSlotValue(*i, this->null());
+    }
+    for(QVector<QString>::iterator i = _class->fieldNames.begin(); i!=_class->fieldNames.end(); ++i)
+    {
+        object->slotNames.append(*i);
     }
 }
 void Allocator::gc()

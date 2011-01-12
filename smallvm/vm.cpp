@@ -581,7 +581,10 @@ void VM::Load(QString assemblyCode)
             if(curClass->fields.contains(arg))
                 signal(MethodAlreadyDefinedInClass, arg, curClassName);
             else
+            {
+                curClass->fieldNames.append(arg);
                 curClass->fields.insert(arg);
+            }
         }
         else if(opcode == ".extends")
         {
@@ -1544,7 +1547,7 @@ void VM::BuiltInComparisonOp(bool (*intFunc)(int,int),
     assert(v1->tag == v2->tag && (v1->tag == Int || v1->tag == Double || v1->tag == StringVal), BuiltInOperationOnNonBuiltn);
 
     Value *v3 = NULL;
-    bool result;
+    bool result = false;
 
     if(v1->tag == Int)
         result = intFunc(v1->v.intVal, v2->v.intVal);

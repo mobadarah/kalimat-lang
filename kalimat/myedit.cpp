@@ -267,6 +267,7 @@ void MyEdit::enterKeyBehavior(QKeyEvent *ev)
     bool indented = false;
     // todo: consider adding a newline after the 'end' that teminates top-level declarations.
     textCursor().beginEditBlock();
+    bool end = textCursor().atEnd();
     if(endOfLine)
     {
         if(tokensEqual(toks, classDecl, 3) ||
@@ -312,7 +313,17 @@ void MyEdit::enterKeyBehavior(QKeyEvent *ev)
         QTextEdit::keyPressEvent(ev);
     }
     textCursor().endEditBlock();
-    ensureCursorVisible();
+    if(end)
+    {
+        QTextCursor c = textCursor();
+        int oldpos = c.position();
+        c.movePosition(QTextCursor::End);
+        setTextCursor(c);
+        ensureCursorVisible();
+        c = textCursor();
+        c.setPosition(oldpos);
+        setTextCursor(c);
+    }
 }
 
 void MyEdit::colonBehavior(QKeyEvent *ev)
@@ -322,6 +333,7 @@ void MyEdit::colonBehavior(QKeyEvent *ev)
     textCursor().beginEditBlock();
     textCursor().insertText(":");
     textChangedEvent();
+
     try
     {
         LineInfo li = currentLine();
@@ -364,6 +376,7 @@ void MyEdit::colonBehavior(QKeyEvent *ev)
 
 void MyEdit::indentAndTerminate(LineInfo prevLine, QString termination)
 {
+
     int n = indentOfLine(prevLine);
     this->insertPlainText("\n");
     for(int i=0; i<4 + n; i++)
@@ -374,9 +387,14 @@ void MyEdit::indentAndTerminate(LineInfo prevLine, QString termination)
     this->insertPlainText(termination);
     //this->insertPlainText("\n");
 
+    // For some reason moving the cursor backwards when it's at the document's end
+    // and the scroll bar is visible (i.e there's hidden text above the current view)
+    // scrolls to top of document (while keeping the cursor position intact)
+    // so we move it only if not at the end
+    // todo: fix the atEnd() case for enterKeyBehavior
     QTextCursor c = textCursor();
     c.movePosition(QTextCursor::PreviousCharacter, QTextCursor::MoveAnchor, termination.length() + 1 + n);
-    setTextCursor(c);
+    this->setTextCursor(c);
 }
 
 void MyEdit::deindentLine(int line, int by)
