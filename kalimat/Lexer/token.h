@@ -12,9 +12,19 @@ typedef int TokenType;
 
 // Tokens of type 'TokenNone' are skipped during lexical analysis.
 const TokenType TokenNone = -1;
+
 // Invalid tokens are returned by functions that return tokens
 // when they shouldn't, for example Parser.getPos() at the end of file
 const TokenType TokenInvalid = -2;
+
+// Tokens of type 'WithNext' are skipped when returning the tokenized program, but
+// attached to the 'sister' field in the following token in the token stream
+// the token is lost if the is no following token.
+const TokenType TokenWithNext = -3;
+
+// 'WithPrev' has similar behavior to 'WithNext'
+const TokenType TokenWithPrev = -4;
+
 class Token
 {
 public:
@@ -22,7 +32,7 @@ public:
     TokenType Type;
     int Line, Column, Pos;
     void *tag;
-
+    Token *sister;
 public:
         Token(QString lexeme, TokenType type);
         Token(Token const &other);

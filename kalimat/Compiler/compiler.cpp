@@ -15,6 +15,7 @@
 #include "codegenerator.h"
 
 #include "compiler.h"
+#include "utils.h"
 
 Compiler::Compiler(DocumentContainer *container)
 {
@@ -131,10 +132,5 @@ QString Compiler::CompileFromFile(QString pathToMainCompilationUnit, CodeDocumen
 
 QString Compiler::loadFileContents(QString path)
 {
-    QFile file(path);
-    file.open(QIODevice::ReadOnly | QIODevice::Text);
-    QTextStream out(&file);
-    QString ret = out.readAll();
-    file.close();
-    return ret;
+    return readFile(path);
 }

@@ -22,15 +22,17 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 
+#include "utils.h"
+
 #include <QMessageBox>
 #include <QFileDialog>
 #include <QInputDialog>
 #include <QCloseEvent>
-#include <QSplitter>
 #include <QVBoxLayout>
 #include <QGraphicsTextItem>
 #include <QDir>
 #include <QToolBar>
+#include <QClipboard>
 
 MainWindow *MainWindow::that = NULL;
 
@@ -39,6 +41,10 @@ MainWindow::MainWindow(QWidget *parent)
     ui(new Ui::MainWindow)
 {
     MainWindow::that = this;
+
+    helpWindowVisible = false;
+    helpSplitter = NULL;
+
     ui->setupUi(this);
 
     QToolBar *notice = new QToolBar("");
@@ -75,6 +81,39 @@ MainWindow::MainWindow(QWidget *parent)
     this->showMaximized();
 
     docContainer->addDocument(QString::fromWCharArray(L"بدون عنوان"), "untitled", CreateEditorWidget(), true);
+}
+
+void MainWindow::outputMsg(QString s)
+{
+    ui->outputView->append(s);
+}
+
+void MainWindow::showHelpWindow()
+{
+    if(helpWindowVisible)
+        return;
+    helpWindowVisible = true;
+    if(helpSplitter == NULL)
+    {
+        helpSplitter = new QSplitter(Qt::Horizontal, this);
+        oldMainWidget = centralWidget();
+        helpWebView = new QWebView(helpSplitter);
+        helpSplitter->addWidget(oldMainWidget);
+        helpSplitter->addWidget(helpWebView);
+    }
+    setCentralWidget(helpSplitter);
+
+    //QString html = readFile(QCoreApplication::applicationDirPath()+"/help/index.html");
+    helpWebView->load(QUrl::fromLocalFile(QCoreApplication::applicationDirPath()+"/help/index.html"));
+
+}
+
+void MainWindow::hideHelpWindow()
+{
+    if(!helpWindowVisible)
+        return;
+    helpWindowVisible = false;
+    setCentralWidget(oldMainWidget);
 }
 
 QWidget *MainWindow::GetParentWindow()
@@ -163,7 +202,7 @@ void MainWindow::on_actionParse_triggered()
         ui->tabWidget->setCurrentWidget(ui->outputView);
         parser.init(currentEditor()->document()->toPlainText(), &lxr, NULL);
         AST * tree = parser.parse();
-        ui->outputView->clear();
+        //ui->outputView->clear();
         ui->outputView->append(tree->toString());
     }
     catch(UnexpectedCharException ex)
@@ -756,6 +795,86 @@ void MainWindow::on_actionGo_to_position_triggered()
             QTextCursor c = currentEditor()->textCursor();
             c.setPosition(pos);
             currentEditor()->setTextCursor(c);
+        }
+    }
+}
+
+void MainWindow::on_actionKalimatManual_triggered()
+{
+    if(!helpWindowVisible)
+        showHelpWindow();
+    else
+        hideHelpWindow();
+}
+
+void MainWindow::on_action_copy_as_html_triggered()
+{
+    QTextEdit *editor = currentEditor();
+    if(editor != NULL)
+    {
+        //QString html = editor->document()->toHtml();
+        //QApplication::clipboard()->setText(html);
+        QString program = editor->document()->toPlainText();
+        QStringList output;
+        syn->highlightToHtml(program, output);
+        QApplication::clipboard()->setText(output.join(""));
+    }
+}
+
+void MainWindow::on_action_copy_as_wiki_triggered()
+{
+    QTextEdit *editor = currentEditor();
+    if(editor != NULL)
+    {
+        //QString html = editor->document()->toHtml();
+        //QApplication::clipboard()->setText(html);
+        QString program = editor->document()->toPlainText();
+        QStringList output;
+        syn->highlightToWiki(program, output);
+        QApplication::clipboard()->setText(output.join(""));
+    }
+}
+
+void MainWindow::on_action_copy_literate_html_triggered()
+{
+    QTextEdit *editor = currentEditor();
+    if(editor != NULL)
+    {
+        //QString html = editor->document()->toHtml();
+        //QApplication::clipboard()->setText(html);
+        QString program = editor->document()->toPlainText();
+        QStringList output;
+        syn->highlightLiterateHtml(program, output);
+        QApplication::clipboard()->setText(output.join(""));
+    }
+}
+
+void MainWindow::on_action_autoFormat_triggered()
+{
+    QTextEdit *editor = currentEditor();
+    if(editor != NULL)
+    {
+        //QString html = editor->document()->toHtml();
+        //QApplication::clipboard()->setText(html);
+        QString program = editor->document()->toPlainText();
+        KalimatLexer lxr;
+        KalimatParser parser;
+        SimpleCodeFormatter fmt;
+        try
+        {
+            parser.init(program, &lxr, NULL);
+            AST * tree = parser.parse();
+            tree->prettyPrint(&fmt);
+            editor->setText(fmt.getOutput());
+        }
+        catch(UnexpectedCharException ex)
+        {
+        }
+        catch(UnexpectedEndOfFileException ex)
+        {
+        }
+        catch(ParserException ex)
+        {
         }
     }
 }

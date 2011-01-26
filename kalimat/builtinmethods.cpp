@@ -26,6 +26,8 @@
 #include <QPainter>
 #include <QFile>
 #include <QTextStream>
+
+#include <QLibrary>
 #include <math.h>
 #include <algorithm>
 
@@ -117,8 +119,8 @@ void DrawPixelProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 void DrawLineProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 {
     int x1 = popIntOrCoercable(stack, w, vm);
-    int x2 = popIntOrCoercable(stack, w, vm);
     int y1 = popIntOrCoercable(stack, w, vm);
+    int x2 = popIntOrCoercable(stack, w, vm);
     int y2 = popIntOrCoercable(stack, w, vm);
 
     w->paintSurface->TX(x1);
@@ -144,8 +146,8 @@ void DrawLineProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 void DrawRectProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 {
     int x1 = popIntOrCoercable(stack, w, vm);
-    int x2 = popIntOrCoercable(stack, w, vm);
     int y1 = popIntOrCoercable(stack, w, vm);
+    int x2 = popIntOrCoercable(stack, w, vm);
     int y2 = popIntOrCoercable(stack, w, vm);
 
     w->paintSurface->TX(x1);
@@ -273,7 +275,6 @@ void ToNumProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
         stack.push(v);
     else
     {
-     //todo: We should do something like Basic's "Redo from start" when reading incorrectly-formatted input.
       vm->signal(TypeError2, QString::fromStdWString(L"عدد"), v->type->getName());
     }
 
@@ -426,7 +427,6 @@ void RemainderProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
         vm->signal(DivisionByZero);
     int i = n1 % n2;
     stack.push(vm->GetAllocator().newInt(i));
-
 }
 
 int popIntOrCoercable(QStack<Value *> &stack, RunWindow *w, VM *vm)
@@ -875,10 +875,10 @@ Value *editAndReturn(Value *v, RunWindow *w, VM *vm);
 void EditProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 {
     Value *v = stack.pop();
+    w->assert(v->tag == ObjectVal, ArgumentError, QString::fromStdWString(L"القيمة المرسلة لحرر لابد أن تكون كائناً"));
     v = editAndReturn(v, w, vm);
     stack.push(v);
 }
-
 
 void setupChildren(QGridLayout *layout,Value *v, Reference *ref, QString label, int row, VM *vm)
 {
@@ -964,7 +964,9 @@ void setupChildren(QGridLayout *layout,Value *v, Reference *ref, QString label, 
 
 Value *editAndReturn(Value *v, RunWindow *w, VM *vm)
 {
+
     QDialog *dlg = new QDialog(w);
+    dlg->setWindowTitle(QString::fromStdWString(L"تحرير %1").arg(v->type->getName()));
     QVBoxLayout *ly = new QVBoxLayout(dlg);
 
     QFrame *frame = new QFrame();
@@ -974,14 +976,16 @@ Value *editAndReturn(Value *v, RunWindow *w, VM *vm)
     ly->addWidget(frame);
 
     QPushButton *ok = new QPushButton(QString::fromStdWString(L"حسناً"));
+    QPushButton *cancel = new QPushButton(QString::fromStdWString(L"الغاء"));
     ly->addWidget(ok);
+    ly->addWidget(cancel);
     dlg->setLayout(ly);
     dlg->setLayoutDirection(Qt::RightToLeft);
     dlg->connect(ok, SIGNAL(clicked()), dlg, SLOT(accept()));
+    dlg->connect(cancel, SIGNAL(clicked()), dlg, SLOT(reject()));
+    bool ret = dlg->exec()== QDialog::Accepted;
+    v = vm->GetAllocator().newBool(ret);
 
-    dlg->exec();
 
-    //v = clone(v, vm, &bindings);
     return v;
 }
-

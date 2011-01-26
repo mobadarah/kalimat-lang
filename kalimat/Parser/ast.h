@@ -8,7 +8,12 @@
 #ifndef AST_H
 #define AST_H
 
-class AST
+struct PrettyPrintable
+{
+    virtual void prettyPrint(CodeFormatter *formatter) = 0;
+};
+
+class AST : public PrettyPrintable
 {
     Token position;
 public:

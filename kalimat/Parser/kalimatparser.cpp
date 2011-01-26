@@ -10,6 +10,7 @@
 #include "kalimatast.h"
 #include "kalimatparser.h"
 
+#include "../mainwindow.h" // temp todo: remove
 
 KalimatParser::KalimatParser() : Parser(TokenNameFromId)
 {
@@ -32,10 +33,38 @@ void KalimatParser::init(QString s, Lexer *lxr, void *tag)
 
     Parser::init(s, lxr, tag);
     QVector<Token> tokens2;
+    bool pendingSisterHood = false;
+    Token sis;
+
     for(int i=0; i<tokens.count(); i++)
     {
         if(tokens[i].Type != COMMENT)
+        {
+            if(pendingSisterHood)
+            {
+                pendingSisterHood = false;
+                tokens[i].sister = new Token(sis);
+                MainWindow::that->outputMsg(QString(
+                        "Token: %1 has sister: %2)")
+                        .arg(tokens[i].Lexeme)
+                        .arg(sis.Lexeme));
+            }
             tokens2.append(tokens[i]);
+        }
+        else
+        {
+            if(pendingSisterHood)
+            {
+                // We have 'sis' being the previous comment
+                // so we'll merge it with this comment
+                sis.Lexeme+= tokens[i].Lexeme;//.mid(2);
+            }
+            else
+            {
+                sis = tokens[i];
+                pendingSisterHood = true;
+            }
+        }
     }
     tokens = tokens2;
 }
@@ -53,6 +82,7 @@ AST *KalimatParser::program()
     QVector<Statement *> topLevelStatements;
     ProceduralDecl *entryPoint;
     QVector<StrLiteral *> usedModules = usingDirectives();
+    QVector<TopLevel *> originalElements;
     while(!eof())
     {
         // Declaration has to be tested first because of possible
@@ -61,11 +91,15 @@ AST *KalimatParser::program()
         // ID ...    => statement
         if(LA_first_declaration())
         {
-            elements.append(declaration());
+            TopLevel *decl = declaration();
+            elements.append(decl);
+            originalElements.append(decl);
         }
         else if(LA_first_statement())
         {
-            topLevelStatements.append(statement());
+            Statement *stmt = statement();
+            topLevelStatements.append(stmt);
+            originalElements.append(stmt);
         }
         else
         {
@@ -75,7 +109,7 @@ AST *KalimatParser::program()
     }
     entryPoint = new ProcedureDecl(Token(),new Identifier(Token(), "%main"), QVector<Identifier *>(), new BlockStmt(Token(),topLevelStatements), true);
     elements.append(entryPoint);
-    return new Program(Token(),elements, usedModules);
+    return new Program(Token(),elements, usedModules, originalElements);
 }
 
 AST *KalimatParser::module()
@@ -118,52 +152,63 @@ bool KalimatParser::LA_first_statement()
 
 Statement *KalimatParser::statement()
 {
+    Token firstToken = lookAhead; // Save it in case it has a 'sister' comment
+    Statement *ret = NULL;
     if(LA_first_assignment_or_invokation())
     {
         ParserState state= this->saveState();
-        return assignmentStmt_or_Invokation(state);
+        ret = assignmentStmt_or_Invokation(state);
     }
-    if(LA(IF))
+    else if(LA(IF))
     {
-        return ifStmt();
+        ret = ifStmt();
     }
-    if(LA(FORALL))
+    else if(LA(FORALL))
     {
-        return forEachStmt();
+        ret = forEachStmt();
     }
-    if(LA(WHILE))
+    else if(LA(WHILE))
     {
-        return whileStmt();
+        ret = whileStmt();
     }
-    if(LA(RETURN_WITH))
+    else if(LA(RETURN_WITH))
     {
-        return returnStmt();
+        ret = returnStmt();
     }
-    if(LA(DELEGATE))
+    else if(LA(DELEGATE))
     {
-        return delegateStmt();
+        ret = delegateStmt();
     }
-    if(LA(LABEL))
+    else if(LA(LABEL))
     {
-        return labelStmt();
+        ret = labelStmt();
     }
-    if(LA(GO))
+    else if(LA(GO))
     {
-        return gotoStmt();
+        ret = gotoStmt();
     }
-    if(LA(WHEN))
+    else if(LA(WHEN))
     {
-        return eventHandlerStmt();
+        ret = eventHandlerStmt();
     }
-    if(LA_first_io_statement())
+    else if(LA_first_io_statement())
     {
-        return ioStmt();
+        ret = ioStmt();
     }
-    if(LA_first_grfx_statement())
+    else if(LA_first_grfx_statement())
     {
-        return grfxStatement();
+        ret = grfxStatement();
     }
-    throw ParserException(getPos(), "statement not implemented");
+    if(ret == NULL)
+        throw ParserException(getPos(), "statement not implemented");
+
+    if(firstToken.sister != NULL)
+    {
+        ret->attachedComments = firstToken.sister->Lexeme;
+        MainWindow::that->outputMsg(QString("Statement: %1; has sister: %2")
+                                    .arg(ret->toString()).arg(ret->attachedComments));
+    }
+    return ret;
 }
 
 bool KalimatParser::LA_first_declaration()
@@ -173,27 +218,39 @@ bool KalimatParser::LA_first_declaration()
 
 Declaration *KalimatParser::declaration()
 {
+    Token firstToken = lookAhead;
+    Declaration *ret = NULL;
+
     if(LA(PROCEDURE))
     {
-        return procedureDecl();
+        ret = procedureDecl();
     }
-    if(LA(FUNCTION))
+    else if(LA(FUNCTION))
     {
-        return functionDecl();
+        ret = functionDecl();
     }
-    if(LA(CLASS))
+    else if(LA(CLASS))
     {
-        return classDecl();
+        ret = classDecl();
     }
-    if(LA_first_method_declaration())
+    else if(LA_first_method_declaration())
     {
-        return methodDecl();
+        ret = methodDecl();
     }
-    if(LA2(IDENTIFIER, GLOBAL))
+    else if(LA2(IDENTIFIER, GLOBAL))
     {
-        return globalDecl();
+        ret = globalDecl();
     }
-    throw ParserException(getPos(), "Expected a declaration");
+    if(ret == NULL)
+        throw ParserException(getPos(), "Expected a declaration");
+
+    if(firstToken.sister != NULL)
+    {
+        ret->attachedComments = firstToken.sister->Lexeme;
+        MainWindow::that->outputMsg(QString("Declaration: %1; has sister: %2")
+                                    .arg(ret->toString()).arg(ret->attachedComments));
+    }
+    return ret;
 }
 bool KalimatParser::LA_first_assignment_or_invokation()
 {
@@ -875,18 +932,26 @@ Declaration *KalimatParser::classDecl()
     match(COLON);
     match(NEWLINE);
     newLines();
+    QVector<QSharedPointer<ClassInternalDecl> > internalDecls;
+
     while(LA(HAS)|| LA(RESPONDS) || LA(REPLIES) || LA(BUILT))
     {
         if(LA(HAS))
         {
+            Has *h = new Has();
             match(HAS);
-            fields.append(identifier());
+            Identifier *fname = identifier();
+            h->add(fname);
+            fields.append(fname);
             while(LA(COMMA))
             {
                 match(COMMA);
-                fields.append(identifier());
+                fname = identifier();
+                h->add(fname);
+                fields.append(fname);
             }
             match(NEWLINE);
+            internalDecls.append(QSharedPointer<ClassInternalDecl>(h));
         }
         if(LA(RESPONDS))
         {
@@ -895,15 +960,26 @@ Declaration *KalimatParser::classDecl()
 
             Identifier *methodName = identifier();
             QVector<Identifier *> formals = formalParamList();
+            RespondsTo *rt = new RespondsTo(false);
 
+            ConcreteResponseInfo *ri = new ConcreteResponseInfo(methodName);
+            for(QVector<Identifier *>::const_iterator i=formals.begin(); i!= formals.end(); ++i)
+                ri->add(*i);
+
+            rt->add(ri);
             methods[methodName->name] = MethodInfo(formals.count(), false);
             while(LA(COMMA))
             {
                 match(COMMA);
                 Identifier *methodName = identifier();
                 QVector<Identifier *> formals= formalParamList();
+                ConcreteResponseInfo *ri = new ConcreteResponseInfo(methodName);
+                for(QVector<Identifier *>::const_iterator i=formals.begin(); i!= formals.end(); ++i)
+                    ri->add(*i);
+                rt->add(ri);
                 methods[methodName->name] = MethodInfo(formals.count(), false);
             }
+            internalDecls.append(QSharedPointer<ClassInternalDecl>(rt));
             match(NEWLINE);
         }
         if(LA(REPLIES))
@@ -913,15 +989,24 @@ Declaration *KalimatParser::classDecl()
 
             Identifier *methodName = identifier();
             QVector<Identifier *> formals = formalParamList();
-
+            RespondsTo *rt = new RespondsTo(true);
+            ConcreteResponseInfo *ri = new ConcreteResponseInfo(methodName);
+            for(QVector<Identifier *>::const_iterator i=formals.begin(); i!= formals.end(); ++i)
+                ri->add(*i);
+            rt->add(ri);
             methods[methodName->name] = MethodInfo(formals.count(), true);
             while(LA(COMMA))
             {
                 match(COMMA);
                 Identifier *methodName = identifier();
                 QVector<Identifier *> formals= formalParamList();
+                ConcreteResponseInfo *ri = new ConcreteResponseInfo(methodName);
+                for(QVector<Identifier *>::const_iterator i=formals.begin(); i!= formals.end(); ++i)
+                    ri->add(*i);
+                rt->add(ri);
                 methods[methodName->name] = MethodInfo(formals.count(), true);
             }
+            internalDecls.append(QSharedPointer<ClassInternalDecl>(rt));
             match(NEWLINE);
         }
         if(LA(BUILT))
@@ -938,7 +1023,7 @@ Declaration *KalimatParser::classDecl()
         newLines();
     }
     match(END);
-    return new ClassDecl(tok, ancestorName, className, fields, methods, true);
+    return new ClassDecl(tok, ancestorName, className, fields, methods, internalDecls, true);
 
 }
 Declaration *KalimatParser::globalDecl()

@@ -41,7 +41,8 @@ SOURCES += main.cpp \
     spritelayer.cpp \
     builtinmethods.cpp \
     paintsurface.cpp \
-    guieditwidgethandler.cpp
+    guieditwidgethandler.cpp \
+    Parser/codeformatter.cpp
 HEADERS += mainwindow.h \
     codedocument.h \
     Lexer/token.h \
@@ -77,13 +78,16 @@ HEADERS += mainwindow.h \
     spritelayer.h \
     builtinmethods.h \
     paintsurface.h \
-    guieditwidgethandler.h
+    guieditwidgethandler.h \
+    Parser/codeformatter.h
 FORMS += mainwindow.ui \
     runwindow.ui \
     savechangedfiles.ui
 
 # QT += testlib
 # CONFIG += qtestlib
+ QT += webkit
 RESOURCES += keywords.qrc \
     icons.qrc
 OTHER_FILES += 
+# QMAKE_CXXFLAGS += -std=c++0x

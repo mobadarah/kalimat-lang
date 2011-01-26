@@ -600,8 +600,10 @@ void CodeGenerator::generateDrawLineStmt(DrawLineStmt *stmt)
 }
 void CodeGenerator::generateDrawRectStmt(DrawRectStmt *stmt)
 {
-    generateExpression(stmt->filled());
-
+    if(stmt->filled())
+        generateExpression(stmt->filled());
+    else
+        gen(stmt, "pushv false");
     if(stmt->color() == NULL)
         gen(stmt, "pushv -1");
     else
@@ -618,7 +620,10 @@ void CodeGenerator::generateDrawRectStmt(DrawRectStmt *stmt)
 void CodeGenerator::generateDrawCircleStmt(DrawCircleStmt *stmt)
 {
 
-    generateExpression(stmt->filled());
+    if(stmt->filled())
+        generateExpression(stmt->filled());
+    else
+        gen(stmt, "pushv false");
 
     if(stmt->color() == NULL)
         gen(stmt, "pushv -1");
@@ -636,7 +641,7 @@ void CodeGenerator::generateDrawSpriteStmt(DrawSpriteStmt *stmt)
 {
     generateExpression(stmt->y());
     generateExpression(stmt->x());
-    generateExpression(stmt->number());
+    generateExpression(stmt->sprite());
     gen(stmt, "callex drawsprite");
 }
 void CodeGenerator::generateZoomStmt(ZoomStmt *stmt)

@@ -13,12 +13,14 @@ Token::Token(QString lexeme, TokenType type)
     Lexeme = lexeme;
     Type = type;
     tag = NULL;
+    sister = NULL;
 }
 Token::Token()
 {
     Lexeme = "";
     Type = TokenInvalid;
     tag = NULL;
+    sister = NULL;
 }
 Token::Token(const Token &other)
 {
@@ -28,6 +30,7 @@ Token::Token(const Token &other)
     Column = other.Column;
     Pos = other.Pos;
     tag = other.tag;
+    sister = other.sister;
 }
 Token &Token::operator = (const Token &other)
 {
@@ -37,18 +40,19 @@ Token &Token::operator = (const Token &other)
     Column = other.Column;
     Pos = other.Pos;
     tag = other.tag;
+    sister = other.sister;
 
     return *this;
 }
 bool Token::operator ==(Token &t2)
 {
     return Type==t2.Type && Lexeme == t2.Lexeme && Line == t2.Line && Column == t2.Column && Pos == t2.Pos
-            && tag == t2.tag;
+            && tag == t2.tag && sister == t2.sister;
 }
 bool Token::operator !=(Token &t2)
 {
     return Type!=t2.Type || Lexeme != t2.Lexeme  || Line != t2.Line || Column != t2.Column || Pos != t2.Pos
-            || tag != t2.tag;
+            || tag != t2.tag || sister != t2.sister;
 }
 bool Token::Is(QString lexeme)
 {
@@ -58,5 +62,3 @@ bool Token::Is(TokenType type)
 {
     return Type == type;
 }
-
-

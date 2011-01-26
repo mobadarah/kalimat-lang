@@ -17,6 +17,9 @@ public:
 
     AST *parseRoot();
     AST *module();
+
+    QMap<int, Token> closerFor;
+    QMap<int, Token> openerFor;
 private:
     QStack<ProceduralDecl *> varContext;
 private:

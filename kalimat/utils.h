@@ -13,7 +13,7 @@
 #include <QString>
 
 QString _ws(QStdWString str);
-
+QString readFile(QString path);
 class LineIterator
 {
 public:

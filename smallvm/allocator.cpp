@@ -182,6 +182,7 @@ Value *Allocator::newArrayReference(VArray *array, int index)
     ret->v.refVal = ref;
     return ret;
 }
+
 Value *Allocator::newMultiDimensionalArrayReference(MultiDimensionalArray<Value *> *array, QVector<int> index)
 {
     MultiDimensionalArrayReference *ref = new MultiDimensionalArrayReference();
@@ -194,6 +195,7 @@ Value *Allocator::newMultiDimensionalArrayReference(MultiDimensionalArray<Value 
     ret->v.refVal = ref;
     return ret;
 }
+
 void Allocator::InitObjectLayout(Object *object, ValueClass *_class)
 {
     //todo:
@@ -210,11 +212,13 @@ void Allocator::InitObjectLayout(Object *object, ValueClass *_class)
         object->slotNames.append(*i);
     }
 }
+
 void Allocator::gc()
 {
     mark();
     sweep();
 }
+
 void Allocator::mark()
 {
     currentAllocationInBytes = 0;
@@ -277,6 +281,7 @@ void Allocator::mark()
         }
     }
 }
+
 void Allocator::sweep()
 {
     QVector<Value *> toDel;
@@ -298,4 +303,3 @@ void Allocator::sweep()
         delete v;
     }
 }
-

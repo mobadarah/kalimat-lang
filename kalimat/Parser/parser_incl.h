@@ -7,7 +7,9 @@
 
 #include <QString>
 #include <QVector>
+#include <QColor>
 
 #include "../Lexer/lexer_incl.h"
+#include "codeformatter.h"
 #include "ast.h"
 #include "parser.h"

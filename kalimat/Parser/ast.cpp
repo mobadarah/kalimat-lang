@@ -7,6 +7,7 @@
 
 #include <QString>
 #include "../Lexer/token.h"
+#include "codeformatter.h"
 #include "ast.h"
 
 AST::AST(Token position)

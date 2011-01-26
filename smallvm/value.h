@@ -40,8 +40,8 @@ public:
     // For when we need to traverse slots in order of definition
     // todo: this should be in the class, to save memory
     QVector<QString> slotNames;
-
 };
+
 struct Reference
 {
     virtual void Set(Value *val) = 0;

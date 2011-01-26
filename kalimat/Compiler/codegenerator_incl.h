@@ -6,6 +6,7 @@
 **************************************************************************/
 
 #include "../Lexer/token.h"
+#include "../Parser/codeformatter.h"
 #include "../Parser/ast.h"
 #include "../Parser/kalimatast.h"
 #include "codedocument.h"

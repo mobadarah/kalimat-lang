@@ -12,6 +12,16 @@ QString _ws(QStdWString str)
     return QString::fromStdWString(str);
 }
 
+QString readFile(QString path)
+{
+    QFile file(path);
+    file.open(QIODevice::ReadOnly | QIODevice::Text);
+    QTextStream out(&file);
+    QString ret = out.readAll();
+    file.close();
+    return ret;
+}
+
 LineIterator Utils::readResourceTextFile(QString fileName)
 {
     LineIterator iter;

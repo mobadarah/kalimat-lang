@@ -11,16 +11,18 @@
 #include <QVector>
 #include <QMap>
 #include "../Lexer/token.h"
+#include "codeformatter.h"
 #include "ast.h"
 #include "kalimatast.h"
 #include "utils.h"
+using namespace std;
 
 CompilationUnit::CompilationUnit(Token pos) : AST(pos)
 {
 
 }
 
-Program::Program(Token pos ,QVector<TopLevel* > elements, QVector<StrLiteral *> usedModules)
+Program::Program(Token pos, QVector<TopLevel *> elements, QVector<StrLiteral *> usedModules, QVector<TopLevel *> originalElements)
     : CompilationUnit(pos)
 {
     for(int i=0; i<elements.count(); i++)
@@ -28,6 +30,8 @@ Program::Program(Token pos ,QVector<TopLevel* > elements, QVector<StrLiteral *> 
 
     for(int i=0; i<usedModules.count(); i++)
         _usedModules.append(QSharedPointer<StrLiteral>(usedModules[i]));
+    for(int i=0; i<originalElements.count(); i++)
+        _originalElements.append(QSharedPointer<TopLevel>(originalElements[i]));
 }
 
 QString Program::toString()
@@ -243,9 +247,8 @@ ReadStmt::ReadStmt(Token pos, Expression *fileObject, QString prompt,
 {
     this->prompt = prompt;
     for(int i=0; i<variables.count(); i++)
-        this->_variables.append(variables[i]);
+        this->_variables.append(QSharedPointer<AssignableExpression>(variables[i]));
     this->readNumberFlags = readNumberFlags;
-    cookie = 1798;
 }
 
 QString ReadStmt::toString()
@@ -275,8 +278,8 @@ QString DrawPixelStmt::toString()
 DrawLineStmt::DrawLineStmt(Token pos ,Expression *x1, Expression *y1, Expression *x2, Expression *y2, Expression *color)
         :GraphicsStatement(pos),
          _x1(x1),
-         _y1(x2),
-         _x2(y1),
+         _y1(y1),
+         _x2(x2),
          _y2(y2),
          _color(color)
 {
@@ -300,17 +303,13 @@ DrawRectStmt::DrawRectStmt(Token pos ,
                            Expression *filled)
         :GraphicsStatement(pos),
         _x1(x1),
-        _y1(x2),
-        _x2(y1),
+        _y1(y1),
+        _x2(x2),
         _y2(y2),
         _color(color),
         _filled(filled)
 
 {
-    if(this->filled() == NULL)
-    {
-        _filled = QSharedPointer<Expression>(new BoolLiteral(getPos(), false));
-    }
 }
 
 QString DrawRectStmt::toString()
@@ -321,7 +320,7 @@ QString DrawRectStmt::toString()
             .arg(x2()->toString())
             .arg(y2()->toString())
             .arg(color()? color()->toString(): "default")
-            .arg(filled()->toString());
+            .arg(filled()?filled()->toString(): _ws(L"خطأ"));
 }
 
 DrawCircleStmt::DrawCircleStmt(Token pos,
@@ -338,8 +337,6 @@ DrawCircleStmt::DrawCircleStmt(Token pos,
         _filled(filled)
 
 {
-    if(this->filled() == NULL)
-        _filled = QSharedPointer<Expression>(new BoolLiteral(getPos(), false));
 }
 
 QString DrawCircleStmt::toString()
@@ -349,20 +346,21 @@ QString DrawCircleStmt::toString()
             .arg(cy()->toString())
             .arg(radius()->toString())
             .arg(color()? color()->toString(): "default")
-            .arg(filled()->toString());
+            .arg((filled()?filled()->toString(): _ws(L"خطأ")));
 }
-DrawSpriteStmt::DrawSpriteStmt(Token pos ,Expression *x, Expression *y, Expression *number)
+
+DrawSpriteStmt::DrawSpriteStmt(Token pos ,Expression *x, Expression *y, Expression *sprite)
         :GraphicsStatement(pos),
         _x(x),
         _y(y),
-        _number(number)
+        _sprite(sprite)
 
 {
 }
 QString DrawSpriteStmt::toString()
 {
     return _ws(L"رسم.طيف(%، [%2، %3])")
-            .arg(number()->toString())
+            .arg(sprite()->toString())
             .arg(x()->toString())
             .arg(y()->toString());
 }
@@ -495,9 +493,13 @@ NumLiteral::NumLiteral(Token pos ,QString lexeme) :Expression(pos)
 QString NumLiteral::toString()
 {
     return _ws(L"عدد(%1)")
-            .arg(longNotDouble? lValue: dValue);
+            .arg(repr());
 }
 
+QString NumLiteral::repr()
+{
+    return QString("%1").arg(longNotDouble? lValue: dValue);
+}
 
 StrLiteral::StrLiteral(Token pos ,QString value) : Expression(pos)
 {
@@ -506,21 +508,54 @@ StrLiteral::StrLiteral(Token pos ,QString value) : Expression(pos)
 QString StrLiteral::toString()
 {
     return _ws(L"نص(%1)")
-            .arg(value);
+            .arg(repr());
 }
+
+QString strLiteralRepr(QString value)
+{
+    QStringList ret;
+    ret.append("\"");
+    for(int i=0; i<value.length(); i++)
+    {
+        QChar c = value[i];
+        if(c =='"')
+            ret.append("\"\"");
+        else
+            ret.append(c);
+    }
+    ret.append("\"");
+    return ret.join("");
+}
+
+QString StrLiteral::repr()
+{
+    return strLiteralRepr(this->value);
+}
+
 NullLiteral::NullLiteral(Token pos) : Expression(pos)
 {
 
 }
 QString NullLiteral::toString()
 {
+    return repr();
+}
+
+QString NullLiteral::repr()
+{
     return _ws(L"لاشيء");
 }
+
 BoolLiteral::BoolLiteral(Token pos, bool _value) : Expression(pos)
 {
     value = _value;
 }
 QString BoolLiteral::toString()
+{
+    return repr();
+}
+
+QString BoolLiteral::repr()
 {
     return value? QString::fromWCharArray(L"صحيح") : QString::fromWCharArray(L"خطأ");
 }
@@ -687,10 +722,12 @@ ClassDecl::ClassDecl(Token pos,
                      Identifier *name,
                      QVector<Identifier*>fields,
                      QMap<QString, MethodInfo> methodPrototypes,
+                     QVector<QSharedPointer<ClassInternalDecl> > internalDecls,
                      bool isPublic)
         :Declaration(pos, isPublic),
         _name(name),
         _methodPrototypes(methodPrototypes),
+        _internalDecls(internalDecls),
         _ancestorName(NULL),
         _ancestorClass(NULL)
 {
@@ -705,10 +742,12 @@ ClassDecl::ClassDecl(Token pos,
                      Identifier *name,
                      QVector<Identifier*>fields,
                      QMap<QString, MethodInfo> methodPrototypes,
+                     QVector<QSharedPointer<ClassInternalDecl> > internalDecls,
                      bool isPublic)
         :Declaration(pos, isPublic),
         _name(name),
         _methodPrototypes(methodPrototypes),
+        _internalDecls(internalDecls),
         _ancestorName(ancestorName),
         _ancestorClass(NULL)
 {
@@ -808,4 +847,624 @@ QString MethodDecl::toString()
             .arg(procName()->toString())
             .arg(vector_toString(_formals))
             .arg(body()->toString());
+}
+// Pretty printing
+void Program::prettyPrint(CodeFormatter *f)
+{
+    for(int i=0; i<_originalElements.count(); i++)
+    {
+        TopLevel *el = _originalElements[i].data();
+        // todo: loss of information
+        if(el->attachedComments.trimmed() != "")
+        {
+            //f->print("--");
+            f->print(el->attachedComments);
+        }
+        el->prettyPrint(f);
+        f->nl();
+    }
+}
+
+void Module::prettyPrint(CodeFormatter *f)
+{
+    f->printKw(L"وحدة");
+    this->name()->prettyPrint(f);
+    f->nl();
+
+    for(int i=0; i<declCount(); i++)
+    {
+        decl(i)->prettyPrint(f);
+        f->nl();
+        f->nl();
+    }
+}
+
+void AssignmentStmt::prettyPrint(CodeFormatter *f)
+{
+    variable()->prettyPrint(f);
+    f->space();
+    f->print("=");
+    f->space();
+    value()->prettyPrint(f);
+}
+
+void IfStmt::prettyPrint(CodeFormatter *f)
+{
+    f->printKw(L"إذا");
+    condition()->prettyPrint(f);
+    f->space();
+    f->colon();
+
+    BlockStmt *thnBlk = dynamic_cast<BlockStmt *>(this->thenPart());
+    if(thnBlk)
+        f->nl();
+    this->thenPart()->prettyPrint(f);
+
+    if(this->elsePart())
+    {
+        BlockStmt *elsBlk = dynamic_cast<BlockStmt *>(this->elsePart());
+        if(elsBlk)
+        {
+            f->printKw(L"وإلا");
+            f->colon();
+            f->nl();
+            elsBlk->prettyPrint(f);
+//            f->nl();
+            f->printKw(L"تم");
+        }
+        else
+        {
+            f->space();
+            f->printKw(L"وإلا");
+            IfStmt *elseItselfIsAnotherIf = dynamic_cast<IfStmt *>(this->elsePart());
+            if(!elseItselfIsAnotherIf)
+            {
+                f->colon();
+                f->space();
+            }
+            this->elsePart()->prettyPrint(f);
+        }
+    }
+    else if(thnBlk)
+    {
+        f->printKw(L"تم");
+        f->nl(); // for extra neatness, add an empty line after block statements
+    }
+}
+
+void WhileStmt::prettyPrint(CodeFormatter *f)
+{
+    f->printKw(L"طالما");
+    condition()->prettyPrint(f);
+    //f->space();
+    f->colon();
+
+    BlockStmt *actionBlk = dynamic_cast<BlockStmt *>(this->statement());
+    if(actionBlk)
+        f->nl();
+    else
+        f->space();
+
+    this->statement()->prettyPrint(f);
+    if(!actionBlk)
+        f->space();
+    f->printKw(L"تابع");
+    if(actionBlk)
+        f->nl(); // for extra neatness, add an empty line after block statements
+}
+
+void ForAllStmt::prettyPrint(CodeFormatter *f)
+{
+    f->printKw(L"لكل");
+    this->variable()->prettyPrint(f);
+    f->space();
+    f->printKw(L"من");
+    this->from()->prettyPrint(f);
+    f->space();
+    f->printKw(L"إلى");
+    this->to()->prettyPrint(f);
+    //f->space();
+    f->colon();
+
+    BlockStmt *actionBlk = dynamic_cast<BlockStmt *>(this->statement());
+    if(actionBlk)
+        f->nl();
+    else
+        f->space();
+
+    this->statement()->prettyPrint(f);
+    if(!actionBlk)
+        f->space();
+    f->printKw(L"تابع");
+    if(actionBlk)
+        f->nl(); // for extra neatness, add an empty line after block statements
+}
+
+void ReturnStmt::prettyPrint(CodeFormatter *f)
+{
+    f->printKw(L"ارجع ب:");
+    f->space();
+    this->returnVal()->prettyPrint(f);
+}
+
+void DelegationStmt::prettyPrint(CodeFormatter *f)
+{
+    f->printKw(L"وكل إلى");
+    f->space();
+    this->invokation()->prettyPrint(f);
+}
+
+void LabelStmt::prettyPrint(CodeFormatter *f)
+{
+    f->printKw(L"علامة");
+    f->space();
+    this->target()->prettyPrint(f);
+}
+
+void GotoStmt::prettyPrint(CodeFormatter *f)
+{
+    f->printKw(L"اذهب إلى");
+    f->space();
+    if(!this->targetIsNumber)
+        this->idTarget()->prettyPrint(f);
+    else
+        this->numericTarget()->prettyPrint(f);
+
+}
+
+void PrintStmt::prettyPrint(CodeFormatter *f)
+{
+    f->printKw(L"اطبع");
+    if(this->fileObject() != NULL)
+    {
+        f->printKw(L"في");
+        this->fileObject()->prettyPrint(f);
+        f->colon();
+        f->space();
+    }
+    commaSep(mapPrint(this->_args, this->_widths)).run(f);
+    if(this->printOnSameLine)
+    {
+        f->comma();
+        f->print("...");
+    }
+}
+
+void ReadStmt::prettyPrint(CodeFormatter *f)
+{
+    f->printKw(L"اقرأ");
+
+    if(this->fileObject() != NULL)
+    {
+        f->printKw(L"من");
+        this->fileObject()->prettyPrint(f);
+        f->colon();
+        f->space();
+    }
+
+    // todo: minor loss of information
+    // if user has a command read "", x, y
+    // since "empty prompt" and "no prompt" have the same AST representation
+    if(this->prompt !="")
+    {
+        f->print(strLiteralRepr(prompt));
+        f->comma();
+    }
+
+    commaSep(mapRead(this->_variables, this->readNumberFlags)).run(f);
+}
+
+void DrawPixelStmt::prettyPrint(CodeFormatter *f)
+{
+    f->printKw(L"ارسم.نقطة");
+    parens(&commaSep(&ast(this->x()), &ast(this->y()))).run(f);
+    if(this->color() !=NULL)
+    {
+        f->comma();
+        color()->prettyPrint(f);
+    }
+}
+
+void DrawLineStmt::prettyPrint(CodeFormatter *f)
+{
+    f->printKw(L"ارسم.خط");
+    parens(&commaSep(&ast(this->x1()), &ast(this->y1()))).run(f);
+    f->print("-");
+    parens(&commaSep(&ast(this->x2()), &ast(this->y2()))).run(f);
+    if(this->color() !=NULL)
+    {
+        f->comma();
+        color()->prettyPrint(f);
+    }
+}
+
+void DrawRectStmt::prettyPrint(CodeFormatter *f)
+{
+    f->printKw(L"ارسم.مستطيل");
+    parens(&commaSep(&ast(this->x1()), &ast(this->y1()))).run(f);
+    f->print("-");
+    parens(&commaSep(&ast(this->x2()), &ast(this->y2()))).run(f);
+
+    if(this->color())
+    {
+        f->comma();
+        color()->prettyPrint(f);
+        if(this->filled())
+        {
+            f->comma();
+            filled()->prettyPrint(f);
+        }
+    }
+    else if(this->filled())
+    {
+        f->comma();
+        f->comma();
+        filled()->prettyPrint(f);
+    }
+}
+
+void DrawCircleStmt::prettyPrint(CodeFormatter *f)
+{
+    f->printKw(L"ارسم.دائرة");
+    parens(&commaSep(&ast(this->cx()), &ast(this->cy()))).run(f);
+    f->comma();
+    radius()->prettyPrint(f);
+    if(this->color())
+    {
+        f->comma();
+        color()->prettyPrint(f);
+        if(this->filled())
+        {
+            f->comma();
+            filled()->prettyPrint(f);
+        }
+    }
+    else if(this->filled())
+    {
+        f->comma();
+        f->comma();
+        filled()->prettyPrint(f);
+    }
+}
+
+void DrawSpriteStmt::prettyPrint(CodeFormatter *f)
+{
+    f->printKw(L"ارسم.طيف");
+    this->sprite()->prettyPrint(f);
+    f->space();
+    f->printKw(L"في");
+    parens(&commaSep(&ast(this->x()), &ast(this->y()))).run(f);
+    /*
+    f->openParen();
+    this->x()->prettyPrint(f);
+    f->comma();
+    this->y()->prettyPrint(f);
+    this->closeParen();
+    */
+}
+
+void ZoomStmt::prettyPrint(CodeFormatter *f)
+{
+
+}
+
+QStdWString translateEventType(EventType t)
+{
+    switch(t)
+    {
+    case KalimatKeyDownEvent:
+        return L"ضغط.مفتاح";
+    case KalimatKeyUpEvent:
+        return L"رفع.مفتاح";
+    case KalimatKeyPressEvent:
+        return L"ادخال.حرف";
+    case KalimatMouseUpEvent:
+        return L"رفع.زر.ماوس";
+    case KalimatMouseDownEvent:
+        return L"ضغط.زر.ماوس";
+    case KalimatMouseMoveEvent:
+        return L"تحريك.ماوس";
+    case KalimatSpriteCollisionEvent:
+        return L"تصادم";
+    }
+}
+
+void EventStatement::prettyPrint(CodeFormatter *f)
+{
+    f->printKw(L"عند حادثة");
+    f->printKw(translateEventType(this->type));
+    f->printKw(L"نفذ");
+    this->handler()->prettyPrint(f);
+}
+
+void BlockStmt::prettyPrint(CodeFormatter *f)
+{
+    f->indent();
+    for(int i=0; i<statementCount(); i++)
+    {
+        if(statement(i)->attachedComments.trimmed() != "")
+        {
+            f->print("--");
+            f->print(statement(i)->attachedComments);
+        }
+        statement(i)->prettyPrint(f);
+        f->nl();
+    }
+    f->deindent();
+}
+
+void InvokationStmt::prettyPrint(CodeFormatter *f)
+{
+    this->expression()->prettyPrint(f);
+}
+
+QString translateOperator(QString op)
+{
+    if(op == "add")
+    {
+        return "+";
+    }
+    else if(op == "sub")
+    {
+        return "-";
+    }
+    else if(op == "mul")
+    {
+        return _ws(L"×");
+    }
+    else if(op == "div")
+    {
+        return _ws(L"÷");
+    }
+    else if(op == "and")
+    {
+        return _ws(L"وأيضا");
+    }
+    else if(op == "or")
+    {
+        return _ws(L"أو");
+    }
+    else if(op == "not")
+    {
+        return _ws(L"ليس");
+    }
+    else if(op == "lt")
+    {
+        return "<";
+    }
+    else if(op == "gt")
+    {
+        return ">";
+    }
+    else if(op == "le")
+    {
+        return "<=";
+    }
+    else if(op == "ge")
+    {
+        return ">=";
+    }
+    else if(op == "eq")
+    {
+        return "=";
+    }
+    else if(op == "ne")
+    {
+        return "<>";
+    }
+    return "?";
+}
+
+void BinaryOperation::prettyPrint(CodeFormatter *f)
+{
+    this->operand1()->prettyPrint(f);
+    f->space();
+    f->print(translateOperator(this->_operator));
+    f->space();
+    this->operand2()->prettyPrint(f);
+}
+
+void UnaryOperation::prettyPrint(CodeFormatter *f)
+{
+    f->print(translateOperator(this->_operator));
+    f->space();
+    this->operand()->prettyPrint(f);
+}
+
+void Identifier::prettyPrint(CodeFormatter *f)
+{
+    f->print(name);
+}
+
+void NumLiteral::prettyPrint(CodeFormatter *f)
+{
+    f->print(repr());
+}
+
+void StrLiteral::prettyPrint(CodeFormatter *f)
+{
+    f->print(repr());
+}
+
+void NullLiteral::prettyPrint(CodeFormatter *f)
+{
+    f->print(repr());
+}
+
+void BoolLiteral::prettyPrint(CodeFormatter *f)
+{
+    f->printKwExpression(repr());
+}
+
+void ArrayLiteral::prettyPrint(CodeFormatter *f)
+{
+    brackets(&commaSep(mapFmt(this->_data))).run(f);
+}
+
+void Invokation::prettyPrint(CodeFormatter *f)
+{
+    this->functor()->prettyPrint(f);
+    parens(&commaSep(mapFmt(this->_arguments))).run(f);
+}
+
+void MethodInvokation::prettyPrint(CodeFormatter *f)
+{
+    this->receiver()->prettyPrint(f);
+    f->colon();
+    f->space();
+    this->methodSelector()->prettyPrint(f);
+    parens(&commaSep(mapFmt(this->_arguments))).run(f);
+}
+
+void Idafa::prettyPrint(CodeFormatter *f)
+{
+    spaceSep(&ast(modaf()), &ast(modaf_elaih())).run(f);
+}
+
+void ArrayIndex::prettyPrint(CodeFormatter *f)
+{
+    this->array()->prettyPrint(f);
+    brackets(&ast(this->index())).run(f);
+}
+
+void MultiDimensionalArrayIndex::prettyPrint(CodeFormatter *f)
+{
+    this->array()->prettyPrint(f);
+    brackets(&commaSep(mapFmt(this->_indexes))).run(f);
+}
+
+void ObjectCreation::prettyPrint(CodeFormatter *f)
+{
+    className()->prettyPrint(f);
+    f->space();
+    f->printKw(L"جديد");
+}
+
+void ProcedureDecl::prettyPrint(CodeFormatter *f)
+{
+    f->printKw(L"إجراء");
+    procName()->prettyPrint(f);
+
+    parens(&commaSep(mapFmt(this->_formals))).run(f);
+
+    f->colon();
+    f->nl();
+    this->body()->prettyPrint(f);
+    f->printKw(L"نهاية");
+    f->nl(); // for extra neatness, add an empty line after definitions
+}
+
+void FunctionDecl::prettyPrint(CodeFormatter *f)
+{
+    f->printKw(L"دالة");
+    procName()->prettyPrint(f);
+
+    parens(&commaSep(mapFmt(this->_formals))).run(f);
+
+    f->colon();
+    f->nl();
+    this->body()->prettyPrint(f);
+    f->printKw(L"نهاية");
+    f->nl(); // for extra neatness, add an empty line after definitions
+}
+
+void Has::prettyPrint(CodeFormatter *f)
+{
+    f->printKw(L"له");
+    commaSep(mapFmt(this->fields)).run(f);
+}
+
+void RespondsTo::prettyPrint(CodeFormatter *f)
+{
+    if(isFunctions)
+    {
+        f->printKw(L"يرد على");
+    }
+    else
+    {
+        f->printKw(L"يستجيب ل:");
+    }
+    commaSep(mapFmt(methods)).run(f);
+}
+
+void ConcreteResponseInfo::prettyPrint(CodeFormatter *f)
+{
+    this->name.data()->prettyPrint(f);
+    f->space();
+    parens(&commaSep(mapFmt(params))).run(f);
+}
+
+void ClassDecl::prettyPrint(CodeFormatter *f)
+{
+    f->printKw(L"فصيلة");
+    this->name()->prettyPrint(f);
+    f->colon();
+    f->nl();
+    f->indent();
+    if(ancestor())
+    {
+        f->printKw(L"مبني على");
+        ancestor()->prettyPrint(f);
+        f->nl();
+    }
+    for(int i=0; i<_internalDecls.count(); i++)
+    {
+        ClassInternalDecl *id = _internalDecls[i].data();
+        id->prettyPrint(f);
+        f->nl();
+    }
+    f->deindent();
+    f->printKw(L"نهاية");
+    f->nl(); // for extra neatness, add an empty line after definitions
+}
+
+void GlobalDecl::prettyPrint(CodeFormatter *f)
+{
+    f->print(varName);
+    f->space();
+    f->printKw(L"مشترك");
+}
+
+void MethodDecl::prettyPrint(CodeFormatter *f)
+{
+    if(this->isFunctionNotProcedure)
+        f->printKw(L"رد");
+    else
+        f->printKw(L"استجابة");
+
+    this->className()->prettyPrint(f);
+    f->space();
+    this->receiverName()->prettyPrint(f);
+    f->space();
+
+    if(this->isFunctionNotProcedure)
+        f->printKw(L"على");
+    else
+        f->printKw(L"ل:");
+
+    procName()->prettyPrint(f);
+
+    parens(&commaSep(mapFmt(this->_formals, 1))).run(f);
+
+    f->colon();
+    f->nl();
+    this->body()->prettyPrint(f);
+    f->printKw(L"نهاية");
+    f->nl(); // for extra neatness, add an empty line after definitions
+}
+
+QVector<FormatMaker *> mapPrint(QVector<QSharedPointer<Expression > > args, QVector<QSharedPointer<Expression > > widths)
+{
+    QVector<FormatMaker *> ret;
+    for(int i=0; i<args.count(); i++)
+        ret.append(new PrintFmt(args[i].data(), widths[i].data()));
+    return ret;
+}
+
+QVector<FormatMaker *> mapRead(QVector<QSharedPointer<AssignableExpression> > variables, QVector<bool> readNumberFlags)
+{
+    QVector<FormatMaker *> ret;
+    for(int i=0; i<variables.count(); i++)
+        ret.append(new ReadFmt(variables[i].data(), readNumberFlags[i]));
+    return ret;
 }

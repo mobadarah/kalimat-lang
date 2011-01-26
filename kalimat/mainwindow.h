@@ -22,6 +22,8 @@
 #include <QGraphicsView>
 #include <QActionGroup>
 #include <QLabel>
+#include <QSplitter>
+#include <QtWebKit/QtWebKit>
 
 namespace Ui
 {
@@ -38,6 +40,7 @@ class MainWindow : public QMainWindow, public DocumentClient
 public:
     static MainWindow *that;
     QLabel *lblEditorCurrentLine, *lblEditorCurrentColumn;
+    bool helpWindowVisible;
     MainWindow(QWidget *parent = 0);
     ~MainWindow();
 
@@ -49,6 +52,8 @@ public:
     void highlightToken(QTextEdit *editor, int pos, int length);
     void setLineIndicators(int line, int column);
     void visualizeCallStack(QStack<Frame> &callStack, QGraphicsView *view);
+
+    void outputMsg(QString s);
 
     DocumentContainer *docContainer;
     QMap<int, CodePosition> PositionInfo;
@@ -63,6 +68,13 @@ private:
     virtual void LoadDocIntoWidget(CodeDocument *doc, QWidget *widget);
     virtual QWidget *GetParentWindow();
     virtual QWidget *CreateEditorWidget();
+
+    QSplitter *helpSplitter;
+    QWidget *oldMainWidget;
+    QWebView *helpWebView;
+    void showHelpWindow();
+    void hideHelpWindow();
+
     QTextEdit *currentEditor();
 private slots:
     void on_actionGo_to_position_triggered();
@@ -91,6 +103,11 @@ private slots:
     void on_actionLexize_triggered();
     void on_actionParse_triggered();
     void closeEvent(QCloseEvent *);
+    void on_actionKalimatManual_triggered();
+    void on_action_copy_as_html_triggered();
+    void on_action_copy_as_wiki_triggered();
+    void on_action_copy_literate_html_triggered();
+    void on_action_autoFormat_triggered();
 };
 
 #endif // MAINWINDOW_H
