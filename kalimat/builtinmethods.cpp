@@ -79,7 +79,7 @@ void SetCursorPosProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
     int line = popInt(stack, w, vm);
     int col = popInt(stack, w, vm);
     bool result = w->textLayer.setCursorPos(line, col);
-    w->assert(result, ArgumentError, QString::fromStdWString(L"ظ‚ظٹظ… ط؛ظٹط± طµط­ظٹط­ط© ظ„طھط­ط¯ظٹط¯ ظ…ظˆظ‚ط¹ ط§ظ„ظ…ط¤ط´ط±"));
+    w->assert(result, ArgumentError, QString::fromStdWString(L"قيم غير صحيحة لتحديد موقع المؤشر"));
 }
 void GetCursorRowProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 {
@@ -275,7 +275,7 @@ void ToNumProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
         stack.push(v);
     else
     {
-      vm->signal(TypeError2, QString::fromStdWString(L"ط¹ط¯ط¯"), v->type->getName());
+      vm->signal(TypeError2, QString::fromStdWString(L"عدد"), v->type->getName());
     }
 
 }
@@ -550,7 +550,7 @@ void LoadSpriteProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 
     if(!QFile::exists(*fname))
     {
-        w->assert(false, ArgumentError, QString::fromStdWString(L"طھط­ظ…ظٹظ„ ط·ظٹظپ ظ…ظ† ظ…ظ„ظپ ط؛ظٹط± ظ…ظˆط¬ظˆط¯"));
+        w->assert(false, ArgumentError, QString::fromStdWString(L"تحميل طيف من ملف غير موجود"));
     }
     Sprite *sprite = new Sprite(*fname);
     w->spriteLayer.AddSprite(sprite);
@@ -791,7 +791,7 @@ void DoFileWrite(QStack<Value *> &stack, RunWindow *w, VM *vm, bool newLine)
     QString *s = popString(stack, w, vm);
 
     if(f->file == NULL)
-        w->assert(false, ArgumentError, QString::fromStdWString(L"ظ„ط§ ظٹظ…ظƒظ† ط§ظ„ظƒطھط§ط¨ط© ظپظٹ ظ…ظ„ظپ ظ…ط؛ظ„ظ‚"));
+        w->assert(false, ArgumentError, QString::fromStdWString(L"لا يمكن الكتابة في ملف مغلق"));
     if(newLine)
         *(f->stream) << *s << endl;
     else
@@ -807,7 +807,7 @@ void FileWriteUsingWidthProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 {
     FileBlob *f = popFileBlob(stack, w, vm);
     if(f->file == NULL)
-        w->assert(false, ArgumentError, QString::fromStdWString(L"ظ„ط§ ظٹظ…ظƒظ† ط§ظ„ظƒطھط§ط¨ط© ظپظٹ ظ…ظ„ظپ ظ…ط؛ظ„ظ‚"));
+        w->assert(false, ArgumentError, QString::fromStdWString(L"لا يمكن الكتابة في ملف مغلق"));
     QString *s = popString(stack, w, vm);
     int width = popInt(stack, w, vm);
 
@@ -825,7 +825,7 @@ void FileReadLineProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 
     FileBlob *f = popFileBlob(stack, w, vm);
     if(f->file == NULL)
-        w->assert(false, ArgumentError, QString::fromStdWString(L"ظ„ط§ ظٹظ…ظƒظ† ط§ظ„ظ‚ط±ط§ط،ط© ظ…ظ† ظ…ظ„ظپ ظ…ط؛ظ„ظ‚"));
+        w->assert(false, ArgumentError, QString::fromStdWString(L"لا يمكن القراءة من ملف مغلق"));
     QString *s = new QString(f->stream->readLine());
     Value *v = vm->GetAllocator().newString(s);
     stack.push(v);
@@ -835,7 +835,7 @@ void FileEofProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 {
     FileBlob *f = popFileBlob(stack, w, vm);
     if(f->file == NULL)
-        w->assert(false, ArgumentError, QString::fromStdWString(L"ظ„ط§ ظٹظ…ظƒظ† ط§ظ„طھط¹ط§ظ…ظ„ ظ…ط¹ ظ…ظ„ظپ ظ…ط؛ظ„ظ‚"));
+        w->assert(false, ArgumentError, QString::fromStdWString(L"لا يمكن التعامل مع ملف مغلق"));
     bool ret = f->stream->atEnd();
     Value *v = vm->GetAllocator().newBool(ret);
     stack.push(v);
@@ -845,10 +845,10 @@ void FileOpenProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 {
     QString *fname = popString(stack, w, vm);
     *fname = w->ensureCompletePath(*fname);
-    w->assert(QFile::exists(*fname), ArgumentError, QString::fromStdWString(L"ظ…ط­ط§ظˆظ„ط© ظپطھط­ ظ…ظ„ظپ ط؛ظٹط± ظ…ظˆط¬ظˆط¯"));
+    w->assert(QFile::exists(*fname), ArgumentError, QString::fromStdWString(L"محاولة فتح ملف غير موجود"));
     QFile *f = new QFile(*fname);
     bool ret = f->open(QIODevice::ReadOnly | QIODevice::Text);
-    w->assert(ret, RuntimeError, QString::fromStdWString(L"ظ„ظ… ظٹظ†ط¬ط­ ظپطھط­ ط§ظ„ظ…ظ„ظپ"));
+    w->assert(ret, RuntimeError, QString::fromStdWString(L"لم ينجح فتح الملف"));
     QTextStream *stream = new QTextStream(f);
     FileBlob *blob = new FileBlob();
     blob->file = f;
@@ -864,7 +864,7 @@ void FileCreateProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
     *fname = w->ensureCompletePath(*fname);
     QFile *f = new QFile(*fname);
     bool ret = f->open(QIODevice::WriteOnly | QIODevice::Text | QIODevice::Truncate);
-    w->assert(ret, RuntimeError, QString::fromStdWString(L"ظ„ظ… ظٹظ†ط¬ط­ ظپطھط­ ط§ظ„ظ…ظ„ظپ"));
+    w->assert(ret, RuntimeError, QString::fromStdWString(L"لم ينجح فتح الملف"));
     QTextStream *stream = new QTextStream(f);
     FileBlob *blob = new FileBlob();
     blob->file = f;
@@ -880,7 +880,7 @@ void FileAppendProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
     *fname = w->ensureCompletePath(*fname);
     QFile *f = new QFile(*fname);
     bool ret = f->open(QIODevice::WriteOnly | QIODevice::Text | QIODevice::Append);
-    w->assert(ret, ArgumentError, QString::fromStdWString(L"ظ„ظ… ظٹظ†ط¬ط­ ظپطھط­ ط§ظ„ظ…ظ„ظپ"));
+    w->assert(ret, ArgumentError, QString::fromStdWString(L"لم ينجح فتح الملف"));
     Value *v = vm->GetAllocator().newObject(BuiltInTypes::FileType);
     QTextStream *stream = new QTextStream(f);
     FileBlob *blob = new FileBlob();
@@ -912,7 +912,7 @@ Value *editAndReturn(Value *v, RunWindow *w, VM *vm);
 void EditProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 {
     Value *v = stack.pop();
-    w->assert(v->tag == ObjectVal, ArgumentError, QString::fromStdWString(L"ط§ظ„ظ‚ظٹظ…ط© ط§ظ„ظ…ط±ط³ظ„ط© ظ„ط­ط±ط± ظ„ط§ط¨ط¯ ط£ظ† طھظƒظˆظ† ظƒط§ط¦ظ†ط§ظ‹"));
+    w->assert(v->tag == ObjectVal, ArgumentError, QString::fromStdWString(L"القيمة المرسلة لابد أن تكون كائناً");
     v = editAndReturn(v, w, vm);
     stack.push(v);
 }
@@ -1005,7 +1005,7 @@ Value *editAndReturn(Value *v, RunWindow *w, VM *vm)
 {
 
     QDialog *dlg = new QDialog(w);
-    dlg->setWindowTitle(QString::fromStdWString(L"طھط­ط±ظٹط± %1").arg(v->type->getName()));
+    dlg->setWindowTitle(QString::fromStdWString(L"تحرير %1").arg(v->type->getName()));
     QVBoxLayout *ly = new QVBoxLayout(dlg);
 
     QFrame *frame = new QFrame();
@@ -1014,8 +1014,8 @@ Value *editAndReturn(Value *v, RunWindow *w, VM *vm)
     frame->setLayout(gl);
     ly->addWidget(frame);
 
-    QPushButton *ok = new QPushButton(QString::fromStdWString(L"ط­ط³ظ†ط§ظ‹"));
-    QPushButton *cancel = new QPushButton(QString::fromStdWString(L"ط§ظ„ط؛ط§ط،"));
+    QPushButton *ok = new QPushButton(QString::fromStdWString(L"حسناً"));
+    QPushButton *cancel = new QPushButton(QString::fromStdWString(L"الغاء"));
     ly->addWidget(ok);
     ly->addWidget(cancel);
     dlg->setLayout(ly);
