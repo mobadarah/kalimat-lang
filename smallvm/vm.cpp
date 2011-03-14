@@ -958,7 +958,7 @@ bool ge_str(QString *a, QString *b) { return (*a) >= (*b); }
 bool  eq_int(int a, int b) { return a==b;}
 bool  eq_double(double a, double b) { return a==b;}
 bool  eq_bool(bool a, bool b) { return a==b;}
-bool  eq_obj(Object *a, Object *b){ return a==b;}
+bool  eq_obj(IObject *a, IObject *b){ return a==b;}
 bool  eq_raw(void *a, void *b){ return a==b;}
 
 bool  eq_str(QString *a, QString *b)
@@ -978,7 +978,7 @@ bool  eq_bothnull() { return true;}
 bool ne_int(int a, int b) { return a!=b;}
 bool  ne_double(double a, double b) { return a!=b;}
 bool  ne_bool(bool a, bool b) { return a!=b;}
-bool  ne_obj(Object *a, Object *b) { return a!=b;}
+bool  ne_obj(IObject *a, IObject *b) { return a!=b;}
 bool  ne_raw(void *a, void *b) { return a!=b;}
 
 bool  ne_str(QString*a, QString*b)
@@ -1154,9 +1154,19 @@ void VM::DoCallMethod(QString SymRef, int arity, bool tailCall)
 
     assert(receiver->tag != NullVal, CallingMethodOnNull);
     assert(receiver ->tag == ObjectVal, CallingMethodOnNonObject);
-    Method *method = receiver->type->lookupMethod(SymRef);
 
-    assert(method!=NULL, NoSuchMethod2,SymRef, receiver->type->getName());
+    IMethod *_method = receiver->type->lookupMethod(SymRef);
+    assert(_method!=NULL, NoSuchMethod2,SymRef, receiver->type->getName());
+
+    Method *method = dynamic_cast<Method *>(_method);
+    if(method == NULL)
+    {
+        // Since _method is not NULL but method is,
+        // therefore we have a special method (i.e not a collection of bytecode)
+        // in our hands.
+        CallSpecialMethod(method, arity, tailCall);
+    }
+
     assert(arity == -1 || method->Arity() ==-1 || arity == method->Arity(), WrongNumberOfArguments);
 
     QVector<Value *> args;
@@ -1230,7 +1240,7 @@ void VM::DoSetField(QString SymRef)
     assert(objVal->tag == ObjectVal, SettingFieldOnNonObject);
     assert(objVal->type->fields.contains(SymRef), NoSuchField2, SymRef, objVal->type->getName());
 
-    Object *obj = objVal->unboxObj();
+    IObject *obj = objVal->unboxObj();
     obj->setSlotValue(SymRef, v);
 }
 
@@ -1243,7 +1253,7 @@ void VM::DoGetField(QString SymRef)
     assert(objVal->tag == ObjectVal, GettingFieldOnNonObject);
     assert(objVal->type->fields.contains(SymRef), NoSuchField2, SymRef, objVal->type->getName());
 
-    Object *obj = objVal->v.objVal;
+    IObject *obj = objVal->v.objVal;
     Value *v = obj->getSlotValue(SymRef);
     currentFrame()->OperandStack.push(v);
 }
@@ -1462,6 +1472,11 @@ void VM::DoIsa(QString SymRef)
     currentFrame()->OperandStack.push(allocator.newBool(b));
 }
 
+void VM::CallSpecialMethod(IMethod *method, int arity, bool tailCall)
+{
+    assert(false, InternalError, "CallSpecialMethod is not implemented");
+}
+
 void VM::test(bool cond, QString trueLabel, QString falseLabel)
 {
     int newIp;
@@ -1563,7 +1578,7 @@ void VM::BuiltInComparisonOp(bool (*intFunc)(int,int),
 void VM::EqualityRelatedOp(bool(*intFunc)(int, int),
                            bool(*doubleFunc)(double, double),
                            bool(*boolFunc)(bool, bool),
-                           bool(*objFunc)(Object *, Object *),
+                           bool(*objFunc)(IObject *, IObject *),
                            bool(*strFunc)(QString *, QString *),
                            bool(*rawFunc)(void *, void *),
                            bool(*differentTypesFunc)(Value *, Value *),

@@ -456,6 +456,19 @@ QString BinaryOperation::toString()
             .arg(operand2()->toString());
 }
 
+IsaOperation::IsaOperation(Token pos, Expression *expression, Identifier *type)
+    : Expression(pos),
+      _expression(expression),
+      _type(type)
+{
+
+}
+
+QString IsaOperation::toString()
+{
+    return _ws(L"%1 هو %2").arg(expression()->toString()).arg(type()->toString());
+}
+
 UnaryOperation::UnaryOperation(Token pos ,QString __operator, Expression *operand)
     : Expression(pos),
     _operator(__operator),
@@ -1262,6 +1275,14 @@ void BinaryOperation::prettyPrint(CodeFormatter *f)
     f->print(translateOperator(this->_operator));
     f->space();
     this->operand2()->prettyPrint(f);
+}
+
+void IsaOperation::prettyPrint(CodeFormatter *f)
+{
+    this->expression()->prettyPrint(f);
+    f->space();
+    f->printKw(L"هو");
+    this->type()->prettyPrint(f);
 }
 
 void UnaryOperation::prettyPrint(CodeFormatter *f)

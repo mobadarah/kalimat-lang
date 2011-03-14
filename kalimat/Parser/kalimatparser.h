@@ -14,6 +14,7 @@ public:
     KalimatParser();
     ~KalimatParser();
     void init(QString s, Lexer *lxr, void *tag);
+    void init(QString s, Lexer *lxr, void *tag, QString fileName);
 
     AST *parseRoot();
     AST *module();

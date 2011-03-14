@@ -117,6 +117,7 @@ public:
     void DoIsa(QString SymRef);
 
     void CallImpl(QString sym, bool wantValueNotRef, int arity, bool tailCall);
+    void CallSpecialMethod(IMethod *method, int arity, bool tailCall);
     void test(bool, QString, QString);
     Value *_div(Value *, Value *);
     void Pop_Md_Arr_and_indexes(MultiDimensionalArray<Value *> *&theArray, QVector<int> &indexes);
@@ -133,7 +134,7 @@ private:
     void EqualityRelatedOp(bool  (*intFunc)(int,int),
                            bool  (*doubleFunc)(double,double),
                            bool  (*boolFunc)(bool, bool),
-                           bool  (*objFunc)(Object *, Object *),
+                           bool  (*objFunc)(IObject *, IObject *),
                            bool  (*strFunc)(QString *, QString *),
                            bool  (*rawFunc)(void *, void *),
                            bool  (*differentTypesFunc)(Value *, Value *),

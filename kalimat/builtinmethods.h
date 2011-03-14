@@ -41,6 +41,9 @@ void CheckAsleepProc(QStack<Value *> &stack, RunWindow *w, VM *vm);
 void ClsProc(QStack<Value *> &stack, RunWindow *, VM *w);
 void ClearTextProc(QStack<Value *> &stack, RunWindow *w, VM *vm);
 void SetTextColorProc(QStack<Value *> &stack, RunWindow *, VM *w);
+void BuiltInConstantProc(QStack<Value *> &stack, RunWindow *, VM *vm);
+void StringIsNumericProc(QStack<Value *> &stack, RunWindow *w, VM *vm);
+void StringIsAlphabeticProc(QStack<Value *> &stack, RunWindow *w, VM *vm);
 
 void RandomProc(QStack<Value *> &stack, RunWindow *, VM *w);
 void ToNumProc(QStack<Value *> &stack, RunWindow *, VM *w);

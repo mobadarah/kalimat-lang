@@ -29,7 +29,7 @@ AST *parseModule(Parser *p)
 
 Program *Compiler::loadProgram(QString path, CodeDocument *doc)
 {
-    parser.init(loadFileContents(path), &lexer, doc);
+    parser.init(loadFileContents(path), &lexer, doc, path);
     Program *p = (Program *) parser.parse();
 
     for(int i=0; i<p->usedModuleCount(); i++)
@@ -56,7 +56,7 @@ Program *Compiler::loadProgram(QString path, CodeDocument *doc)
 
 Module *Compiler::loadModule(QString path)
 {
-    parser.init(loadFileContents(path), &lexer, documentContainer->getDocumentFromPath(path));
+    parser.init(loadFileContents(path), &lexer, documentContainer->getDocumentFromPath(path), path);
     Module *m = (Module *) parser.parse(parseModule);
     loadedModules[path] = m;
     pathsOfModules[m] = path;

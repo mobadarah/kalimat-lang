@@ -101,7 +101,8 @@ Value *Allocator::newObject(ValueClass *_class)
 
     return newObject(newObj, _class);
 }
-Value *Allocator::newObject(Object *newObj, ValueClass *_class)
+
+Value *Allocator::newObject(IObject *newObj, ValueClass *_class)
 {
     Value *ret = allocateNewValue();
     ret->tag = ObjectVal;
@@ -109,6 +110,7 @@ Value *Allocator::newObject(Object *newObj, ValueClass *_class)
     ret->v.objVal = newObj;
     return ret;
 }
+
 Value *Allocator::null()
 {
     if(Value::NullValue == NULL)
@@ -161,7 +163,7 @@ Value *Allocator::newRaw(void *ptr, ValueClass *_class)
     return ret;
 }
 
-Value *Allocator::newFieldReference(Object *obj, QString SymRef)
+Value *Allocator::newFieldReference(IObject *obj, QString SymRef)
 {
     FieldReference *ref = new FieldReference(obj, SymRef);
 
@@ -262,20 +264,24 @@ void Allocator::mark()
         }
         if(v->tag == ObjectVal)
         {
-            Object *obj = v->unboxObj();
-            for(int i=0; i<obj->_slots.count(); i++)
+            IObject *_obj = v->unboxObj();
+            Object *obj = dynamic_cast<Object *>(_obj);
+            if(obj != NULL)
             {
-                Value *v2 = obj->_slots.values()[i];
-                if(!v2->mark)
-                    reachable.push(v2);
-            }
-            ValueClass *c = dynamic_cast<ValueClass *>(v->v.objVal);
-            if(c)
-            {
-                QMap<QString, Value *>::const_iterator j;
-                for(j= c->methods.begin(); j != c->methods.end(); ++j)
+                for(int i=0; i<obj->_slots.count(); i++)
                 {
-                    reachable.push(*j);
+                    Value *v2 = obj->_slots.values()[i];
+                    if(!v2->mark)
+                        reachable.push(v2);
+                }
+                ValueClass *c = dynamic_cast<ValueClass *>(v->v.objVal);
+                if(c)
+                {
+                    QMap<QString, Value *>::const_iterator j;
+                    for(j= c->methods.begin(); j != c->methods.end(); ++j)
+                    {
+                        reachable.push(*j);
+                    }
                 }
             }
         }

@@ -412,6 +412,19 @@ public:
     void prettyPrint(CodeFormatter *f);
 };
 
+class IsaOperation : public Expression
+{
+public:
+    QScopedPointer<Expression> _expression;
+    QScopedPointer<Identifier> _type;
+public:
+    IsaOperation(Token pos, Expression *expression, Identifier *type);
+    Expression *expression() { return _expression.data(); }
+    Identifier *type() { return _type.data(); }
+    QString toString();
+    void prettyPrint(CodeFormatter *f);
+};
+
 class UnaryOperation : public Expression
 {
 public:

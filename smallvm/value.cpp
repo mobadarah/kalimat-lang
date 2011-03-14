@@ -13,6 +13,7 @@
 #include <QVector>
 #include <QLocale>
 #include "value.h"
+#include "references.h"
 
 #define QSTR(x) QString::fromStdWString(x)
 
@@ -92,32 +93,6 @@ void Object::setSlotValue(QString name, Value *val)
     _slots[name] = val;
 }
 
-void FieldReference::Set(Value *v)
-{
-    object->setSlotValue(SymRef, v);
-}
-Value *FieldReference::Get()
-{
-    return object->getSlotValue(SymRef);
-}
-
-void ArrayReference::Set(Value *val)
-{
-    array->Elements[index] = val;
-}
-Value *ArrayReference::Get()
-{
-    return array->Elements[index];
-}
-
-void MultiDimensionalArrayReference::Set(Value *val)
-{
-    array->set(index, val);
-}
-Value *MultiDimensionalArrayReference::Get()
-{
-    return array->get(index);
-}
 
 int Value::unboxInt()
 {
@@ -134,7 +109,7 @@ bool Value::unboxBool()
     return v.boolVal;
 }
 
-Object *Value::unboxObj()
+IObject *Value::unboxObj()
 {
     return v.objVal;
 }
@@ -251,7 +226,7 @@ IClass *ValueClass::baseClass()
         return NULL;
     return BaseClasses[0];
 }
-bool ValueClass::subclassOf(ValueClass *c)
+bool ValueClass::subclassOf(IClass *c)
 {
     if(c == this)
         return true;
@@ -264,13 +239,13 @@ bool ValueClass::subclassOf(ValueClass *c)
     return  false;
 }
 
-Method *ValueClass::lookupMethod(QString name)
+IMethod *ValueClass::lookupMethod(QString name)
 {
     if(methods.contains(name))
-        return (Method *) methods[name]->v.objVal;
+        return (IMethod *) methods[name]->v.objVal;
     for(int i=0; i<BaseClasses.count(); i++)
     {
-        Method *ret = BaseClasses[i]->lookupMethod(name);
+        IMethod *ret = BaseClasses[i]->lookupMethod(name);
         if(ret != NULL)
             return ret;
     }

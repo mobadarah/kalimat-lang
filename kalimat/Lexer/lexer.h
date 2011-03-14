@@ -13,13 +13,16 @@ class Lexer {
     int state;
     QVector<Token> acceptedTokens;
     void *tokenTag;
+    QString fileName; // For debugging messages only
 public:
     Lexer();
     Lexer(StateMachine sm);
     void init(QString s);
     void init(QString s, void *tag);
-    void tokenize(); // runs the state machine and keeps adding accepted tokens to a vector
-    QVector<Token> getTokens(); // returns all accepted tokens
+    void init(QString s, void *tag, QString fileName);
+
+    void tokenize(); // Runs the state machine and keeps adding accepted tokens to a vector
+    QVector<Token> getTokens(); // Returns all accepted tokens
 protected:
     StateMachine stateMachine;
     Buffer buffer;
@@ -33,10 +36,11 @@ class UnexpectedCharException
 {
     QVector<Predicate *> _transitions;
     QString gotThis;
-    int line, column;
+    int line, column, pos;
     int state;
+    QString fileName;
 public:
-    UnexpectedCharException(QString _gotThis, QVector<Predicate *> possibleTransitions, int line, int column, int state);
+    UnexpectedCharException(QString _gotThis, QVector<Predicate *> possibleTransitions, int line, int column, int pos, int state, QString fileName);
     QString buildMessage();
 
     int getLine() { return line; }

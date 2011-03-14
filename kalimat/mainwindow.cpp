@@ -80,7 +80,7 @@ MainWindow::MainWindow(QWidget *parent)
     this->setWindowTitle(QString::fromWCharArray(L"كلمات"));
     this->showMaximized();
 
-    docContainer->addDocument(QString::fromWCharArray(L"بدون عنوان"), "untitled", CreateEditorWidget(), true);
+    docContainer->addInitialEmptyDocument();
 }
 
 void MainWindow::outputMsg(QString s)
@@ -146,6 +146,10 @@ QWidget *MainWindow::CreateEditorWidget()
     font.setPointSize(18);
 
     edit->setFont(font);
+    // If the next line wasn't there, the syntaxhilighter sends a document modified
+    // event on the initial display of the text editor, causing the document
+    // to be initially 'dirty'.
+    edit->setPlainText("");
     return edit;
 }
 

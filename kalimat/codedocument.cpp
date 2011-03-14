@@ -43,7 +43,6 @@ CodeDocument::CodeDocument(QString fileName, QTabWidget *tabs, QWidget *tabWidge
     setFileName(fileName);
     setDirty(false);
 
-
 }
 CodeDocument::~CodeDocument()
 {
@@ -54,7 +53,9 @@ void CodeDocument::initTabLink(QTabWidget *tabBar, QWidget * tabWidget)
 {
     this->tabs = tabBar;
     this->editor = (QTextEdit *) tabWidget;
-    bool ret = QObject::connect(this->editor, SIGNAL(textChanged()), this, SLOT(editor_textChanged()));
+    //bool ret = QObject::connect(this->editor, SIGNAL(textChanged()), this, SLOT(editor_textChanged()));
+    bool ret = QObject::connect(this->editor->document(), SIGNAL(contentsChanged()), this, SLOT(editor_textChanged()));
+
     ret =  QObject::connect(this->editor, SIGNAL(cursorPositionChanged()), this, SLOT(editor_cursorPositionChanged()));
 }
 bool CodeDocument::isFileDirty()
@@ -78,10 +79,12 @@ void CodeDocument::setDirty(bool dirty)
     }
     setTabText(str);
 }
+
 QString CodeDocument::getFileName()
 {
     return _fileName;
 }
+
 void CodeDocument::setFileName(QString fn)
 {
     _fileName = fn;

@@ -12,7 +12,9 @@ SOURCES += main.cpp \
     frame.cpp \
     vmerror.cpp \
     multidimensionalarray.cpp \
-    allocator.cpp
+    allocator.cpp \
+    classes.cpp \
+    references.cpp
 HEADERS += \
     value.h \
     instruction.h \
@@ -24,6 +26,8 @@ HEADERS += \
     vmerror.h \
     multidimensionalarray.h \
     allocator.h \
-    dequeue.h
+    dequeue.h \
+    classes.h \
+    references.h
 FORMS +=
 RESOURCES += asm.qrc

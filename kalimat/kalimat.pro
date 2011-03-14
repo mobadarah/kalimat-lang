@@ -42,7 +42,9 @@ SOURCES += main.cpp \
     builtinmethods.cpp \
     paintsurface.cpp \
     guieditwidgethandler.cpp \
-    Parser/codeformatter.cpp
+    Parser/codeformatter.cpp \
+    ../smallvm/references.cpp \
+    ../smallvm/classes.cpp
 HEADERS += mainwindow.h \
     codedocument.h \
     Lexer/token.h \

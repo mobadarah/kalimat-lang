@@ -26,6 +26,7 @@ DocumentContainer::DocumentContainer(QString settingsOrganizationName,
     :QObject(client->GetParentWindow())
 {
     newDocCount = 0;
+    hasInitialEmptyDocument = false;
     this->settingsApplicationName = settingsApplicationName;
     this->settingsOrganizationName = settingsOrganizationName;
     this->documentFilter = documentFilter;
@@ -51,6 +52,7 @@ DocumentContainer::~DocumentContainer()
 
 void DocumentContainer::handleNew(QString prefix, QWidget *editor)
 {
+    removeInitialEmptyDocument();
     QString name = QString("%1 %2").arg(prefix).arg(++newDocCount);
     addDocument(name, name, editor, true);
 }
@@ -70,6 +72,22 @@ CodeDocument *DocumentContainer::addDocument(QString title, QString fileName, QW
     widgetDocs[editor] = doc;
     editor->setFocus();
     return doc;
+}
+
+CodeDocument *DocumentContainer::addInitialEmptyDocument()
+{
+    addDocument(QString::fromWCharArray(L"بدون عنوان"), "untitled", client->CreateEditorWidget(), true);
+    hasInitialEmptyDocument = true;
+}
+
+void DocumentContainer::removeInitialEmptyDocument()
+{
+    if(hasInitialEmptyDocument)
+    {
+        hasInitialEmptyDocument = false;
+        if(getCurrentDocument()->isDocNewFile() && !getCurrentDocument()->isFileDirty())
+            handleTabCloseRequested(0);
+    }
 }
 
 CodeDocument *DocumentContainer::getCurrentDocument()
@@ -137,13 +155,17 @@ void DocumentContainer::recentfile_triggered()
             }
         }
         if(!found)
+        {
+            removeInitialEmptyDocument();
             addDocument(QFileInfo(fileName).fileName(), fileName, client->CreateEditorWidget(), false);
+        }
     }
 
 }
 
 void DocumentContainer::handleOpen()
 {
+
     QString dir = "";
     QSettings settings(settingsOrganizationName, settingsApplicationName);
     dir = settings.value("last_open_dir", "").toString();
@@ -163,12 +185,18 @@ void DocumentContainer::handleOpen()
     if(dlg.exec())
     {
         int n = dlg.selectedFiles().count();
+        bool anyLoaded = false;
         for(int i=0; i<n; i++)
         {
             fileName = dlg.selectedFiles()[i];
 
             if(!fileName.isEmpty())
             {
+                if(!anyLoaded)
+                {
+                    anyLoaded = true;
+                    removeInitialEmptyDocument();
+                }
                 QFileInfo f = QFileInfo(fileName);
                 dir = f.absoluteDir().absolutePath();
                 settings.setValue("last_open_dir", dir);

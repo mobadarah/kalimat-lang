@@ -67,6 +67,7 @@ const int NOTHING = 56;
 const int LABEL = 57;
 const int GO = 58;
 const int DELEGATE = 59;
+const int IS = 60;
 const int KEYWORD_CUTOFF = 60; // As long as the ID of the token is <= KEYWORD_CUTOFF, the
                                // syntax hilighter will consider it a keyword.
 const int NUM_LITERAL = 61;

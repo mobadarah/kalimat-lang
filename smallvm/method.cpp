@@ -8,7 +8,6 @@
 #include "method.h"
 
 Method::Method(QString name,int arity)
-    :Object()
 {
     this->name = name;
     this->arity = arity;
@@ -18,7 +17,6 @@ Method::Method(QString name,int arity)
 }
 
 Method::Method(QString name, int arity, int numReturnValues, bool returnsReference, ValueClass *receiver)
-    :Object()
 {
     this->name = name;
     this->arity = arity;
@@ -77,15 +75,38 @@ int Method::Arity()
 {
     return arity;
 }
+
 int Method::NumReturnValues()
 {
     return numReturnValues;
 }
+
 bool Method::IsReturningReference()
 {
     return returnsReference;
 }
+
 QString Method::getName()
 {
     return this->name;
+}
+
+bool Method::hasSlot(QString name)
+{
+    return false;
+}
+
+Value *Method::getSlotValue(QString name)
+{
+    return NULL;
+}
+
+void Method::setSlotValue(QString name, Value *val)
+{
+
+}
+
+QString Method::toString()
+{
+    return getName();
 }

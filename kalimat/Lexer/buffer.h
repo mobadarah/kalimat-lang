@@ -58,6 +58,7 @@ public:
 
     int GetLine();
     int GetColumn();
+    int GetPos();
 
     BufferState saveState();
     void restoreState(BufferState s);

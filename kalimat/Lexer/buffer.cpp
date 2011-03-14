@@ -82,6 +82,7 @@ QChar Buffer::read()
     }
     return c;
 }
+
 void Buffer::updateStartOfLine(int pos)
 {
         QChar c = buffer.at(pos);
@@ -91,10 +92,12 @@ void Buffer::updateStartOfLine(int pos)
                 startOfLine = false;
 
 }
+
 void Buffer::updateStartOfLine()
 {
         updateStartOfLine(p2);
 }
+
 QString Buffer::accept(int &line, int &col, int &pos)
 {
     QString ret = buffer.mid(p1, p2 - p1);
@@ -157,7 +160,13 @@ int Buffer::GetColumn()
 {
     return col;
 }
+
 int Buffer::GetLine()
 {
     return line;
+}
+
+int Buffer::GetPos()
+{
+    return p2;
 }

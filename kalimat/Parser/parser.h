@@ -36,6 +36,7 @@ public:
 
     virtual void init(QString s, Lexer *lxr);
     virtual void init(QString s, Lexer *lxr, void *tag);
+    virtual void init(QString s, Lexer *lxr, void *tag, QString fileName);
     AST *parse();
     AST *parse(AST *(*root)(Parser *p));
 

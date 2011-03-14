@@ -13,6 +13,7 @@
 #include "Parser/kalimatast.h"
 #include "syntaxhighlighter.h"
 #include <QMap>
+#include <QTextDocument>
 
 SyntaxHighlighter::SyntaxHighlighter(QTextDocument *parent, KalimatLexer *_lexer) :
     QSyntaxHighlighter(parent)

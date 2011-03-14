@@ -18,7 +18,7 @@
 #include "instruction.h"
 
 
-class Method : public Object
+class Method : public IMethod
 {
 private:
     QVector<Instruction> instructions;
@@ -43,6 +43,12 @@ public:
     bool IsReturningReference();
     int NumReturnValues();
     QString getName();
+
+    // Implementing IObject
+    virtual bool hasSlot(QString name);
+    virtual Value *getSlotValue(QString name);
+    virtual void setSlotValue(QString name, Value *val);
+    virtual QString toString() ;
 };
 
 #endif // METHOD_H

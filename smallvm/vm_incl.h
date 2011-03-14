@@ -13,6 +13,9 @@
 #include <QSet>
 
 #include "value.h"
+#include "references.h"
+#include "classes.h"
+
 #include "instruction.h"
 #include "method.h"
 #include "externalmethod.h"

@@ -82,6 +82,9 @@ void RunWindow::Init(QString program, QMap<QString, QString>stringConstants)
         vm->Register("cls", new WindowProxyMethod(this, vm, ClsProc));
         vm->Register("cleartext", new WindowProxyMethod(this, vm, ClearTextProc));
         vm->Register("settextcolor", new WindowProxyMethod(this, vm, SetTextColorProc));
+        vm->Register("builtinconstant", new WindowProxyMethod(this, vm, BuiltInConstantProc));
+        vm->Register("stringisnumeric", new WindowProxyMethod(this, vm, StringIsNumericProc));
+        vm->Register("stringisalphabetic", new WindowProxyMethod(this, vm, StringIsAlphabeticProc));
 
         vm->Register("random", new WindowProxyMethod(this, vm, RandomProc));
         vm->Register("sin", new WindowProxyMethod(this, vm, SinProc));

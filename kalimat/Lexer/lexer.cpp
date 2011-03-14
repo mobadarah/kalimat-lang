@@ -16,12 +16,18 @@ Lexer::Lexer(StateMachine sm)
     stateMachine = sm;
 }
 
-void Lexer::init(QString s, void *tag)
+void Lexer::init(QString s, void *tag, QString fileName)
 {
     this->tokenTag = tag;
-    state = 0; //the start state is always assumed = 0
+    state = 0; // The start state is always assumed = 0
     buffer.init(s);
     acceptedTokens.clear();
+    this->fileName = fileName;
+}
+
+void Lexer::init(QString s, void *tag)
+{
+    init(s, tag, "");
 }
 
 void Lexer::init(QString s)
@@ -60,7 +66,7 @@ void Lexer::tokenize()
                 curChar = "<EOF>";
             else
                 curChar = QString("%1").arg(buffer.read());
-            throw UnexpectedCharException(curChar, stateMachine.GetPossibleTransitions(state), buffer.GetLine(), buffer.GetColumn(), state);
+            throw UnexpectedCharException(curChar, stateMachine.GetPossibleTransitions(state), buffer.GetLine(), buffer.GetColumn(), buffer.GetPos(), state, fileName);
         }
         if(accepted)
         {
@@ -133,7 +139,7 @@ Token Lexer::accept(TokenType type)
     state = 0;
     return ret;
 }
-UnexpectedCharException::UnexpectedCharException(QString _gotThis, QVector<Predicate *> possibleTransitions, int _line, int _column, int _state)
+UnexpectedCharException::UnexpectedCharException(QString _gotThis, QVector<Predicate *> possibleTransitions, int _line, int _column, int _pos, int _state, QString fileName)
 {
     _transitions = possibleTransitions;
     gotThis = _gotThis;
@@ -141,9 +147,12 @@ UnexpectedCharException::UnexpectedCharException(QString _gotThis, QVector<Predi
         gotThis = "\\n";
     line = _line;
     column = _column;
+    pos = _pos;
     state = _state;
+    this->fileName = fileName;
 }
 QString UnexpectedCharException::buildMessage()
 {
-    return QString("Unexpected char:%1,(%2,%3) state=%4").arg(gotThis).arg(line).arg(column).arg(state);
+    return QString("Unexpected char:'%1'',%2(%3,%4, %5) state=%6, char code =%7").arg(gotThis)
+            .arg(fileName!=""?QString(":%1").arg(fileName):"").arg(line).arg(column).arg(pos).arg(state).arg(gotThis[0].unicode());
 }

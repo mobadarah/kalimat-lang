@@ -231,6 +231,21 @@ callex settextcolor
 ret
 .endmethod
 
+.method الثابت 1 1
+callex builtinconstant
+ret
+.endmethod
+
+.method رقم 1 1
+callex stringisnumeric
+ret
+.endmethod
+
+.method حرف 1 1
+callex stringisalphabetic
+ret
+.endmethod
+
 .class %file
 	.field file_handle	
 	.method اطبع.سطر 2 0

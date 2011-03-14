@@ -38,6 +38,7 @@ private:
     QVector<QAction *> recentFileActions;
     QVector<CodeDocument> documents;
     QMap<QWidget *, CodeDocument *> widgetDocs;
+    bool hasInitialEmptyDocument;
 public:
     DocumentContainer(QString settingsOrganizationName,
                       QString settingsApplicationName,
@@ -57,8 +58,11 @@ public:
     void updateRecentFiles();
     CodeDocument *getDocumentFromTab(int index);
     CodeDocument *addDocument(QString title, QString fileName, QWidget *editor, bool createNew);
+    CodeDocument *addInitialEmptyDocument();
+    void removeInitialEmptyDocument();
     CodeDocument *getCurrentDocument();
     CodeDocument *getDocumentFromPath(QString path);
+
     void onFileTouched(QString fileName, CodeDocument *doc);
 private slots:
     void recentfile_triggered();

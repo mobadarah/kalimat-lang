@@ -22,6 +22,7 @@ Parser::~Parser()
 {
 
 }
+
 void Parser::init(QString s, Lexer *lxr)
 {
     init(s, lxr, NULL);
@@ -34,12 +35,22 @@ void Parser::init(QString s, Lexer *lxr, void *tag)
     tokens = lxr->getTokens();
     curToken = -1;
 }
+
+void Parser::init(QString s, Lexer *lxr, void *tag, QString fileName)
+{
+    lxr->init(s, tag, fileName);
+    lxr->tokenize();
+    tokens = lxr->getTokens();
+    curToken = -1;
+}
+
 bool Parser::LA(TokenType tokenId)
 {
     if(eof())
         return false;
     return lookAhead.Type == tokenId;
 }
+
 bool Parser::LA2(TokenType tokenId, TokenType followingTokenId)
 {
     // Make sure we have at least 2 more tokens

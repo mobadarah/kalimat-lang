@@ -88,6 +88,7 @@ private:
     void generateZoomStmt(ZoomStmt *stmt);
     void generateEventStatement(EventStatement *stmt);
     void generateBinaryOperation(BinaryOperation *expr);
+    void generateIsaOperation(IsaOperation *expr);
     void generateUnaryOperation(UnaryOperation *expr);
     void generateIdentifier(Identifier *expr);
     void generateNumLiteral(NumLiteral *expr);

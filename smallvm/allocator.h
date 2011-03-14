@@ -9,6 +9,7 @@
 #define ALLOCATOR_H
 
 #include "value.h"
+#include "references.h"
 
 const int MEGA = 1024 * 1024;
 const double GC_FACTOR = 0.75;
@@ -38,11 +39,11 @@ public:
     Value *newBool(bool b, bool gcMonitor);
     Value *newObject(ValueClass *);
     Value *newString(QString *);
-    Value *newObject(Object *, ValueClass *);
+    Value *newObject(IObject *, ValueClass *);
     Value *newArray(int size);
     Value *newMultiDimensionalArray(QVector<int> dimensions);
     Value *newRaw(void*, ValueClass *);
-    Value *newFieldReference(Object *obj, QString SymRef);
+    Value *newFieldReference(IObject *obj, QString SymRef);
     Value *newArrayReference(VArray *array, int index);
     Value *newMultiDimensionalArrayReference(MultiDimensionalArray<Value *> *array, QVector<int> index);
     Value *null();

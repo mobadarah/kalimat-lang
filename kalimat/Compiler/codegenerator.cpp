@@ -919,6 +919,11 @@ void CodeGenerator::generateExpression(Expression *expr)
         generateBinaryOperation(dynamic_cast<BinaryOperation *>(expr));
         return;
     }
+    if(isa<IsaOperation>(expr))
+    {
+        generateIsaOperation(dynamic_cast<IsaOperation *>(expr));
+        return;
+    }
     if(isa<UnaryOperation>(expr))
     {
         generateUnaryOperation(dynamic_cast<UnaryOperation *>(expr));
@@ -989,9 +994,77 @@ void CodeGenerator::generateExpression(Expression *expr)
 
 void CodeGenerator::generateBinaryOperation(BinaryOperation *expr)
 {
-    generateExpression(expr->operand1());
-    generateExpression(expr->operand2());
-    gen(expr, expr->_operator);
+    if(expr->_operator == "and")
+    {
+        // if(op1)
+        //     op2
+        // else
+        //     false
+        // =>
+        // <op1>
+        // if goon, else
+        // goon:
+        // <op2>
+        // jmp theend
+        // else:
+        // pushv false
+        // theend:
+
+        QString goOn = _asm.uniqueLabel();
+        QString elSe = _asm.uniqueLabel();
+        QString theEnd = _asm.uniqueLabel();
+
+        generateExpression(expr->operand1());
+        gen(expr, "if " + goOn + "," + elSe);
+        gen(expr, goOn+":");
+        generateExpression(expr->operand2());
+        gen(expr, "jmp " + theEnd);
+        gen(expr, elSe+":");
+        gen(expr->operand1(), "pushv false");
+        gen(expr, theEnd + ":");
+    }
+    else if(expr->_operator == "or")
+    {
+        // if(op1)
+        //     op2
+        // else
+        //     false
+        // =>
+        // <op1>
+        // if else,goon
+        // goon:
+        // <op2>
+        // jmp theend
+        // else:
+        // pushv true
+        // theend:
+
+        QString goOn = _asm.uniqueLabel();
+        QString elSe = _asm.uniqueLabel();
+        QString theEnd = _asm.uniqueLabel();
+
+        generateExpression(expr->operand1());
+        gen(expr, "if " + elSe + "," + goOn);
+        gen(expr, goOn+":");
+        generateExpression(expr->operand2());
+        gen(expr, "jmp " + theEnd);
+        gen(expr, elSe+":");
+        gen(expr->operand1(), "pushv true");
+        gen(expr, theEnd + ":");
+    }
+    else
+    {
+        generateExpression(expr->operand1());
+        generateExpression(expr->operand2());
+        gen(expr, expr->_operator);
+    }
+}
+
+void CodeGenerator::generateIsaOperation(IsaOperation *expr)
+{
+    generateExpression(expr->expression());
+    QString typeId = expr->type()->name;
+    gen(expr, "isa " + typeId);
 }
 
 void CodeGenerator::generateUnaryOperation(UnaryOperation *expr)

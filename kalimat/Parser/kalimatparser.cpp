@@ -22,6 +22,11 @@ KalimatParser::~KalimatParser()
 
 void KalimatParser::init(QString s, Lexer *lxr, void *tag)
 {
+    init(s, lxr, tag, "");
+}
+
+void KalimatParser::init(QString s, Lexer *lxr, void *tag, QString fileName)
+{
     // Here we manually filter out comments from our token stream.
     // The comments are not automatically skipped because automatic
     // skipping happens only for tokens of type TokenNone and
@@ -31,7 +36,7 @@ void KalimatParser::init(QString s, Lexer *lxr, void *tag)
     // todo: Find a more efficient way for this
     // todo: This code is very tightly coupled with Parser::init(...)
 
-    Parser::init(s, lxr, tag);
+    Parser::init(s, lxr, tag, fileName);
     QVector<Token> tokens2;
     bool pendingSisterHood = false;
     Token sis;
@@ -1133,13 +1138,27 @@ Expression *KalimatParser::comparisonExpression()
 {
     Expression *t = arithmeticExpression();
 
-    while(LA(LT) || LA(GT) || LA(EQ) || LA(NE) || LA(LE) || LA(GE))
+    while(true)
     {
-        Token tok  = lookAhead;
-        QString operation = getOperation(lookAhead);
-        match(lookAhead.Type);
-        Expression * t2 = arithmeticExpression();
-        t = new BinaryOperation(tok, operation, t, t2);
+        if(LA(LT) || LA(GT) || LA(EQ) || LA(NE) || LA(LE) || LA(GE))
+        {
+            Token tok  = lookAhead;
+            QString operation = getOperation(lookAhead);
+            match(lookAhead.Type);
+            Expression * t2 = arithmeticExpression();
+            t = new BinaryOperation(tok, operation, t, t2);
+        }
+        else if(LA(IS))
+        {
+            Token tok  = lookAhead;
+            match(lookAhead.Type);
+            Identifier *t2 = identifier();
+            t = new IsaOperation(tok, t, t2);
+        }
+        else
+        {
+            break;
+        }
     }
     return t;
 }
