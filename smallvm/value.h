@@ -45,7 +45,7 @@ union ValueItem
 struct Value
 {
     char mark;
-    ValueClass *type;
+    IClass *type;
     Tag tag;
     ValueItem v;
 

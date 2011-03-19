@@ -36,7 +36,6 @@ private:
     QTabWidget *tabWidget;
     QQueue<QString> recentFileList;
     QVector<QAction *> recentFileActions;
-    QVector<CodeDocument> documents;
     QMap<QWidget *, CodeDocument *> widgetDocs;
     bool hasInitialEmptyDocument;
 public:
@@ -62,7 +61,7 @@ public:
     void removeInitialEmptyDocument();
     CodeDocument *getCurrentDocument();
     CodeDocument *getDocumentFromPath(QString path);
-
+    int documentCount() { return widgetDocs.count(); }
     void onFileTouched(QString fileName, CodeDocument *doc);
 private slots:
     void recentfile_triggered();

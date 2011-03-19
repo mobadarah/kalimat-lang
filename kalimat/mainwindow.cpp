@@ -18,6 +18,7 @@
 #include "runwindow.h"
 #include "syntaxhighlighter.h"
 
+#include "Parser/kalimatprettyprintparser.h"
 #include "savechangedfiles.h"
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
@@ -324,15 +325,25 @@ void MainWindow::on_actionCompile_without_tags_triggered()
     }
 }
 
+void MainWindow::saveAll()
+{
+    for(int i=0; i<docContainer->documentCount(); i++)
+    {
+        CodeDocument *doc = docContainer->getDocumentFromTab(i);
+        if(!doc->isDocNewFile())
+        {
+            doc->doSave();
+        }
+    }
+}
+
 void MainWindow::on_mnuProgramRun_triggered()
 {
-    KalimatLexer lxr;
-    KalimatParser parser;
     CodeDocument *doc;
     try
     {
         currentEditor()->setExtraSelections(QList<QTextEdit::ExtraSelection>());
-
+        saveAll();
         ui->outputView->clear();
         doc = docContainer->getCurrentDocument();
         Compiler compiler(docContainer);
@@ -862,13 +873,14 @@ void MainWindow::on_action_autoFormat_triggered()
         //QApplication::clipboard()->setText(html);
         QString program = editor->document()->toPlainText();
         KalimatLexer lxr;
-        KalimatParser parser;
+        //KalimatParser parser;
+        KalimatPrettyprintParser parser;
         SimpleCodeFormatter fmt;
         try
         {
             parser.init(program, &lxr, NULL);
             AST * tree = parser.parse();
-            tree->prettyPrint(&fmt);
+                tree->prettyPrint(&fmt);
             editor->setText(fmt.getOutput());
         }
         catch(UnexpectedCharException ex)

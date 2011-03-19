@@ -76,6 +76,7 @@ private:
     void hideHelpWindow();
 
     QTextEdit *currentEditor();
+    void saveAll();
 private slots:
     void on_actionGo_to_position_triggered();
     void on_actionCompile_without_tags_triggered();

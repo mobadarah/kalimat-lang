@@ -312,7 +312,15 @@ void MyEdit::enterKeyBehavior(QKeyEvent *ev)
     {
         QTextEdit::keyPressEvent(ev);
     }
+
     textCursor().endEditBlock();
+    if(indented)
+    {
+        QTextCursor c = textCursor();
+        moveCursor(QTextCursor::Down);
+        ensureCursorVisible();
+        setTextCursor(c );
+    }
     if(end)
     {
         QTextCursor c = textCursor();

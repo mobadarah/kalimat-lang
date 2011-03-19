@@ -80,7 +80,7 @@ public:
     bool isAsleep(int cookie);
 
     void typeCheck(Value *val, ValueClass *type);
-    void typeError(ValueClass *expected, ValueClass *given);
+    void typeError(IClass *expected, IClass *given);
     void beginInput();
     void Run();
     friend class WindowPrintMethod;

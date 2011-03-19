@@ -178,6 +178,8 @@
     <addaction name="action_copy_literate_html"/>
     <addaction name="separator"/>
     <addaction name="action_autoFormat"/>
+    <addaction name="separator"/>
+    <addaction name="action_options"/>
    </widget>
    <widget class="QMenu" name="mnuPRogram">
     <property name="title">
@@ -761,6 +763,11 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+I, Return</string>
+   </property>
+  </action>
+  <action name="action_options">
+   <property name="text">
+    <string>خيارات...</string>
    </property>
   </action>
  </widget>

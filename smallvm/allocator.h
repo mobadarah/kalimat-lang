@@ -39,7 +39,7 @@ public:
     Value *newBool(bool b, bool gcMonitor);
     Value *newObject(ValueClass *);
     Value *newString(QString *);
-    Value *newObject(IObject *, ValueClass *);
+    Value *newObject(IObject *, ValueClass *, bool gcMonitor = true);
     Value *newArray(int size);
     Value *newMultiDimensionalArray(QVector<int> dimensions);
     Value *newRaw(void*, ValueClass *);

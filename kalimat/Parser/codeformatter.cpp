@@ -3,7 +3,8 @@
 IndentingCodeFormatter::IndentingCodeFormatter()
 {
     atLineStart = true;
-    indentLevel = false;
+    indentLevel = 0;
+    lastPrinted = "";
 }
 
 void IndentingCodeFormatter::print(QString code)
@@ -15,11 +16,31 @@ void IndentingCodeFormatter::print(QString code)
         atLineStart = false;
     }
     printRaw(code);
+    lastPrinted = ""; // we are only interested in spaces and lines
 }
 
 void IndentingCodeFormatter::nl()
 {
+    rawNl();
     atLineStart = true;
+}
+
+void IndentingCodeFormatter::blankLine()
+{
+    if(lastPrinted != "\n")
+    {
+        nl();
+        lastPrinted = "\n";
+    }
+}
+
+void IndentingCodeFormatter::space()
+{
+    if(lastPrinted != " ")
+    {
+        CommonCodeFormatter::space();
+        lastPrinted = " ";
+    }
 }
 
 void IndentingCodeFormatter::indent()

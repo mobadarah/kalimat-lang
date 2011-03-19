@@ -11,6 +11,7 @@ class Value;
 struct IObject
 {
     virtual bool hasSlot(QString name)=0;
+    virtual QList<QString> getSlotNames()=0;
     virtual Value *getSlotValue(QString name)=0;
     virtual void setSlotValue(QString name, Value *val)=0;
     virtual QString toString() =0;
@@ -19,6 +20,7 @@ struct IObject
 struct Object : public IObject
 {
     virtual bool hasSlot(QString name);
+    virtual QList<QString> getSlotNames();
     virtual Value *getSlotValue(QString name);
     virtual void setSlotValue(QString name, Value *val);
     virtual QString toString();
@@ -50,6 +52,7 @@ struct ValueClass : public IClass
 
     // IObject
     virtual bool hasSlot(QString name);
+    virtual QList<QString> getSlotNames();
     virtual Value *getSlotValue(QString name);
     virtual void setSlotValue(QString name, Value *val);
 

@@ -43,6 +43,7 @@ public:
     void Load(QString assemblyCode);
 
     void Register(QString symRef, ExternalMethod *method);
+    void RegisterType(QString typeName, IClass *type);
     void DefineStringConstant(QString symRef, QString strValue);
     void ActivateEvent(QString evName, QVector<Value *> args);
     void RunStep();
@@ -64,7 +65,7 @@ public:
     void assert(bool cond, VMErrorType toSignal);
     void assert(bool cond, VMErrorType toSignal, QString arg0);
     void assert(bool cond, VMErrorType toSignal, QString arg0, QString arg1);
-    void assert(bool cond, VMErrorType toSignal, ValueClass *arg0, ValueClass *arg1);
+    void assert(bool cond, VMErrorType toSignal, IClass *arg0, IClass *arg1);
     void assert(bool cond, VMErrorType toSignal, QString arg0, QString arg1, QString arg2);
 
     QStack<Frame> &getCallStack();

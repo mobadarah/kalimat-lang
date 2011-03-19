@@ -102,9 +102,9 @@ Value *Allocator::newObject(ValueClass *_class)
     return newObject(newObj, _class);
 }
 
-Value *Allocator::newObject(IObject *newObj, ValueClass *_class)
+Value *Allocator::newObject(IObject *newObj, ValueClass *_class, bool gcMonitor)
 {
-    Value *ret = allocateNewValue();
+    Value *ret = allocateNewValue(gcMonitor);
     ret->tag = ObjectVal;
     ret->type = _class;
     ret->v.objVal = newObj;
@@ -264,24 +264,22 @@ void Allocator::mark()
         }
         if(v->tag == ObjectVal)
         {
-            IObject *_obj = v->unboxObj();
-            Object *obj = dynamic_cast<Object *>(_obj);
-            if(obj != NULL)
+            IObject *obj = v->unboxObj();
+            // todo: so unperformant!
+            QList<QString> slotNames = obj->getSlotNames();
+            for(int i=0; i<slotNames.count(); i++)
             {
-                for(int i=0; i<obj->_slots.count(); i++)
+                Value *v2 = obj->getSlotValue(slotNames[i]);
+                if(!v2->mark)
+                    reachable.push(v2);
+            }
+            ValueClass *c = dynamic_cast<ValueClass *>(obj);
+            if(c)
+            {
+                QMap<QString, Value *>::const_iterator j;
+                for(j= c->methods.begin(); j != c->methods.end(); ++j)
                 {
-                    Value *v2 = obj->_slots.values()[i];
-                    if(!v2->mark)
-                        reachable.push(v2);
-                }
-                ValueClass *c = dynamic_cast<ValueClass *>(v->v.objVal);
-                if(c)
-                {
-                    QMap<QString, Value *>::const_iterator j;
-                    for(j= c->methods.begin(); j != c->methods.end(); ++j)
-                    {
-                        reachable.push(*j);
-                    }
+                    reachable.push(*j);
                 }
             }
         }

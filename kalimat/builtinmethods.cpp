@@ -741,6 +741,15 @@ void StringIsAlphabeticProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
     stack.push(vm->GetAllocator().newBool(yep));
 }
 
+void TypeOfProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
+{
+    Value *v = popValue(stack, w, vm);
+
+    // We use a gcMonitor value of false since we don't want the GC
+    // to collect class objects
+    stack.push(vm->GetAllocator().newObject(v->type, BuiltInTypes::ClassType, false));
+}
+
 struct FileBlob
 {
     QFile *file;
@@ -760,6 +769,13 @@ FileBlob *popFileBlob(QStack<Value *> &stack, RunWindow *w, VM *vm)
     void *fileObj = rawFile->unboxRaw();
     FileBlob *f = (FileBlob *) fileObj;
     return f;
+}
+
+Value *popValue(QStack<Value *> &stack, RunWindow *w, VM *vm)
+{
+    verifyStackNotEmpty(stack, vm);
+    Value *v = stack.pop();
+    return v;
 }
 
 QString *popString(QStack<Value *> &stack, RunWindow *w, VM *vm)
@@ -912,7 +928,7 @@ Value *editAndReturn(Value *v, RunWindow *w, VM *vm);
 void EditProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 {
     Value *v = stack.pop();
-    w->assert(v->tag == ObjectVal, ArgumentError, QString::fromStdWString(L"القيمة المرسلة لابد أن تكون كائناً");
+    w->assert(v->tag == ObjectVal, ArgumentError, QString::fromStdWString(L"القيمة المرسلة لابد أن تكون كائناً"));
     v = editAndReturn(v, w, vm);
     stack.push(v);
 }

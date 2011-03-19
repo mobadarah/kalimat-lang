@@ -246,6 +246,11 @@ callex stringisalphabetic
 ret
 .endmethod
 
+.method نوع 1 1
+callex typeof
+ret
+.endmethod
+
 .class %file
 	.field file_handle	
 	.method اطبع.سطر 2 0

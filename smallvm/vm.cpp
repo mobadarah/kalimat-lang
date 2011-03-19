@@ -52,7 +52,7 @@ void VM::assert(bool cond, VMErrorType toSignal, QString arg0, QString arg1)
         signal(toSignal, arg0, arg1);
 }
 
-void VM::assert(bool cond, VMErrorType toSignal, ValueClass *arg0, ValueClass *arg1)
+void VM::assert(bool cond, VMErrorType toSignal, IClass *arg0, IClass *arg1)
 {
     assert(cond, toSignal, arg0->getName(), arg1->getName());
 }
@@ -120,6 +120,11 @@ Frame &VM::globalFrame()
 void VM::Register(QString symRef, ExternalMethod *method)
 {
     constantPool[symRef] = allocator.newObject(method, BuiltInTypes::ExternalMethodType);
+}
+
+void VM::RegisterType(QString typeName, IClass *type)
+{
+    constantPool[typeName] = allocator.newObject(type, BuiltInTypes::ClassType);
 }
 
 void VM::ActivateEvent(QString evName, QVector<Value *>args)
@@ -1238,7 +1243,7 @@ void VM::DoSetField(QString SymRef)
 
     assert(objVal->tag != NullVal, SettingFieldOnNull);
     assert(objVal->tag == ObjectVal, SettingFieldOnNonObject);
-    assert(objVal->type->fields.contains(SymRef), NoSuchField2, SymRef, objVal->type->getName());
+    assert(objVal->type->hasField(SymRef), NoSuchField2, SymRef, objVal->type->getName());
 
     IObject *obj = objVal->unboxObj();
     obj->setSlotValue(SymRef, v);
@@ -1251,7 +1256,7 @@ void VM::DoGetField(QString SymRef)
 
     assert(objVal->tag != NullVal, GettingFieldOnNull);
     assert(objVal->tag == ObjectVal, GettingFieldOnNonObject);
-    assert(objVal->type->fields.contains(SymRef), NoSuchField2, SymRef, objVal->type->getName());
+    assert(objVal->type->hasField(SymRef), NoSuchField2, SymRef, objVal->type->getName());
 
     IObject *obj = objVal->v.objVal;
     Value *v = obj->getSlotValue(SymRef);
@@ -1265,7 +1270,7 @@ void VM::DoGetFieldRef(QString SymRef)
 
     assert(objVal->tag != NullVal, GettingFieldOnNull);
     assert(objVal->tag == ObjectVal, GettingFieldOnNonObject);
-    assert(objVal->type->fields.contains(SymRef), NoSuchField2, SymRef, objVal->type->getName());
+    assert(objVal->type->hasField(SymRef), NoSuchField2, SymRef, objVal->type->getName());
     Value *ref = allocator.newFieldReference(objVal->unboxObj(), SymRef);
     currentFrame()->OperandStack.push(ref);
 }

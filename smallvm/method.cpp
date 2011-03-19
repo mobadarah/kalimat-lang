@@ -96,6 +96,11 @@ bool Method::hasSlot(QString name)
     return false;
 }
 
+QList<QString> Method::getSlotNames()
+{
+    return QList<QString>();
+}
+
 Value *Method::getSlotValue(QString name)
 {
     return NULL;

@@ -44,6 +44,7 @@ void SetTextColorProc(QStack<Value *> &stack, RunWindow *, VM *w);
 void BuiltInConstantProc(QStack<Value *> &stack, RunWindow *, VM *vm);
 void StringIsNumericProc(QStack<Value *> &stack, RunWindow *w, VM *vm);
 void StringIsAlphabeticProc(QStack<Value *> &stack, RunWindow *w, VM *vm);
+void TypeOfProc(QStack<Value *> &stack, RunWindow *w, VM *vm);
 
 void RandomProc(QStack<Value *> &stack, RunWindow *, VM *w);
 void ToNumProc(QStack<Value *> &stack, RunWindow *, VM *w);
@@ -92,6 +93,7 @@ double popDoubleOrCoercable(QStack<Value *> &stack, RunWindow *w, VM *vm);
 int popInt(QStack<Value *> &stack, RunWindow *w, VM *vm);
 bool popBool(QStack<Value *> &stack, RunWindow *w, VM *vm);
 QString *popString(QStack<Value *> &stack, RunWindow *w, VM *vm);
+Value *popValue(QStack<Value *> &stack, RunWindow *w, VM *vm);
 void verifyStackNotEmpty(QStack<Value *> &stack, VM *vm);
 
 Value *ConvertStringToNumber(QString str, VM *vm);

@@ -11,7 +11,7 @@ public:
     virtual void print(QString code) = 0;
     virtual void println(QString code) = 0;
     virtual void printColored(QString code, QColor clr) = 0;
-
+    virtual void rawNl() = 0;
     virtual void printKw(QString code) = 0;
     virtual void printKwExpression(QString code) = 0;
 
@@ -29,6 +29,7 @@ public:
     virtual void comma() = 0;
     virtual void colon() = 0;
     virtual void nl() = 0;
+    virtual void blankLine()=0;
     virtual void openParen() = 0;
     virtual void closeParen() = 0;
 
@@ -48,7 +49,10 @@ public:
     virtual void printKw(QStdWString code) { printKw(QString::fromStdWString(code)); }
     virtual void printKwExpression(QStdWString code) { printKwExpression(QString::fromStdWString(code)); }
 
-    virtual void space() { print(" "); }
+    virtual void space()
+    {
+        print(" ");
+    }
     virtual void comma() { print(", "); }
     virtual void colon() { print(":"); }
     virtual void openParen() { print("("); }
@@ -64,18 +68,22 @@ public:
     virtual void indent() = 0;
     virtual void deindent() = 0;
     virtual void nl() = 0;
+    virtual void blankLine()=0;
 };
 
 class IndentingCodeFormatter : public CommonCodeFormatter
 {
     bool atLineStart;
     int indentLevel;
+    QString lastPrinted;
 public:
     IndentingCodeFormatter();
     virtual void print(QString code);
     virtual void indent();
     virtual void deindent();
     virtual void nl();
+    virtual void blankLine();
+    virtual void space();
 };
 
 class SimpleCodeFormatter : public IndentingCodeFormatter
@@ -83,7 +91,7 @@ class SimpleCodeFormatter : public IndentingCodeFormatter
     QStringList o;
 public:
     void printRaw(QString str) { o.append(str); }
-    void nl() { IndentingCodeFormatter::nl(); o.append("\n");}
+    void rawNl() { o.append("\n");}
     void printColored(QString code, QColor clr) {print(code);}
     void printKw(QString code)
     {

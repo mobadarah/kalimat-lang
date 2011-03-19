@@ -46,6 +46,7 @@ public:
 
     // Implementing IObject
     virtual bool hasSlot(QString name);
+    virtual QList<QString> getSlotNames();
     virtual Value *getSlotValue(QString name);
     virtual void setSlotValue(QString name, Value *val);
     virtual QString toString() ;

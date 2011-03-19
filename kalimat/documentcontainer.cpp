@@ -86,7 +86,9 @@ void DocumentContainer::removeInitialEmptyDocument()
     {
         hasInitialEmptyDocument = false;
         if(getCurrentDocument()->isDocNewFile() && !getCurrentDocument()->isFileDirty())
+        {
             handleTabCloseRequested(0);
+        }
     }
 }
 
@@ -299,7 +301,11 @@ void DocumentContainer::handleTabCloseRequested(int index)
 {
     CodeDocument *doc = getDocumentFromTab(index);
     if(doc->canDiscard())
+    {
+        QWidget *widget = doc->getEditor();
+        widgetDocs.remove(widget);
         tabWidget->removeTab(index);
+    }
 }
 
 void DocumentContainer::onFileTouched(QString fileName, CodeDocument *doc)

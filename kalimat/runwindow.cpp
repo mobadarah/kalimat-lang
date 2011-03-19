@@ -85,6 +85,7 @@ void RunWindow::Init(QString program, QMap<QString, QString>stringConstants)
         vm->Register("builtinconstant", new WindowProxyMethod(this, vm, BuiltInConstantProc));
         vm->Register("stringisnumeric", new WindowProxyMethod(this, vm, StringIsNumericProc));
         vm->Register("stringisalphabetic", new WindowProxyMethod(this, vm, StringIsAlphabeticProc));
+        vm->Register("typeof", new WindowProxyMethod(this, vm, TypeOfProc));
 
         vm->Register("random", new WindowProxyMethod(this, vm, RandomProc));
         vm->Register("sin", new WindowProxyMethod(this, vm, SinProc));
@@ -142,6 +143,28 @@ void RunWindow::Init(QString program, QMap<QString, QString>stringConstants)
             QString strSymRef = stringConstants[strValue];
             vm->DefineStringConstant(strSymRef, strValue);
         }
+
+        IClass *builtIns[] = {BuiltInTypes::ObjectType,
+                           BuiltInTypes::NumericType,
+                           BuiltInTypes::IntType,
+                           BuiltInTypes::DoubleType,
+
+                           BuiltInTypes::BoolType,
+                           BuiltInTypes::MethodType,
+                           BuiltInTypes::ExternalMethodType,
+                           BuiltInTypes::ClassType,
+
+                           BuiltInTypes::ArrayType,
+                           BuiltInTypes::StringType,
+                           BuiltInTypes::SpriteType,
+                           BuiltInTypes::NullType};
+        // todo: handle built-in file type
+        const int numBuiltIns = 12;
+        for(int i=0; i<numBuiltIns; i++)
+        {
+            vm->RegisterType(builtIns[i]->getName(), builtIns[i]);
+        }
+
         InitVMPrelude(vm);
         vm->Load(program);
         vm->Init();
@@ -275,7 +298,7 @@ void RunWindow::assert(bool condition, VMErrorType errorType, QString errorMsg)
     vm->assert(condition, errorType, errorMsg);
 }
 
-void RunWindow::typeError(ValueClass *expected, ValueClass *given)
+void RunWindow::typeError(IClass *expected, IClass *given)
 {
     vm->assert(false, TypeError2, expected, given);
 }

@@ -18,14 +18,14 @@
 #define QSTR(x) QString::fromStdWString(x)
 
 ValueClass *BuiltInTypes::ObjectType = new ValueClass(QSTR(L"شيء"), NULL);
-ValueClass *BuiltInTypes::NumericType = new ValueClass(QSTR(L"عدد"), BuiltInTypes::ObjectType);
+ValueClass *BuiltInTypes::NumericType = new ValueClass(QSTR(L"عددي"), BuiltInTypes::ObjectType);
 ValueClass *BuiltInTypes::IntType = new ValueClass(QSTR(L"عدد.صحيح"), BuiltInTypes::NumericType);
 ValueClass *BuiltInTypes::DoubleType = new ValueClass(QSTR(L"عدد.حقيقي"), BuiltInTypes::NumericType);
 ValueClass *BuiltInTypes::BoolType = new ValueClass(QSTR(L"قيمة.منطقية"), BuiltInTypes::ObjectType);
 ValueClass *BuiltInTypes::MethodType = new ValueClass("Method", BuiltInTypes::ObjectType);
 ValueClass *BuiltInTypes::ExternalMethodType = new ValueClass("ExternalMethod", BuiltInTypes::ObjectType);
 ValueClass *BuiltInTypes::ClassType = new ValueClass("Class", BuiltInTypes::ObjectType);
-ValueClass *BuiltInTypes::ArrayType = new ValueClass(QSTR(L"مصفوفة"), BuiltInTypes::ObjectType);
+ValueClass *BuiltInTypes::ArrayType = new ValueClass(QSTR(L"مصفوفة.قيم"), BuiltInTypes::ObjectType);
 ValueClass *BuiltInTypes::StringType = new ValueClass(QSTR(L"نص"), BuiltInTypes::ObjectType);
 ValueClass *BuiltInTypes::SpriteType = new ValueClass(QSTR(L"طيف"), BuiltInTypes::ObjectType);
 ValueClass *BuiltInTypes::FileType = NULL;
@@ -84,6 +84,12 @@ bool Object::hasSlot(QString name)
 {
     return _slots.contains(name);
 }
+
+QList<QString> Object::getSlotNames()
+{
+    return _slots.keys();
+}
+
 Value *Object::getSlotValue(QString name)
 {
     return _slots[name];
@@ -202,6 +208,11 @@ bool ValueClass::hasSlot(QString name)
     return false;
 }
 
+QList<QString> ValueClass::getSlotNames()
+{
+    return QList<QString>();
+}
+
 Value *ValueClass::getSlotValue(QString name)
 {
     return NULL;
@@ -259,6 +270,6 @@ ValueClass::~ValueClass()
 
 QString ValueClass::toString()
 {
-    return "class "+ name;
+    return "class " + name;
 }
 

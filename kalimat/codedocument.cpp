@@ -135,7 +135,6 @@ void CodeDocument::load()
     QString fn = getFileName();
     if(!fn.isEmpty() && QFile::exists(fn))
     {
-        QFileInfo
         setTabText(QFileInfo(fn).fileName());
         QFile f(fn);
         f.open(QIODevice::ReadOnly | QIODevice::Text);
