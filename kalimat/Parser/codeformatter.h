@@ -53,7 +53,7 @@ public:
     {
         print(" ");
     }
-    virtual void comma() { print(", "); }
+    virtual void comma() { print(QString::fromStdWString(L"، "); }
     virtual void colon() { print(":"); }
     virtual void openParen() { print("("); }
     virtual void closeParen() { print(")"); }

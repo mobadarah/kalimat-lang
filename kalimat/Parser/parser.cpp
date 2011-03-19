@@ -59,10 +59,12 @@ bool Parser::LA2(TokenType tokenId, TokenType followingTokenId)
 
     return lookAhead.Type == tokenId && tokens[curToken+1].Type == followingTokenId;
 }
+
 bool Parser::eof()
 {
     return curToken == tokens.size() ;
 }
+
 bool Parser::match(TokenType tokenType)
 {
     QString tokenId;
@@ -84,6 +86,7 @@ bool Parser::match(TokenType tokenType)
         throw ParserException(getPos(), QString("Exprected token of type:%1").arg(tokenId));
     }
 }
+
 void Parser::advanceToken()
 {
     // advanceToken does notihng if at EOF instead of signaling an error.
@@ -95,6 +98,7 @@ void Parser::advanceToken()
         lookAhead = tokens[curToken];
     }
 }
+
 void Parser::initLookAhead()
 {
     if (tokens.size() == 0)

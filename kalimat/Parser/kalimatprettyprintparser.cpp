@@ -52,15 +52,19 @@ AST *KalimatPrettyprintParser::parseRoot()
         }
         else if(is_indentation_ender(line))
         {
-            if(!match_ender(line, expectedBlockEnders.top()))
+            if(expectedBlockEnders.empty() || (!match_ender(line, expectedBlockEnders.top())))
             {
-                throw ParserException("Non-matching block delimiters");
+                //throw ParserException("Non-matching block delimiters");
+                ret->append(line);
             }
-            expectedBlockEnders.pop();
-            levels.pop();
-            ret = levels.top();
-            line->afterblock = true;
-            ret->append(line);
+            else
+            {
+                expectedBlockEnders.pop();
+                levels.pop();
+                ret = levels.top();
+                line->afterblock = true;
+                ret->append(line);
+            }
         }
         else if(is_indentation_ender_and_starter(line))
         {
@@ -78,8 +82,12 @@ AST *KalimatPrettyprintParser::parseRoot()
             ret->append(line);
         }
     }
-    if(levels.count() >1)
-        throw ParserException("weird levels");
+
+    while(levels.count() > 1)
+    {
+        levels.pop();
+        ret = levels.top();
+    }
 
     return ret;
 }
@@ -286,6 +294,11 @@ void TokPP::prettyPrint(CodeFormatter *cf)
         cf->printKw(token.Lexeme);
     }
     else if(token.Type == IDENTIFIER)
+    {
+        cf->print(token.Lexeme);
+        cf->space();
+    }
+    else if(token.Type == NUM_LITERAL)
     {
         cf->print(token.Lexeme);
         cf->space();
