@@ -49,7 +49,7 @@ MainWindow::MainWindow(QWidget *parent)
     ui->setupUi(this);
 
     QToolBar *notice = new QToolBar("");
-    notice->addAction(QString::fromStdWString(L"هذه هي النسخة الأولية لشهر يناير 2011. حمل أحدث نسخة من www.kalimat-lang.com"));
+    notice->addAction(QString::fromStdWString(L"هذه هي النسخة الأولية لشهر مارس 2011. حمل أحدث نسخة من www.kalimat-lang.com"));
 
     addToolBarBreak();
     addToolBar(Qt::TopToolBarArea, notice);
@@ -91,6 +91,7 @@ void MainWindow::outputMsg(QString s)
 
 void MainWindow::showHelpWindow()
 {
+#if false
     if(helpWindowVisible)
         return;
     helpWindowVisible = true;
@@ -106,7 +107,7 @@ void MainWindow::showHelpWindow()
 
     //QString html = readFile(QCoreApplication::applicationDirPath()+"/help/index.html");
     helpWebView->load(QUrl::fromLocalFile(QCoreApplication::applicationDirPath()+"/help/index.html"));
-
+#endif
 }
 
 void MainWindow::hideHelpWindow()

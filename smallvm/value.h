@@ -62,6 +62,7 @@ struct Value
     Reference *unboxRef();
     QString toString();
 
+    double unboxNumeric();
     static Value *NullValue;
 };
 
@@ -83,6 +84,7 @@ public:
     static ValueClass *SpriteType;
     static ValueClass *FileType;
     static ValueClass *RawFileType;
+    static ValueClass *RawWindowType;
     static ValueClass *RefType;
     static ValueClass *FieldRefType;
     static ValueClass *ArrayRefType;

@@ -43,6 +43,7 @@ MyEdit::MyEdit(MainWindow *owner) : QTextEdit()
     connect(this, SIGNAL(textChanged()), SLOT(textChangedEvent()));
     connect(this,  SIGNAL(cursorPositionChanged()), SLOT(selectionChangedEvent()));
     setRtl();
+    lastInputChar = "";
     _line = _column = 0;
 }
 
@@ -70,7 +71,7 @@ void MyEdit::keyPressEvent(QKeyEvent *ev)
     {
         enterKeyBehavior(ev);
     }
-    //*
+    /*
     else if(ev->key() == Qt::Key_Left)
     {
         QKeyEvent *otherEvent = new QKeyEvent(ev->type(), Qt::Key_Right, ev->modifiers(), ev->text(), ev->isAutoRepeat(), ev->count());
@@ -86,10 +87,14 @@ void MyEdit::keyPressEvent(QKeyEvent *ev)
     {
         bool rightAfterNumber = isAfterNumber(this);
         QTextEdit::keyPressEvent(ev);
+        lastInputChar = ev->text();
+        lastInputLine = this->line();
         if(rightAfterNumber)
         {
             QKeyEvent *otherEvent = new QKeyEvent(QEvent::KeyPress, Qt::Key_Space, 0, " ", false, 1);
             QTextEdit::keyPressEvent(otherEvent);
+            lastInputChar = otherEvent->text();
+            lastInputLine = this->line();
         }
     }
     else if(ev->text() == ".")
@@ -98,14 +103,25 @@ void MyEdit::keyPressEvent(QKeyEvent *ev)
         if(!replace)
             QTextEdit::keyPressEvent(ev);
         else
+        {
             this->insertPlainText(QString::fromWCharArray(L"٫"));
+            lastInputChar = ev->text();
+            lastInputLine = this->line();
+        }
     }
     else if(ev->text() == ":")
     {
         colonBehavior(ev);
+        lastInputChar = ":";
+        lastInputLine = this->line();
     }
     else
     {
+        if(ev->text().trimmed() != "")
+        {
+            lastInputChar = ev->text();
+            lastInputLine = this->line();
+        }
         QTextEdit::keyPressEvent(ev);
     }
 }
@@ -113,6 +129,7 @@ void MyEdit::keyPressEvent(QKeyEvent *ev)
 void MyEdit::tabBehavior()
 {
     this->insertPlainText("    ");
+
 }
 
 void MyEdit::shiftTabBehavior()
@@ -191,7 +208,6 @@ int MyEdit::calculateDeindent(int by, QString lineText)
     return toErase;
 }
 
-
 bool tokensEqual(QVector<Token> toks, int ids[], int count)
 {
     if(toks.count() != count)
@@ -268,19 +284,20 @@ void MyEdit::enterKeyBehavior(QKeyEvent *ev)
     // todo: consider adding a newline after the 'end' that teminates top-level declarations.
     textCursor().beginEditBlock();
     bool end = textCursor().atEnd();
+    bool insertEnding = lastInputChar == ":" && this->line() == lastInputLine;
     if(endOfLine)
     {
-        if(tokensEqual(toks, classDecl, 3) ||
+        if(insertEnding && (tokensEqual(toks, classDecl, 3) ||
            tokensBeginEnd(toks, procDeclStart, procDeclEnd, 3, 2) ||
            tokensBeginEnd(toks, funcDeclStart, funcDeclEnd, 3, 2) ||
            tokensBeginEnd(toks, responseDeclStart, responseDeclEnd, 3, 2) ||
-           tokensBeginEnd(toks, replyDeclStart, replyDeclEnd, 3, 2)
+           tokensBeginEnd(toks, replyDeclStart, replyDeclEnd, 3, 2))
            )
         {
             indented = true;
             indentAndTerminate(li, QString::fromStdWString(L"نهاية"));
         }
-        else if(tokensBeginEnd(toks, ifStmtStart, ifStmtEnd, 1,1))
+        else if(insertEnding && tokensBeginEnd(toks, ifStmtStart, ifStmtEnd, 1,1))
         {
             indented = true;
             indentAndTerminate(li, QString::fromStdWString(L"تم"));
@@ -294,8 +311,8 @@ void MyEdit::enterKeyBehavior(QKeyEvent *ev)
             for(int i=0;i<n + 4; i++)
                 insertPlainText(" ");
         }
-        else if(tokensBeginEnd(toks, forStmtStart, forStmtEnd, 1,1) ||
-                tokensBeginEnd(toks, whileStmtStart, whileStmtEnd, 1,1))
+        else if(insertEnding && (tokensBeginEnd(toks, forStmtStart, forStmtEnd, 1,1) ||
+                tokensBeginEnd(toks, whileStmtStart, whileStmtEnd, 1,1)))
         {
             indented = true;
             indentAndTerminate(li, QString::fromStdWString(L"تابع"));
@@ -395,6 +412,8 @@ void MyEdit::indentAndTerminate(LineInfo prevLine, QString termination)
     this->insertPlainText(termination);
     //this->insertPlainText("\n");
 
+    if(termination.length() >0)
+        lastInputChar = termination[termination.length() -1];
     // For some reason moving the cursor backwards when it's at the document's end
     // and the scroll bar is visible (i.e there's hidden text above the current view)
     // scrolls to top of document (while keeping the cursor position intact)

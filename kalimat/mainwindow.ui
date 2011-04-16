@@ -13,6 +13,10 @@
   <property name="windowTitle">
    <string>MainWindow</string>
   </property>
+  <property name="windowIcon">
+   <iconset resource="icons.qrc">
+    <normaloff>:/icons/icons/kalimat.ico</normaloff>:/icons/icons/kalimat.ico</iconset>
+  </property>
   <property name="layoutDirection">
    <enum>Qt::RightToLeft</enum>
   </property>

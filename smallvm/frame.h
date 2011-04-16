@@ -8,6 +8,9 @@
 #ifndef FRAME_H
 #define FRAME_H
 
+#include "instruction.h"
+#include <QStack>
+#include <QMap>
 struct Frame
 {
     Method *currentMethod;

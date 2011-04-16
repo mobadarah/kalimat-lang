@@ -30,6 +30,7 @@ ValueClass *BuiltInTypes::StringType = new ValueClass(QSTR(L"نص"), BuiltInType
 ValueClass *BuiltInTypes::SpriteType = new ValueClass(QSTR(L"طيف"), BuiltInTypes::ObjectType);
 ValueClass *BuiltInTypes::FileType = NULL;
 ValueClass *BuiltInTypes::RawFileType = new ValueClass("RawFile", BuiltInTypes::ObjectType);
+ValueClass *BuiltInTypes::RawWindowType = new ValueClass("RawWindow", BuiltInTypes::ObjectType);
 ValueClass *BuiltInTypes::RefType = new ValueClass("Reference", BuiltInTypes::ObjectType);
 ValueClass *BuiltInTypes::FieldRefType = new ValueClass("FieldReference", BuiltInTypes::ObjectType);
 ValueClass *BuiltInTypes::ArrayRefType = new ValueClass("ArrayReference", BuiltInTypes::ObjectType);
@@ -108,6 +109,16 @@ int Value::unboxInt()
 double Value::unboxDouble()
 {
     return v.doubleVal;
+}
+
+double Value::unboxNumeric()
+{
+    if(tag == Int)
+        return unboxInt();
+    if(tag == Double)
+        return unboxDouble();
+    // This should not be called
+    return 0.0;
 }
 
 bool Value::unboxBool()
@@ -273,3 +284,48 @@ QString ValueClass::toString()
     return "class " + name;
 }
 
+ForeignClass::ForeignClass(QString name)
+{
+   this->name = name;
+}
+
+bool ForeignClass::hasSlot(QString name)
+{
+    return false;
+}
+
+QList<QString> ForeignClass::getSlotNames()
+{
+    return QList<QString>();
+}
+
+Value *ForeignClass::getSlotValue(QString name)
+{
+    return NULL;
+}
+
+void ForeignClass::setSlotValue(QString name, Value *val)
+{
+
+}
+
+QString ForeignClass::getName()
+{
+    return this->name;
+}
+
+
+IClass *ForeignClass::baseClass()
+{
+    return BuiltInTypes::ObjectType;
+}
+
+bool ForeignClass::subclassOf(IClass *c)
+{
+    return c == this || c == BuiltInTypes::ObjectType;
+}
+
+QString ForeignClass::toString()
+{
+    return this->name;
+}

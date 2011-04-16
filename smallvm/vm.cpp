@@ -1164,20 +1164,17 @@ void VM::DoCallMethod(QString SymRef, int arity, bool tailCall)
     assert(_method!=NULL, NoSuchMethod2,SymRef, receiver->type->getName());
 
     Method *method = dynamic_cast<Method *>(_method);
-    if(method == NULL)
-    {
-        // Since _method is not NULL but method is,
-        // therefore we have a special method (i.e not a collection of bytecode)
-        // in our hands.
-        CallSpecialMethod(method, arity, tailCall);
-    }
-
-    assert(arity == -1 || method->Arity() ==-1 || arity == method->Arity(), WrongNumberOfArguments);
 
     QVector<Value *> args;
     args.append(receiver);
 
-    for(int i=0; i<method->Arity()-1; i++)
+    if(method != NULL)
+    {
+        // For now arity checking works only for non-special methods
+        assert(arity == -1 || method->Arity() ==-1 || arity == method->Arity(), WrongNumberOfArguments);
+    }
+
+    for(int i=0; i<_method->Arity()-1; i++)
     {
         Value *v = currentFrame()->OperandStack.pop();
         args.append(v);
@@ -1187,18 +1184,29 @@ void VM::DoCallMethod(QString SymRef, int arity, bool tailCall)
     {
         stack.pop();
     }
-
-    stack.push(Frame(method));
-    // When popped and pushed, the arguments
-    // will be in the right order in the new frame
-    // so e.g in calling x.print(a, b)
-    // the new frame will have a stack like this:
-    // [x, a , b |...]
-    for(int i= args.count()-1; i>=0; i--)
+    if(method == NULL)
     {
-        Value *v = args[i];
-        currentFrame()->OperandStack.push(v);
+        // Since _method is not NULL but method is,
+        // therefore we have a special method (i.e not a collection of bytecode)
+        // in our hands.
+        CallSpecialMethod(_method, args);
+        return;
     }
+    else
+    {
+        stack.push(Frame(method));
+        // When popped and pushed, the arguments
+        // will be in the right order in the new frame
+        // so e.g in calling x.print(a, b)
+        // the new frame will have a stack like this:
+        // [x, a , b |...]
+        for(int i= args.count()-1; i>=0; i--)
+        {
+            Value *v = args[i];
+            currentFrame()->OperandStack.push(v);
+        }
+    }
+
 }
 
 void VM::DoRet()
@@ -1331,8 +1339,8 @@ void VM::DoNew(QString SymRef)
 {
     assert(constantPool.contains(SymRef), NoSuchClass, SymRef);
     Value *classObj = (Value*) constantPool[SymRef];
-    ValueClass *theClass = dynamic_cast<ValueClass *>(classObj->v.objVal);
-    assert(theClass != NULL, NameDoesntIndicateAClass, SymRef);
+    IClass *theClass = dynamic_cast<IClass *>(classObj->v.objVal);
+    assert(theClass != NULL, NameDoesntIndicateAClass1, SymRef);
     Value *newObj = allocator.newObject(theClass);
     currentFrame()->OperandStack.push(newObj);
 }
@@ -1477,9 +1485,15 @@ void VM::DoIsa(QString SymRef)
     currentFrame()->OperandStack.push(allocator.newBool(b));
 }
 
-void VM::CallSpecialMethod(IMethod *method, int arity, bool tailCall)
+void VM::CallSpecialMethod(IMethod *method, QVector<Value *> args)
 {
-    assert(false, InternalError, "CallSpecialMethod is not implemented");
+    IForeignMethod *fm = dynamic_cast<IForeignMethod *>(method);
+    if(fm != NULL)
+    {
+        fm->invoke(args);
+        return;
+    }
+    assert(false, InternalError, "CallSpecialMethod is not implemented for this type of method");
 }
 
 void VM::test(bool cond, QString trueLabel, QString falseLabel)

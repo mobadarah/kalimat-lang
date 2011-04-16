@@ -90,8 +90,9 @@ FORMS += mainwindow.ui \
 
 # QT += testlib
 # CONFIG += qtestlib
- QT += webkit
+# QT += webkit
 RESOURCES += keywords.qrc \
     icons.qrc
 OTHER_FILES += 
 # QMAKE_CXXFLAGS += -std=c++0x
+RC_FILE = kalimat.rc

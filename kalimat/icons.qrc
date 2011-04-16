@@ -6,5 +6,6 @@
         <file>icons/runIcon.png</file>
         <file>icons/saveIcon.png</file>
         <file>icons/formatIcon.png</file>
+        <file>icons/kalimat.ico</file>
     </qresource>
 </RCC>

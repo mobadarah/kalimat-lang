@@ -933,6 +933,11 @@ void EditProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
     stack.push(v);
 }
 
+void GetMainWindowProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
+{
+    stack.push(vm->GetAllocator().newRaw(w, BuiltInTypes::RawWindowType));
+}
+
 void setupChildren(QGridLayout *layout,Value *v, Reference *ref, QString label, int row, VM *vm)
 {
     QCheckBox *cb;
@@ -1019,7 +1024,6 @@ void setupChildren(QGridLayout *layout,Value *v, Reference *ref, QString label, 
 
 Value *editAndReturn(Value *v, RunWindow *w, VM *vm)
 {
-
     QDialog *dlg = new QDialog(w);
     dlg->setWindowTitle(QString::fromStdWString(L"تحرير %1").arg(v->type->getName()));
     QVBoxLayout *ly = new QVBoxLayout(dlg);
@@ -1041,6 +1045,101 @@ Value *editAndReturn(Value *v, RunWindow *w, VM *vm)
     bool ret = dlg->exec()== QDialog::Accepted;
     v = vm->GetAllocator().newBool(ret);
 
-
     return v;
+}
+bool WindowForeignClass::hasField(QString name)
+{
+    if(name == "handle")
+    {
+        return true;
+    };
+}
+
+IObject *WindowForeignClass::newValue(Allocator *allocator)
+{
+    WindowForeignObject *window = new WindowForeignObject();
+    return window;
+}
+
+class ForeignWindowMaximize : public IForeignMethod
+{
+public:
+    void invoke(QVector<Value *> args)
+    {
+        WindowForeignObject *foreignWindow = dynamic_cast<WindowForeignObject*>(args[0]->unboxObj());
+        Value *raw = foreignWindow->handle;
+        void *praw = raw->unboxRaw();
+        QWidget *widget = (QWidget *)(praw);
+        widget->setWindowState(Qt::WindowMaximized);
+    }
+    int Arity() { return 1;}
+    QString toString() { return QString::fromStdWString(L"كبر");}
+};
+
+class ForeignWindowMoveTo : public IForeignMethod
+{
+public:
+    void invoke(QVector<Value *> args)
+    {
+        WindowForeignObject *foreignWindow = dynamic_cast<WindowForeignObject*>(args[0]->unboxObj());
+        Value *raw = foreignWindow->handle;
+        void *praw = raw->unboxRaw();
+        QWidget *widget = (QWidget *)(praw);
+
+        int x = args[1]->unboxNumeric();
+        int y = args[2]->unboxNumeric();
+        widget->move(x, y);
+    }
+    int Arity() { return 3;}
+    QString toString() { return QString::fromStdWString(L"تحرك.إلى");}
+};
+
+IMethod *WindowForeignClass::lookupMethod(QString name)
+{
+    if(name == QString::fromStdWString(L"كبر"))
+    {
+        return new ForeignWindowMaximize();
+    }
+    if(name == QString::fromStdWString(L"تحرك.إلى"))
+    {
+        return new ForeignWindowMoveTo();
+    }
+    return NULL;
+}
+
+QString WindowForeignClass::toString()
+{
+    return QString::fromStdWString(L"فصيلة: نافذة");
+}
+
+bool WindowForeignObject::hasSlot(QString name)
+{
+    if(name == "handle")
+    {
+        return true;
+    }
+}
+
+QList<QString> WindowForeignObject::getSlotNames()
+{
+    QList<QString> ret;
+    ret.append("handle");
+    return ret;
+}
+
+Value *WindowForeignObject::getSlotValue(QString name)
+{
+    if(name == "handle")
+        return handle;
+}
+
+void WindowForeignObject::setSlotValue(QString name, Value *val)
+{
+    if(name == "handle")
+        handle = val;
+}
+
+QString WindowForeignObject::toString()
+{
+    return QString::fromStdWString(L"<نافذة>");
 }

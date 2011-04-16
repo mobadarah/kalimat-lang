@@ -19,7 +19,19 @@ class MyEdit : public QTextEdit
     LineTracker lineTracker;
     MainWindow *owner;
     int _line, _column;
+    /* The last input char is recorded to prevent the bug that happend if you
+      press enter at the end of a line like this
+         if expr : <enter>
+      and the editor would insert an 'end if' line even if the statement
+      already has been completed.
+      To solve this problem we will not add a matching 'end if' unless the last
+      input character was a colon. This will solve the problem in almost all cases.
 
+      Tto make it more accurate we record the line of the last input char
+       and not add 'end if' unless the last input char is a colon on the current line.
+    */
+    QString lastInputChar;
+    int lastInputLine;
 public:
     MyEdit(MainWindow *owner);
     void setRtl();

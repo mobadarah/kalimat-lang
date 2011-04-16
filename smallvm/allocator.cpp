@@ -94,15 +94,14 @@ Value *Allocator::newBool(bool b, bool gcMonitor)
     return ret;
 }
 
-Value *Allocator::newObject(ValueClass *_class)
+Value *Allocator::newObject(IClass *_class)
 {
-    Object *newObj = new Object();
-    InitObjectLayout(newObj, _class);
+    IObject *newObj = _class->newValue(this);
 
     return newObject(newObj, _class);
 }
 
-Value *Allocator::newObject(IObject *newObj, ValueClass *_class, bool gcMonitor)
+Value *Allocator::newObject(IObject *newObj, IClass *_class, bool gcMonitor)
 {
     Value *ret = allocateNewValue(gcMonitor);
     ret->tag = ObjectVal;
@@ -196,23 +195,6 @@ Value *Allocator::newMultiDimensionalArrayReference(MultiDimensionalArray<Value 
     ret->type = BuiltInTypes::ArrayRefType;
     ret->v.refVal = ref;
     return ret;
-}
-
-void Allocator::InitObjectLayout(Object *object, ValueClass *_class)
-{
-    //todo:
-    for(QVector<ValueClass *>::iterator i=_class->BaseClasses.begin(); i!=_class->BaseClasses.end(); ++i)
-    {
-        InitObjectLayout(object, *i);
-    }
-    for(QSet<QString>::iterator i = _class->fields.begin(); i!=_class->fields.end();  ++i)
-    {
-        object->setSlotValue(*i, this->null());
-    }
-    for(QVector<QString>::iterator i = _class->fieldNames.begin(); i!=_class->fieldNames.end(); ++i)
-    {
-        object->slotNames.append(*i);
-    }
 }
 
 void Allocator::gc()

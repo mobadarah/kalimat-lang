@@ -8,7 +8,10 @@
 #ifndef VM_H
 #define VM_H
 
-#include "allocator.h"
+#ifndef ALLOCATOR_H
+    #include "allocator.h"
+#endif
+
 template <typename T> bool isa(void * obj)
 {
     T value = dynamic_cast<T>(obj);
@@ -118,7 +121,7 @@ public:
     void DoIsa(QString SymRef);
 
     void CallImpl(QString sym, bool wantValueNotRef, int arity, bool tailCall);
-    void CallSpecialMethod(IMethod *method, int arity, bool tailCall);
+    void CallSpecialMethod(IMethod *method, QVector<Value *> args);
     void test(bool, QString, QString);
     Value *_div(Value *, Value *);
     void Pop_Md_Arr_and_indexes(MultiDimensionalArray<Value *> *&theArray, QVector<int> &indexes);

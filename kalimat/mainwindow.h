@@ -23,7 +23,6 @@
 #include <QActionGroup>
 #include <QLabel>
 #include <QSplitter>
-#include <QtWebKit/QtWebKit>
 
 namespace Ui
 {
@@ -71,7 +70,7 @@ private:
 
     QSplitter *helpSplitter;
     QWidget *oldMainWidget;
-    QWebView *helpWebView;
+    //QWebView *helpWebView;
     void showHelpWindow();
     void hideHelpWindow();
 

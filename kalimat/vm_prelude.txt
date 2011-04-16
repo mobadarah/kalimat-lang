@@ -305,3 +305,15 @@ ret
 	callex edit
 	ret
 .endmethod
+
+.method النافذة.الحالية 0 1
+	callex getmainwindow
+	popl handle
+	new ForeignWindow
+	popl fw
+	pushl fw
+	pushl handle
+	setfld handle
+	pushl fw
+	ret
+.endmethod

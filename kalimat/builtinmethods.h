@@ -9,6 +9,9 @@
 #define BUILTINMETHODS_H
 
 class RunWindow;
+#ifndef CLASSES_H
+    #include "../smallvm/classes.h"
+#endif
 
 typedef void (*VM_PROC)(QStack<Value *> &, RunWindow *, VM *);
 
@@ -86,6 +89,7 @@ void FileAppendProc(QStack<Value *> &stack, RunWindow *, VM *);
 void FileCloseProc(QStack<Value *> &stack, RunWindow *, VM *);
 
 void EditProc(QStack<Value *> &stack, RunWindow *w, VM *vm);
+void GetMainWindowProc(QStack<Value *> &stack, RunWindow *w, VM *vm);
 
 double verifyNumeric(Value *v, RunWindow *w); // TODO: make this a method of RunWindow
 int popIntOrCoercable(QStack<Value *> &stack, RunWindow *w, VM *vm);
@@ -119,6 +123,28 @@ class WindowProxyMethod : public ExternalMethod
 public:
     WindowProxyMethod(RunWindow *parent, VM *vm, VM_PROC proc);
     void operator()(QStack<Value *> &operandStack);
+};
+
+class WindowForeignClass : public ForeignClass
+{
+public:
+    WindowForeignClass(QString name) : ForeignClass(name){}
+    bool hasField(QString name);
+    IMethod *lookupMethod(QString name);
+    IObject *newValue(Allocator *allocator);
+    QString toString();
+};
+
+class WindowForeignObject : public IObject
+{
+public:
+    Value *handle;
+public:
+    virtual bool hasSlot(QString name);
+    virtual QList<QString> getSlotNames();
+    virtual Value *getSlotValue(QString name);
+    virtual void setSlotValue(QString name, Value *val);
+    QString toString();
 };
 
 #endif // BUILTINMETHODS_H

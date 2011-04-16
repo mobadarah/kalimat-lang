@@ -8,9 +8,14 @@
 #ifndef ALLOCATOR_H
 #define ALLOCATOR_H
 
-#include "value.h"
-#include "references.h"
+#ifndef VALUE_H
+    #include "value.h"
+#endif
 
+#include "references.h"
+#include "frame.h"
+
+#include <QStack>
 const int MEGA = 1024 * 1024;
 const double GC_FACTOR = 0.75;
 const double HEAP_GROWTH_FACTOR = 1.4;
@@ -37,9 +42,9 @@ public:
     Value *newDouble(double d, bool gcMonitor);
     Value *newBool(bool b);
     Value *newBool(bool b, bool gcMonitor);
-    Value *newObject(ValueClass *);
+    Value *newObject(IClass *);
     Value *newString(QString *);
-    Value *newObject(IObject *, ValueClass *, bool gcMonitor = true);
+    Value *newObject(IObject *, IClass *, bool gcMonitor = true);
     Value *newArray(int size);
     Value *newMultiDimensionalArray(QVector<int> dimensions);
     Value *newRaw(void*, ValueClass *);
@@ -47,8 +52,6 @@ public:
     Value *newArrayReference(VArray *array, int index);
     Value *newMultiDimensionalArrayReference(MultiDimensionalArray<Value *> *array, QVector<int> index);
     Value *null();
-
-    void InitObjectLayout(Object *object, ValueClass *_class);
 
 private:
     void mark();

@@ -136,6 +136,7 @@ void RunWindow::Init(QString program, QMap<QString, QString>stringConstants)
         vm->Register("file_close", new WindowProxyMethod(this, vm, FileCloseProc));
 
         vm->Register("edit", new WindowProxyMethod(this, vm, EditProc));
+        vm->Register("getmainwindow", new WindowProxyMethod(this, vm, GetMainWindowProc));
 
         for(int i=0; i<stringConstants.keys().count(); i++)
         {
@@ -157,13 +158,15 @@ void RunWindow::Init(QString program, QMap<QString, QString>stringConstants)
                            BuiltInTypes::ArrayType,
                            BuiltInTypes::StringType,
                            BuiltInTypes::SpriteType,
+                           BuiltInTypes::RawWindowType,
                            BuiltInTypes::NullType};
         // todo: handle built-in file type
-        const int numBuiltIns = 12;
+        const int numBuiltIns = 13;
         for(int i=0; i<numBuiltIns; i++)
         {
             vm->RegisterType(builtIns[i]->getName(), builtIns[i]);
         }
+        vm->RegisterType("ForeignWindow", new WindowForeignClass("نافذة"));
 
         InitVMPrelude(vm);
         vm->Load(program);
