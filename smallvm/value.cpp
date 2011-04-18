@@ -322,7 +322,7 @@ IClass *ForeignClass::baseClass()
 
 bool ForeignClass::subclassOf(IClass *c)
 {
-    return c == this || c == BuiltInTypes::ObjectType;
+    return c == this || this->baseClass()->subclassOf(c);
 }
 
 QString ForeignClass::toString()

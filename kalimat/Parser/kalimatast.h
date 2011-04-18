@@ -189,6 +189,17 @@ public:
     void prettyPrint(CodeFormatter *f);
 };
 
+class LaunchStmt : public Statement
+{
+public:
+    QScopedPointer<IInvokation> _invokation;
+public:
+    LaunchStmt(Token pos, IInvokation *invokation);
+    IInvokation *invokation() { return _invokation.data(); }
+    QString toString();
+    void prettyPrint(CodeFormatter *f);
+};
+
 class LabelStmt : public Statement
 {
     QSharedPointer<Expression> _target;

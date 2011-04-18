@@ -379,6 +379,10 @@ void CodeGenerator::generateStatement(Statement *stmt)
     {
         generateDelegationStmt(dynamic_cast<DelegationStmt *>(stmt));
     }
+    else if(isa<LaunchStmt>(stmt))
+    {
+        generateLaunchStmt(dynamic_cast<LaunchStmt *>(stmt));
+    }
     else if(isa<ReturnStmt>(stmt))
     {
         generateReturnStmt(dynamic_cast<ReturnStmt *>(stmt));
@@ -887,12 +891,29 @@ void CodeGenerator::generateDelegationStmt(DelegationStmt *stmt)
     IInvokation *expr = stmt->invokation();
     if(isa<Invokation>(expr))
     {
-        generateInvokation(dynamic_cast<Invokation *>(expr), TailCall);
+        generateInvokation(dynamic_cast<Invokation *>(expr), TailCallStyle);
         return;
     }
     if(isa<MethodInvokation>(expr))
     {
-        generateMethodInvokation(dynamic_cast<MethodInvokation *>(expr), TailCall);
+        generateMethodInvokation(dynamic_cast<MethodInvokation *>(expr), TailCallStyle);
+        return;
+    }
+
+    throw CompilerException(expr, UnimplementedInvokationForm).arg(expr->toString());
+}
+
+void CodeGenerator::generateLaunchStmt(LaunchStmt *stmt)
+{
+    IInvokation *expr = stmt->invokation();
+    if(isa<Invokation>(expr))
+    {
+        generateInvokation(dynamic_cast<Invokation *>(expr), LaunchProcessStyle);
+        return;
+    }
+    if(isa<MethodInvokation>(expr))
+    {
+        generateMethodInvokation(dynamic_cast<MethodInvokation *>(expr), LaunchProcessStyle);
         return;
     }
 
@@ -1125,9 +1146,13 @@ void CodeGenerator::generateInvokation(Invokation *expr, MethodCallStyle style)
     {
         generateExpression(expr->argument(i));
     }
-    if(style == TailCall)
+    if(style == TailCallStyle)
     {
         gen(expr->functor(), "tail");
+    }
+    if(style == LaunchProcessStyle)
+    {
+        gen(expr->functor(), "launch");
     }
     gen(expr->functor(), QString("call %1,%2").arg(expr->functor()->toString()).arg(expr->argumentCount()));
 
@@ -1140,9 +1165,13 @@ void CodeGenerator::generateMethodInvokation(MethodInvokation *expr, MethodCallS
         generateExpression(expr->argument(i));
     }
     generateExpression(expr->receiver());
-    if(style == TailCall)
+    if(style == TailCallStyle)
     {
         gen(expr->methodSelector(), "tail");
+    }
+    if(style == LaunchProcessStyle)
+    {
+        gen(expr->methodSelector(), "launch");
     }
     gen(expr->methodSelector(), QString("callm %1,%2").arg(expr->methodSelector()->name).arg(expr->argumentCount()+1));
 }

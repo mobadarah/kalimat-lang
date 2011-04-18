@@ -14,9 +14,13 @@
 #include <QVector>
 #include <QSet>
 
-#include "value.h"
-#include "instruction.h"
+#ifndef VALUE_H
+    #include "value.h"
+#endif
 
+#ifndef INSTRUCTION_H
+    #include "instruction.h"
+#endif
 
 class Method : public IMethod
 {

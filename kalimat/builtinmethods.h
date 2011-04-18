@@ -13,6 +13,10 @@ class RunWindow;
     #include "../smallvm/classes.h"
 #endif
 
+#ifndef EASYFOREIGNCLASS_H
+    #include "../smallvm/easyforeignclass.h"
+#endif
+
 typedef void (*VM_PROC)(QStack<Value *> &, RunWindow *, VM *);
 
 void PrintProc(QStack<Value *> &, RunWindow *, VM *);
@@ -125,14 +129,22 @@ public:
     void operator()(QStack<Value *> &operandStack);
 };
 
-class WindowForeignClass : public ForeignClass
+class WindowForeignClass : public EasyForeignClass
 {
 public:
-    WindowForeignClass(QString name) : ForeignClass(name){}
-    bool hasField(QString name);
-    IMethod *lookupMethod(QString name);
+    WindowForeignClass(QString name);
     IObject *newValue(Allocator *allocator);
-    QString toString();
+    void dispatch(int id, QVector<Value *>args);
+};
+
+class ButtonForeignClass : public EasyForeignClass
+{
+    RunWindow *rw; // for TX
+public:
+    ButtonForeignClass(QString name, RunWindow *rw);
+    IObject *newValue(Allocator *allocator);
+    void dispatch(int id, QVector<Value *>args);
+
 };
 
 class WindowForeignObject : public IObject

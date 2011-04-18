@@ -14,7 +14,9 @@ SOURCES += main.cpp \
     multidimensionalarray.cpp \
     allocator.cpp \
     classes.cpp \
-    references.cpp
+    references.cpp \
+    easyforeignclass.cpp \
+    process.cpp
 HEADERS += \
     value.h \
     instruction.h \
@@ -28,6 +30,8 @@ HEADERS += \
     allocator.h \
     dequeue.h \
     classes.h \
-    references.h
+    references.h \
+    easyforeignclass.h \
+    process.h
 FORMS +=
 RESOURCES += asm.qrc

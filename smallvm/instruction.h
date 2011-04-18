@@ -7,6 +7,9 @@
 
 #ifndef INSTRUCTION_H
 #define INSTRUCTION_H
+#ifndef VALUE_H
+    #include "value.h"
+#endif
 
 class Allocator;
 enum Opcode
@@ -20,13 +23,20 @@ enum Opcode
     RegisterEvent, Isa
 };
 
+enum CallStyle
+{
+    NormalCall,
+    TailCall,
+    LaunchCall
+};
+
 struct Instruction
 {
     Opcode opcode;
     Value *Arg;
     QString SymRef;
     QString True, False;
-    bool tailCall;
+    CallStyle callStyle;
     int extra;
 
     Instruction();
@@ -36,9 +46,7 @@ struct Instruction
     Instruction &wLabels(QString, QString);
     Instruction &wRef(QString);
     Instruction &wExtra(int info);
-    Instruction &wTailCall(bool);
+    Instruction &wCallStyle(CallStyle);
 };
-
-
 
 #endif // INSTRUCTION_H

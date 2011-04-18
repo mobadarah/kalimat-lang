@@ -30,6 +30,7 @@
 #include <QLibrary>
 #include <math.h>
 #include <algorithm>
+#include <QPushButton>
 
 using namespace std;
 
@@ -1047,12 +1048,27 @@ Value *editAndReturn(Value *v, RunWindow *w, VM *vm)
 
     return v;
 }
-bool WindowForeignClass::hasField(QString name)
+
+
+WindowForeignClass::WindowForeignClass(QString name)
+    : EasyForeignClass(name)
 {
-    if(name == "handle")
-    {
-        return true;
-    };
+    methodIds[QString::fromStdWString(L"كبر")
+            ] = 0;
+    methodIds[QString::fromStdWString(L"تحرك.إلى")
+            ] = 1;
+    methodIds[QString::fromStdWString(L"اضف")
+            ] = 2;
+
+    methodArities[QString::fromStdWString(L"كبر")
+            ] = 1;
+    methodArities[QString::fromStdWString(L"تحرك.إلى")
+            ] = 3;
+    methodArities[QString::fromStdWString(L"اضف")
+            ] = 2;
+
+
+    fields.insert("handle");
 }
 
 IObject *WindowForeignClass::newValue(Allocator *allocator)
@@ -1061,26 +1077,20 @@ IObject *WindowForeignClass::newValue(Allocator *allocator)
     return window;
 }
 
-class ForeignWindowMaximize : public IForeignMethod
+void WindowForeignClass::dispatch(int id, QVector<Value *> args)
 {
-public:
-    void invoke(QVector<Value *> args)
+    if(id == 0)
     {
+        // كبر
         WindowForeignObject *foreignWindow = dynamic_cast<WindowForeignObject*>(args[0]->unboxObj());
         Value *raw = foreignWindow->handle;
         void *praw = raw->unboxRaw();
         QWidget *widget = (QWidget *)(praw);
         widget->setWindowState(Qt::WindowMaximized);
     }
-    int Arity() { return 1;}
-    QString toString() { return QString::fromStdWString(L"كبر");}
-};
-
-class ForeignWindowMoveTo : public IForeignMethod
-{
-public:
-    void invoke(QVector<Value *> args)
+    if(id == 1)
     {
+        // تحرك.إلى
         WindowForeignObject *foreignWindow = dynamic_cast<WindowForeignObject*>(args[0]->unboxObj());
         Value *raw = foreignWindow->handle;
         void *praw = raw->unboxRaw();
@@ -1090,26 +1100,18 @@ public:
         int y = args[2]->unboxNumeric();
         widget->move(x, y);
     }
-    int Arity() { return 3;}
-    QString toString() { return QString::fromStdWString(L"تحرك.إلى");}
-};
-
-IMethod *WindowForeignClass::lookupMethod(QString name)
-{
-    if(name == QString::fromStdWString(L"كبر"))
+    if(id == 2)
     {
-        return new ForeignWindowMaximize();
-    }
-    if(name == QString::fromStdWString(L"تحرك.إلى"))
-    {
-        return new ForeignWindowMoveTo();
-    }
-    return NULL;
-}
+        // اضف
+        WindowForeignObject *foreignWindow = dynamic_cast<WindowForeignObject*>(args[0]->unboxObj());
+        Value *raw = foreignWindow->handle;
+        void *praw = raw->unboxRaw();
+        QWidget *widget = (QWidget *)(praw);
 
-QString WindowForeignClass::toString()
-{
-    return QString::fromStdWString(L"فصيلة: نافذة");
+        QWidget *control = (QWidget *) args[1]->unboxObj()->getSlotValue("handle")->unboxRaw();
+        control->setParent(widget);
+        control->show();
+    }
 }
 
 bool WindowForeignObject::hasSlot(QString name)
@@ -1119,6 +1121,7 @@ bool WindowForeignObject::hasSlot(QString name)
         return true;
     }
 }
+
 
 QList<QString> WindowForeignObject::getSlotNames()
 {
@@ -1142,4 +1145,71 @@ void WindowForeignObject::setSlotValue(QString name, Value *val)
 QString WindowForeignObject::toString()
 {
     return QString::fromStdWString(L"<نافذة>");
+}
+
+ButtonForeignClass::ButtonForeignClass(QString name, RunWindow *rw)
+    : EasyForeignClass(name)
+{
+    this->rw = rw;
+
+    methodIds[QString::fromStdWString(L"حدد.النص")
+            ] = 0;
+    methodIds[QString::fromStdWString(L"حدد.الحجم")
+            ] = 1;
+    methodIds[QString::fromStdWString(L"حدد.المكان")
+            ] = 2;
+
+
+    methodArities[QString::fromStdWString(L"حدد.النص")
+            ] = 2;
+    methodArities[QString::fromStdWString(L"حدد.الحجم")
+            ] = 3;
+    methodArities[QString::fromStdWString(L"حدد.المكان")
+            ] = 3;
+
+
+    fields.insert("handle");
+}
+
+IObject *ButtonForeignClass::newValue(Allocator *allocator)
+{
+    Object *newObj = new Object();
+    newObj->slotNames.append("handle");
+    newObj->setSlotValue("handle", allocator->newRaw(new QPushButton(), this));
+    return newObj;
+}
+
+
+void ButtonForeignClass::dispatch(int id, QVector<Value *> args)
+{
+    if(id == 0)
+    {
+        // حدد.النص
+        IObject *receiver = args[0]->unboxObj();
+        QPushButton *handle = (QPushButton *) receiver->getSlotValue("handle")->unboxRaw();
+        handle->setText(*args[1]->unboxStr());
+    }
+    if(id == 1)
+    {
+        // حدد.الحجم
+        IObject *receiver = args[0]->unboxObj();
+        QPushButton *handle = (QPushButton *) receiver->getSlotValue("handle")->unboxRaw();
+        int originalx = handle->x() + handle->width();
+
+        handle->resize(args[1]->unboxNumeric(), args[2]->unboxNumeric());
+
+        originalx -= handle->width();
+        handle->move(originalx, handle->y());
+    }
+    if(id == 2)
+    {
+        // حدد.المكان
+        IObject *receiver = args[0]->unboxObj();
+        QPushButton *handle = (QPushButton *) receiver->getSlotValue("handle")->unboxRaw();
+        int x = args[1]->unboxNumeric();
+        int y = args[2]->unboxNumeric();
+        rw->paintSurface->TX(x);
+        x -= handle->width();
+        handle->move(x, y);
+    }
 }

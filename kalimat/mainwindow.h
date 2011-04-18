@@ -50,6 +50,7 @@ public:
     void highlightLine(QTextEdit *editor, int pos);
     void highlightToken(QTextEdit *editor, int pos, int length);
     void setLineIndicators(int line, int column);
+    void visualizeCallStacks(QQueue<Process> &callStacks, QGraphicsView *view);
     void visualizeCallStack(QStack<Frame> &callStack, QGraphicsView *view);
 
     void outputMsg(QString s);

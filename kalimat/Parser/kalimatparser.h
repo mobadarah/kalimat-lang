@@ -44,6 +44,7 @@ private:
     Statement *whileStmt();
     Statement *returnStmt();
     Statement *delegateStmt();
+    Statement *launchStmt();
     Statement *labelStmt();
     Statement *gotoStmt();
 

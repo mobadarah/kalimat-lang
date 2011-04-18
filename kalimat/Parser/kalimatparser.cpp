@@ -150,7 +150,7 @@ AST *KalimatParser::module()
 bool KalimatParser::LA_first_statement()
 {
     return LA(IF) || LA(FORALL) || LA(WHILE) || LA(RETURN_WITH)
-            || LA(DELEGATE) || LA(LABEL) || LA(GO) || LA(WHEN)
+            || LA(DELEGATE) || LA(LAUNCH) || LA(LABEL) || LA(GO) || LA(WHEN)
             || LA_first_io_statement() || LA_first_grfx_statement()
             || LA_first_assignment_or_invokation();
 }
@@ -183,6 +183,10 @@ Statement *KalimatParser::statement()
     else if(LA(DELEGATE))
     {
         ret = delegateStmt();
+    }
+    else if(LA(LAUNCH))
+    {
+        ret = launchStmt();
     }
     else if(LA(LABEL))
     {
@@ -460,8 +464,23 @@ Statement *KalimatParser::delegateStmt()
         throw new ParserException(expr->getPos(),
             QString::fromStdWString(L"لا يمكن التوكيل لغير استدعاء إجراء أو دالة") );
     }
+}
 
-
+Statement *KalimatParser::launchStmt()
+{
+    Token returnTok  = lookAhead;
+    match(LAUNCH);
+    Expression *expr = expression();
+    IInvokation *invokation = dynamic_cast<IInvokation *>(expr);
+    if(invokation !=NULL)
+    {
+        return new LaunchStmt(returnTok, invokation);
+    }
+    else
+    {
+        throw new ParserException(expr->getPos(),
+            QString::fromStdWString(L"لا يمكن تشغيل ما ليس باستدعاء إجراء") );
+    }
 }
 
 Statement *KalimatParser::labelStmt()

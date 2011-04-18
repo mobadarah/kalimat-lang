@@ -20,7 +20,7 @@ Instruction::Instruction()
 {
     this->Arg = NULL;
     this->extra = -1;
-    this->tailCall = false;
+    this->callStyle = NormalCall;
 }
 
 Instruction::Instruction(Opcode opcode)
@@ -28,7 +28,7 @@ Instruction::Instruction(Opcode opcode)
     this->opcode = opcode;
     this->extra = -1;
     this->Arg = NULL;
-    this->tailCall = false;
+    this->callStyle = NormalCall;
 }
 
 Instruction &Instruction::wArg(Value *arg)
@@ -100,8 +100,8 @@ Instruction &Instruction::wExtra(int info)
     return *this;
 }
 
-Instruction &Instruction::wTailCall(bool tail)
+Instruction &Instruction::wCallStyle(CallStyle style)
 {
-    this->tailCall = tail;
+    this->callStyle = style;
     return *this;
 }

@@ -12,10 +12,21 @@
     #include "value.h"
 #endif
 
-#include "references.h"
-#include "frame.h"
+#ifndef REFERENCES_H
+    #include "references.h"
+#endif
+
+#ifndef FRAME_H
+    #include "frame.h"
+#endif
+
+#ifndef PROCESS_H
+    #include "process.h"
+#endif
 
 #include <QStack>
+#include <QQueue>
+
 const int MEGA = 1024 * 1024;
 const double GC_FACTOR = 0.75;
 const double HEAP_GROWTH_FACTOR = 1.4;
@@ -29,10 +40,10 @@ class Allocator
 
     // Store VM root objects for GC
     QMap<QString, Value*> *constantPool;
-    QStack<Frame> *stack;
+    QQueue<Process> *processes;
 public:
     Allocator(QMap<QString, Value*> *constantPool,
-              QStack<Frame> *stack);
+              QQueue<Process> *processes);
 
     void gc();
 
@@ -47,7 +58,7 @@ public:
     Value *newObject(IObject *, IClass *, bool gcMonitor = true);
     Value *newArray(int size);
     Value *newMultiDimensionalArray(QVector<int> dimensions);
-    Value *newRaw(void*, ValueClass *);
+    Value *newRaw(void*, IClass *);
     Value *newFieldReference(IObject *obj, QString SymRef);
     Value *newArrayReference(VArray *array, int index);
     Value *newMultiDimensionalArrayReference(MultiDimensionalArray<Value *> *array, QVector<int> index);

@@ -8,9 +8,15 @@
 #ifndef VM_H
 #define VM_H
 
+#ifndef PROCESS_H
+    #include "process.h"
+#endif
+
 #ifndef ALLOCATOR_H
     #include "allocator.h"
 #endif
+
+#include <QQueue>
 
 template <typename T> bool isa(void * obj)
 {
@@ -18,15 +24,10 @@ template <typename T> bool isa(void * obj)
     return value != NULL;
 }
 
-class Process
-{
-    QStack<Frame> stack;
-};
-
 class VM
 {
     QMap<QString, Value*> constantPool;
-    QStack<Frame> stack;
+    QQueue<Process> processes;
 
     // The allocator must be declared after the 'constantPool' and 'stack'
     // members, since it's initialized with them in VMs constructor initializer list!!
@@ -36,13 +37,14 @@ class VM
     VMError _lastError;
     QMap<QString, QString> registeredEventHandlers;
 private:
+    QStack<Frame> &stack();
     Frame *currentFrame();
     Frame &globalFrame();
 public:
     VM();
     void Init();
     static void LoadCallInstruction(Opcode type, QString arg, Allocator &allocator,
-                                    Method *method, QString label, int extraInfo, bool tailCall);
+                                    Method *method, QString label, int extraInfo, CallStyle callStyle);
     void Load(QString assemblyCode);
 
     void Register(QString symRef, ExternalMethod *method);
@@ -50,9 +52,11 @@ public:
     void DefineStringConstant(QString symRef, QString strValue);
     void ActivateEvent(QString evName, QVector<Value *> args);
     void RunStep();
+    void RunSingleInstruction();
     Allocator &GetAllocator();
     void gc();
 
+    Frame *launchProcess(Method *method);
     bool hasRunningInstruction();
     Instruction getCurrentInstruction();
 
@@ -71,7 +75,7 @@ public:
     void assert(bool cond, VMErrorType toSignal, IClass *arg0, IClass *arg1);
     void assert(bool cond, VMErrorType toSignal, QString arg0, QString arg1, QString arg2);
 
-    QStack<Frame> &getCallStack();
+    QQueue<Process> &getCallStacks();
 
     void DoPushVal(Value *Arg);
     void DoPushLocal(QString SymRef);
@@ -98,9 +102,9 @@ public:
     void DoNe();
     void DoLe();
     void DoGe();
-    void DoCall(QString symRef, int arity, bool tailCall);
-    void DoCallRef(QString symRef, int arity, bool tailCall);
-    void DoCallMethod(QString SymRef, int arity, bool tailCall);
+    void DoCall(QString symRef, int arity, CallStyle callStyle);
+    void DoCallRef(QString symRef, int arity, CallStyle callStyle);
+    void DoCallMethod(QString SymRef, int arity, CallStyle callStyle);
     void DoRet();
     void DoCallExternal(QString symRef, int arity);
     void DoSetField(QString SymRef);
@@ -120,7 +124,7 @@ public:
     void DoRegisterEvent(Value *evname, QString SymRef);
     void DoIsa(QString SymRef);
 
-    void CallImpl(QString sym, bool wantValueNotRef, int arity, bool tailCall);
+    void CallImpl(QString sym, bool wantValueNotRef, int arity, CallStyle callStyle);
     void CallSpecialMethod(IMethod *method, QVector<Value *> args);
     void test(bool, QString, QString);
     Value *_div(Value *, Value *);

@@ -8,10 +8,10 @@
 #include "vm_incl.h"
 #include "allocator.h"
 
-Allocator::Allocator(QMap<QString, Value *> *constantPool, QStack<Frame> *stack)
+Allocator::Allocator(QMap<QString, Value *> *constantPool, QQueue<Process> *processes)
 {
     this->constantPool = constantPool;
-    this->stack = stack;
+    this->processes = processes;
     currentAllocationInBytes = 0;
     maxAllocationInBytes = NORMAL_MAX_HEAP;
 }
@@ -153,7 +153,7 @@ Value *Allocator::newString(QString *str)
     ret->v.strVal = str;
     return ret;
 }
-Value *Allocator::newRaw(void *ptr, ValueClass *_class)
+Value *Allocator::newRaw(void *ptr, IClass *_class)
 {
     Value *ret = allocateNewValue();
     ret->tag = RawVal;
@@ -213,16 +213,21 @@ void Allocator::mark()
         Value * v = i.value();
         reachable.push(v);
     }
-    for(int i=0; i<stack->count(); i++)
+
+    for(QQueue<Process>::const_iterator iter=processes->begin(); iter!=processes->end(); ++iter)
     {
-        const Frame &f = stack->at(i);
-        for(int j=0; j<f.Locals.count(); j++)
+        const QStack<Frame> &stack = (*iter).stack;
+        for(int i=0; i<stack.count(); i++)
         {
-            reachable.push(f.Locals.values()[j]);
-        }
-        for(int j=0; j<f.OperandStack.count(); j++)
-        {
-            reachable.push(f.OperandStack.value(j));
+            const Frame &f = stack.at(i);
+            for(int j=0; j<f.Locals.count(); j++)
+            {
+                reachable.push(f.Locals.values()[j]);
+            }
+            for(int j=0; j<f.OperandStack.count(); j++)
+            {
+                reachable.push(f.OperandStack.value(j));
+            }
         }
     }
 

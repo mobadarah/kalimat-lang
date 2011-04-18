@@ -81,6 +81,8 @@ struct ValueClass : public IClass
 private:
     void InitObjectLayout(Object *object, Allocator *allocator);
 public:
+    static void InitObjectLayoutHelper(ValueClass *_class, Object *object, Allocator *allocator);
+public:
     QString name;
     QSet<QString> fields;
     QVector<QString> fieldNames; // In order of definition

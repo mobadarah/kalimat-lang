@@ -166,7 +166,8 @@ void RunWindow::Init(QString program, QMap<QString, QString>stringConstants)
         {
             vm->RegisterType(builtIns[i]->getName(), builtIns[i]);
         }
-        vm->RegisterType("ForeignWindow", new WindowForeignClass("نافذة"));
+        vm->RegisterType("ForeignWindow", new WindowForeignClass(_ws(L"نافذة")));
+        vm->RegisterType(_ws(L"زر"), new ButtonForeignClass (_ws(L"زر"), this));
 
         InitVMPrelude(vm);
         vm->Load(program);

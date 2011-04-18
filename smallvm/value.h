@@ -8,8 +8,13 @@
 #ifndef VALUE_H
 #define VALUE_H
 
-#include "classes.h"
-#include "multidimensionalarray.h"
+#ifndef CLASSES_H
+    #include "classes.h"
+#endif
+
+#ifndef MULTIDIMENSIONALARRAY_H
+    #include "multidimensionalarray.h"
+#endif
 
 class Value;
 class ValueClass;

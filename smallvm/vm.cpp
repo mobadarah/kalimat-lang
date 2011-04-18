@@ -16,7 +16,7 @@ QString str(int n)
 }
 
 VM::VM()
-    :allocator(&constantPool, &stack)
+    :allocator(&constantPool, &processes)
 {
 }
 
@@ -28,16 +28,23 @@ void VM::Init()
     QString malaf = "%file";
     if(constantPool.contains(malaf))
         BuiltInTypes::FileType = (ValueClass *) constantPool[malaf]->unboxObj();
-    stack.clear();
-    stack.push(Frame(method));
+    launchProcess(method);
     _isRunning = true;
+}
+
+Frame *VM::launchProcess(Method *method)
+{
+    Process p;
+    p.stack.push(Frame(method));
+    processes.append(p);
+    Frame *ret = &p.stack.top();
+    return ret;
 }
 
 void VM::assert(bool cond, VMErrorType toSignal)
 {
     if(!cond)
         signal(toSignal);
-
 }
 
 void VM::assert(bool cond, VMErrorType toSignal, QString arg0)
@@ -63,35 +70,35 @@ void VM::assert(bool cond, VMErrorType toSignal, QString arg0, QString arg1, QSt
         signal(toSignal, arg0, arg1, arg2);
 }
 
-QStack<Frame> &VM::getCallStack()
+QQueue<Process> &VM::getCallStacks()
 {
-    return this->stack;
+    return this->processes;
 }
 
 void VM::signal(VMErrorType err)
 {
     _isRunning = false;
-    _lastError = VMError(err, stack);
+    _lastError = VMError(err, stack());
     throw _lastError;
 }
 void VM::signal(VMErrorType err, QString arg0)
 {
     _isRunning = false;
-    _lastError = VMError(err, stack).arg(arg0);
+    _lastError = VMError(err, stack()).arg(arg0);
     throw _lastError;
 }
 
 void VM::signal(VMErrorType err, QString arg0, QString arg1)
 {
     _isRunning = false;
-    _lastError = VMError(err, stack).arg(arg0).arg(arg1);
+    _lastError = VMError(err, stack()).arg(arg0).arg(arg1);
     throw _lastError;
 }
 
 void VM::signal(VMErrorType err, QString arg0, QString arg1, QString arg2)
 {
     _isRunning = false;
-    _lastError = VMError(err, stack).arg(arg0).arg(arg1).arg(arg2);
+    _lastError = VMError(err, stack()).arg(arg0).arg(arg1).arg(arg2);
     throw _lastError;
 }
 
@@ -105,16 +112,21 @@ VMError VM::GetLastError()
     return _lastError;
 }
 
+QStack<Frame> &VM::stack()
+{
+    return processes.front().stack;
+}
+
 Frame *VM::currentFrame()
 {
-    if(stack.empty())
+    if(stack().empty())
         return NULL;
-    return &stack.top();
+    return &stack().top();
 }
 
 Frame &VM::globalFrame()
 {
-    return stack[0];
+    return stack()[0];
 }
 
 void VM::Register(QString symRef, ExternalMethod *method)
@@ -146,7 +158,7 @@ void VM::ActivateEvent(QString evName, QVector<Value *>args)
     {
         DoPushVal(args[i]);
     }
-    DoCall(procName, args.count(), false);
+    DoCall(procName, args.count(), NormalCall);
     _isRunning = true;
 }
 
@@ -160,7 +172,11 @@ void VM::DefineStringConstant(QString symRef, QString strValue)
 bool VM::hasRunningInstruction()
 {
     //todo: use this instead of the initial checks in RunStep()
-    if(stack.isEmpty())
+    if(processes.empty())
+    {
+        return false;
+    }
+    if(stack().isEmpty())
     {
         return false;
     }
@@ -237,23 +253,46 @@ int getInstructionArity(Instruction &i)
 
 void VM::RunStep()
 {
-    if(stack.isEmpty())
-    {
-       _isRunning = false;
-        return;
-    }
-    if(currentFrame()->currentMethod == NULL)
-    {
-       _isRunning = false;
-        return;
-    }
+    int n = rand() % 10;
+    bool pIsRunning = true;
 
-    if(!currentFrame()->currentMethod->HasInstruction(currentFrame()->ip))
+    if(processes.empty())
     {
         _isRunning = false;
         return;
     }
 
+    while(n--)
+    {
+        if(stack().isEmpty())
+        {
+           pIsRunning = false;
+            break;
+        }
+        if(currentFrame()->currentMethod == NULL)
+        {
+           pIsRunning = false;
+            break;
+        }
+
+        if(!currentFrame()->currentMethod->HasInstruction(currentFrame()->ip))
+        {
+            pIsRunning = false;
+            return;
+        }
+        RunSingleInstruction();
+    }
+    Process p = processes.front();
+    processes.pop_front();
+    if(pIsRunning)
+    {
+        processes.push_back(p);
+    }
+    _isRunning = !processes.empty();
+}
+
+void VM::RunSingleInstruction()
+{
     Instruction i= currentFrame()->currentMethod->Get(currentFrame()->ip);
     currentFrame()->ip++;
 
@@ -340,13 +379,13 @@ void VM::RunStep()
         this->DoGe();
         break;
     case Call:
-        this->DoCall(i.SymRef, getInstructionArity(i), i.tailCall);
+        this->DoCall(i.SymRef, getInstructionArity(i), i.callStyle);
         break;
     case CallRef:
-        this->DoCallRef(i.SymRef, getInstructionArity(i), i.tailCall);
+        this->DoCallRef(i.SymRef, getInstructionArity(i), i.callStyle);
         break;
     case CallMethod:
-        this->DoCallMethod(i.SymRef, getInstructionArity(i), i.tailCall);
+        this->DoCallMethod(i.SymRef, getInstructionArity(i), i.callStyle);
         break;
     case Ret:
         this->DoRet();
@@ -411,7 +450,6 @@ void VM::RunStep()
     } // switch i.opcode
 }
 
-
 /*
 proc PrintLine(x, y):
    if(x+y)<5 then:
@@ -444,7 +482,7 @@ end
 
 // This is a helper function for the next function - VM::Load()
 void VM::LoadCallInstruction(Opcode type, QString arg, Allocator &allocator,
-                             Method *method, QString label, int extraInfo, bool tailCall)
+                             Method *method, QString label, int extraInfo, CallStyle callStyle)
 {
     if(arg.contains(","))
     {
@@ -454,12 +492,12 @@ void VM::LoadCallInstruction(Opcode type, QString arg, Allocator &allocator,
         Instruction i = Instruction(type)
                         .wRef(ref_arity[0])
                         .wArgParse(ref_arity[1], &allocator)
-                        .wTailCall(tailCall);
+                        .wCallStyle(callStyle);
         method->Add(i, label, extraInfo);
     }
     else
     {
-        Instruction i = Instruction(type).wRef(arg).wTailCall(tailCall);
+        Instruction i = Instruction(type).wRef(arg).wCallStyle(callStyle);
         method->Add(i, label, extraInfo);
     }
 }
@@ -475,7 +513,8 @@ void VM::Load(QString assemblyCode)
 
     QString curClassName = "";
     ValueClass *curClass = NULL;
-    bool tailCall = false;
+
+    CallStyle callStyle = NormalCall;
     for(int i =0; i<lines.count(); i++)
     {
 
@@ -723,17 +762,21 @@ void VM::Load(QString assemblyCode)
         }
         else if(opcode == "tail")
         {
-            tailCall = true;
+            callStyle = TailCall;
+        }
+        else if(opcode == "launch")
+        {
+            callStyle = LaunchCall;
         }
         else if(opcode == "call")
         {
-            LoadCallInstruction(Call, arg, allocator, curMethod, label, extraInfo, tailCall);
-            tailCall = false;
+            LoadCallInstruction(Call, arg, allocator, curMethod, label, extraInfo, callStyle);
+            callStyle = NormalCall;
         }
         else if(opcode == "callr")
         {
-            LoadCallInstruction(CallRef, arg, allocator, curMethod, label, extraInfo, tailCall);
-            tailCall = false;
+            LoadCallInstruction(CallRef, arg, allocator, curMethod, label, extraInfo, callStyle);
+            callStyle = NormalCall;
         }
         else if(opcode == "ret")
         {
@@ -742,7 +785,7 @@ void VM::Load(QString assemblyCode)
         }
         else if(opcode == "callex")
         {
-            LoadCallInstruction(CallExternal, arg, allocator, curMethod, label, extraInfo, false);
+            LoadCallInstruction(CallExternal, arg, allocator, curMethod, label, extraInfo, NormalCall);
         }
         else if(opcode == "nop")
         {
@@ -781,8 +824,8 @@ void VM::Load(QString assemblyCode)
         }
         else if(opcode == "callm")
         {
-            LoadCallInstruction(CallMethod, arg, allocator, curMethod, label, extraInfo, tailCall);
-            tailCall = false;
+            LoadCallInstruction(CallMethod, arg, allocator, curMethod, label, extraInfo, callStyle);
+            callStyle = NormalCall;
         }
         else if(opcode == "new")
         {
@@ -1096,17 +1139,17 @@ void VM::DoGe()
     BuiltInComparisonOp(ge_int, ge_double, ge_str);
 }
 
-void VM::DoCall(QString symRef, int arity, bool tailCall)
+void VM::DoCall(QString symRef, int arity, CallStyle callStyle)
 {
-    CallImpl(symRef, true, arity, tailCall);
+    CallImpl(symRef, true, arity, callStyle);
 }
 
-void VM::DoCallRef(QString symRef, int arity, bool tailCall)
+void VM::DoCallRef(QString symRef, int arity, CallStyle callStyle)
 {
-    CallImpl(symRef, false, arity, tailCall);
+    CallImpl(symRef, false, arity, callStyle);
 }
 
-void VM::CallImpl(QString symRef, bool wantValueNotRef, int arity, bool tailCall)
+void VM::CallImpl(QString symRef, bool wantValueNotRef, int arity, CallStyle callStyle)
 {
     // call expects the arguments on the operand stack in reverse order,
     // but the callee pops them in the right order
@@ -1135,22 +1178,32 @@ void VM::CallImpl(QString symRef, bool wantValueNotRef, int arity, bool tailCall
         args.append(v);
     }
 
-    if(tailCall)
+    Frame *frame = NULL;
+    if(callStyle == TailCall)
     {
-        stack.pop();
+        stack().pop();
+        stack().push(Frame(method));
+        frame = currentFrame();
+    }
+    else if(callStyle == LaunchCall)
+    {
+        frame = launchProcess(method);
+    }
+    else if(callStyle == NormalCall)
+    {
+        stack().push(Frame(method));
+        frame = currentFrame();
     }
 
-    stack.push(Frame(method));
-    currentFrame()->returnReferenceIfRefMethod = !wantValueNotRef;
-
+    frame->returnReferenceIfRefMethod = !wantValueNotRef;
     for(int i=args.count()-1; i>=0; i--)
     {
         Value *v = args[i];
-        currentFrame()->OperandStack.push(v);
+        frame->OperandStack.push(v);
     }
 }
 
-void VM::DoCallMethod(QString SymRef, int arity, bool tailCall)
+void VM::DoCallMethod(QString SymRef, int arity, CallStyle callStyle)
 {
     // callm expects the arguments in reverse order, and the last pushed argument is 'this'
     // but the execution site pops them in the correct order, i.e the first popped is 'this'
@@ -1180,9 +1233,10 @@ void VM::DoCallMethod(QString SymRef, int arity, bool tailCall)
         args.append(v);
     }
 
-    if(tailCall)
+
+    if(callStyle == TailCall)
     {
-        stack.pop();
+        stack().pop();
     }
     if(method == NULL)
     {
@@ -1194,7 +1248,17 @@ void VM::DoCallMethod(QString SymRef, int arity, bool tailCall)
     }
     else
     {
-        stack.push(Frame(method));
+        Frame *frame = NULL;
+        if(callStyle == NormalCall || callStyle == TailCall)
+        {
+            stack().push(Frame(method));
+            frame = currentFrame();
+        }
+        else if(callStyle == LaunchCall)
+        {
+            frame = launchProcess(method);
+        }
+
         // When popped and pushed, the arguments
         // will be in the right order in the new frame
         // so e.g in calling x.print(a, b)
@@ -1203,7 +1267,7 @@ void VM::DoCallMethod(QString SymRef, int arity, bool tailCall)
         for(int i= args.count()-1; i>=0; i--)
         {
             Value *v = args[i];
-            currentFrame()->OperandStack.push(v);
+            frame->OperandStack.push(v);
         }
     }
 
@@ -1224,8 +1288,8 @@ void VM::DoRet()
     }
     if(currentFrame()->OperandStack.count()==1)
         v = currentFrame()->OperandStack.pop();
-    stack.pop();
-    if(!stack.empty())
+    stack().pop();
+    if(!stack().empty())
     {
         if(v!=NULL)
             currentFrame()->OperandStack.push(v);
@@ -1697,7 +1761,8 @@ Value *VM::_div(Value *v1, Value *v2)
 
 Value *VM::__top()
 {
-    assert(!stack.empty(), InternalError);
+    assert(!processes.empty(), InternalError);
+    assert(!stack().empty(), InternalError);
     return currentFrame()->OperandStack.top();
 }
 

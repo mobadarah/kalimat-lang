@@ -194,6 +194,18 @@ QString DelegationStmt::toString()
     return _ws(L"وكل إلى(%1)").arg(invokation()->toString());
 }
 
+LaunchStmt::LaunchStmt(Token pos, IInvokation *invokation)
+    :Statement(pos),
+    _invokation(invokation)
+{
+}
+
+QString LaunchStmt::toString()
+{
+    return _ws(L"شغل(%1)").arg(invokation()->toString());
+}
+
+
 LabelStmt::LabelStmt(Token pos, Expression *target)
     : Statement(pos),
       _target(target)
@@ -1006,6 +1018,14 @@ void DelegationStmt::prettyPrint(CodeFormatter *f)
     f->space();
     this->invokation()->prettyPrint(f);
 }
+
+void LaunchStmt::prettyPrint(CodeFormatter *f)
+{
+    f->printKw(L"شغل");
+    f->space();
+    this->invokation()->prettyPrint(f);
+}
+
 
 void LabelStmt::prettyPrint(CodeFormatter *f)
 {

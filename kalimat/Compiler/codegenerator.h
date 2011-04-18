@@ -12,8 +12,9 @@
 
 enum MethodCallStyle
 {
-    NonTailCall,
-    TailCall
+    NonTailCallStyle,
+    TailCallStyle,
+    LaunchProcessStyle
 };
 
 struct Context
@@ -76,6 +77,7 @@ private:
     void generateGotoStmt(GotoStmt *stmt);
     void generateReturnStmt(ReturnStmt *stmt);
     void generateDelegationStmt(DelegationStmt *stmt);
+    void generateLaunchStmt(LaunchStmt *stmt);
     void generateBlockStmt(BlockStmt *stmt);
     void generateInvokationStmt(InvokationStmt *stmt);
     void generatePrintStmt(PrintStmt *stmt);
@@ -96,8 +98,8 @@ private:
     void generateNullLiteral(NullLiteral *expr);
     void generateBoolLiteral(BoolLiteral *expr);
     void generateArrayLiteral(ArrayLiteral *expr);
-    void generateInvokation(Invokation *expr, MethodCallStyle style = NonTailCall);
-    void generateMethodInvokation(MethodInvokation *expr, MethodCallStyle style = NonTailCall);
+    void generateInvokation(Invokation *expr, MethodCallStyle style = NonTailCallStyle);
+    void generateMethodInvokation(MethodInvokation *expr, MethodCallStyle style = NonTailCallStyle);
     void generateIdafa(Idafa *expr);
     void generateArrayIndex(ArrayIndex *expr);
     void generateMultiDimensionalArrayIndex(MultiDimensionalArrayIndex *expr);

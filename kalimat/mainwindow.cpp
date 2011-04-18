@@ -485,6 +485,11 @@ int MainWindow::wonderfulMonitorDelay()
     return 500;
 }
 
+void MainWindow::visualizeCallStacks(QQueue<Process> &callStacks, QGraphicsView *view)
+{
+    // todo: Visualize the call stacks; as the function name says :(
+}
+
 void MainWindow::visualizeCallStack(QStack<Frame> &callStack, QGraphicsView *view)
 {
     QGraphicsScene *scene = new QGraphicsScene();
@@ -530,7 +535,7 @@ void MainWindow::markCurrentInstruction(VM *vm, int &pos, int &length)
     if(vm->hasRunningInstruction())
     {
         Instruction i = vm->getCurrentInstruction();
-        visualizeCallStack(vm->getCallStack(), ui->graphicsView);
+        visualizeCallStacks(vm->getCallStacks(), ui->graphicsView);
         int key = i.extra;
         if(key ==-1)
             return;
