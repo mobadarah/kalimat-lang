@@ -375,6 +375,55 @@ public:
     void prettyPrint(CodeFormatter *f);
 };
 
+class ChannelCommunicationStmt : public Statement
+{
+public:
+    ChannelCommunicationStmt(Token pos);
+};
+
+class SendStmt : public ChannelCommunicationStmt
+{
+public:
+    bool signal;
+    QScopedPointer<Expression> _value;
+    QScopedPointer<Expression> _channel;
+public:
+    SendStmt(Token pos, bool signal, Expression *value, Expression *channel);
+    Expression *value() { return _value.data(); }
+    Expression *channel() { return _channel.data(); }
+    QString toString();
+    void prettyPrint(CodeFormatter *f);
+};
+
+class ReceiveStmt : public ChannelCommunicationStmt
+{
+public:
+    bool signal;
+    QScopedPointer<AssignableExpression> _value;
+    QScopedPointer<Expression> _channel;
+public:
+    ReceiveStmt(Token pos, bool signal, AssignableExpression *value, Expression *channel);
+    AssignableExpression *value() { return _value.data(); }
+    Expression *channel() { return _channel.data(); }
+    QString toString();
+    void prettyPrint(CodeFormatter *f);
+};
+
+class SelectStmt : public Statement
+{
+public:
+    QVector<QSharedPointer<ChannelCommunicationStmt> > _conditions;
+    QVector<QSharedPointer<Statement> > _actions;
+public:
+    SelectStmt(Token pos, QVector<ChannelCommunicationStmt *> conditions, QVector<Statement *> actions);
+    int count() { return _conditions.count();}
+    ChannelCommunicationStmt *condition(int i) { return _conditions[i].data(); }
+    Statement *action(int i) { return _actions[i].data(); }
+
+    QString toString();
+    void prettyPrint(CodeFormatter *f);
+};
+
 class BlockStmt : public Statement
 {
 public:

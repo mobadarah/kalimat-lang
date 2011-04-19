@@ -60,6 +60,10 @@ private:
     Statement *zoomStmt();
     Statement *eventHandlerStmt();
 
+    SendStmt *sendStmt();
+    ReceiveStmt *receiveStmt();
+    Statement *selectStmt();
+
     QVector<Identifier *> formalParamList();
     Declaration *procedureDecl();
     Declaration *functionDecl();

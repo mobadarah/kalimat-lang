@@ -317,3 +317,8 @@ ret
 	pushl fw
 	ret
 .endmethod
+
+.method قناة 0 1
+	callex newchannel
+	ret
+.endmethod

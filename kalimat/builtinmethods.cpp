@@ -939,6 +939,11 @@ void GetMainWindowProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
     stack.push(vm->GetAllocator().newRaw(w, BuiltInTypes::RawWindowType));
 }
 
+void NewChannelProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
+{
+    stack.push(vm->GetAllocator().newChannel());
+}
+
 void setupChildren(QGridLayout *layout,Value *v, Reference *ref, QString label, int row, VM *vm)
 {
     QCheckBox *cb;

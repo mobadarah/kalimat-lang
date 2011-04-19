@@ -405,6 +405,55 @@ QString EventStatement::toString()
     return _ws(L"عند(%1، %2)").arg(type).arg(handler()->toString());
 }
 
+ChannelCommunicationStmt::ChannelCommunicationStmt(Token pos)
+    : Statement(pos)
+{
+
+}
+
+SendStmt::SendStmt(Token pos, bool signal, Expression *value, Expression *channel)
+    : ChannelCommunicationStmt(pos), _value(value), _channel(channel)
+{
+    this->signal = signal;
+}
+
+QString SendStmt::toString()
+{
+    return _ws(L"ارسل(%1، %2)").arg(signal? _ws(L"إشارة") : value()->toString(), channel()->toString());
+}
+
+ReceiveStmt::ReceiveStmt(Token pos, bool signal, AssignableExpression *value, Expression *channel)
+    : ChannelCommunicationStmt(pos), _value(value), _channel(channel)
+{
+    this->signal = signal;
+}
+
+QString ReceiveStmt::toString()
+{
+    return _ws(L"تسلم(%1، %2)").arg(signal? _ws(L"إشارة") : value()->toString(), channel()->toString());
+}
+
+SelectStmt::SelectStmt(Token pos, QVector<ChannelCommunicationStmt *> conditions, QVector<Statement *> actions)
+    : Statement(pos)
+{
+    for(int i=0; i<conditions.count();i++)
+        _conditions.append(QSharedPointer<ChannelCommunicationStmt>(conditions[i]));
+    for(int i=0; i<actions.count();i++)
+        _actions.append(QSharedPointer<Statement>(actions[i]));
+}
+
+QString SelectStmt::toString()
+{
+    QStringList condact;
+    for(int i=0; i<count(); i++)
+    {
+        condact.append(QString("%1 => %2")
+                       .arg(condition(i)->toString())
+                       .arg(action(i)->toString()));
+    }
+    return _ws(L"تخير({%1})").arg(condact.join(", "));
+}
+
 BlockStmt::BlockStmt(Token pos ,QVector<Statement *> statements)
         :Statement(pos)
 
@@ -1208,6 +1257,52 @@ void EventStatement::prettyPrint(CodeFormatter *f)
     f->printKw(translateEventType(this->type));
     f->printKw(L"نفذ");
     this->handler()->prettyPrint(f);
+}
+
+void SendStmt::prettyPrint(CodeFormatter *f)
+{
+    f->printKw(L"ارسل");
+    if(signal)
+        f->printKw(L"إشارة");
+    else
+        value()->prettyPrint(f);
+    f->printKw(L"إلى");
+    this->channel()->prettyPrint(f);
+}
+
+void ReceiveStmt::prettyPrint(CodeFormatter *f)
+{
+    f->printKw(L"تسلم");
+    if(signal)
+        f->printKw(L"إشارة");
+    else
+        value()->prettyPrint(f);
+    f->printKw(L"من");
+    this->channel()->prettyPrint(f);
+}
+
+void SelectStmt::prettyPrint(CodeFormatter *f)
+{
+    f->printKw(L"تخير");
+    f->nl();
+    f->indent();
+    for(int i=0; i<count(); i++)
+    {
+        ChannelCommunicationStmt *cond = condition(i);
+        Statement *act = action(i);
+        BlockStmt *actBlk = dynamic_cast<BlockStmt *>(act);
+
+        if(i>0)
+            f->printKw(L"أو");
+        cond->prettyPrint(f);
+        f->space();
+        f->colon();
+        if(actBlk)
+            f->nl();
+        act->prettyPrint(f);
+    }
+    f->deindent();
+    f->print(L"تم");
 }
 
 void BlockStmt::prettyPrint(CodeFormatter *f)

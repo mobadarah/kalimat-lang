@@ -94,6 +94,7 @@ void FileCloseProc(QStack<Value *> &stack, RunWindow *, VM *);
 
 void EditProc(QStack<Value *> &stack, RunWindow *w, VM *vm);
 void GetMainWindowProc(QStack<Value *> &stack, RunWindow *w, VM *vm);
+void NewChannelProc(QStack<Value *> &stack, RunWindow *w, VM *vm);
 
 double verifyNumeric(Value *v, RunWindow *w); // TODO: make this a method of RunWindow
 int popIntOrCoercable(QStack<Value *> &stack, RunWindow *w, VM *vm);

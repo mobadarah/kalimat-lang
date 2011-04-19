@@ -69,7 +69,11 @@ const int GO = 58;
 const int DELEGATE = 59;
 const int IS = 60;
 const int LAUNCH = 61;
-const int KEYWORD_CUTOFF = 61; // As long as the ID of the token is <= KEYWORD_CUTOFF, the
+const int SEND = 62;
+const int RECEIVE = 63;
+const int SELECT = 64;
+const int SIGNAL_ = 65;
+const int KEYWORD_CUTOFF = 65; // As long as the ID of the token is <= KEYWORD_CUTOFF, the
                                // syntax hilighter will consider it a keyword.
 const int NUM_LITERAL = 71;
 const int ADD_OP = 72;

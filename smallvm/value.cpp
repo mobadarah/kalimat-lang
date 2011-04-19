@@ -35,6 +35,7 @@ ValueClass *BuiltInTypes::RefType = new ValueClass("Reference", BuiltInTypes::Ob
 ValueClass *BuiltInTypes::FieldRefType = new ValueClass("FieldReference", BuiltInTypes::ObjectType);
 ValueClass *BuiltInTypes::ArrayRefType = new ValueClass("ArrayReference", BuiltInTypes::ObjectType);
 ValueClass *BuiltInTypes::NullType = new ValueClass(QSTR(L"لاشيء"), BuiltInTypes::ObjectType);
+ValueClass *BuiltInTypes::ChannelType = new ValueClass(QSTR(L"قناة"), BuiltInTypes::ObjectType);
 
 Value *Value::NullValue;
 Value::Value()
@@ -72,6 +73,9 @@ Value::~Value()
     case RefVal:
         delete v.refVal;
         break;
+    case ChannelVal:
+        delete v.channelVal;
+        break;
     case NullVal:
         break;
     }
@@ -99,7 +103,6 @@ void Object::setSlotValue(QString name, Value *val)
 {
     _slots[name] = val;
 }
-
 
 int Value::unboxInt()
 {
@@ -154,6 +157,11 @@ Reference *Value::unboxRef()
     return v.refVal;
 }
 
+Channel *Value::unboxChan()
+{
+    return v.channelVal;
+}
+
 QString ArrayToString(VArray *arr)
 {
     QStringList lst;
@@ -200,6 +208,9 @@ QString Value::toString()
         break;
     case Boolean:
         ret = v->unboxBool()? QString::fromStdWString(L"صحيح") : QString::fromStdWString(L"خطأ");
+        break;
+    case ChannelVal:
+        ret = QSTR(L"<قناة %1>").arg((long) v->unboxChan());
         break;
     }
     QString str = ret;
@@ -313,7 +324,6 @@ QString ForeignClass::getName()
 {
     return this->name;
 }
-
 
 IClass *ForeignClass::baseClass()
 {

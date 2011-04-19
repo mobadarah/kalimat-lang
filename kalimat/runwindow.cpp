@@ -137,6 +137,7 @@ void RunWindow::Init(QString program, QMap<QString, QString>stringConstants)
 
         vm->Register("edit", new WindowProxyMethod(this, vm, EditProc));
         vm->Register("getmainwindow", new WindowProxyMethod(this, vm, GetMainWindowProc));
+        vm->Register("newchannel", new WindowProxyMethod(this, vm, NewChannelProc));
 
         for(int i=0; i<stringConstants.keys().count(); i++)
         {

@@ -16,7 +16,8 @@ SOURCES += main.cpp \
     classes.cpp \
     references.cpp \
     easyforeignclass.cpp \
-    process.cpp
+    process.cpp \
+    channel.cpp
 HEADERS += \
     value.h \
     instruction.h \
@@ -32,6 +33,7 @@ HEADERS += \
     classes.h \
     references.h \
     easyforeignclass.h \
-    process.h
+    process.h \
+    channel.h
 FORMS +=
 RESOURCES += asm.qrc

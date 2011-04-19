@@ -399,6 +399,18 @@ void CodeGenerator::generateStatement(Statement *stmt)
     {
         generateEventStatement(dynamic_cast<EventStatement *>(stmt));
     }
+    else if(isa<SendStmt>(stmt))
+    {
+        generateSendStmt(dynamic_cast<SendStmt *>(stmt));
+    }
+    else if(isa<ReceiveStmt>(stmt))
+    {
+        generateReceiveStmt(dynamic_cast<ReceiveStmt*>(stmt));
+    }
+    else if(isa<SelectStmt>(stmt))
+    {
+        generateSelectStmt(dynamic_cast<SelectStmt*>(stmt));
+    }
     else
     {
         throw new CompilerException(stmt, UnimplementedStatementForm);
@@ -513,7 +525,8 @@ void CodeGenerator::generateReadStmt(ReadStmt *stmt)
         gen(lvalue, "popl " + readVar);
         // The read statement is one of the methods to introduce a new variable
         // into scope,but since in this current implementation generateAssignmentToLvalue(..)
-        // already adds the lvalue to the current scope if it's an identifier, we don't need to do so here.
+        // already adds the lvalue to the current scope if it's an identifier, we don't need
+        // to do so here.
         GenerateRvalue genReadVar(lvalue, this, readVar);
 
         generateAssignmentToLvalue(lvalue, lvalue, genReadVar);
@@ -737,6 +750,12 @@ void CodeGenerator::generateAssignmentToLvalue(AST *src, AssignableExpression *l
     }
 }
 
+void CodeGenerator::generateReference(AssignableExpression *lval)
+{
+    //todo: generating first-class references from lvalues
+    gen(lval, "pushnull");
+}
+
 void CodeGenerator::generateIfStmt(IfStmt *stmt)
 {
     generateExpression(stmt->condition());
@@ -933,6 +952,156 @@ void CodeGenerator::generateInvokationStmt(InvokationStmt *stmt)
     generateExpression(stmt->expression());
 }
 
+void CodeGenerator::generateSendStmt(SendStmt *stmt)
+{
+    generateExpression(stmt->channel());
+    generateExpression(stmt->value());
+    gen(stmt, "send");
+}
+
+void CodeGenerator::generateReceiveStmt(ReceiveStmt *stmt)
+{
+    AssignableExpression *lval = stmt->value();
+
+    struct GenerateExpr : public Thunk
+    {
+        CodeGenerator *_g; ReceiveStmt *_stmt;
+        GenerateExpr(CodeGenerator *g, ReceiveStmt *s):_g(g),_stmt(s) {}
+        void operator() ()
+        {
+            _g->generateExpression(_stmt->channel());
+            _g->gen(_stmt, "recieve");
+        }
+    } myGen(this, stmt);
+
+    generateAssignmentToLvalue(stmt, lval, myGen);
+}
+
+void CodeGenerator::generateSelectStmt(SelectStmt *stmt)
+{
+    /*
+      The select instruction works like this:
+       ... arr sendcount => ... activeIndex
+      where arr is an array of interleaved channels and values in the following form:
+      ch0 val0 ch1 val1 ... chi lvali chi+1 lvali+1 ....chn lvaln
+      (the send channels and values are first, followed by receive channels and rvalues)
+
+      sendcount is the number of sends in the array, used to separate sends from receives
+
+      The activeIndex is the index of the channel (in the list of channels; not in the array)
+      that successfully communicated. We will use activeIndex to generate a switch statement
+    */
+
+    QVector<int> sends;
+    QVector<int> receives;
+
+    // Sift through sends and receives;
+    for(int i=0; i<stmt->count(); i++)
+    {
+        ChannelCommunicationStmt *ccs = stmt->condition(i);
+        SendStmt *isSend = dynamic_cast<SendStmt *>(ccs);
+        if(isSend)
+            sends.append(i);
+        else
+            receives.append(i);
+    }
+
+    int sendCount = sends.count();
+    QString tempArrName = _asm.uniqueVariable();
+
+    // Create the array
+    gen(stmt, "pushv ", stmt->count());
+    gen(stmt, "newarr");
+    gen(stmt, "popl " +tempArrName);
+
+    int current = 1;
+    // Fill the array
+    for(int i=0; i<sendCount; i++)
+    {
+        SendStmt *ss = dynamic_cast<SendStmt *>(stmt->condition(sends[i]));
+
+        gen(ss, "pushl " + tempArrName);
+        gen(ss, "pushv ", current);
+        generateExpression(ss->channel());
+        gen(ss, "setarr");
+        current++;
+
+        gen(ss, "pushl " + tempArrName);
+        gen(ss, "pushv ", current);
+        generateExpression(ss->value());
+        gen(ss, "setarr");
+        current++;
+    }
+
+    for(int i=0; i<receives.count(); i++)
+    {
+        ReceiveStmt *rs = dynamic_cast<ReceiveStmt*>(stmt->condition(receives[i]));
+
+        gen(rs, "pushl " + tempArrName);
+        gen(rs, "pushv ", current);
+        generateExpression(rs->channel());
+        gen(rs, "setarr");
+        current++;
+
+        gen(rs, "pushl " + tempArrName);
+        gen(rs, "pushv ", current);
+        generateReference(rs->value());
+        gen(rs, "setarr");
+        current++;
+    }
+    // Finally; select!
+    gen(stmt, "pushl " + tempArrName);
+    gen(stmt, "pushv ", sendCount);
+    gen(stmt, "select");
+
+    // Now the switch...
+    /*
+      popl temp
+
+      pushl temp
+      pushv 0
+      eq
+      if lbl0,lbl1
+      lbl0:
+      ....code
+      lbl1:
+
+      pushl temp
+      pushv 1
+      eq
+      if lbl2,lbl3
+      lbl2:
+      ...code
+      lbl3:
+
+      ...etc ...etc
+    */
+    QString retName = _asm.uniqueVariable();
+    gen(stmt, "popl " + retName);
+
+    for(int i=0; i<stmt->count(); i++)
+    {
+        QString lbl_a = _asm.uniqueLabel();
+        QString lbl_b = _asm.uniqueLabel();
+
+        Statement *action;
+        ChannelCommunicationStmt *cond;
+        if(i<sendCount)
+        { action = stmt->action(sends[i]); cond = stmt->condition(sends[i]); }
+        else
+        { action = stmt->action(receives[i - sendCount]); cond = stmt->condition(receives[i - sendCount]); }
+        gen(cond, "pushl " + retName);
+        gen(cond, "pushv ", i);
+        gen(cond, "eq");
+        gen(cond, "if " + lbl_a +"," + lbl_b);
+        gen(cond, lbl_a + ":");
+
+        generateStatement(action);
+        gen(cond, lbl_b + ":");
+    }
+    // We are done. If you reached here, take a breath.
+}
+
 void CodeGenerator::generateExpression(Expression *expr)
 {
     if(isa<BinaryOperation>(expr))
@@ -1102,7 +1271,6 @@ void CodeGenerator::generateIdentifier(Identifier *expr)
         gen(expr, "pushg "+expr->name);
     else
         throw CompilerException(expr, UndefinedVariable).arg(expr->name);
-
 }
 
 void CodeGenerator::generateNumLiteral(NumLiteral *expr)

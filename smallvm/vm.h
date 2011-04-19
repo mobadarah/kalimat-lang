@@ -123,6 +123,9 @@ public:
     void DoMD_ArrDimensions();
     void DoRegisterEvent(Value *evname, QString SymRef);
     void DoIsa(QString SymRef);
+    void DoSend();
+    void DoReceive();
+    void DoSelect();
 
     void CallImpl(QString sym, bool wantValueNotRef, int arity, CallStyle callStyle);
     void CallSpecialMethod(IMethod *method, QVector<Value *> args);

@@ -443,6 +443,15 @@ void VM::RunSingleInstruction()
     case Isa:
         this->DoIsa(i.SymRef);
         break;
+    case Send:
+        this->DoSend();
+        break;
+    case Receive:
+        this->DoReceive();
+        break;
+    case Select:
+        this->DoSelect();
+        break;
     default:
         signal(UnrecognizedInstruction);
         break;
@@ -879,6 +888,21 @@ void VM::Load(QString assemblyCode)
         else if(opcode == "isa")
         {
             Instruction i = Instruction(Isa).wRef(arg);
+            curMethod->Add(i, label, extraInfo);
+        }
+        else if(opcode == "send")
+        {
+            Instruction i = Instruction(Send);
+            curMethod->Add(i, label, extraInfo);
+        }
+        else if(opcode == "receive")
+        {
+            Instruction i = Instruction(Receive);
+            curMethod->Add(i, label, extraInfo);
+        }
+        else if(opcode == "select")
+        {
+            Instruction i = Instruction(Select);
             curMethod->Add(i, label, extraInfo);
         }
         else
@@ -1547,6 +1571,21 @@ void VM::DoIsa(QString SymRef)
     assert(cls != NULL, NoSuchClass);
     bool b = v->type->subclassOf(cls);
     currentFrame()->OperandStack.push(allocator.newBool(b));
+}
+
+void VM::DoSend()
+{
+
+}
+
+void VM::DoReceive()
+{
+
+}
+
+void VM::DoSelect()
+{
+
 }
 
 void VM::CallSpecialMethod(IMethod *method, QVector<Value *> args)

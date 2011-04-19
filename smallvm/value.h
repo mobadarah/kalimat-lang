@@ -16,16 +16,21 @@
     #include "multidimensionalarray.h"
 #endif
 
+#ifndef CHANNEL_H
+    #include "channel.h"
+#endif
+
 class Value;
 class ValueClass;
 class Method;
 struct VArray;
 struct Reference;
+class Channel;
 
 enum Tag
 {
     Int, Double, Boolean, ObjectVal, NullVal, StringVal, RawVal,
-    RefVal, ArrayVal, MultiDimensionalArrayVal
+    RefVal, ArrayVal, MultiDimensionalArrayVal, ChannelVal
 };
 
 struct VArray
@@ -45,6 +50,7 @@ union ValueItem
     Reference *refVal;
     VArray *arrayVal;
     MultiDimensionalArray<Value *> *multiDimensionalArrayVal;
+    Channel *channelVal;
 };
 
 struct Value
@@ -65,6 +71,7 @@ struct Value
     void *unboxRaw();
     QString *unboxStr();
     Reference *unboxRef();
+    Channel *unboxChan();
     QString toString();
 
     double unboxNumeric();
@@ -94,6 +101,7 @@ public:
     static ValueClass *FieldRefType;
     static ValueClass *ArrayRefType;
     static ValueClass *NullType;
+    static ValueClass *ChannelType;
 };
 
 #endif // VALUE_H

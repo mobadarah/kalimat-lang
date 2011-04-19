@@ -89,6 +89,9 @@ private:
     void generateDrawSpriteStmt(DrawSpriteStmt *stmt);
     void generateZoomStmt(ZoomStmt *stmt);
     void generateEventStatement(EventStatement *stmt);
+    void generateSendStmt(SendStmt *stmt);
+    void generateReceiveStmt(ReceiveStmt *stmt);
+    void generateSelectStmt(SelectStmt *stmt);
     void generateBinaryOperation(BinaryOperation *expr);
     void generateIsaOperation(IsaOperation *expr);
     void generateUnaryOperation(UnaryOperation *expr);
@@ -108,6 +111,7 @@ private:
     QString generateArrayFromValues(AST *src, QVector<QSharedPointer<Expression> > values);
     void generateAssignmentToLvalue(AST *src, AssignableExpression *lval,
                                         Thunk &);
+    void generateReference(AssignableExpression *lval);
 
     void firstPass(Declaration * decl);
     void secondPass(Declaration * decl);

@@ -151,6 +151,7 @@ bool KalimatParser::LA_first_statement()
 {
     return LA(IF) || LA(FORALL) || LA(WHILE) || LA(RETURN_WITH)
             || LA(DELEGATE) || LA(LAUNCH) || LA(LABEL) || LA(GO) || LA(WHEN)
+            || LA(SEND) || LA(RECEIVE) || LA(SELECT)
             || LA_first_io_statement() || LA_first_grfx_statement()
             || LA_first_assignment_or_invokation();
 }
@@ -208,6 +209,19 @@ Statement *KalimatParser::statement()
     {
         ret = grfxStatement();
     }
+    else if(LA(SEND))
+    {
+        ret = sendStmt();
+    }
+    else if(LA(RECEIVE))
+    {
+        ret = receiveStmt();
+    }
+    else if(LA(SELECT))
+    {
+        ret = selectStmt();
+    }
+
     if(ret == NULL)
         throw ParserException(getPos(), "statement not implemented");
 
@@ -873,6 +887,107 @@ Statement *KalimatParser::eventHandlerStmt()
     match(DO);
     proc = identifier();
     return new EventStatement(tok, type, proc);
+}
+
+SendStmt *KalimatParser::sendStmt()
+{
+    bool signal = false;
+    Expression *value = NULL;
+    Expression *chan = NULL;
+    match(SEND);
+    if(eof())
+        throw ParserException(getPos(), "Expected an expression");
+    Token tok = lookAhead;
+    if(LA(SIGNAL_))
+        signal = true;
+    else
+        value = expression();
+    match(TO);
+    chan = expression();
+    return new SendStmt(tok, signal, value, chan);
+}
+
+ReceiveStmt *KalimatParser::receiveStmt()
+{
+    bool signal = false;
+    AssignableExpression *value = NULL;
+    Expression *chan = NULL;
+    match(RECEIVE);
+    if(eof())
+        throw ParserException(getPos(), "Expected an expression");
+    Token tok = lookAhead;
+    if(LA(SIGNAL_))
+        signal = true;
+    else
+    {
+        Expression *expr = primaryExpression();
+        value = dynamic_cast<AssignableExpression *>(expr);
+        if(value == NULL)
+        {
+            throw ParserException(getPos(), "'Receive' must take an assignable expression");
+        }
+    }
+    match(FROM);
+    chan = expression();
+    return new ReceiveStmt(tok, signal, value, chan);
+}
+
+Statement *KalimatParser::selectStmt()
+{
+    Token tok = lookAhead;
+    QVector<ChannelCommunicationStmt *> conditions;
+    QVector<Statement *> actions;
+    bool multilineStatement = false;
+    match(SELECT);
+    match(COLON);
+    match(NEWLINE);
+
+    if(LA(SEND))
+    {
+        conditions.append(sendStmt());
+    }
+    else if(LA(RECEIVE))
+    {
+        conditions.append(receiveStmt());
+    }
+    else
+    {
+        throw ParserException(getPos(), "Expected a 'send' or 'receive' operation");
+    }
+    match(COLON);
+    if(LA(NEWLINE))
+    {
+        multilineStatement = true;
+    }
+    if(multilineStatement)
+        actions.append(block());
+    else
+        actions.append(statement());
+
+    while(LA(OR))
+    {
+        match(OR);
+        if(LA(SEND))
+        {
+            conditions.append(sendStmt());
+        }
+        else if(LA(RECEIVE))
+        {
+            conditions.append(receiveStmt());
+        }
+        else
+        {
+            throw ParserException(getPos(), "Expected a 'send' or 'receive' operation");
+        }
+        match(COLON);
+
+        if(multilineStatement)
+            actions.append(block());
+        else
+            actions.append(statement());
+    }
+    match(DONE);
+    return new SelectStmt(tok, conditions, actions);
 }
 
 BlockStmt *KalimatParser::block()
