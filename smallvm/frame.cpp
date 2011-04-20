@@ -5,8 +5,6 @@
 **   as described in the included license.txt file
 **************************************************************************/
 
-#include <QStack>
-#include "method.h"
 #include "frame.h"
 
 Frame::Frame()

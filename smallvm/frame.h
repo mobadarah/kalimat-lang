@@ -8,7 +8,14 @@
 #ifndef FRAME_H
 #define FRAME_H
 
-#include "instruction.h"
+#ifndef INSTRUCTION_H
+    #include "instruction.h"
+#endif
+
+#ifndef METHOD_H
+    #include "method.h"
+#endif
+
 #include <QStack>
 #include <QMap>
 struct Frame

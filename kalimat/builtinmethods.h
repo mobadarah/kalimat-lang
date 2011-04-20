@@ -8,7 +8,13 @@
 #ifndef BUILTINMETHODS_H
 #define BUILTINMETHODS_H
 
+
 class RunWindow;
+
+#ifndef VM_H
+#include "../smallvm/vm.h"
+#endif
+
 #ifndef CLASSES_H
     #include "../smallvm/classes.h"
 #endif
@@ -16,6 +22,7 @@ class RunWindow;
 #ifndef EASYFOREIGNCLASS_H
     #include "../smallvm/easyforeignclass.h"
 #endif
+
 
 typedef void (*VM_PROC)(QStack<Value *> &, RunWindow *, VM *);
 
@@ -138,14 +145,17 @@ public:
     void dispatch(int id, QVector<Value *>args);
 };
 
-class ButtonForeignClass : public EasyForeignClass
+class ButtonForeignClass : public QObject, public EasyForeignClass
 {
+    Q_OBJECT
     RunWindow *rw; // for TX
+    Allocator *allocator;
 public:
     ButtonForeignClass(QString name, RunWindow *rw);
     IObject *newValue(Allocator *allocator);
     void dispatch(int id, QVector<Value *>args);
-
+public slots:
+    void on_button_clicked();
 };
 
 class WindowForeignObject : public IObject

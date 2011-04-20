@@ -16,7 +16,7 @@ enum VMErrorType
     NoSuchField2, NoSuchMethod2, NoSuchExternalMethod1, NoSuchEvent,
     NoSuchClass, NameDoesntIndicateAClass1,
 
-    UnrecognizedInstruction,UnrecognizedMnemonic,
+    UnrecognizedInstruction,UnrecognizedMnemonic2,
     GettingFieldOnNonObject, SettingFieldOnNonObject, CallingMethodOnNonObject,
     GettingFieldOnNull, SettingFieldOnNull, CallingMethodOnNull,
     NumericOperationOnNonNumber1, LogicOperationOnNonBoolean,

@@ -47,7 +47,8 @@ SOURCES += main.cpp \
     ../smallvm/classes.cpp \
     Parser/kalimatprettyprintparser.cpp \
     ../smallvm/easyforeignclass.cpp \
-    ../smallvm/channel.cpp
+    ../smallvm/channel.cpp \
+    ../smallvm/process.cpp
 HEADERS += mainwindow.h \
     codedocument.h \
     Lexer/token.h \

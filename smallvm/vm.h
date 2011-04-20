@@ -16,6 +16,14 @@
     #include "allocator.h"
 #endif
 
+#ifndef VMERROR_H
+    #include "vmerror.h"
+#endif
+
+#ifndef EXTERNALMETHOD_H
+    #include "externalmethod.h"
+#endif
+
 #include <QQueue>
 
 template <typename T> bool isa(void * obj)
@@ -35,6 +43,7 @@ class VM
 
     bool _isRunning;
     VMError _lastError;
+    Frame *_globalFrame;
     QMap<QString, QString> registeredEventHandlers;
 private:
     QStack<Frame> &stack();
@@ -59,6 +68,7 @@ public:
     Frame *launchProcess(Method *method);
     bool hasRunningInstruction();
     Instruction getCurrentInstruction();
+    Process *currentProcess();
 
     void signal(VMErrorType toSignal);
     void signal(VMErrorType toSignal, QString arg0);

@@ -28,7 +28,9 @@ void VM::Init()
     QString malaf = "%file";
     if(constantPool.contains(malaf))
         BuiltInTypes::FileType = (ValueClass *) constantPool[malaf]->unboxObj();
+    _globalFrame = new Frame();
     launchProcess(method);
+
     _isRunning = true;
 }
 
@@ -36,8 +38,8 @@ Frame *VM::launchProcess(Method *method)
 {
     Process p;
     p.stack.push(Frame(method));
-    processes.append(p);
-    Frame *ret = &p.stack.top();
+    processes.push_back(p);
+    Frame *ret = &processes.back().stack.top();
     return ret;
 }
 
@@ -117,6 +119,11 @@ QStack<Frame> &VM::stack()
     return processes.front().stack;
 }
 
+Process *VM::currentProcess()
+{
+    return &processes.front();
+}
+
 Frame *VM::currentFrame()
 {
     if(stack().empty())
@@ -126,7 +133,7 @@ Frame *VM::currentFrame()
 
 Frame &VM::globalFrame()
 {
-    return stack()[0];
+    return *_globalFrame;
 }
 
 void VM::Register(QString symRef, ExternalMethod *method)
@@ -199,6 +206,7 @@ Instruction VM::getCurrentInstruction()
     Instruction i= currentFrame()->currentMethod->Get(currentFrame()->ip);
     return i;
 }
+
 
 Allocator &VM::GetAllocator()
 {
@@ -278,7 +286,11 @@ void VM::RunStep()
         if(!currentFrame()->currentMethod->HasInstruction(currentFrame()->ip))
         {
             pIsRunning = false;
-            return;
+            break;
+        }
+        if(currentProcess()->state == SleepingProcess)
+        {
+            break;
         }
         RunSingleInstruction();
     }
@@ -907,7 +919,7 @@ void VM::Load(QString assemblyCode)
         }
         else
         {
-            signal(UnrecognizedMnemonic,opcode,toStr(i));
+            signal(UnrecognizedMnemonic2,opcode,toStr(i));
         }
 
     } // end for(lines)
@@ -1575,12 +1587,21 @@ void VM::DoIsa(QString SymRef)
 
 void VM::DoSend()
 {
-
+    // ... chan val => ...
+    Value *v = currentFrame()->OperandStack.pop();
+    Value *chan = currentFrame()->OperandStack.pop();
+    assert(chan->type == BuiltInTypes::ChannelType, TypeError2, BuiltInTypes::ChannelType, chan->type);
+    Channel *channel = chan->unboxChan();
+    channel->send(v, currentProcess());
 }
 
 void VM::DoReceive()
 {
-
+    // ... chan => ... val
+    Value *chan = currentFrame()->OperandStack.pop();
+    assert(chan->type == BuiltInTypes::ChannelType, TypeError2, BuiltInTypes::ChannelType, chan->type);
+    Channel *channel = chan->unboxChan();
+    channel->receive(currentProcess());
 }
 
 void VM::DoSelect()

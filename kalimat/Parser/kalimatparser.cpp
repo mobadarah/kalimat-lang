@@ -899,7 +899,10 @@ SendStmt *KalimatParser::sendStmt()
         throw ParserException(getPos(), "Expected an expression");
     Token tok = lookAhead;
     if(LA(SIGNAL_))
+    {
+        match(SIGNAL_);
         signal = true;
+    }
     else
         value = expression();
     match(TO);
@@ -917,7 +920,10 @@ ReceiveStmt *KalimatParser::receiveStmt()
         throw ParserException(getPos(), "Expected an expression");
     Token tok = lookAhead;
     if(LA(SIGNAL_))
+    {
+        match(SIGNAL_);
         signal = true;
+    }
     else
     {
         Expression *expr = primaryExpression();

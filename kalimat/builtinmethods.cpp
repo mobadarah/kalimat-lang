@@ -31,6 +31,7 @@
 #include <math.h>
 #include <algorithm>
 #include <QPushButton>
+#include <QVariant>
 
 using namespace std;
 
@@ -1174,16 +1175,32 @@ ButtonForeignClass::ButtonForeignClass(QString name, RunWindow *rw)
 
 
     fields.insert("handle");
+    fields.insert(QString::fromStdWString(L"ضغط"));
 }
 
 IObject *ButtonForeignClass::newValue(Allocator *allocator)
 {
     Object *newObj = new Object();
     newObj->slotNames.append("handle");
-    newObj->setSlotValue("handle", allocator->newRaw(new QPushButton(), this));
+    newObj->slotNames.append(QString::fromStdWString(L"ضغط"));
+
+    QPushButton *button = new QPushButton();
+    button->setProperty("objectof", QVariant::fromValue<void *>(newObj));
+    newObj->setSlotValue("handle", allocator->newRaw(button, this));
+
+    connect(button, SIGNAL(clicked()), this, SLOT(on_button_clicked()));
+    newObj->setSlotValue(QString::fromStdWString(L"ضغط"), allocator->newChannel());
+    this->allocator = allocator; // todo: this is a hack
     return newObj;
 }
 
+void ButtonForeignClass::on_button_clicked()
+{
+    QPushButton *pb = (QPushButton *) sender();
+    Object *object = (Object *) pb->property("objectof").value<void *>();
+    Channel *chan = object->getSlotValue(QString::fromStdWString(L"ضغط"))->unboxChan();
+    chan->send(allocator->null(), NULL);
+}
 
 void ButtonForeignClass::dispatch(int id, QVector<Value *> args)
 {

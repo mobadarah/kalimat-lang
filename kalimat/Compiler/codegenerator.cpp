@@ -955,26 +955,38 @@ void CodeGenerator::generateInvokationStmt(InvokationStmt *stmt)
 void CodeGenerator::generateSendStmt(SendStmt *stmt)
 {
     generateExpression(stmt->channel());
-    generateExpression(stmt->value());
+    if(stmt->signal)
+        gen(stmt, "pushnull");
+    else
+        generateExpression(stmt->value());
     gen(stmt, "send");
 }
 
 void CodeGenerator::generateReceiveStmt(ReceiveStmt *stmt)
 {
-    AssignableExpression *lval = stmt->value();
-
-    struct GenerateExpr : public Thunk
+    if(stmt->signal)
     {
-        CodeGenerator *_g; ReceiveStmt *_stmt;
-        GenerateExpr(CodeGenerator *g, ReceiveStmt *s):_g(g),_stmt(s) {}
-        void operator() ()
-        {
-            _g->generateExpression(_stmt->channel());
-            _g->gen(_stmt, "recieve");
-        }
-    } myGen(this, stmt);
+        generateExpression(stmt->channel());
+        gen(stmt, "receive");
+        gen("popl " + _asm.uniqueVariable());
+    }
+    else
+    {
+        AssignableExpression *lval = stmt->value();
 
-    generateAssignmentToLvalue(stmt, lval, myGen);
+        struct GenerateExpr : public Thunk
+        {
+            CodeGenerator *_g; ReceiveStmt *_stmt;
+            GenerateExpr(CodeGenerator *g, ReceiveStmt *s):_g(g),_stmt(s) {}
+            void operator() ()
+            {
+                _g->generateExpression(_stmt->channel());
+                _g->gen(_stmt, "receive");
+            }
+        } myGen(this, stmt);
+
+        generateAssignmentToLvalue(stmt, lval, myGen);
+    }
 }
 
 void CodeGenerator::generateSelectStmt(SelectStmt *stmt)
