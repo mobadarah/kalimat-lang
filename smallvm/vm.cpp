@@ -36,7 +36,7 @@ void VM::Init()
 
 Frame *VM::launchProcess(Method *method)
 {
-    Process p;
+    Process p(this);
     p.stack.push(Frame(method));
     processes.push_back(p);
     Frame *ret = &processes.back().stack.top();
@@ -1606,7 +1606,22 @@ void VM::DoReceive()
 
 void VM::DoSelect()
 {
+    // ... arr sendcount => ... ret? activeIndex
 
+    assert(__top()->tag == Int, InternalError);
+    int nsend = currentFrame()->OperandStack.pop()->unboxInt();
+
+    assert(__top()->tag == ArrayVal, InternalError);
+    VArray *varr = currentFrame()->OperandStack.pop()->unboxArray();
+
+    QVector<Channel *> allChans;
+    QVector<Value *> args;
+    for(int i=0; i<varr->count; i+=2)
+    {
+        allChans.append(varr->Elements[i]->unboxChan());
+        args.append(varr->Elements[i+1]);
+    }
+    currentProcess()->select(allChans, args, nsend);
 }
 
 void VM::CallSpecialMethod(IMethod *method, QVector<Value *> args)

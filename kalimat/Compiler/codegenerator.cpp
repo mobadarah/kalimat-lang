@@ -993,7 +993,7 @@ void CodeGenerator::generateSelectStmt(SelectStmt *stmt)
 {
     /*
       The select instruction works like this:
-       ... arr sendcount => ... activeIndex
+       ... arr sendcount => ... ret? activeIndex
       where arr is an array of interleaved channels and values in the following form:
       ch0 val0 ch1 val1 ... chi lvali chi+1 lvali+1 ....chn lvaln
       (the send channels and values are first, followed by receive channels and rvalues)
@@ -1002,6 +1002,9 @@ void CodeGenerator::generateSelectStmt(SelectStmt *stmt)
 
       The activeIndex is the index of the channel (in the list of channels; not in the array)
       that successfully communicated. We will use activeIndex to generate a switch statement
+
+      ret is either absent in the case of a successful send, or the received value in case of
+      a successful receive
     */
 
     QVector<int> sends;
@@ -1022,7 +1025,7 @@ void CodeGenerator::generateSelectStmt(SelectStmt *stmt)
     QString tempArrName = _asm.uniqueVariable();
 
     // Create the array
-    gen(stmt, "pushv ", stmt->count());
+    gen(stmt, "pushv ", stmt->count()*2);
     gen(stmt, "newarr");
     gen(stmt, "popl " +tempArrName);
 
@@ -1068,9 +1071,9 @@ void CodeGenerator::generateSelectStmt(SelectStmt *stmt)
 
     // Now the switch...
     /*
-      popl temp
+      popl temp_index
 
-      pushl temp
+      pushl temp_index
       pushv 0
       eq
       if lbl0,lbl1
@@ -1078,18 +1081,23 @@ void CodeGenerator::generateSelectStmt(SelectStmt *stmt)
       ....code
       lbl1:
 
-      pushl temp
+      // this is a receive
+      pushl temp_index
       pushv 1
       eq
       if lbl2,lbl3
       lbl2:
+      popl ret_val
+      (lvalue assignment involving ret_val and the received lval)
       ...code
       lbl3:
 
       ...etc ...etc
     */
     QString retName = _asm.uniqueVariable();
-    gen(stmt, "popl " + retName);
+    QString indexName = _asm.uniqueVariable();
+
+    gen(stmt, "popl " + indexName);
 
     for(int i=0; i<stmt->count(); i++)
     {
@@ -1102,12 +1110,29 @@ void CodeGenerator::generateSelectStmt(SelectStmt *stmt)
         { action = stmt->action(sends[i]); cond = stmt->condition(sends[i]); }
         else
         { action = stmt->action(receives[i - sendCount]); cond = stmt->condition(receives[i - sendCount]); }
-        gen(cond, "pushl " + retName);
+        gen(cond, "pushl " + indexName);
         gen(cond, "pushv ", i);
         gen(cond, "eq");
         gen(cond, "if " + lbl_a +"," + lbl_b);
         gen(cond, lbl_a + ":");
+        if(i>=sendCount)
+        {
+            ReceiveStmt *recv = dynamic_cast<ReceiveStmt *>(stmt->condition(i));
+            class AssignRet : public Thunk
+            {
+                CodeGenerator *_g; QString _ret; AssignableExpression *_ae;
+            public:
+                AssignRet(CodeGenerator *_g, QString _ret, AssignableExpression *_ae)
+                 { this->_g = _g; this->_ret = _ret; this->_ae = _ae; }
+                 void operator() ()
+                 {
+                     _g->gen(_ae, "pushl " + _ret);
+                 }
 
+            } assignRet(this, retName, recv->value());
+            gen(recv->value(), "popl " + retName);
+            generateAssignmentToLvalue(recv->value(), recv->value(), assignRet);
+        }
         generateStatement(action);
         gen(cond, lbl_b + ":");
     }

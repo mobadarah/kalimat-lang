@@ -18,6 +18,11 @@ public:
     Channel();
     void send(Value *v, Process *proc);
     void receive(Process *proc);
+
+    bool canSend();
+    bool canReceive();
+    void removeFromSendQ(Process *p);
+    void removeFromRecvQ(Process *p);
 };
 
 #endif // CHANNEL_H
