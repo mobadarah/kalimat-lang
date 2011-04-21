@@ -46,7 +46,7 @@ struct IForeignMethod : public IMethod
     virtual void setSlotValue(QString name, Value *val) {}
     virtual QString toString()=0;
     // Args are last to first
-    virtual void invoke(QVector<Value *> args)=0;
+    virtual Value *invoke(QVector<Value *> args)=0;
 };
 
 struct IClass : public IObject

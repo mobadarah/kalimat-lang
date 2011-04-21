@@ -1629,7 +1629,9 @@ void VM::CallSpecialMethod(IMethod *method, QVector<Value *> args)
     IForeignMethod *fm = dynamic_cast<IForeignMethod *>(method);
     if(fm != NULL)
     {
-        fm->invoke(args);
+        Value *ret = fm->invoke(args);
+        if(ret != NULL)
+            currentFrame()->OperandStack.push(ret);
         return;
     }
     assert(false, InternalError, "CallSpecialMethod is not implemented for this type of method");

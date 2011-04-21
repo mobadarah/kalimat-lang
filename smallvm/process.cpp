@@ -77,8 +77,11 @@ void Process::successfullSelect(Channel *chan)
         else
             allChans[i]->removeFromRecvQ(this);
     }
+
+    if(!allChans.empty())
+    {
+        // If this was a select, not a simple receive or send
+        this->stack.top().OperandStack.push(owner->GetAllocator().newInt(successIndex));
+    }
     allChans.clear();
-
-    this->stack.top().OperandStack.push(owner->GetAllocator().newInt(successIndex));
-
 }

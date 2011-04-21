@@ -16,7 +16,7 @@ class ForeignMethodProxy : public IForeignMethod
 public:
     ForeignMethodProxy(QString name, EasyForeignClass *owner, int id, int arity);
     QString toString();
-    void invoke(QVector<Value *> args);
+    Value *invoke(QVector<Value *> args);
     int Arity();
 };
 
@@ -28,7 +28,7 @@ protected:
     QMap<QString, int> methodArities;
 public:
     EasyForeignClass(QString className);
-    virtual void dispatch(int id, QVector<Value *>args) = 0;
+    virtual Value *dispatch(int id, QVector<Value *>args) = 0;
     virtual IObject *newValue(Allocator *allocator) = 0;
 
     //IClass
