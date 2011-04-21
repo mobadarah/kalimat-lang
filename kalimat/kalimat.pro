@@ -48,7 +48,8 @@ SOURCES += main.cpp \
     Parser/kalimatprettyprintparser.cpp \
     ../smallvm/easyforeignclass.cpp \
     ../smallvm/channel.cpp \
-    ../smallvm/process.cpp
+    ../smallvm/process.cpp \
+    guicontrols.cpp
 HEADERS += mainwindow.h \
     codedocument.h \
     Lexer/token.h \
@@ -86,7 +87,8 @@ HEADERS += mainwindow.h \
     paintsurface.h \
     guieditwidgethandler.h \
     Parser/codeformatter.h \
-    Parser/kalimatprettyprintparser.h
+    Parser/kalimatprettyprintparser.h \
+    guicontrols.h
 FORMS += mainwindow.ui \
     runwindow.ui \
     savechangedfiles.ui

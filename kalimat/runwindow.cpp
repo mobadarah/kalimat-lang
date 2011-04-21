@@ -10,6 +10,7 @@
 #include "ui_runwindow.h"
 
 #include "utils.h"
+#include "guicontrols.h"
 
 #include <QPainter>
 #include <QKeyEvent>
@@ -169,6 +170,12 @@ void RunWindow::Init(QString program, QMap<QString, QString>stringConstants)
         }
         vm->RegisterType("ForeignWindow", new WindowForeignClass(_ws(L"نافذة")));
         vm->RegisterType(_ws(L"زر"), new ButtonForeignClass (_ws(L"زر"), this));
+        vm->RegisterType(_ws(L"صندوق.نصي"), new TextboxForeignClass(_ws(L"صندوق.نصي"), this));
+        vm->RegisterType(_ws(L"سطر.نصي"), new LineEditForeignClass(_ws(L"سطر.نصي"), this));
+        vm->RegisterType(_ws(L"صندوق.سرد"), new ListboxForeignClass(_ws(L"صندوق.سرد"), this));
+        vm->RegisterType(_ws(L"علامة.نصية"), new LabelForeignClass(_ws(L"علامة.نصية"), this));
+        vm->RegisterType(_ws(L"صندوق.استبيان"), new CheckboxForeignClass(_ws(L"صندوق.استبيان"), this));
+        vm->RegisterType(_ws(L"صندوق.اختيار"), new RadioButtonForeignClass(_ws(L"صندوق.اختيار"), this));
 
         InitVMPrelude(vm);
         vm->Load(program);

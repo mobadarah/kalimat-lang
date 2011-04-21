@@ -1043,7 +1043,11 @@ void CodeGenerator::generateSelectStmt(SelectStmt *stmt)
 
         gen(ss, "pushl " + tempArrName);
         gen(ss, "pushv ", current);
-        generateExpression(ss->value());
+        if(ss->signal)
+            gen(ss, "pushnull");
+        else
+            generateExpression(ss->value());
+
         gen(ss, "setarr");
         current++;
     }
@@ -1060,7 +1064,10 @@ void CodeGenerator::generateSelectStmt(SelectStmt *stmt)
 
         gen(rs, "pushl " + tempArrName);
         gen(rs, "pushv ", current);
-        generateReference(rs->value());
+        if(rs->signal)
+            gen(rs, "pushnull");
+        else
+            generateReference(rs->value());
         gen(rs, "setarr");
         current++;
     }
@@ -1130,8 +1137,18 @@ void CodeGenerator::generateSelectStmt(SelectStmt *stmt)
                  }
 
             } assignRet(this, retName, recv->value());
-            gen(recv->value(), "popl " + retName);
-            generateAssignmentToLvalue(recv->value(), recv->value(), assignRet);
+
+            if(recv->signal)
+            {
+                gen(recv, "popl " + retName);
+                gen(recv, "pushl " + retName);
+                gen(recv, "popl " + _asm.uniqueVariable());
+            }
+            else
+            {
+                gen(recv->value(), "popl " + retName);
+                generateAssignmentToLvalue(recv->value(), recv->value(), assignRet);
+            }
         }
         generateStatement(action);
         gen(cond, lbl_b + ":");

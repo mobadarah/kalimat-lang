@@ -15,15 +15,6 @@ class RunWindow;
 #include "../smallvm/vm.h"
 #endif
 
-#ifndef CLASSES_H
-    #include "../smallvm/classes.h"
-#endif
-
-#ifndef EASYFOREIGNCLASS_H
-    #include "../smallvm/easyforeignclass.h"
-#endif
-
-
 typedef void (*VM_PROC)(QStack<Value *> &, RunWindow *, VM *);
 
 void PrintProc(QStack<Value *> &, RunWindow *, VM *);
@@ -135,39 +126,6 @@ class WindowProxyMethod : public ExternalMethod
 public:
     WindowProxyMethod(RunWindow *parent, VM *vm, VM_PROC proc);
     void operator()(QStack<Value *> &operandStack);
-};
-
-class WindowForeignClass : public EasyForeignClass
-{
-public:
-    WindowForeignClass(QString name);
-    IObject *newValue(Allocator *allocator);
-    void dispatch(int id, QVector<Value *>args);
-};
-
-class ButtonForeignClass : public QObject, public EasyForeignClass
-{
-    Q_OBJECT
-    RunWindow *rw; // for TX
-    Allocator *allocator;
-public:
-    ButtonForeignClass(QString name, RunWindow *rw);
-    IObject *newValue(Allocator *allocator);
-    void dispatch(int id, QVector<Value *>args);
-public slots:
-    void on_button_clicked();
-};
-
-class WindowForeignObject : public IObject
-{
-public:
-    Value *handle;
-public:
-    virtual bool hasSlot(QString name);
-    virtual QList<QString> getSlotNames();
-    virtual Value *getSlotValue(QString name);
-    virtual void setSlotValue(QString name, Value *val);
-    QString toString();
 };
 
 #endif // BUILTINMETHODS_H
