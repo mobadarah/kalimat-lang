@@ -131,6 +131,7 @@ bool KalimatPrettyprintParser::is_indentation_starter(LinePP *line, QString &end
     int ifStmtStart[] = { IF }, ifStmtEnd[] = { COLON };
     int forStmtStart[] = { FORALL }, forStmtEnd[] = { COLON };
     int whileStmtStart[] = { WHILE }, whileStmtEnd[] = { COLON };
+    int selectStmtStart[] = { SELECT }, selectStmtEnd[] = { COLON };
     int procDeclStart[] = { PROCEDURE, IDENTIFIER, LPAREN }, procDeclEnd[] = { RPAREN, COLON };
     int funcDeclStart[] = { FUNCTION, IDENTIFIER, LPAREN }, funcDeclEnd[] = { RPAREN, COLON };
     int responseDeclStart[] = { RESPONSEOF, IDENTIFIER, IDENTIFIER }, responseDeclEnd[] = { RPAREN, COLON };
@@ -157,6 +158,11 @@ bool KalimatPrettyprintParser::is_indentation_starter(LinePP *line, QString &end
         ender = QString::fromStdWString(L"تابع");
         return true;
     }
+    else if(line->tokensBeginEnd(selectStmtStart, selectStmtEnd,1,1))
+    {
+        ender = QString::fromStdWString(L"تم");
+        return true;
+    }
     return false;
 }
 
@@ -174,11 +180,25 @@ bool KalimatPrettyprintParser::is_indentation_ender_and_starter(LinePP *line)
     int elsePart[] = { ELSE, COLON };
     int elseIfStart[] = { ELSE, IF }, elseIfEnd[] = { COLON };
 
+    int sendBegin[] = {SEND }, sendEnd[] = { COLON };
+    int recvBegin[] = {RECEIVE}, recvEnd[] = { COLON };
+    int orSendBegin[] = { OR, SEND }, orSendEnd[] = { COLON };
+    int orRecvBegin[] = {OR, RECEIVE}, orRecvEnd[] = { COLON };
+
     if(line->tokensEqual(elsePart, 2) ||
        line->tokensBeginEnd(elseIfStart, elseIfEnd, 2, 1))
     {
         return true;
     }
+
+    if(line->tokensBeginEnd(sendBegin, sendEnd, 1, 1) ||
+       line->tokensBeginEnd(recvBegin, recvEnd, 1, 1) ||
+       line->tokensBeginEnd(orSendBegin, orSendEnd, 2, 1) ||
+       line->tokensBeginEnd(orRecvBegin, orRecvEnd, 2, 1))
+    {
+        return true;
+    }
+
     return false;
 }
 

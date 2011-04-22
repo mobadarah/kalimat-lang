@@ -23,6 +23,12 @@ WindowForeignClass::WindowForeignClass(QString name)
             ] = 1;
     methodIds[QString::fromStdWString(L"اضف")
             ] = 2;
+    methodIds[_ws(L"حدد.الحجم")] =
+            3;
+    methodIds[_ws(L"حدد.العنوان")] =
+            4;
+
+
 
     methodArities[QString::fromStdWString(L"كبر")
             ] = 1;
@@ -30,6 +36,10 @@ WindowForeignClass::WindowForeignClass(QString name)
             ] = 3;
     methodArities[QString::fromStdWString(L"اضف")
             ] = 2;
+    methodArities[_ws(L"حدد.الحجم")] =
+            3;
+    methodArities[_ws(L"حدد.العنوان")] =
+            2;
 
 
     fields.insert("handle");
@@ -76,7 +86,41 @@ Value *WindowForeignClass::dispatch(int id, QVector<Value *> args)
 
         QWidget *control = (QWidget *) args[1]->unboxObj()->getSlotValue("handle")->unboxRaw();
         control->setParent(widget);
+        QFont f = control->font();
+        control->setFont(QFont(f.family(), f.pointSize()+3));
         control->show();
+        return NULL;
+    }
+    if(id == 3)
+    {
+        // حدد.الحجم
+        WindowForeignObject *foreignWindow = dynamic_cast<WindowForeignObject*>(args[0]->unboxObj());
+        Value *raw = foreignWindow->handle;
+        void *praw = raw->unboxRaw();
+        QWidget *widget = (QWidget *)(praw);
+
+        int w = args[1]->unboxNumeric();
+        int h = args[2]->unboxNumeric();
+        int wdiff = widget->width() - w;
+        for(int i=0; i<widget->children().count(); i++)
+        {
+            QWidget *c = dynamic_cast<QWidget *>(widget->children().at(i));
+            if(c)
+                c->move(c->x() - wdiff, c->y());
+        }
+        widget->setFixedSize(w, h);
+        return NULL;
+    }
+    if(id == 4)
+    {
+        // حدد.العنوان
+        WindowForeignObject *foreignWindow = dynamic_cast<WindowForeignObject*>(args[0]->unboxObj());
+        Value *raw = foreignWindow->handle;
+        void *praw = raw->unboxRaw();
+        QWidget *widget = (QWidget *)(praw);
+
+        QString *t = args[1]->unboxStr();
+        widget->setWindowTitle(*t);
         return NULL;
     }
 }

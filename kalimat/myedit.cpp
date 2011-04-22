@@ -276,7 +276,12 @@ void MyEdit::enterKeyBehavior(QKeyEvent *ev)
     int funcDeclStart[] = { FUNCTION, IDENTIFIER, LPAREN }, funcDeclEnd[] = { RPAREN, COLON };
     int responseDeclStart[] = { RESPONSEOF, IDENTIFIER, IDENTIFIER }, responseDeclEnd[] = { RPAREN, COLON };
     int replyDeclStart[] = { REPLYOF, IDENTIFIER, IDENTIFIER }, replyDeclEnd[] = { RPAREN, COLON };
+    int selectStmtStart[] = { SELECT }, selectStmtEnd[] = { COLON };
 
+    int selectSendBegin[] = {SEND }, selectSendEnd[] = { COLON };
+    int selectRecvBegin[] = {RECEIVE}, selectRecvEnd[] = { COLON };
+    int orSendBegin[] = { OR, SEND }, orSendEnd[] = { COLON };
+    int orRecvBegin[] = {OR, RECEIVE}, orRecvEnd[] = { COLON };
 
     QString tail = txt.right(txt.length() - column()).trimmed();
     bool endOfLine = tail == "";
@@ -302,8 +307,17 @@ void MyEdit::enterKeyBehavior(QKeyEvent *ev)
             indented = true;
             indentAndTerminate(li, QString::fromStdWString(L"تم"));
         }
+        else if(insertEnding && tokensBeginEnd(toks, selectStmtStart, selectStmtEnd, 1,1))
+        {
+            indented = true;
+            indentAndTerminate(li, QString::fromStdWString(L"تم"));
+        }
         else if(tokensEqual(toks, elsePart, 2) ||
-                tokensBeginEnd(toks, elseIfStart, elseIfEnd, 2, 1))
+                tokensBeginEnd(toks, elseIfStart, elseIfEnd, 2, 1) ||
+                tokensBeginEnd(toks, selectSendBegin, selectSendEnd, 1, 1) ||
+                tokensBeginEnd(toks, orSendBegin, orSendEnd, 2, 1) ||
+                tokensBeginEnd(toks, selectRecvBegin, selectRecvEnd, 1, 1) ||
+                tokensBeginEnd(toks, orRecvBegin, orRecvEnd, 2, 1))
         {
             indented = true;
             int n = indentOfLine(li);
@@ -355,6 +369,12 @@ void MyEdit::colonBehavior(QKeyEvent *ev)
 {
     int elsePart[] = { ELSE, COLON };
     int elseIfStart[] = { ELSE, IF }, elseIfEnd[] = { COLON };
+
+    int selectSendBegin[] = {SEND }, selectSendEnd[] = { COLON };
+    int selectRecvBegin[] = {RECEIVE}, selectRecvEnd[] = { COLON };
+    int orSendBegin[] = { OR, SEND }, orSendEnd[] = { COLON };
+    int orRecvBegin[] = {OR, RECEIVE}, orRecvEnd[] = { COLON };
+
     textCursor().beginEditBlock();
     textCursor().insertText(":");
     textChangedEvent();
@@ -376,7 +396,11 @@ void MyEdit::colonBehavior(QKeyEvent *ev)
         if(endOfLine)
         {
             if(tokensBeginEnd(toks, elseIfStart, elseIfEnd, 2, 1) ||
-               tokensEqual(toks, elsePart, 2))
+               tokensEqual(toks, elsePart, 2) ||
+                tokensBeginEnd(toks, selectSendBegin, selectSendEnd, 1, 1) ||
+                tokensBeginEnd(toks, orSendBegin, orSendEnd, 2, 1) ||
+                tokensBeginEnd(toks, selectRecvBegin, selectRecvEnd, 1, 1) ||
+                tokensBeginEnd(toks, orRecvBegin, orRecvEnd, 2, 1))
             {
                 int toErase = calculateDeindent(4, txt);
                 eraseFromBeginOfLine(li, toErase);
