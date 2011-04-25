@@ -30,12 +30,13 @@ ValueClass *BuiltInTypes::StringType = new ValueClass(QSTR(L"نص"), BuiltInType
 ValueClass *BuiltInTypes::SpriteType = new ValueClass(QSTR(L"طيف"), BuiltInTypes::ObjectType);
 ValueClass *BuiltInTypes::FileType = NULL;
 ValueClass *BuiltInTypes::RawFileType = new ValueClass("RawFile", BuiltInTypes::ObjectType);
-ValueClass *BuiltInTypes::RawWindowType = new ValueClass("RawWindow", BuiltInTypes::ObjectType);
+ValueClass *BuiltInTypes::WindowType = new ValueClass("Window", BuiltInTypes::ObjectType);
 ValueClass *BuiltInTypes::RefType = new ValueClass("Reference", BuiltInTypes::ObjectType);
 ValueClass *BuiltInTypes::FieldRefType = new ValueClass("FieldReference", BuiltInTypes::ObjectType);
 ValueClass *BuiltInTypes::ArrayRefType = new ValueClass("ArrayReference", BuiltInTypes::ObjectType);
 ValueClass *BuiltInTypes::NullType = new ValueClass(QSTR(L"لاشيء"), BuiltInTypes::ObjectType);
 ValueClass *BuiltInTypes::ChannelType = new ValueClass(QSTR(L"قناة"), BuiltInTypes::ObjectType);
+ValueClass *BuiltInTypes::QObjectType = new ValueClass(QSTR(L"QObject"), BuiltInTypes::ObjectType);
 
 Value *Value::NullValue;
 Value::Value()
@@ -77,6 +78,10 @@ Value::~Value()
         delete v.channelVal;
         break;
     case NullVal:
+        break;
+    case QObjectVal:
+        // todo: should we delete QObject values?
+        // delete v.objVal;
         break;
     }
 }
@@ -162,6 +167,11 @@ Channel *Value::unboxChan()
     return v.channelVal;
 }
 
+QObject *Value::unboxQObj()
+{
+    return v.qobjVal;
+}
+
 QString ArrayToString(VArray *arr)
 {
     QStringList lst;
@@ -212,6 +222,8 @@ QString Value::toString()
     case ChannelVal:
         ret = QSTR(L"<قناة %1>").arg((long) v->unboxChan());
         break;
+    case QObjectVal:
+        ret = QString("<%1>").arg(v->unboxQObj()->metaObject()->className());
     }
     QString str = ret;
     return str;

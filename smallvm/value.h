@@ -30,7 +30,7 @@ class Channel;
 enum Tag
 {
     Int, Double, Boolean, ObjectVal, NullVal, StringVal, RawVal,
-    RefVal, ArrayVal, MultiDimensionalArrayVal, ChannelVal
+    RefVal, ArrayVal, MultiDimensionalArrayVal, ChannelVal, QObjectVal
 };
 
 struct VArray
@@ -51,6 +51,7 @@ union ValueItem
     VArray *arrayVal;
     MultiDimensionalArray<Value *> *multiDimensionalArrayVal;
     Channel *channelVal;
+    QObject *qobjVal;
 };
 
 struct Value
@@ -72,6 +73,7 @@ struct Value
     QString *unboxStr();
     Reference *unboxRef();
     Channel *unboxChan();
+    QObject *unboxQObj();
     QString toString();
 
     double unboxNumeric();
@@ -96,12 +98,13 @@ public:
     static ValueClass *SpriteType;
     static ValueClass *FileType;
     static ValueClass *RawFileType;
-    static ValueClass *RawWindowType;
+    static ValueClass *WindowType;
     static ValueClass *RefType;
     static ValueClass *FieldRefType;
     static ValueClass *ArrayRefType;
     static ValueClass *NullType;
     static ValueClass *ChannelType;
+    static ValueClass *QObjectType;
 };
 
 #endif // VALUE_H

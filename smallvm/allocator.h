@@ -40,10 +40,10 @@ class Allocator
 
     // Store VM root objects for GC
     QMap<QString, Value*> *constantPool;
-    QQueue<Process> *processes;
+    QQueue<Process *> *processes;
 public:
     Allocator(QMap<QString, Value*> *constantPool,
-              QQueue<Process> *processes);
+              QQueue<Process *> *processes);
 
     void gc();
 
@@ -63,6 +63,7 @@ public:
     Value *newArrayReference(VArray *array, int index);
     Value *newMultiDimensionalArrayReference(MultiDimensionalArray<Value *> *array, QVector<int> index);
     Value *newChannel();
+    Value *newQObject(QObject *qobj);
     Value *null();
 
 private:

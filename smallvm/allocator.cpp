@@ -8,7 +8,7 @@
 #include "vm_incl.h"
 #include "allocator.h"
 
-Allocator::Allocator(QMap<QString, Value *> *constantPool, QQueue<Process> *processes)
+Allocator::Allocator(QMap<QString, Value *> *constantPool, QQueue<Process *> *processes)
 {
     this->constantPool = constantPool;
     this->processes = processes;
@@ -208,6 +208,15 @@ Value *Allocator::newChannel()
     return ret;
 }
 
+Value *Allocator::newQObject(QObject *qobj)
+{
+    Value *ret = allocateNewValue();
+    ret->tag = QObjectVal;
+    ret->type = BuiltInTypes::QObjectType;
+    ret->v.qobjVal = qobj;
+    return ret;
+}
+
 void Allocator::gc()
 {
     mark();
@@ -225,9 +234,9 @@ void Allocator::mark()
         reachable.push(v);
     }
 
-    for(QQueue<Process>::const_iterator iter=processes->begin(); iter!=processes->end(); ++iter)
+    for(QQueue<Process *>::const_iterator iter=processes->begin(); iter!=processes->end(); ++iter)
     {
-        const QStack<Frame> &stack = (*iter).stack;
+        const QStack<Frame> &stack = (*iter)->stack;
         for(int i=0; i<stack.count(); i++)
         {
             const Frame &f = stack.at(i);

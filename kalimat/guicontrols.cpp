@@ -14,9 +14,25 @@
 
 #define _ws(a) QString::fromStdWString(a)
 
-WindowForeignClass::WindowForeignClass(QString name)
+void ensureValueIsWidget(Value *val)
+{
+    if(!(val->tag == ObjectVal))
+        throw VMError(InternalError);
+    if(!(val->unboxObj()->hasSlot("handle")))
+        throw VMError(InternalError);
+    val = val->unboxObj()->getSlotValue("handle");
+    if(!(val->tag == QObjectVal))
+        throw VMError(InternalError);
+    QObject *obj = val->unboxQObj();
+    QWidget *w = dynamic_cast<QWidget *>(obj);
+    if(!w)
+        throw VMError(InternalError);
+}
+
+WindowForeignClass::WindowForeignClass(QString name, RunWindow *rw)
     : EasyForeignClass(name)
 {
+    this->rw = rw;
     methodIds[QString::fromStdWString(L"كبر")
             ] = 0;
     methodIds[QString::fromStdWString(L"تحرك.إلى")
@@ -41,7 +57,6 @@ WindowForeignClass::WindowForeignClass(QString name)
     methodArities[_ws(L"حدد.العنوان")] =
             2;
 
-
     fields.insert("handle");
 }
 
@@ -58,8 +73,8 @@ Value *WindowForeignClass::dispatch(int id, QVector<Value *> args)
         // كبر
         WindowForeignObject *foreignWindow = dynamic_cast<WindowForeignObject*>(args[0]->unboxObj());
         Value *raw = foreignWindow->handle;
-        void *praw = raw->unboxRaw();
-        QWidget *widget = (QWidget *)(praw);
+        QObject *pwin = raw->unboxQObj();
+        QWidget *widget = dynamic_cast<QWidget *>(pwin);
         widget->setWindowState(Qt::WindowMaximized);
         return NULL;
     }
@@ -68,9 +83,11 @@ Value *WindowForeignClass::dispatch(int id, QVector<Value *> args)
         // تحرك.إلى
         WindowForeignObject *foreignWindow = dynamic_cast<WindowForeignObject*>(args[0]->unboxObj());
         Value *raw = foreignWindow->handle;
-        void *praw = raw->unboxRaw();
-        QWidget *widget = (QWidget *)(praw);
+        QObject *praw = raw->unboxQObj();
+        QWidget *widget = dynamic_cast<QWidget *>(praw);
 
+        rw->typeCheck(args[1], BuiltInTypes::NumericType);
+        rw->typeCheck(args[2], BuiltInTypes::NumericType);
         int x = args[1]->unboxNumeric();
         int y = args[2]->unboxNumeric();
         widget->move(x, y);
@@ -81,10 +98,11 @@ Value *WindowForeignClass::dispatch(int id, QVector<Value *> args)
         // اضف
         WindowForeignObject *foreignWindow = dynamic_cast<WindowForeignObject*>(args[0]->unboxObj());
         Value *raw = foreignWindow->handle;
-        void *praw = raw->unboxRaw();
-        QWidget *widget = (QWidget *)(praw);
+        QObject *praw = raw->unboxQObj();
+        QWidget *widget = dynamic_cast<QWidget *>(praw);
 
-        QWidget *control = (QWidget *) args[1]->unboxObj()->getSlotValue("handle")->unboxRaw();
+        ensureValueIsWidget(args[1]);
+        QWidget *control = dynamic_cast<QWidget *>(args[1]->unboxObj()->getSlotValue("handle")->unboxQObj());
         control->setParent(widget);
         QFont f = control->font();
         control->setFont(QFont(f.family(), f.pointSize()+3));
@@ -96,9 +114,11 @@ Value *WindowForeignClass::dispatch(int id, QVector<Value *> args)
         // حدد.الحجم
         WindowForeignObject *foreignWindow = dynamic_cast<WindowForeignObject*>(args[0]->unboxObj());
         Value *raw = foreignWindow->handle;
-        void *praw = raw->unboxRaw();
-        QWidget *widget = (QWidget *)(praw);
+        QObject *praw = raw->unboxQObj();
+        QWidget *widget = dynamic_cast<QWidget *>(praw);
 
+        rw->typeCheck(args[1], BuiltInTypes::NumericType);
+        rw->typeCheck(args[2], BuiltInTypes::NumericType);
         int w = args[1]->unboxNumeric();
         int h = args[2]->unboxNumeric();
         int wdiff = widget->width() - w;
@@ -116,9 +136,10 @@ Value *WindowForeignClass::dispatch(int id, QVector<Value *> args)
         // حدد.العنوان
         WindowForeignObject *foreignWindow = dynamic_cast<WindowForeignObject*>(args[0]->unboxObj());
         Value *raw = foreignWindow->handle;
-        void *praw = raw->unboxRaw();
-        QWidget *widget = (QWidget *)(praw);
+        QObject *praw = raw->unboxQObj();
+        QWidget *widget = dynamic_cast<QWidget *>(praw);
 
+        rw->typeCheck(args[1], BuiltInTypes::StringType);
         QString *t = args[1]->unboxStr();
         widget->setWindowTitle(*t);
         return NULL;
@@ -132,7 +153,6 @@ bool WindowForeignObject::hasSlot(QString name)
         return true;
     }
 }
-
 
 QList<QString> WindowForeignObject::getSlotNames()
 {
@@ -150,7 +170,9 @@ Value *WindowForeignObject::getSlotValue(QString name)
 void WindowForeignObject::setSlotValue(QString name, Value *val)
 {
     if(name == "handle")
+    {
         handle = val;
+    }
 }
 
 QString WindowForeignObject::toString()
@@ -207,7 +229,7 @@ IObject *ButtonForeignClass::newValue(Allocator *allocator)
 
     QPushButton *button = new QPushButton();
     button->setProperty("objectof", QVariant::fromValue<void *>(newObj));
-    newObj->setSlotValue("handle", allocator->newRaw(button, this));
+    newObj->setSlotValue("handle", allocator->newQObject(button));
 
     connect(button, SIGNAL(clicked()), this, SLOT(on_button_clicked()));
     newObj->setSlotValue(QString::fromStdWString(L"ضغط"), allocator->newChannel());
@@ -221,7 +243,9 @@ Value *ControlForeignClass::dispatch(int id, QVector<Value *> args)
     {
         // حدد.النص
         IObject *receiver = args[0]->unboxObj();
-        QWidget *handle = (QWidget *) receiver->getSlotValue("handle")->unboxRaw();
+        QWidget *handle = dynamic_cast<QWidget *>(receiver->getSlotValue("handle")->unboxQObj());
+
+        rw->typeCheck(args[1], BuiltInTypes::StringType);
         handle->setWindowTitle(*args[1]->unboxStr());
         return NULL;
     }
@@ -229,9 +253,11 @@ Value *ControlForeignClass::dispatch(int id, QVector<Value *> args)
     {
         // حدد.الحجم
         IObject *receiver = args[0]->unboxObj();
-        QWidget *handle = (QWidget *) receiver->getSlotValue("handle")->unboxRaw();
+        QWidget *handle = dynamic_cast<QWidget *>(receiver->getSlotValue("handle")->unboxQObj());
         int originalx = handle->x() + handle->width();
 
+        rw->typeCheck(args[1], BuiltInTypes::NumericType);
+        rw->typeCheck(args[2], BuiltInTypes::NumericType);
         handle->resize(args[1]->unboxNumeric(), args[2]->unboxNumeric());
 
         originalx -= handle->width();
@@ -242,7 +268,10 @@ Value *ControlForeignClass::dispatch(int id, QVector<Value *> args)
     {
         // حدد.المكان
         IObject *receiver = args[0]->unboxObj();
-        QWidget *handle = (QWidget *) receiver->getSlotValue("handle")->unboxRaw();
+        QWidget *handle = dynamic_cast<QWidget *>(receiver->getSlotValue("handle")->unboxQObj());
+
+        rw->typeCheck(args[1], BuiltInTypes::NumericType);
+        rw->typeCheck(args[2], BuiltInTypes::NumericType);
         int x = args[1]->unboxNumeric();
         int y = args[2]->unboxNumeric();
         rw->paintSurface->TX(x);
@@ -254,7 +283,7 @@ Value *ControlForeignClass::dispatch(int id, QVector<Value *> args)
     {
         // نصه
         IObject *receiver = args[0]->unboxObj();
-        QWidget *handle = (QWidget *) receiver->getSlotValue("handle")->unboxRaw();
+        QWidget *handle = dynamic_cast<QWidget *>(receiver->getSlotValue("handle")->unboxQObj());
         return allocator->newString(new QString(handle->windowTitle()));
     }
     return NULL;
@@ -274,7 +303,9 @@ Value *ButtonForeignClass::dispatch(int id, QVector<Value *> args)
     {
         // حدد.النص
         IObject *receiver = args[0]->unboxObj();
-        QPushButton *handle = (QPushButton *) receiver->getSlotValue("handle")->unboxRaw();
+        QPushButton *handle = dynamic_cast<QPushButton *>(receiver->getSlotValue("handle")->unboxQObj());
+
+        rw->typeCheck(args[1], BuiltInTypes::StringType);
         handle->setText(*args[1]->unboxStr());
         return NULL;
     }
@@ -282,7 +313,7 @@ Value *ButtonForeignClass::dispatch(int id, QVector<Value *> args)
     {
         // نصه
         IObject *receiver = args[0]->unboxObj();
-        QPushButton *handle = (QPushButton *) receiver->getSlotValue("handle")->unboxRaw();
+        QPushButton *handle = dynamic_cast<QPushButton *>(receiver->getSlotValue("handle")->unboxQObj());
         return allocator->newString(new QString(handle->text()));
     }
     if(id <= controlMethodCutoff)
@@ -304,7 +335,7 @@ IObject *TextboxForeignClass::newValue(Allocator *allocator)
 
     QTextEdit *tb = new QTextEdit();
     tb->setProperty("objectof", QVariant::fromValue<void *>(newObj));
-    newObj->setSlotValue("handle", allocator->newRaw(tb, this));
+    newObj->setSlotValue("handle", allocator->newQObject(tb));
 
     connect(tb, SIGNAL(textChanged()), this, SLOT(on_text_changed()));
     newObj->setSlotValue(QString::fromStdWString(L"تغير"), allocator->newChannel());
@@ -325,7 +356,9 @@ Value *TextboxForeignClass::dispatch(int id, QVector<Value *> args)
     {
         // حدد.النص
         IObject *receiver = args[0]->unboxObj();
-        QTextEdit *handle = (QTextEdit *) receiver->getSlotValue("handle")->unboxRaw();
+        QTextEdit *handle = dynamic_cast<QTextEdit *>(receiver->getSlotValue("handle")->unboxQObj());
+
+        rw->typeCheck(args[1], BuiltInTypes::StringType);
         handle->document()->setPlainText(*args[1]->unboxStr());
         return NULL;
     }
@@ -333,7 +366,7 @@ Value *TextboxForeignClass::dispatch(int id, QVector<Value *> args)
     {
         // نصه
         IObject *receiver = args[0]->unboxObj();
-        QTextEdit *handle = (QTextEdit *) receiver->getSlotValue("handle")->unboxRaw();
+        QTextEdit *handle = dynamic_cast<QTextEdit*>(receiver->getSlotValue("handle")->unboxQObj());
         return allocator->newString(new QString(handle->document()->toPlainText()));
     }
     if(id <= controlMethodCutoff)
@@ -355,7 +388,7 @@ IObject *LineEditForeignClass::newValue(Allocator *allocator)
 
     QLineEdit *tb = new QLineEdit();
     tb->setProperty("objectof", QVariant::fromValue<void *>(newObj));
-    newObj->setSlotValue("handle", allocator->newRaw(tb, this));
+    newObj->setSlotValue("handle", allocator->newQObject(tb));
 
     connect(tb, SIGNAL(textChanged(QString)), this, SLOT(on_text_changed()));
     newObj->setSlotValue(QString::fromStdWString(L"تغير"), allocator->newChannel());
@@ -376,7 +409,9 @@ Value *LineEditForeignClass::dispatch(int id, QVector<Value *> args)
     {
         // حدد.النص
         IObject *receiver = args[0]->unboxObj();
-        QLineEdit *handle = (QLineEdit *) receiver->getSlotValue("handle")->unboxRaw();
+        QLineEdit *handle = dynamic_cast<QLineEdit*>(receiver->getSlotValue("handle")->unboxQObj());
+
+        rw->typeCheck(args[1], BuiltInTypes::StringType);
         handle->setText(*args[1]->unboxStr());
         return NULL;
     }
@@ -384,7 +419,7 @@ Value *LineEditForeignClass::dispatch(int id, QVector<Value *> args)
     {
         // نصه
         IObject *receiver = args[0]->unboxObj();
-        QLineEdit *handle = (QLineEdit *) receiver->getSlotValue("handle")->unboxRaw();
+        QLineEdit *handle = dynamic_cast<QLineEdit*>(receiver->getSlotValue("handle")->unboxQObj());
         return allocator->newString(new QString(handle->text()));
     }
     if(id <= controlMethodCutoff)
@@ -422,7 +457,7 @@ IObject *ListboxForeignClass::newValue(Allocator *allocator)
 
     QListWidget *tb = new QListWidget();
     tb->setProperty("objectof", QVariant::fromValue<void *>(newObj));
-    newObj->setSlotValue("handle", allocator->newRaw(tb, this));
+    newObj->setSlotValue("handle", allocator->newQObject(tb));
 
     connect(tb, SIGNAL(currentRowChanged(int)), this, SLOT(on_select(int)));
     newObj->setSlotValue(QString::fromStdWString(L"تغير.اختيار"), allocator->newChannel());
@@ -443,7 +478,7 @@ Value *ListboxForeignClass::dispatch(int id, QVector<Value *> args)
     {
         // اضف
         IObject *receiver = args[0]->unboxObj();
-        QListWidget *handle = (QListWidget *) receiver->getSlotValue("handle")->unboxRaw();
+        QListWidget *handle = dynamic_cast<QListWidget *>(receiver->getSlotValue("handle")->unboxQObj());
         handle->addItem(args[1]->toString());
         return NULL;
     }
@@ -451,9 +486,11 @@ Value *ListboxForeignClass::dispatch(int id, QVector<Value *> args)
     {
         // اضف.في
         IObject *receiver = args[0]->unboxObj();
-        QListWidget *handle = (QListWidget *) receiver->getSlotValue("handle")->unboxRaw();
+        QListWidget *handle = dynamic_cast<QListWidget *>(receiver->getSlotValue("handle")->unboxQObj());
 
         Value *v = args[1];
+
+        rw->typeCheck(args[2], BuiltInTypes::IntType);
         int index = args[2]->unboxInt();
 
         handle->insertItem(index, v->toString());
@@ -463,8 +500,9 @@ Value *ListboxForeignClass::dispatch(int id, QVector<Value *> args)
     {
         // عنصر.رقم
         IObject *receiver = args[0]->unboxObj();
-        QListWidget *handle = (QListWidget *) receiver->getSlotValue("handle")->unboxRaw();
+        QListWidget *handle = dynamic_cast<QListWidget *>(receiver->getSlotValue("handle")->unboxQObj());
 
+        rw->typeCheck(args[1], BuiltInTypes::IntType);
         int index = args[1]->unboxInt();
 
         return allocator->newString(new QString(handle->item(index)->text()));
@@ -486,7 +524,7 @@ IObject *LabelForeignClass::newValue(Allocator *allocator)
 
     QLabel *tb = new QLabel();
     tb->setProperty("objectof", QVariant::fromValue<void *>(newObj));
-    newObj->setSlotValue("handle", allocator->newRaw(tb, this));
+    newObj->setSlotValue("handle", allocator->newQObject(tb));
 
     return newObj;
 }
@@ -497,7 +535,9 @@ Value *LabelForeignClass::dispatch(int id, QVector<Value *> args)
     {
         // حدد.النص
         IObject *receiver = args[0]->unboxObj();
-        QLabel *handle = (QLabel*) receiver->getSlotValue("handle")->unboxRaw();
+        QLabel *handle = dynamic_cast<QLabel*>(receiver->getSlotValue("handle")->unboxQObj());
+
+        rw->typeCheck(args[1], BuiltInTypes::StringType);
         handle->setText(*args[1]->unboxStr());
         return NULL;
     }
@@ -505,7 +545,7 @@ Value *LabelForeignClass::dispatch(int id, QVector<Value *> args)
     {
         // نصه
         IObject *receiver = args[0]->unboxObj();
-        QLabel *handle = (QLabel*) receiver->getSlotValue("handle")->unboxRaw();
+        QLabel *handle = dynamic_cast<QLabel*>(receiver->getSlotValue("handle")->unboxQObj());
         return allocator->newString(new QString(handle->text()));
     }
 
@@ -538,7 +578,7 @@ IObject *CheckboxForeignClass::newValue(Allocator *allocator)
 
     QCheckBox *tb = new QCheckBox();
     tb->setProperty("objectof", QVariant::fromValue<void *>(newObj));
-    newObj->setSlotValue("handle", allocator->newRaw(tb, this));
+    newObj->setSlotValue("handle", allocator->newQObject(tb));
 
     connect(tb, SIGNAL(stateChanged(int)), this, SLOT(value_changed(int)));
     newObj->setSlotValue(QString::fromStdWString(L"تغير.قيمة"), allocator->newChannel());
@@ -559,7 +599,9 @@ Value *CheckboxForeignClass::dispatch(int id, QVector<Value *> args)
     {
         // حدد.النص
         IObject *receiver = args[0]->unboxObj();
-        QCheckBox *handle = (QCheckBox*) receiver->getSlotValue("handle")->unboxRaw();
+        QCheckBox *handle = dynamic_cast<QCheckBox*>(receiver->getSlotValue("handle")->unboxQObj());
+
+        rw->typeCheck(args[1], BuiltInTypes::StringType);
         handle->setText(*args[1]->unboxStr());
         return NULL;
     }
@@ -567,7 +609,7 @@ Value *CheckboxForeignClass::dispatch(int id, QVector<Value *> args)
     {
         // نصه
         IObject *receiver = args[0]->unboxObj();
-        QCheckBox *handle = (QCheckBox*) receiver->getSlotValue("handle")->unboxRaw();
+        QCheckBox *handle = dynamic_cast<QCheckBox*>(receiver->getSlotValue("handle")->unboxQObj());
         return allocator->newString(new QString(handle->text()));
     }
 
@@ -575,7 +617,7 @@ Value *CheckboxForeignClass::dispatch(int id, QVector<Value *> args)
     {
         // قيمته
         IObject *receiver = args[0]->unboxObj();
-        QCheckBox *handle = (QCheckBox *) receiver->getSlotValue("handle")->unboxRaw();
+        QCheckBox *handle = dynamic_cast<QCheckBox*>(receiver->getSlotValue("handle")->unboxQObj());
 
         return allocator->newInt(handle->checkState());
     }
@@ -584,8 +626,9 @@ Value *CheckboxForeignClass::dispatch(int id, QVector<Value *> args)
     {
         // حدد.القيمة
         IObject *receiver = args[0]->unboxObj();
-        QCheckBox *handle = (QCheckBox *) receiver->getSlotValue("handle")->unboxRaw();
+        QCheckBox *handle = dynamic_cast<QCheckBox*>(receiver->getSlotValue("handle")->unboxQObj());
 
+        rw->typeCheck(args[1], BuiltInTypes::IntType);
         int newState = args[1]->unboxInt();
         handle->setCheckState((Qt::CheckState)newState);
         return NULL;
@@ -620,7 +663,7 @@ IObject *RadioButtonForeignClass::newValue(Allocator *allocator)
 
     QRadioButton *tb = new QRadioButton();
     tb->setProperty("objectof", QVariant::fromValue<void *>(newObj));
-    newObj->setSlotValue("handle", allocator->newRaw(tb, this));
+    newObj->setSlotValue("handle", allocator->newQObject(tb));
 
     connect(tb, SIGNAL(toggled(bool)), this, SLOT(value_changed(bool)));
     newObj->setSlotValue(QString::fromStdWString(L"اختيار"), allocator->newChannel());
@@ -644,7 +687,9 @@ Value *RadioButtonForeignClass::dispatch(int id, QVector<Value *> args)
     {
         // حدد.النص
         IObject *receiver = args[0]->unboxObj();
-        QRadioButton *handle = (QRadioButton*) receiver->getSlotValue("handle")->unboxRaw();
+        QRadioButton *handle = dynamic_cast<QRadioButton *>(receiver->getSlotValue("handle")->unboxQObj());
+
+        rw->typeCheck(args[1], BuiltInTypes::StringType);
         handle->setText(*args[1]->unboxStr());
         return NULL;
     }
@@ -652,7 +697,7 @@ Value *RadioButtonForeignClass::dispatch(int id, QVector<Value *> args)
     {
         // نصه
         IObject *receiver = args[0]->unboxObj();
-        QRadioButton *handle = (QRadioButton*) receiver->getSlotValue("handle")->unboxRaw();
+        QRadioButton *handle = dynamic_cast<QRadioButton *>(receiver->getSlotValue("handle")->unboxQObj());
         return allocator->newString(new QString(handle->text()));
     }
 
@@ -660,7 +705,7 @@ Value *RadioButtonForeignClass::dispatch(int id, QVector<Value *> args)
     {
         // قيمته
         IObject *receiver = args[0]->unboxObj();
-        QRadioButton *handle = (QRadioButton *) receiver->getSlotValue("handle")->unboxRaw();
+        QRadioButton *handle = dynamic_cast<QRadioButton *>(receiver->getSlotValue("handle")->unboxQObj());
 
         return allocator->newBool(handle->isChecked());
     }
@@ -669,8 +714,9 @@ Value *RadioButtonForeignClass::dispatch(int id, QVector<Value *> args)
     {
         // حدد.القيمة
         IObject *receiver = args[0]->unboxObj();
-        QRadioButton *handle = (QRadioButton *) receiver->getSlotValue("handle")->unboxRaw();
+        QRadioButton *handle = dynamic_cast<QRadioButton *>(receiver->getSlotValue("handle")->unboxQObj());
 
+        rw->typeCheck(args[1], BuiltInTypes::BoolType);
         bool newState = args[1]->unboxBool();
         handle->setChecked(newState);
         return NULL;
@@ -678,6 +724,91 @@ Value *RadioButtonForeignClass::dispatch(int id, QVector<Value *> args)
 
     if(id <= controlMethodCutoff)
         return ControlForeignClass::dispatch(id, args);
+    return NULL;
+}
+
+ButtonGroupForeignClass::ButtonGroupForeignClass(QString name, RunWindow *rw)
+    : EasyForeignClass(name)
+{
+    this->rw = rw;
+    runningIdCount = 1;
+
+    methodIds[_ws(L"اضف")] = methodAddButton;
+
+    methodArities[_ws(L"اضف")]
+            = 2;
+
+    methodIds[_ws(L"الزر.الموسوم")] = methodGetButton;
+
+    methodArities[_ws(L"الزر.الموسوم")]
+            = 2;
+
+    fields.insert(QString::fromStdWString(L"اختيار.زر"));
+}
+
+IObject *ButtonGroupForeignClass::newValue(Allocator *allocator)
+{
+    this->allocator = allocator; // todo: this is a hack
+    Object *newObj = new Object();
+    newObj->slotNames.append("handle");
+
+    newObj->slotNames.append(QString::fromStdWString(L"اختيار.زر"));
+
+    QButtonGroup *tb = new QButtonGroup();
+    tb->setProperty("objectof", QVariant::fromValue<void *>(newObj));
+    newObj->setSlotValue("handle", allocator->newQObject(tb));
+
+    connect(tb, SIGNAL(buttonClicked(int)), this, SLOT(button_clicked(int)));
+    newObj->setSlotValue(QString::fromStdWString(L"اختيار.زر"), allocator->newChannel());
+    return newObj;
+}
+
+void ButtonGroupForeignClass::button_clicked(int id)
+{
+        QButtonGroup *te = (QButtonGroup *) sender();
+        Object *object = (Object *) te->property("objectof").value<void *>();
+        Channel *chan = object->getSlotValue(QString::fromStdWString(L"اختيار.زر"))->unboxChan();
+        chan->send(allocator->newInt(id), NULL);
+}
+
+Value *ButtonGroupForeignClass::dispatch(int id, QVector<Value *> args)
+{
+    if(id == methodAddButton)
+    {
+        // اضف
+        IObject *receiver = args[0]->unboxObj();
+        QObject *qobj =  receiver->getSlotValue("handle")->unboxQObj();
+        QButtonGroup *handle = dynamic_cast<QButtonGroup *>(receiver->getSlotValue("handle")->unboxQObj());
+
+        ensureValueIsWidget(args[1]);
+        IObject *toAdd = args[1]->unboxObj();
+        Value *vhandle = toAdd->getSlotValue("handle");
+
+        QAbstractButton *button = dynamic_cast<QAbstractButton *>(vhandle->unboxQObj());
+        if(!button)
+            throw VMError(InternalError);
+
+        button->setProperty("valueptr", QVariant::fromValue<void *>(args[1]));
+
+        int theId = this->runningIdCount++;
+        handle->addButton(button, theId);
+        return allocator->newInt(theId);
+    }
+    if(id == methodGetButton)
+    {
+        // الزر.الموسوم
+        IObject *receiver = args[0]->unboxObj();
+        Value *vhandle = receiver->getSlotValue("handle");
+        QButtonGroup *handle = dynamic_cast<QButtonGroup*>(vhandle->unboxQObj());
+
+        rw->typeCheck(args[1], BuiltInTypes::IntType);
+        int theId = args[1]->unboxInt();
+
+        QAbstractButton *button = handle->button(theId);
+        Value *btnObj = (Value *) button->property("valueptr").value<void *>();
+        return btnObj;
+    }
+
     return NULL;
 }
 

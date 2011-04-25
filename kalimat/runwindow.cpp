@@ -160,7 +160,7 @@ void RunWindow::Init(QString program, QMap<QString, QString>stringConstants)
                            BuiltInTypes::ArrayType,
                            BuiltInTypes::StringType,
                            BuiltInTypes::SpriteType,
-                           BuiltInTypes::RawWindowType,
+                           BuiltInTypes::WindowType,
                            BuiltInTypes::NullType};
         // todo: handle built-in file type
         const int numBuiltIns = 13;
@@ -168,7 +168,7 @@ void RunWindow::Init(QString program, QMap<QString, QString>stringConstants)
         {
             vm->RegisterType(builtIns[i]->getName(), builtIns[i]);
         }
-        vm->RegisterType("ForeignWindow", new WindowForeignClass(_ws(L"نافذة")));
+        vm->RegisterType("ForeignWindow", new WindowForeignClass(_ws(L"نافذة"), this));
         vm->RegisterType(_ws(L"زر"), new ButtonForeignClass (_ws(L"زر"), this));
         vm->RegisterType(_ws(L"صندوق.نصي"), new TextboxForeignClass(_ws(L"صندوق.نصي"), this));
         vm->RegisterType(_ws(L"سطر.نصي"), new LineEditForeignClass(_ws(L"سطر.نصي"), this));
@@ -176,6 +176,7 @@ void RunWindow::Init(QString program, QMap<QString, QString>stringConstants)
         vm->RegisterType(_ws(L"علامة.نصية"), new LabelForeignClass(_ws(L"علامة.نصية"), this));
         vm->RegisterType(_ws(L"صندوق.استبيان"), new CheckboxForeignClass(_ws(L"صندوق.استبيان"), this));
         vm->RegisterType(_ws(L"صندوق.اختيار"), new RadioButtonForeignClass(_ws(L"صندوق.اختيار"), this));
+        vm->RegisterType(_ws(L"مجموعة.اختيارات"), new ButtonGroupForeignClass(_ws(L"مجموعة.اختيارات"), this));
 
         InitVMPrelude(vm);
         vm->Load(program);

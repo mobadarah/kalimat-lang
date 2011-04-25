@@ -937,7 +937,7 @@ void EditProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 
 void GetMainWindowProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 {
-    stack.push(vm->GetAllocator().newRaw(w, BuiltInTypes::RawWindowType));
+    stack.push(vm->GetAllocator().newQObject(w));
 }
 
 void NewChannelProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
@@ -1025,6 +1025,7 @@ void setupChildren(QGridLayout *layout,Value *v, Reference *ref, QString label, 
     case RawVal:
     case RefVal:
     case MultiDimensionalArrayVal:
+    case ChannelVal:
         break;
     }
 }

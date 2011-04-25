@@ -36,10 +36,10 @@ void VM::Init()
 
 Frame *VM::launchProcess(Method *method)
 {
-    Process p(this);
-    p.stack.push(Frame(method));
+    Process *p = new Process(this);
+    p->stack.push(Frame(method));
     processes.push_back(p);
-    Frame *ret = &processes.back().stack.top();
+    Frame *ret = &p->stack.top();
     return ret;
 }
 
@@ -72,7 +72,7 @@ void VM::assert(bool cond, VMErrorType toSignal, QString arg0, QString arg1, QSt
         signal(toSignal, arg0, arg1, arg2);
 }
 
-QQueue<Process> &VM::getCallStacks()
+QQueue<Process *> &VM::getCallStacks()
 {
     return this->processes;
 }
@@ -116,12 +116,12 @@ VMError VM::GetLastError()
 
 QStack<Frame> &VM::stack()
 {
-    return processes.front().stack;
+    return processes.front()->stack;
 }
 
 Process *VM::currentProcess()
 {
-    return &processes.front();
+    return processes.front();
 }
 
 Frame *VM::currentFrame()
@@ -274,12 +274,12 @@ void VM::RunStep()
     {
         if(stack().isEmpty())
         {
-           pIsRunning = false;
+            pIsRunning = false;
             break;
         }
         if(currentFrame()->currentMethod == NULL)
         {
-           pIsRunning = false;
+            pIsRunning = false;
             break;
         }
 
@@ -294,11 +294,15 @@ void VM::RunStep()
         }
         RunSingleInstruction();
     }
-    Process p = processes.front();
+    Process *p = processes.front();
     processes.pop_front();
     if(pIsRunning)
     {
         processes.push_back(p);
+    }
+    else
+    {
+        delete p; // since it will not return to the queue
     }
     _isRunning = !processes.empty();
 }

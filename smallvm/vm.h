@@ -35,7 +35,7 @@ template <typename T> bool isa(void * obj)
 class VM
 {
     QMap<QString, Value*> constantPool;
-    QQueue<Process> processes;
+    QQueue<Process *> processes;
 
     // The allocator must be declared after the 'constantPool' and 'stack'
     // members, since it's initialized with them in VMs constructor initializer list!!
@@ -85,7 +85,7 @@ public:
     void assert(bool cond, VMErrorType toSignal, IClass *arg0, IClass *arg1);
     void assert(bool cond, VMErrorType toSignal, QString arg0, QString arg1, QString arg2);
 
-    QQueue<Process> &getCallStacks();
+    QQueue<Process *> &getCallStacks();
 
     void DoPushVal(Value *Arg);
     void DoPushLocal(QString SymRef);

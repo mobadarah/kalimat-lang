@@ -341,7 +341,7 @@ void MyEdit::enterKeyBehavior(QKeyEvent *ev)
     }
     else if(!indented)
     {
-        QTextEdit::keyPressEvent(ev);
+        insertPlainText("\n");
     }
 
     textCursor().endEditBlock();

@@ -485,7 +485,7 @@ int MainWindow::wonderfulMonitorDelay()
     return 500;
 }
 
-void MainWindow::visualizeCallStacks(QQueue<Process> &callStacks, QGraphicsView *view)
+void MainWindow::visualizeCallStacks(QQueue<Process *> &callStacks, QGraphicsView *view)
 {
     // todo: Visualize the call stacks; as the function name says :(
 }

@@ -24,6 +24,11 @@ VMError::VMError(VMErrorType type, QStack<Frame>callStack)
     this->callStack = callStack;
 }
 
+VMError::VMError(VMErrorType type)
+{
+    this->type = type;
+}
+
 VMError &VMError::arg(QString s)
 {
     this->args.append(s);

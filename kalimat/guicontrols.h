@@ -32,11 +32,14 @@ const int methodInsertItem = 6;
 const int methodGetItem = 7;
 const int methodGetValue = 8;
 const int methodSetValue = 9;
+const int methodAddButton = 10;
+const int methodGetButton = 11;
 
 class WindowForeignClass : public EasyForeignClass
 {
+    RunWindow *rw;
 public:
-    WindowForeignClass(QString name);
+    WindowForeignClass(QString name, RunWindow *rw);
     IObject *newValue(Allocator *allocator);
     Value *dispatch(int id, QVector<Value *>args);
 };
@@ -141,4 +144,17 @@ public slots:
     void value_changed(bool);
 };
 
+class ButtonGroupForeignClass : public QObject, public EasyForeignClass
+{
+    Q_OBJECT
+    RunWindow *rw;
+    Allocator *allocator;
+    int runningIdCount;
+public:
+    ButtonGroupForeignClass(QString name, RunWindow *rw);
+    IObject *newValue(Allocator *allocator);
+    Value *dispatch(int id, QVector<Value *>args);
+public slots:
+    void button_clicked(int);
+};
 #endif // GUICONTROLS_H
