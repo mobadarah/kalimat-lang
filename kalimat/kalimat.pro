@@ -49,7 +49,8 @@ SOURCES += main.cpp \
     ../smallvm/easyforeignclass.cpp \
     ../smallvm/channel.cpp \
     ../smallvm/process.cpp \
-    guicontrols.cpp
+    guicontrols.cpp \
+    ../smallvm/metaclass.cpp
 HEADERS += mainwindow.h \
     codedocument.h \
     Lexer/token.h \

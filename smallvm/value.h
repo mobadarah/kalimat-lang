@@ -20,6 +20,9 @@
     #include "channel.h"
 #endif
 
+#ifndef METACLASS_H
+    #include "metaclass.h"
+#endif
 class Value;
 class ValueClass;
 class Method;
@@ -92,7 +95,7 @@ public:
     static ValueClass *BoolType;
     static ValueClass *MethodType;
     static ValueClass *ExternalMethodType;
-    static ValueClass *ClassType;
+    static MetaClass  *ClassType;
     static ValueClass *ArrayType;
     static ValueClass *StringType;
     static ValueClass *SpriteType;

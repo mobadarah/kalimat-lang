@@ -22,6 +22,8 @@ VM::VM()
 
 void VM::Init()
 {
+    BuiltInTypes::ClassType->setAllocator(&this->allocator);
+
     if(!constantPool.contains("main"))
         signal(InternalError,QSTR(L"لا يوجد برنامج أساسي لينفّذ"));
     Method *method = dynamic_cast<Method *>(constantPool["main"]->unboxObj());
@@ -206,7 +208,6 @@ Instruction VM::getCurrentInstruction()
     Instruction i= currentFrame()->currentMethod->Get(currentFrame()->ip);
     return i;
 }
-
 
 Allocator &VM::GetAllocator()
 {
@@ -1261,11 +1262,7 @@ void VM::DoCallMethod(QString SymRef, int arity, CallStyle callStyle)
     QVector<Value *> args;
     args.append(receiver);
 
-    if(method != NULL)
-    {
-        // For now arity checking works only for non-special methods
-        assert(arity == -1 || method->Arity() ==-1 || arity == method->Arity(), WrongNumberOfArguments);
-    }
+    assert(arity == -1 || _method->Arity() ==-1 || arity == _method->Arity(), WrongNumberOfArguments);
 
     for(int i=0; i<_method->Arity()-1; i++)
     {
