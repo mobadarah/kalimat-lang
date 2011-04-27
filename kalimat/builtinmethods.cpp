@@ -42,6 +42,11 @@ void PrintProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
     w->textLayer.print(str);
 }
 
+void PushReadChanProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
+{
+    stack.push(w->readChannel);
+}
+
 WindowReadMethod::WindowReadMethod(RunWindow *parent, VM *vm)
 {
     this->parent = parent;
@@ -1026,6 +1031,7 @@ void setupChildren(QGridLayout *layout,Value *v, Reference *ref, QString label, 
     case RefVal:
     case MultiDimensionalArrayVal:
     case ChannelVal:
+    case QObjectVal:
         break;
     }
 }

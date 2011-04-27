@@ -9,8 +9,14 @@
 #define PAINTSURFACE_H
 
 #include <QPainter>
-#include "textlayer.h"
-#include "spritelayer.h"
+
+#ifndef TEXTLAYER_H
+    #include "textlayer.h"
+#endif
+
+#ifndef SPRITELAYER_H
+    #include "spritelayer.h"
+#endif
 
 class PaintSurface
 {

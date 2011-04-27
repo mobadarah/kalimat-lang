@@ -30,7 +30,6 @@ RunWindow::RunWindow(QWidget *parent, QString pathOfProgramsFile) :
     paintSurface = new PaintSurface(size(), font());
 
     state = rwNormal;
-
     readMethod = new WindowReadMethod(this, vm);
     vm = NULL;
     textLayer.clearText();
@@ -65,9 +64,11 @@ void RunWindow::Init(QString program, QMap<QString, QString>stringConstants)
     try
     {
         vm = new VM();
+        readChannel =  vm->GetAllocator().newChannel(false);
         vm->DefineStringConstant("new_line", "\n");
         vm->Register("print", new WindowProxyMethod(this, vm, PrintProc));
         vm->Register("input", readMethod);
+        vm->Register("pushreadchan", new WindowProxyMethod(this, vm, PushReadChanProc));
 
         vm->Register("setcursorpos",  new WindowProxyMethod(this, vm, SetCursorPosProc));
         vm->Register("getcursorrow",  new WindowProxyMethod(this, vm, GetCursorRowProc));
@@ -204,7 +205,7 @@ void RunWindow::Run()
     int pos,  len, oldPos = -1, oldLen = -1;
     try
     {
-        while(state == rwNormal && vm->isRunning())
+        while((state == rwNormal || state ==rwTextInput)&& vm->isRunning())
         {
             bool visualize = mw != NULL && mw->isWonderfulMonitorEnabled();
 
@@ -455,7 +456,8 @@ void RunWindow::keyPressEvent(QKeyEvent *ev)
             else
             {
                 state = rwNormal;
-                readMethod->SetReadValue(v);
+                //readMethod->SetReadValue(v);
+                readChannel->unboxChan()->send(v, NULL);
                 textLayer.nl();
                 update();
                 Run();

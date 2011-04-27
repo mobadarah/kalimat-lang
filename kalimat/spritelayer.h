@@ -10,7 +10,10 @@
 
 #include <QVector>
 #include <QSet>
-#include "sprite.h"
+
+#ifndef SPRITE_H
+    #include "sprite.h"
+#endif
 
 class CollisionListener
 {

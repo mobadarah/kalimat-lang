@@ -11,16 +11,38 @@
 #include <QMainWindow>
 #include <QTimer>
 
-#include "../smallvm/vm_incl.h"
-#include "../smallvm/vm.h"
-#include "../smallvm/externalmethod.h"
-#include "sprite.h"
-#include "painttimer.h"
-#include "textlayer.h"
-#include "spritelayer.h"
-#include "paintsurface.h"
+#ifndef VM_H
+    #include "../smallvm/vm_incl.h"
+    #include "../smallvm/vm.h"
+#endif
 
-#include "builtinmethods.h"
+#ifndef EXTERNALMETHOD_H
+    #include "../smallvm/externalmethod.h"
+#endif
+
+#ifndef SPRITE_H
+    #include "sprite.h"
+#endif
+
+#ifndef PAINTTIMER_H
+    #include "painttimer.h"
+#endif
+
+#ifndef TEXTLAYER_H
+    #include "textlayer.h"
+#endif
+
+#ifndef SPRITELAYER_H
+    #include "spritelayer.h"
+#endif
+
+#ifndef PAINTSURFACE_H
+    #include "paintsurface.h"
+#endif
+
+#ifndef BUILTINMETHODS_H
+    #include "builtinmethods.h"
+#endif
 
 namespace Ui {
     class RunWindow;
@@ -55,6 +77,7 @@ private:
     RunWindowState state;
     QMap<int, int> asleep;
 public:
+    Value *readChannel;
     TextLayer textLayer;
     SpriteLayer spriteLayer;
     PaintSurface *paintSurface;

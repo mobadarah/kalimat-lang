@@ -197,11 +197,11 @@ Value *Allocator::newMultiDimensionalArrayReference(MultiDimensionalArray<Value 
     return ret;
 }
 
-Value *Allocator::newChannel()
+Value *Allocator::newChannel(bool gc)
 {
     Channel *chan = new Channel();
 
-    Value *ret = allocateNewValue();
+    Value *ret = allocateNewValue(gc);
     ret->tag = ChannelVal;
     ret->type = BuiltInTypes::ChannelType;
     ret->v.channelVal = chan;

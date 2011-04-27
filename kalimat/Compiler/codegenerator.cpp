@@ -553,7 +553,8 @@ void CodeGenerator::generateReadStmt(ReadStmt *stmt)
             gen(lvalue, "pushv 0");
 
         gen(lvalue,"callex input");
-
+        gen(lvalue, "callex pushreadchan");
+        gen(lvalue, "receive");
         gen(lvalue, "popl "+readVar);
         GenerateRvalue genReadVar(lvalue, this, readVar);
         generateAssignmentToLvalue(lvalue, lvalue, genReadVar);

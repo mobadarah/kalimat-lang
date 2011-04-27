@@ -18,6 +18,7 @@ class RunWindow;
 typedef void (*VM_PROC)(QStack<Value *> &, RunWindow *, VM *);
 
 void PrintProc(QStack<Value *> &, RunWindow *, VM *);
+void PushReadChanProc(QStack<Value *> &stack, RunWindow *w, VM *vm);
 void SetCursorPosProc(QStack<Value *> &, RunWindow *, VM *);
 void GetCursorRowProc(QStack<Value *> &, RunWindow *, VM *);
 void GetCursorColProc(QStack<Value *> &, RunWindow *, VM *);

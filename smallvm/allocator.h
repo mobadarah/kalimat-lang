@@ -62,7 +62,7 @@ public:
     Value *newFieldReference(IObject *obj, QString SymRef);
     Value *newArrayReference(VArray *array, int index);
     Value *newMultiDimensionalArrayReference(MultiDimensionalArray<Value *> *array, QVector<int> index);
-    Value *newChannel();
+    Value *newChannel(bool gc = true);
     Value *newQObject(QObject *qobj);
     Value *null();
 
