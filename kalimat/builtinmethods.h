@@ -116,7 +116,6 @@ public:
 public:
     WindowReadMethod(RunWindow *parent, VM *vm);
     void operator()(QStack<Value *> &operandStack);
-    void SetReadValue(Value *v);
 };
 
 class WindowProxyMethod : public ExternalMethod

@@ -287,12 +287,12 @@ QString RunWindow::ensureCompletePath(QString fileName)
 
 void RunWindow::timerEvent(QTimerEvent *ev)
 {
-    asleep[ev->timerId()] = false;
-    killTimer(ev->timerId());
-    if(state == rwWaiting)
+    int id = ev->timerId();
+    killTimer(id);
+    if(state != rwWaiting)
     {
-       resume();
-       Run();
+        Value *channel = asleep[id];
+        channel->unboxChan()->send(vm->GetAllocator().null(), NULL);
     }
 }
 
@@ -327,9 +327,9 @@ void RunWindow::resume()
     state = rwNormal;
 }
 
-void RunWindow::setAsleep(int cookie)
+void RunWindow::setAsleep(int cookie, Value *channel)
 {
-    asleep[cookie] = true;
+    asleep[cookie] = channel;
 }
 
 bool RunWindow::isAsleep(int cookie)
@@ -456,7 +456,6 @@ void RunWindow::keyPressEvent(QKeyEvent *ev)
             else
             {
                 state = rwNormal;
-                //readMethod->SetReadValue(v);
                 readChannel->unboxChan()->send(v, NULL);
                 textLayer.nl();
                 update();

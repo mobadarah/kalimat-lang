@@ -61,12 +61,6 @@ void WindowReadMethod::operator ()(QStack<Value *> &operandStack)
     parent->update(); // We must do this, because normal updating is done
                       // by calling redrawWindow() in the instruction loop, and
                       // here we suspend the instruction loop...
-    this->operandStack = &operandStack;
-}
-
-void WindowReadMethod::SetReadValue(Value *v)
-{
-    operandStack->push(v);
 }
 
 WindowProxyMethod::WindowProxyMethod(RunWindow *parent, VM *vm, VM_PROC proc)
@@ -667,11 +661,12 @@ void ShowSpriteProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 }
 void WaitProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 {
-    int ms = stack.pop()->unboxInt();
-    w->suspend();
+    int ms = stack.pop()->unboxNumeric();
+    Value *channel = vm->GetAllocator().newChannel();
+    //w->suspend();
     int cookie = w->startTimer(ms);
-    w->setAsleep(cookie);
-    stack.push(vm->GetAllocator().newInt(cookie));
+    w->setAsleep(cookie, channel);
+    stack.push(channel);
 }
 
 void CheckAsleepProc(QStack<Value *> &stack, RunWindow *w, VM *vm)

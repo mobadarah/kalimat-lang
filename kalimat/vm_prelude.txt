@@ -146,12 +146,8 @@ ret
 
 .method انتظر 1
 callex wait
-popl cookie
-doagain:
-pushl cookie
-callex check_asleep
-if doagain,out
-out:
+receive
+popl dummy
 ret
 .endmethod
 

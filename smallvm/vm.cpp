@@ -154,20 +154,17 @@ void VM::ActivateEvent(QString evName, QVector<Value *>args)
     if(!registeredEventHandlers.contains(evName))
         return;
     QString procName = registeredEventHandlers[evName];
-    /*
-    if(stack.empty())
-    {
-        // If the event happened after main() is done, there
-        // will be no caller stack frame to push the arguments on
-        // for now we'll solve this by creating a dummy frame
-        DoCall("%emptymethod");
-    }
-    */
+
+    assert(constantPool.contains(procName), NoSuchProcedureOrFunction1, procName);
+    Method *method = (Method *) constantPool[procName]->unboxObj();
+    assert(args.count() == method->Arity(), WrongNumberOfArguments);
+
+    Frame *newFrame = launchProcess(method);
+
     for(int i=args.count()-1; i>=0; i--)
     {
-        DoPushVal(args[i]);
+        newFrame->OperandStack.push(args[i]);
     }
-    DoCall(procName, args.count(), NormalCall);
     _isRunning = true;
 }
 
