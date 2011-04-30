@@ -34,6 +34,7 @@
 #include <QDir>
 #include <QToolBar>
 #include <QClipboard>
+#include <QTextEdit>
 
 MainWindow *MainWindow::that = NULL;
 
@@ -930,8 +931,34 @@ void MainWindow::on_action_breakpoint_triggered()
 {
     CodeDocument *doc = docContainer->getCurrentDocument();
     MyEdit *editor = (MyEdit *) currentEditor();
-    breakPoints[doc] = editor->line();
-    highlightLine(editor, editor->textCursor().position(), QColor(240, 240, 240));
+    int line = editor->line();
+
+    if(!breakPoints.contains(doc))
+        breakPoints[doc] = QSet<int>();
+
+    if(breakPoints[doc].contains(line))
+        breakPoints[doc].remove(line);
+    else
+        breakPoints[doc].insert(line);
+
+    if(breakPoints[doc].contains(line))
+    {
+        highlightLine(editor, editor->textCursor().position(), QColor(240, 240, 240));
+    }
+    else
+    {
+        QList<QTextEdit::ExtraSelection> extra = editor->extraSelections();
+        for(int i=0; i<extra.count(); i++)
+        {
+            QTextEdit::ExtraSelection sel = extra[i];
+            if(editor->lineOfPos(sel.cursor.position()) == line)
+            {
+                extra.removeAt(i);
+                break;
+            }
+        }
+        editor->setExtraSelections(extra);
+    }
 }
 
 void MainWindow::on_action_resume_triggered()

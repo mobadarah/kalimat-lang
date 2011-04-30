@@ -501,3 +501,8 @@ int MyEdit::column()
 {
     return _column;
 }
+
+int MyEdit::lineOfPos(int pos)
+{
+    return lineTracker.lineFromPos(pos);
+}

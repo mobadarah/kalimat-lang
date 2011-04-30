@@ -66,7 +66,7 @@ class RunWindow : public QMainWindow {
 public:
     RunWindow(QWidget *parent, QString pathOfProgramsFile);
     ~RunWindow();
-    void Init(QString program, QMap<QString, QString> stringConstants, QMap<CodeDocument *, int> breakPoints, DebugInfo debugInfo);
+    void Init(QString program, QMap<QString, QString> stringConstants, QMap<CodeDocument *, QSet<int> > breakPoints, DebugInfo debugInfo);
     void InitVMPrelude(VM *vm);
     void assert(bool condition,  VMErrorType errorType, QString errorMsg);
     QString pathOfRunningProgram();

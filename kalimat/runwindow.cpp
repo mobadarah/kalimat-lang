@@ -59,7 +59,7 @@ RunWindow::~RunWindow()
     delete paintSurface;
 }
 
-void RunWindow::Init(QString program, QMap<QString, QString> stringConstants, QMap<CodeDocument *, int> breakPoints, DebugInfo debugInfo)
+void RunWindow::Init(QString program, QMap<QString, QString> stringConstants, QMap<CodeDocument *, QSet<int> > breakPoints, DebugInfo debugInfo)
 {
     try
     {
@@ -181,16 +181,20 @@ void RunWindow::Init(QString program, QMap<QString, QString> stringConstants, QM
 
         InitVMPrelude(vm);
         vm->Load(program);
-        for(QMap<CodeDocument *, int>::const_iterator i=breakPoints.begin(); i!=breakPoints.end(); ++i)
+        for(QMap<CodeDocument *, QSet<int> >::const_iterator i=breakPoints.begin(); i!=breakPoints.end(); ++i)
         {
             CodeDocument *doc = i.key();
-            int line = i.value();
+            const QSet<int> &v = i.value();
+            for(QSet<int>::const_iterator j= v.begin(); j!=v.end(); ++j)
+            {
+                int line =  *j;
 
-            QString methodName;
-            int offset;
+                QString methodName;
+                int offset;
 
-            debugInfo.instructionFromLine(doc, line, methodName, offset);
-            vm->setBreakPoint(methodName, offset    );
+                debugInfo.instructionFromLine(doc, line, methodName, offset);
+                vm->setBreakPoint(methodName, offset);
+            }
         }
         vm->Init();
 

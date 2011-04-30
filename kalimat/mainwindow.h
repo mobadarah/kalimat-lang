@@ -85,7 +85,7 @@ private:
     void saveAll();
 
     // The breakpoint 'reservations' recorded here will be passed to the code generator
-    QMap<CodeDocument *, int> breakPoints;
+    QMap<CodeDocument *, QSet<int> > breakPoints;
 private slots:
     void on_actionGo_to_position_triggered();
     void on_actionCompile_without_tags_triggered();
