@@ -24,7 +24,8 @@ public:
     SmallVMCodeGenerator();
     void Init();
     QString getOutput();
-
+public:
+    int nextLineNum() { return Output.count(); }
 public:
     void gen(QString str);
     void gen(QString str, int i);

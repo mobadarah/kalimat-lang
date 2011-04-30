@@ -82,7 +82,7 @@ CodeDocument *DocumentContainer::addInitialEmptyDocument()
 
 void DocumentContainer::removeInitialEmptyDocument()
 {
-    if(hasInitialEmptyDocument)
+    if(hasInitialEmptyDocument &&tabWidget->count() !=0)
     {
         hasInitialEmptyDocument = false;
         if(getCurrentDocument()->isDocNewFile() && !getCurrentDocument()->isFileDirty())

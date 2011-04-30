@@ -44,6 +44,14 @@
     #include "builtinmethods.h"
 #endif
 
+#ifndef CODEDOCUMENT_H
+    #include "codedocument.h"
+#endif
+
+#ifndef DEBUGINFO_H
+#include "Compiler/debuginfo.h"
+#endif
+
 namespace Ui {
     class RunWindow;
 }
@@ -58,7 +66,7 @@ class RunWindow : public QMainWindow {
 public:
     RunWindow(QWidget *parent, QString pathOfProgramsFile);
     ~RunWindow();
-    void Init(QString program, QMap<QString, QString> stringConstants);
+    void Init(QString program, QMap<QString, QString> stringConstants, QMap<CodeDocument *, int> breakPoints, DebugInfo debugInfo);
     void InitVMPrelude(VM *vm);
     void assert(bool condition,  VMErrorType errorType, QString errorMsg);
     QString pathOfRunningProgram();
@@ -98,6 +106,7 @@ public:
     void resetTimer(int interval);
     void suspend();
     void resume();
+    void reactivateVM();
 
     void setAsleep(int cookie, Value *channel);
     bool isAsleep(int cookie);

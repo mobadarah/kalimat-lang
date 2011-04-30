@@ -18,7 +18,8 @@ SOURCES += main.cpp \
     easyforeignclass.cpp \
     process.cpp \
     channel.cpp \
-    metaclass.cpp
+    metaclass.cpp \
+    debugger.cpp
 HEADERS += \
     value.h \
     instruction.h \
@@ -36,6 +37,7 @@ HEADERS += \
     easyforeignclass.h \
     process.h \
     channel.h \
-    metaclass.h
+    metaclass.h \
+    debugger.h
 FORMS +=
 RESOURCES += asm.qrc

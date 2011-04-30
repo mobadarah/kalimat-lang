@@ -28,6 +28,7 @@ CodeGenerator::CodeGenerator()
 void CodeGenerator::Init()
 {
     _asm.Init();
+    this->debugInfo = debugInfo;
     codePosKeyCount = 0;
     currentModuleName = "";
     currentCodeDoc = NULL;
@@ -252,6 +253,7 @@ void CodeGenerator::pushProcedureScope(ProceduralDecl *pd)
 {
     Context c;
     c.proc = pd;
+    c.instructionCount = 0;
     scopeStack.push(c);
     for(int i=0; i<pd->formalCount(); i++)
         defineInCurrentScope(pd->formal(i)->name);
@@ -342,7 +344,15 @@ void CodeGenerator::generateEntryPoint(QVector<Statement *> statements)
 }
 void CodeGenerator::generateStatement(Statement *stmt)
 {
-
+    // todo: this is a hack to fix the disparity between names
+    // for main: the vm takes a 'main' and the codegen generates a '%main'
+    QString procName = scopeStack.top().proc->procName()->name;
+    if(procName == "%main")
+        procName = "main";
+    debugInfo.setInstructionForLine(currentCodeDoc,
+                                    stmt->getPos().Line,
+                                    procName,
+                                    scopeStack.top().instructionCount);
     if(isa<IOStatement>(stmt))
     {
         generateIOStatement(dynamic_cast<IOStatement *>(stmt));
@@ -1452,16 +1462,19 @@ void CodeGenerator::generateStringConstant(AST *src, QString str)
 
 void CodeGenerator::gen(QString str)
 {
+    scopeStack.top().instructionCount++;
     _asm.gen(str);
 }
 
 void CodeGenerator::gen(QString str, int i)
 {
+    scopeStack.top().instructionCount++;
     _asm.gen(str, i);
 }
 
 void CodeGenerator::gen(QString str, double d)
 {
+    scopeStack.top().instructionCount++;
     _asm.gen(str, d);
 }
 
@@ -1472,6 +1485,7 @@ void CodeGenerator::gen(AST *src,QString str)
     pos.pos = src->getPos().Pos;
     pos.ast = src;
     PositionInfo[codePosKeyCount] = pos;
+    scopeStack.top().instructionCount++;
     _asm.genWithMetaData(codePosKeyCount, str);
     codePosKeyCount++;
 }

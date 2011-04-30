@@ -24,6 +24,10 @@
     #include "externalmethod.h"
 #endif
 
+#ifndef DEBUGGER_H
+    #include "debugger.h"
+#endif
+
 #include <QQueue>
 
 template <typename T> bool isa(void * obj)
@@ -49,6 +53,10 @@ private:
     QStack<Frame> &stack();
     Frame *currentFrame();
     Frame &globalFrame();
+private:
+    // Set of (Method name, instruction offset)
+    QMap<QString, QSet<int> > breakPoints;
+    Debugger *debugger;
 public:
     VM();
     void Init();
@@ -70,6 +78,11 @@ public:
     Instruction getCurrentInstruction();
     Process *currentProcess();
 
+    void setDebugger(Debugger *);
+    void clearAllBreakPoints();
+    void setBreakPoint(QString methodName, int offset);
+    void clearBreakPoint(QString methodName, int offset);
+
     void signal(VMErrorType toSignal);
     void signal(VMErrorType toSignal, QString arg0);
     void signal(VMErrorType toSignal, QString arg0, QString arg1);
@@ -77,6 +90,7 @@ public:
     QString toStr(int);
 
     bool isRunning();
+    void reactivate();
     Value *__top();
 
     void assert(bool cond, VMErrorType toSignal);

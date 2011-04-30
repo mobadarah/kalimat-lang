@@ -34,6 +34,7 @@ void VM::Init()
     launchProcess(method);
 
     _isRunning = true;
+    debugger = NULL;
 }
 
 Frame *VM::launchProcess(Method *method)
@@ -136,6 +137,26 @@ Frame *VM::currentFrame()
 Frame &VM::globalFrame()
 {
     return *_globalFrame;
+}
+
+void VM::setDebugger(Debugger *d)
+{
+    debugger = d;
+}
+
+void VM::clearAllBreakPoints()
+{
+    breakPoints.clear();
+}
+
+void VM::setBreakPoint(QString methodName, int offset)
+{
+    breakPoints[methodName].insert(offset);
+}
+
+void VM::clearBreakPoint(QString methodName, int offset)
+{
+    breakPoints[methodName].remove(offset);
 }
 
 void VM::Register(QString symRef, ExternalMethod *method)
@@ -270,6 +291,9 @@ void VM::RunStep()
 
     while(n--)
     {
+        // One of the instructions (e.g a breakpoint) might pause/stop the VM
+        if(!_isRunning)
+            return;
         if(stack().isEmpty())
         {
             pIsRunning = false;
@@ -307,6 +331,16 @@ void VM::RunStep()
 
 void VM::RunSingleInstruction()
 {
+    QString curMethodName = currentFrame()->currentMethod->getName();
+    if(debugger &&
+            breakPoints.contains(curMethodName) &&
+            breakPoints[curMethodName].contains(currentFrame()->ip))
+    {
+        _isRunning = false;
+        debugger->Break(curMethodName, currentFrame()->ip, *currentFrame());
+        return;
+    }
+
     Instruction i= currentFrame()->currentMethod->Get(currentFrame()->ip);
     currentFrame()->ip++;
 
@@ -1754,7 +1788,7 @@ void VM::EqualityRelatedOp(bool(*intFunc)(int, int),
         v2 = allocator.newDouble(v2->v.intVal);
     }
     Value *v3 = NULL;
-    bool result;
+    bool result = false;
 
     // If both values are of the same type...
     if(v1->tag == v2->tag
@@ -1844,4 +1878,9 @@ Value *VM::__top()
 bool VM::isRunning()
 {
     return _isRunning;
+}
+
+void VM::reactivate()
+{
+    _isRunning = true;
 }

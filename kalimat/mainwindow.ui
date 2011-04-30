@@ -197,6 +197,9 @@
     <addaction name="actionSpeedMedium"/>
     <addaction name="actionSpeedSlow"/>
     <addaction name="actionSpeedSuper"/>
+    <addaction name="separator"/>
+    <addaction name="action_breakpoint"/>
+    <addaction name="action_resume"/>
    </widget>
    <widget class="QMenu" name="mnuHelp">
     <property name="tearOffEnabled">
@@ -271,6 +274,9 @@
    <addaction name="separator"/>
    <addaction name="action_autoFormat"/>
    <addaction name="mnuProgramRun"/>
+   <addaction name="separator"/>
+   <addaction name="action_breakpoint"/>
+   <addaction name="action_resume"/>
   </widget>
   <widget class="QStatusBar" name="statusBar"/>
   <widget class="QDockWidget" name="dockSearchReplace">
@@ -772,6 +778,24 @@
   <action name="action_options">
    <property name="text">
     <string>خيارات...</string>
+   </property>
+  </action>
+  <action name="action_breakpoint">
+   <property name="icon">
+    <iconset resource="icons.qrc">
+     <normaloff>:/icons/icons/stopIcon.png</normaloff>:/icons/icons/stopIcon.png</iconset>
+   </property>
+   <property name="text">
+    <string>توقف هنا</string>
+   </property>
+  </action>
+  <action name="action_resume">
+   <property name="icon">
+    <iconset resource="icons.qrc">
+     <normaloff>:/icons/icons/resumeIcon.png</normaloff>:/icons/icons/resumeIcon.png</iconset>
+   </property>
+   <property name="text">
+    <string>اكمل</string>
    </property>
   </action>
  </widget>

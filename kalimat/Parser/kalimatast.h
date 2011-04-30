@@ -8,6 +8,24 @@
 #ifndef KALIMATAST_H
 #define KALIMATAST_H
 
+#include <QString>
+#include <QLocale>
+#include <QStringList>
+#include <QVector>
+#include <QMap>
+
+#ifndef TOKEN_H
+    #include "../Lexer/token.h"
+#endif
+
+#ifndef CODEFORMATTER_H
+    #include "codeformatter.h"
+#endif
+
+#ifndef AST_H
+    #include "ast.h"
+#endif
+
 class Expression;
 class Identifier;
 class AssignableExpression;

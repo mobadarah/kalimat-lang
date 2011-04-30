@@ -50,7 +50,8 @@ SOURCES += main.cpp \
     ../smallvm/channel.cpp \
     ../smallvm/process.cpp \
     guicontrols.cpp \
-    ../smallvm/metaclass.cpp
+    ../smallvm/metaclass.cpp \
+    Compiler/debuginfo.cpp
 HEADERS += mainwindow.h \
     codedocument.h \
     Lexer/token.h \
@@ -89,7 +90,8 @@ HEADERS += mainwindow.h \
     guieditwidgethandler.h \
     Parser/codeformatter.h \
     Parser/kalimatprettyprintparser.h \
-    guicontrols.h
+    guicontrols.h \
+    Compiler/debuginfo.h
 FORMS += mainwindow.ui \
     runwindow.ui \
     savechangedfiles.ui

@@ -10,6 +10,10 @@
 #include "codeposition.h"
 #include "codegenhelper.h"
 
+#ifndef DEBUGINFO_H
+    #include "debuginfo.h"
+#endif
+
 enum MethodCallStyle
 {
     NonTailCallStyle,
@@ -22,6 +26,7 @@ struct Context
     ProceduralDecl *proc;
     QSet<QString> bindings;
     QSet<QString> labels;
+    int instructionCount;
 };
 
 
@@ -45,6 +50,7 @@ class CodeGenerator
 
     int codePosKeyCount;
 public:
+    DebugInfo debugInfo;
     QMap<int, CodePosition> PositionInfo;
     CodeDocument *currentCodeDoc;
     QMap<int, CodePosition> getPositionInfo() {return PositionInfo;}

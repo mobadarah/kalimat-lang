@@ -5,14 +5,6 @@
 **   as described in the included license.txt file
 **************************************************************************/
 
-#include <QString>
-#include <QLocale>
-#include <QStringList>
-#include <QVector>
-#include <QMap>
-#include "../Lexer/token.h"
-#include "codeformatter.h"
-#include "ast.h"
 #include "kalimatast.h"
 #include "utils.h"
 using namespace std;

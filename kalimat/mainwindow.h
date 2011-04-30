@@ -31,8 +31,9 @@ namespace Ui
 
 const int MaxRecentFiles = 8;
 class MainWindow;
+class RunWindow;
 
-class MainWindow : public QMainWindow, public DocumentClient
+class MainWindow : public QMainWindow, public DocumentClient, public Debugger
 {
     Q_OBJECT
 
@@ -47,13 +48,18 @@ public:
     int wonderfulMonitorDelay();
     void markCurrentInstruction(VM *vm, int &pos, int &length);
     void handleVMError(VMError err);
+    void highlightRunningInstruction(Frame f);
+    void highlightRunningInstruction(Frame f, QColor clr);
     void highlightLine(QTextEdit *editor, int pos);
+    void highlightLine(QTextEdit *editor, int pos, QColor color);
     void highlightToken(QTextEdit *editor, int pos, int length);
     void setLineIndicators(int line, int column);
     void visualizeCallStacks(QQueue<Process *> &callStacks, QGraphicsView *view);
     void visualizeCallStack(QStack<Frame> &callStack, QGraphicsView *view);
 
     void outputMsg(QString s);
+
+    void Break(QString methodName, int offset, Frame frame);
 
     DocumentContainer *docContainer;
     QMap<int, CodePosition> PositionInfo;
@@ -63,7 +69,7 @@ private:
     Ui::MainWindow *ui;
     SyntaxHighlighter *syn;
     VM vm;
-
+    RunWindow *stoppedRunWindow;
     void show_error(QString);
     virtual void LoadDocIntoWidget(CodeDocument *doc, QWidget *widget);
     virtual QWidget *GetParentWindow();
@@ -77,6 +83,9 @@ private:
 
     QTextEdit *currentEditor();
     void saveAll();
+
+    // The breakpoint 'reservations' recorded here will be passed to the code generator
+    QMap<CodeDocument *, int> breakPoints;
 private slots:
     void on_actionGo_to_position_triggered();
     void on_actionCompile_without_tags_triggered();
@@ -109,6 +118,8 @@ private slots:
     void on_action_copy_as_wiki_triggered();
     void on_action_copy_literate_html_triggered();
     void on_action_autoFormat_triggered();
+    void on_action_breakpoint_triggered();
+    void on_action_resume_triggered();
 };
 
 #endif // MAINWINDOW_H

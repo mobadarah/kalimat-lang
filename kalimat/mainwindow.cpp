@@ -49,7 +49,7 @@ MainWindow::MainWindow(QWidget *parent)
     ui->setupUi(this);
 
     QToolBar *notice = new QToolBar("");
-    notice->addAction(QString::fromStdWString(L"هذه هي النسخة الأولية لشهر مارس 2011. حمل أحدث نسخة من www.kalimat-lang.com"));
+    notice->addAction(QString::fromStdWString(L"هذه هي النسخة الأولية لشهر إبريل 2011. حمل أحدث نسخة من www.kalimat-lang.com"));
 
     addToolBarBreak();
     addToolBar(Qt::TopToolBarArea, notice);
@@ -82,11 +82,19 @@ MainWindow::MainWindow(QWidget *parent)
     this->showMaximized();
 
     docContainer->addInitialEmptyDocument();
+    stoppedRunWindow = NULL;
 }
 
 void MainWindow::outputMsg(QString s)
 {
     ui->outputView->append(s);
+}
+
+void MainWindow::Break(QString methodName, int offset, Frame frame)
+{
+    this->setWindowTitle(QString::fromStdWString(L"وصلت لنقطة توقف!!"));
+    this->activateWindow();
+    highlightRunningInstruction(frame, QColor(255, 0,0));
 }
 
 void MainWindow::showHelpWindow()
@@ -340,7 +348,7 @@ void MainWindow::saveAll()
 
 void MainWindow::on_mnuProgramRun_triggered()
 {
-    CodeDocument *doc;
+    CodeDocument *doc = NULL;
     try
     {
         currentEditor()->setExtraSelections(QList<QTextEdit::ExtraSelection>());
@@ -375,7 +383,8 @@ void MainWindow::on_mnuProgramRun_triggered()
         RunWindow *rw = new RunWindow(this, path);
         connect(this, SIGNAL(destroyed(QObject*)), rw, SLOT(parentDestroyed(QObject *)));
         rw->show();
-        rw->Init(output, compiler.generator.getStringConstants());
+        stoppedRunWindow = rw;
+        rw->Init(output, compiler.generator.getStringConstants(), breakPoints, compiler.generator.debugInfo);
     }
     catch(UnexpectedCharException ex)
     {
@@ -429,6 +438,11 @@ void MainWindow::on_mnuProgramRun_triggered()
 
 void MainWindow::highlightLine(QTextEdit *editor, int pos)
 {
+   highlightLine(editor, pos, QColor(Qt::yellow));
+}
+
+void MainWindow::highlightLine(QTextEdit *editor, int pos, QColor color)
+{
     QList<QTextEdit::ExtraSelection> selections;
     QTextEdit::ExtraSelection sel;
 
@@ -440,7 +454,7 @@ void MainWindow::highlightLine(QTextEdit *editor, int pos)
 
     sel.cursor = cur;
     sel.format.setProperty(QTextFormat::FullWidthSelection, true);
-    sel.format.setBackground(QBrush(QColor(Qt::yellow)));
+    sel.format.setBackground(QBrush(color));
     selections.append(sel);
     editor->setExtraSelections(selections);
     ui->editorTabs->setCurrentWidget(editor);
@@ -558,23 +572,34 @@ void MainWindow::handleVMError(VMError err)
     if(!err.callStack.empty())
     {
         Frame f = err.callStack.top();
-        Instruction i = f.getPreviousRunningInstruction();
-        int key = i.extra;
-        CodePosition p = PositionInfo[key];
+        highlightRunningInstruction(f);
         visualizeCallStack(err.callStack, ui->graphicsView);
-        if(p.doc != NULL)
-        {
-            // p.doc can be null if the source of the error is from a module
-            // that's compiled from a file but not loaded into the editor.
-            // todo: later we would create a CodeDocument * object and pass it to the
-            // compiler even for modules not open in the editor, that way we can be like
-            // Visual Studio (tm) and open the error-source file on the fly and
-            // hilight the problem when there's an error!
-            QTextEdit *editor = p.doc->getEditor();
+    }
+}
 
-            setWindowTitle(QString("Error position index=%1, file=%2").arg(key).arg(p.doc->getFileName()));
-            highlightLine(editor, p.pos);
-        }
+void MainWindow::highlightRunningInstruction(Frame f)
+{
+    highlightRunningInstruction(f, Qt::yellow);
+}
+
+void MainWindow::highlightRunningInstruction(Frame f, QColor clr)
+{
+    Instruction i = f.getPreviousRunningInstruction();
+    int key = i.extra;
+    CodePosition p = PositionInfo[key];
+
+    if(p.doc != NULL)
+    {
+        // p.doc can be null if the source of the error is from a module
+        // that's compiled from a file but not loaded into the editor.
+        // todo: later we would create a CodeDocument * object and pass it to the
+        // compiler even for modules not open in the editor, that way we can be like
+        // Visual Studio (tm) and open the error-source file on the fly and
+        // hilight the problem when there's an error!
+        QTextEdit *editor = p.doc->getEditor();
+
+        //setWindowTitle(QString("Error position index=%1, file=%2").arg(key).arg(p.doc->getFileName()));
+        highlightLine(editor, p.pos, clr);
     }
 }
 
@@ -898,5 +923,30 @@ void MainWindow::on_action_autoFormat_triggered()
         catch(ParserException ex)
         {
         }
+    }
+}
+
+void MainWindow::on_action_breakpoint_triggered()
+{
+    CodeDocument *doc = docContainer->getCurrentDocument();
+    MyEdit *editor = (MyEdit *) currentEditor();
+    breakPoints[doc] = editor->line();
+    highlightLine(editor, editor->textCursor().position(), QColor(240, 240, 240));
+}
+
+void MainWindow::on_action_resume_triggered()
+{
+    try
+    {
+        if(!stoppedRunWindow)
+            return;
+
+        stoppedRunWindow->resume();
+        stoppedRunWindow->reactivateVM();
+        stoppedRunWindow->Run();
+    }
+    catch(VMError err)
+    {
+
     }
 }

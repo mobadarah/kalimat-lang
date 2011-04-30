@@ -59,7 +59,7 @@ RunWindow::~RunWindow()
     delete paintSurface;
 }
 
-void RunWindow::Init(QString program, QMap<QString, QString>stringConstants)
+void RunWindow::Init(QString program, QMap<QString, QString> stringConstants, QMap<CodeDocument *, int> breakPoints, DebugInfo debugInfo)
 {
     try
     {
@@ -148,6 +148,18 @@ void RunWindow::Init(QString program, QMap<QString, QString>stringConstants)
             vm->DefineStringConstant(strSymRef, strValue);
         }
 
+        for(QMap<CodeDocument *, int>::const_iterator i=breakPoints.begin(); i!=breakPoints.end(); ++i)
+        {
+            CodeDocument *doc = i.key();
+            int line = i.value();
+
+            QString methodName;
+            int offset;
+
+            debugInfo.instructionFromLine(doc, line, methodName, offset);
+            vm->setBreakPoint(methodName, offset    );
+        }
+
         IClass *builtIns[] = {BuiltInTypes::ObjectType,
                            BuiltInTypes::NumericType,
                            BuiltInTypes::IntType,
@@ -182,6 +194,10 @@ void RunWindow::Init(QString program, QMap<QString, QString>stringConstants)
         InitVMPrelude(vm);
         vm->Load(program);
         vm->Init();
+
+        MainWindow *mw = dynamic_cast<MainWindow *>(this->parent());
+        vm->setDebugger(mw);
+
         Run();
     }
     catch(VMError err)
@@ -325,6 +341,11 @@ void RunWindow::suspend()
 void RunWindow::resume()
 {
     state = rwNormal;
+}
+
+void RunWindow::reactivateVM()
+{
+    vm->reactivate();
 }
 
 void RunWindow::setAsleep(int cookie, Value *channel)
