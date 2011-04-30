@@ -43,6 +43,7 @@ public:
     int InstructionCount();
     Instruction &Get(QString label);
     Instruction &Get(int ip);
+    void Set(int ip, Instruction i);
     bool HasInstruction(int ip);
     bool IsReturningReference();
     int NumReturnValues();

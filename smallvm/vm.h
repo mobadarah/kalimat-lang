@@ -54,8 +54,9 @@ private:
     Frame *currentFrame();
     Frame &globalFrame();
 private:
-    // Set of (Method name, instruction offset)
-    QMap<QString, QSet<int> > breakPoints;
+    // Map Method name -> offset -> instruction
+    // This will store the original instruction before we replace it with a 'break'
+    QMap<QString, QMap<int, Instruction> > breakPoints;
     Debugger *debugger;
 public:
     VM();
@@ -150,6 +151,7 @@ public:
     void DoSend();
     void DoReceive();
     void DoSelect();
+    void DoBreak();
 
     void CallImpl(QString sym, bool wantValueNotRef, int arity, CallStyle callStyle);
     void CallSpecialMethod(IMethod *method, QVector<Value *> args);

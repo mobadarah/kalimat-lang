@@ -151,12 +151,18 @@ void VM::clearAllBreakPoints()
 
 void VM::setBreakPoint(QString methodName, int offset)
 {
-    breakPoints[methodName].insert(offset);
+    Method *method = (Method*) constantPool[methodName]->v.objVal;
+    Instruction newI = method->Get(offset);
+    breakPoints[methodName][offset] = newI;
+
+    newI.opcode = Break;
+    method->Set(offset, newI);
 }
 
 void VM::clearBreakPoint(QString methodName, int offset)
 {
-    breakPoints[methodName].remove(offset);
+    Method *method = (Method*) constantPool[methodName]->v.objVal;
+    method->Set(offset, breakPoints[methodName][offset]);
 }
 
 void VM::Register(QString symRef, ExternalMethod *method)
@@ -331,16 +337,6 @@ void VM::RunStep()
 
 void VM::RunSingleInstruction()
 {
-    QString curMethodName = currentFrame()->currentMethod->getName();
-    if(debugger &&
-            breakPoints.contains(curMethodName) &&
-            breakPoints[curMethodName].contains(currentFrame()->ip))
-    {
-        _isRunning = false;
-        debugger->Break(curMethodName, currentFrame()->ip, *currentFrame());
-        return;
-    }
-
     Instruction i= currentFrame()->currentMethod->Get(currentFrame()->ip);
     currentFrame()->ip++;
 
@@ -499,6 +495,9 @@ void VM::RunSingleInstruction()
         break;
     case Select:
         this->DoSelect();
+        break;
+    case Break:
+        this->DoBreak();
         break;
     default:
         signal(UnrecognizedInstruction);
@@ -951,6 +950,11 @@ void VM::Load(QString assemblyCode)
         else if(opcode == "select")
         {
             Instruction i = Instruction(Select);
+            curMethod->Add(i, label, extraInfo);
+        }
+        else if(opcode == "break")
+        {
+            Instruction i = Instruction(Break);
             curMethod->Add(i, label, extraInfo);
         }
         else
@@ -1654,6 +1658,31 @@ void VM::DoSelect()
         args.append(varr->Elements[i+1]);
     }
     currentProcess()->select(allChans, args, nsend);
+}
+
+void VM::DoBreak()
+{
+    _isRunning = false;
+
+    // Restore the original instruction for when/if we resume
+    QString curMethodName = currentFrame()->currentMethod->getName();
+    currentFrame()->ip--;
+    int ip = currentFrame()->ip;
+    if(breakPoints.contains(curMethodName) &&
+         breakPoints[curMethodName].contains(ip))
+    {
+        Instruction &i = breakPoints[curMethodName][ip];
+        currentFrame()->currentMethod->Set(ip, i);
+    }
+    else
+    {
+        signal(InternalError);
+    }
+
+    if(debugger)
+    {
+        debugger->Break(curMethodName, currentFrame()->ip, *currentFrame());
+    }
 }
 
 void VM::CallSpecialMethod(IMethod *method, QVector<Value *> args)

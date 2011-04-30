@@ -21,7 +21,9 @@ enum Opcode
     New_MD_Arr, Get_MD_Arr, Set_MD_Arr, Get_MD_ArrRef, MD_ArrDimensions,
     PushConstant, Neg, // todo!
     RegisterEvent, Isa,
-    Send, Receive, Select
+    Send, Receive, Select,
+    Break
+
 };
 
 enum CallStyle

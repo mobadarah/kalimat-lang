@@ -148,18 +148,6 @@ void RunWindow::Init(QString program, QMap<QString, QString> stringConstants, QM
             vm->DefineStringConstant(strSymRef, strValue);
         }
 
-        for(QMap<CodeDocument *, int>::const_iterator i=breakPoints.begin(); i!=breakPoints.end(); ++i)
-        {
-            CodeDocument *doc = i.key();
-            int line = i.value();
-
-            QString methodName;
-            int offset;
-
-            debugInfo.instructionFromLine(doc, line, methodName, offset);
-            vm->setBreakPoint(methodName, offset    );
-        }
-
         IClass *builtIns[] = {BuiltInTypes::ObjectType,
                            BuiltInTypes::NumericType,
                            BuiltInTypes::IntType,
@@ -193,6 +181,17 @@ void RunWindow::Init(QString program, QMap<QString, QString> stringConstants, QM
 
         InitVMPrelude(vm);
         vm->Load(program);
+        for(QMap<CodeDocument *, int>::const_iterator i=breakPoints.begin(); i!=breakPoints.end(); ++i)
+        {
+            CodeDocument *doc = i.key();
+            int line = i.value();
+
+            QString methodName;
+            int offset;
+
+            debugInfo.instructionFromLine(doc, line, methodName, offset);
+            vm->setBreakPoint(methodName, offset    );
+        }
         vm->Init();
 
         MainWindow *mw = dynamic_cast<MainWindow *>(this->parent());

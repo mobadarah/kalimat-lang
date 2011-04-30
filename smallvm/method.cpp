@@ -58,6 +58,11 @@ Instruction &Method::Get(int ip)
     return instructions[ip];
 }
 
+void Method::Set(int ip, Instruction i)
+{
+    instructions[ip] = i;
+}
+
 int Method::GetIp(QString label)
 {
     return labels[label];

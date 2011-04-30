@@ -40,4 +40,4 @@ HEADERS += \
     metaclass.h \
     debugger.h
 FORMS +=
-RESOURCES += asm.qrc
+RESOURCES +=
