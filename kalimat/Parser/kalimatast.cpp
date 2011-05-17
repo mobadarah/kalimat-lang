@@ -721,10 +721,11 @@ QString ObjectCreation::toString()
     return QString("جديد(%1)").arg(className()->name);
 }
 
-ProceduralDecl::ProceduralDecl(Token pos ,Identifier *procName, QVector<Identifier *>formals, BlockStmt *body, bool isPublic)
+ProceduralDecl::ProceduralDecl(Token pos, Token endingToken ,Identifier *procName, QVector<Identifier *>formals, BlockStmt *body, bool isPublic)
     :Declaration(pos, isPublic),
     _procName(procName),
-    _body(body)
+    _body(body),
+    _endingToken(endingToken)
 {
     for(int i=0; i<formals.count(); i++)
         _formals.append(QSharedPointer<Identifier>(formals[i]));
@@ -738,8 +739,8 @@ QVector<Identifier *> ProceduralDecl::getIntroducedVariables()
     return ret;
 }
 
-ProcedureDecl::ProcedureDecl(Token pos ,Identifier *procName, QVector<Identifier *>formals, BlockStmt *body, bool isPublic)
-    :ProceduralDecl(pos, procName, formals, body, isPublic)
+ProcedureDecl::ProcedureDecl(Token pos, Token endingToken, Identifier *procName, QVector<Identifier *>formals, BlockStmt *body, bool isPublic)
+    :ProceduralDecl(pos, endingToken, procName, formals, body, isPublic)
 {
 
 }
@@ -757,8 +758,8 @@ QString ProcedureDecl::toString()
             .arg(body()->toString());
 }
 
-FunctionDecl::FunctionDecl(Token pos ,Identifier *procName, QVector<Identifier *>formals, BlockStmt *body, bool isPublic)
-    :ProceduralDecl(pos, procName, formals, body, isPublic)
+FunctionDecl::FunctionDecl(Token pos, Token endingToken, Identifier *procName, QVector<Identifier *>formals, BlockStmt *body, bool isPublic)
+    :ProceduralDecl(pos, endingToken, procName, formals, body, isPublic)
 {
 
 }
@@ -893,10 +894,10 @@ QString GlobalDecl::toString()
     return _ws(L"مشترك(%1)").arg(varName);
 }
 
-MethodDecl::MethodDecl(Token pos ,Identifier *className, Identifier *receiverName, Identifier *methodName
+MethodDecl::MethodDecl(Token pos, Token endingToken, Identifier *className, Identifier *receiverName, Identifier *methodName
                        , QVector<Identifier *>formals, BlockStmt *body, bool isFunctionNotProcedure)
 
-       :ProceduralDecl(pos, methodName, formals, body, true),
+       :ProceduralDecl(pos, endingToken, methodName, formals, body, true),
        _className(className),
        _receiverName(receiverName)
 {

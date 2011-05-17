@@ -49,7 +49,11 @@
 #endif
 
 #ifndef DEBUGINFO_H
-#include "Compiler/debuginfo.h"
+    #include "Compiler/debuginfo.h"
+#endif
+
+#ifndef BREAKPOINT_H
+    #include "breakpoint.h"
 #endif
 
 namespace Ui {
@@ -66,11 +70,12 @@ class RunWindow : public QMainWindow {
 public:
     RunWindow(QWidget *parent, QString pathOfProgramsFile);
     ~RunWindow();
-    void Init(QString program, QMap<QString, QString> stringConstants, QMap<CodeDocument *, QSet<int> > breakPoints, DebugInfo debugInfo);
+    void Init(QString program, QMap<QString, QString> stringConstants, QSet<Breakpoint> breakPoints, DebugInfo debugInfo);
     void InitVMPrelude(VM *vm);
     void assert(bool condition,  VMErrorType errorType, QString errorMsg);
     QString pathOfRunningProgram();
     QString ensureCompletePath(QString fileName);
+    VM *getVM() { return vm;}
 private:
     QString pathOfProgramsFile;
     VM *vm;
@@ -102,6 +107,8 @@ private:
     void activateMouseEvent(QMouseEvent *ev, QString evName);
     void activateKeyEvent(QKeyEvent *ev, QString evName);
 public:
+    void setBreakpoint(Breakpoint, const DebugInfo &);
+
     void redrawWindow();
     void resetTimer(int interval);
     void suspend();
@@ -115,6 +122,7 @@ public:
     void typeError(IClass *expected, IClass *given);
     void beginInput();
     void Run();
+    void singleStep(Process *proc);
     friend class WindowPrintMethod;
     friend class WindowReadMethod;
 

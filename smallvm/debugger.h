@@ -8,7 +8,8 @@
 
 struct Debugger
 {
-    virtual void Break(QString methodName, int offset, Frame frame) = 0;
+    virtual void Break(QString methodName, int offset, Frame *frame, Process *process) = 0;
+    virtual void setDebuggedProcess(Process *) = 0;
 };
 
 #endif // DEBUGGER_H

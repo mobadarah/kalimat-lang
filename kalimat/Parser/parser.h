@@ -48,6 +48,7 @@ protected:
     void initLookAhead();
     bool LA(TokenType tokenId);
     bool LA2(TokenType tokenId, TokenType followingTokenId);
+    bool expect(TokenType tokenType);
     bool match(int TokenType);
     void advanceToken();
     Token getPos();

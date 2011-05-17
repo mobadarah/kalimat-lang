@@ -51,7 +51,8 @@ SOURCES += main.cpp \
     ../smallvm/process.cpp \
     guicontrols.cpp \
     ../smallvm/metaclass.cpp \
-    Compiler/debuginfo.cpp
+    Compiler/debuginfo.cpp \
+    breakpoint.cpp
 HEADERS += mainwindow.h \
     codedocument.h \
     Lexer/token.h \
@@ -91,7 +92,8 @@ HEADERS += mainwindow.h \
     Parser/codeformatter.h \
     Parser/kalimatprettyprintparser.h \
     guicontrols.h \
-    Compiler/debuginfo.h
+    Compiler/debuginfo.h \
+    breakpoint.h
 FORMS += mainwindow.ui \
     runwindow.ui \
     savechangedfiles.ui

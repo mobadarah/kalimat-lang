@@ -271,6 +271,8 @@ void CodeGenerator::generateProcedureDeclaration(ProcedureDecl * decl)
         gen(decl, "popl " + decl->formal(i)->name);
     }
     generateStatement(decl->body());
+    debugInfo.setInstructionForLine(currentCodeDoc, decl->_endingToken.Line,
+                                    decl->procName()->name, scopeStack.top().instructionCount);
     gen(decl, "ret");
     gen(decl,".endmethod");
 }
@@ -284,6 +286,8 @@ void CodeGenerator::generateFunctionDeclaration(FunctionDecl * decl)
     }
 
     generateStatement(decl->body());
+    debugInfo.setInstructionForLine(currentCodeDoc, decl->_endingToken.Line,
+                                    decl->procName()->name, scopeStack.top().instructionCount);
     gen(decl, "ret");
     gen(decl,".endmethod");
 }
@@ -327,6 +331,8 @@ void CodeGenerator::generateMethodDeclaration(MethodDecl *decl)
         gen(decl, "popl " + decl->formal(i)->name);
     }
     generateStatement(decl->body());
+    debugInfo.setInstructionForLine(currentCodeDoc, decl->_endingToken.Line,
+                                    decl->procName()->name, scopeStack.top().instructionCount);
     gen(decl, "ret");
     gen(decl,".endmethod");
 }
@@ -338,10 +344,11 @@ void CodeGenerator::generateEntryPoint(QVector<Statement *> statements)
     {
         generateStatement(statements[i]);
     }
-    gen("pushv 0");
+    //gen("pushv 0");
     //gen("ret");
     gen(".endmethod");
 }
+
 void CodeGenerator::generateStatement(Statement *stmt)
 {
     // todo: this is a hack to fix the disparity between names
@@ -353,6 +360,11 @@ void CodeGenerator::generateStatement(Statement *stmt)
                                     stmt->getPos().Line,
                                     procName,
                                     scopeStack.top().instructionCount);
+    if(isa<ReturnStmt>(stmt))
+    {
+        debugInfo.setReturnLine(currentCodeDoc, stmt->getPos().Line);
+    }
+
     if(isa<IOStatement>(stmt))
     {
         generateIOStatement(dynamic_cast<IOStatement *>(stmt));
@@ -952,9 +964,17 @@ void CodeGenerator::generateLaunchStmt(LaunchStmt *stmt)
 
 void CodeGenerator::generateBlockStmt(BlockStmt *stmt)
 {
+    ProceduralDecl *owningMethod = scopeStack.top().proc;
+    bool blockIsMethodBody = owningMethod->body() == stmt;
+
     for(int i=0; i<stmt->statementCount(); i++)
     {
         generateStatement(stmt->statement(i));
+
+        if(blockIsMethodBody && i == stmt->statementCount() -1)
+        {
+            debugInfo.setReturnLine(currentCodeDoc, stmt->getPos().Line);
+        }
     }
 }
 
@@ -1462,19 +1482,22 @@ void CodeGenerator::generateStringConstant(AST *src, QString str)
 
 void CodeGenerator::gen(QString str)
 {
-    scopeStack.top().instructionCount++;
+    if(!str.startsWith("."))
+        scopeStack.top().instructionCount++;
     _asm.gen(str);
 }
 
 void CodeGenerator::gen(QString str, int i)
 {
-    scopeStack.top().instructionCount++;
+    if(!str.startsWith("."))
+        scopeStack.top().instructionCount++;
     _asm.gen(str, i);
 }
 
 void CodeGenerator::gen(QString str, double d)
 {
-    scopeStack.top().instructionCount++;
+    if(!str.startsWith("."))
+        scopeStack.top().instructionCount++;
     _asm.gen(str, d);
 }
 
@@ -1485,7 +1508,8 @@ void CodeGenerator::gen(AST *src,QString str)
     pos.pos = src->getPos().Pos;
     pos.ast = src;
     PositionInfo[codePosKeyCount] = pos;
-    scopeStack.top().instructionCount++;
+    if(!str.startsWith("."))
+        scopeStack.top().instructionCount++;
     _asm.genWithMetaData(codePosKeyCount, str);
     codePosKeyCount++;
 }

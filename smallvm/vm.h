@@ -58,6 +58,7 @@ private:
     // This will store the original instruction before we replace it with a 'break'
     QMap<QString, QMap<int, Instruction> > breakPoints;
     Debugger *debugger;
+    Process *_mainProcess;
 public:
     VM();
     void Init();
@@ -70,12 +71,13 @@ public:
     void DefineStringConstant(QString symRef, QString strValue);
     void ActivateEvent(QString evName, QVector<Value *> args);
     void RunStep();
-    void RunSingleInstruction();
+    void RunSingleInstruction(Process *process);
     Allocator &GetAllocator();
     void gc();
 
     Frame *launchProcess(Method *method);
     bool hasRunningInstruction();
+    bool processIsFinished(Process *process);
     Instruction getCurrentInstruction();
     Process *currentProcess();
 
@@ -83,6 +85,9 @@ public:
     void clearAllBreakPoints();
     void setBreakPoint(QString methodName, int offset);
     void clearBreakPoint(QString methodName, int offset);
+
+    // returns true if the process is in a valid running position
+    bool getCodePos(Process *proc, QString &method, int &offset, Frame *&frame);
 
     void signal(VMErrorType toSignal);
     void signal(VMErrorType toSignal, QString arg0);

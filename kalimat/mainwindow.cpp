@@ -84,18 +84,13 @@ MainWindow::MainWindow(QWidget *parent)
 
     docContainer->addInitialEmptyDocument();
     stoppedRunWindow = NULL;
+    atBreak = false;
+    currentDebuggerProcess = NULL;
 }
 
 void MainWindow::outputMsg(QString s)
 {
     ui->outputView->append(s);
-}
-
-void MainWindow::Break(QString methodName, int offset, Frame frame)
-{
-    this->setWindowTitle(QString::fromStdWString(L"وصلت لنقطة توقف!!"));
-    this->activateWindow();
-    highlightRunningInstruction(frame, QColor(255, 0,0));
 }
 
 void MainWindow::showHelpWindow()
@@ -350,6 +345,13 @@ void MainWindow::saveAll()
 void MainWindow::on_mnuProgramRun_triggered()
 {
     CodeDocument *doc = NULL;
+    if((currentDebuggerProcess != NULL) && atBreak)
+    {
+        QMessageBox box(QMessageBox::Information, QString::fromStdWString(L"لا يمكن التنفيذ"),
+                              QString::fromStdWString(L"لا يمكن تنفيذ برنامج جديد بينما نحن في نقطة توقف للبرنامج الحالي"));
+        box.exec();
+        return;
+    }
     try
     {
         currentEditor()->setExtraSelections(QList<QTextEdit::ExtraSelection>());
@@ -382,10 +384,12 @@ void MainWindow::on_mnuProgramRun_triggered()
 
         this->PositionInfo = compiler.generator.getPositionInfo();
         RunWindow *rw = new RunWindow(this, path);
+        atBreak = false;
         connect(this, SIGNAL(destroyed(QObject*)), rw, SLOT(parentDestroyed(QObject *)));
         rw->show();
         stoppedRunWindow = rw;
-        rw->Init(output, compiler.generator.getStringConstants(), breakPoints, compiler.generator.debugInfo);
+        debugInfo = compiler.generator.debugInfo;
+        rw->Init(output, compiler.generator.getStringConstants(), breakPoints, debugInfo);
     }
     catch(UnexpectedCharException ex)
     {
@@ -459,6 +463,21 @@ void MainWindow::highlightLine(QTextEdit *editor, int pos, QColor color)
     selections.append(sel);
     editor->setExtraSelections(selections);
     ui->editorTabs->setCurrentWidget(editor);
+}
+
+void MainWindow::removeLineHighlights(MyEdit *editor, int line)
+{
+    QList<QTextEdit::ExtraSelection> extra = editor->extraSelections();
+    for(int i=0; i<extra.count(); i++)
+    {
+        QTextEdit::ExtraSelection sel = extra[i];
+        if(editor->lineOfPos(sel.cursor.position()) == line)
+        {
+            extra.removeAt(i);
+            break;
+        }
+    }
+    editor->setExtraSelections(extra);
 }
 
 void MainWindow::highlightToken(QTextEdit *editor, int pos, int length)
@@ -573,21 +592,19 @@ void MainWindow::handleVMError(VMError err)
     if(!err.callStack.empty())
     {
         Frame f = err.callStack.top();
-        highlightRunningInstruction(f);
+        highlightRunningInstruction(&f);
         visualizeCallStack(err.callStack, ui->graphicsView);
     }
 }
 
-void MainWindow::highlightRunningInstruction(Frame f)
+void MainWindow::highlightRunningInstruction(Frame *f)
 {
     highlightRunningInstruction(f, Qt::yellow);
 }
 
-void MainWindow::highlightRunningInstruction(Frame f, QColor clr)
+void MainWindow::highlightRunningInstruction(Frame *f, QColor clr)
 {
-    Instruction i = f.getPreviousRunningInstruction();
-    int key = i.extra;
-    CodePosition p = PositionInfo[key];
+    CodePosition p = getPositionOfRunningInstruction(f);
 
     if(p.doc != NULL)
     {
@@ -602,6 +619,14 @@ void MainWindow::highlightRunningInstruction(Frame f, QColor clr)
         //setWindowTitle(QString("Error position index=%1, file=%2").arg(key).arg(p.doc->getFileName()));
         highlightLine(editor, p.pos, clr);
     }
+}
+
+CodePosition MainWindow::getPositionOfRunningInstruction(Frame *f)
+{
+    Instruction i = f->getPreviousRunningInstruction();
+    int key = i.extra;
+    CodePosition p = PositionInfo[key];
+    return p;
 }
 
 void MainWindow::on_action_new_triggered()
@@ -927,37 +952,136 @@ void MainWindow::on_action_autoFormat_triggered()
     }
 }
 
+void MainWindow::Break(QString methodName, int offset, Frame *frame, Process *process)
+{
+    this->setWindowTitle(QString::fromStdWString(L"وصلت لنقطة توقف!!"));
+    this->activateWindow();
+    atBreak = true;
+
+    //highlightRunningInstruction(frame, QColor(255, 0,0));
+
+    CodeDocument *doc;
+    int line;
+    if(debugInfo.lineFromInstruction(methodName, offset, doc, line))
+    {
+        stoppedAtBreakPoint = Breakpoint(doc, line);
+        MyEdit *editor = (MyEdit*) doc->getEditor();
+        highlightLine(editor, editor->startPosOfLine(line));
+    }
+    else
+    {
+        QString msg = QString("Instruction [%1:%2] has no corresponding line").arg(methodName).arg(offset);
+        this->setWindowTitle(msg);
+    }
+}
+
+void MainWindow::genericStep(Process *proc, StepStopCondition &cond)
+{
+    if(!currentDebuggerProcess)
+        return;
+    VM *vm = stoppedRunWindow->getVM();
+    if(vm->processIsFinished(currentDebuggerProcess))
+        return;
+
+    CodeDocument *doc;
+    int line;
+    Frame *frame;
+
+    int offset;
+    QString method;
+
+    vm->getCodePos(currentDebuggerProcess, method, offset, frame);
+    if(!debugInfo.lineFromInstruction(method, offset, doc, line))
+    {
+        CodePosition p = getPositionOfRunningInstruction(frame);
+        if(p.doc == NULL)
+            return;
+        doc = p.doc;
+        line = p.ast->getPos().Line;
+    }
+    // دايزر! انطلق
+    vm->reactivate();
+    atBreak = false;
+    while(true)
+    {
+        if(vm->processIsFinished(currentDebuggerProcess))
+            break;
+        stoppedRunWindow->singleStep(currentDebuggerProcess);
+
+        CodeDocument *doc2;
+        int line2;
+        Frame *frame2;
+        vm->getCodePos(proc, method, offset, frame2);
+
+        if(!debugInfo.lineFromInstruction(method, offset, doc2, line2))
+        {
+            CodePosition p = getPositionOfRunningInstruction(frame2);
+            if(p.doc == NULL)
+                break;
+            doc2 = p.doc;
+            line2 = p.ast->getPos().Line;
+        }
+
+        if(cond.stopNow(doc, line, frame, doc2, line2, frame2))
+        {
+            Break(method, offset, frame2, currentDebuggerProcess);
+            break;
+        }
+        doc = doc2;
+        line = line2;
+        frame = frame2;
+    }
+}
+
+void MainWindow::step(Process *proc)
+{
+
+    struct StopOnOtherLine : public StepStopCondition
+    {
+        bool stopNow(CodeDocument *doc1, int line1, Frame *frame1, CodeDocument *doc2, int line2, Frame *frame2)
+        {
+            return (line1 != line2 || frame1 != frame2 || doc1 != doc2);
+        }
+    } cond;
+    genericStep(proc, cond);
+}
+
+void MainWindow::setDebuggedProcess(Process *p)
+{
+    currentDebuggerProcess = p;
+}
+
+void MainWindow::programStopped(RunWindow *rw)
+{
+    currentDebuggerProcess = NULL;
+}
+
 void MainWindow::on_action_breakpoint_triggered()
 {
     CodeDocument *doc = docContainer->getCurrentDocument();
     MyEdit *editor = (MyEdit *) currentEditor();
     int line = editor->line();
 
-    if(!breakPoints.contains(doc))
-        breakPoints[doc] = QSet<int>();
+    Breakpoint it = Breakpoint(doc, line);
+    bool enabled = false;
 
-    if(breakPoints[doc].contains(line))
-        breakPoints[doc].remove(line);
+    if(breakPoints.contains(it))
+    {
+        breakPoints.remove(it);
+    }
     else
-        breakPoints[doc].insert(line);
+    {
+        breakPoints.insert(it);
+        enabled = true;
+    }
 
-    if(breakPoints[doc].contains(line))
+    if(enabled)
     {
         highlightLine(editor, editor->textCursor().position(), QColor(240, 240, 240));
     }
     else
     {
-        QList<QTextEdit::ExtraSelection> extra = editor->extraSelections();
-        for(int i=0; i<extra.count(); i++)
-        {
-            QTextEdit::ExtraSelection sel = extra[i];
-            if(editor->lineOfPos(sel.cursor.position()) == line)
-            {
-                extra.removeAt(i);
-                break;
-            }
-        }
-        editor->setExtraSelections(extra);
+        removeLineHighlights(editor, line);
     }
 }
 
@@ -968,12 +1092,56 @@ void MainWindow::on_action_resume_triggered()
         if(!stoppedRunWindow)
             return;
 
+        setWindowTitle(QString::fromStdWString(L"كلمات"));
+        removeLineHighlights((MyEdit *)stoppedAtBreakPoint.doc->getEditor(), stoppedAtBreakPoint.line);
+        atBreak = false;
         stoppedRunWindow->resume();
         stoppedRunWindow->reactivateVM();
+        stoppedRunWindow->singleStep(currentDebuggerProcess);
+        stoppedRunWindow->setBreakpoint(stoppedAtBreakPoint, debugInfo);
         stoppedRunWindow->Run();
     }
     catch(VMError err)
     {
+    }
+}
 
+void MainWindow::on_action_step_triggered()
+{
+    step(currentDebuggerProcess);
+}
+
+void MainWindow::on_action_step_procedure_triggered()
+{
+
+    VM *vm = stoppedRunWindow->getVM();
+
+    CodeDocument *doc;
+    int line;
+    Frame *frame;
+
+    int offset;
+    QString method;
+
+    if(vm->getCodePos(currentDebuggerProcess, method, offset, frame))
+    {
+
+        if(frame->currentMethod->Get(frame->ip).opcode == Ret)
+        {
+            step(currentDebuggerProcess);
+            return;
+        }
+        // Todo: we should check frame level equality instead of actual
+        // frame equality in order to work well with tail-call elimination
+        struct StopOnOtherLineSameFrameLevel : public StepStopCondition
+        {
+            Frame *originalFrame;
+            bool stopNow(CodeDocument *doc1, int line1, Frame *frame1, CodeDocument *doc2, int line2, Frame *frame2)
+            {
+                return ((line1 != line2)  && (frame2 == originalFrame));
+            }
+        } cond;
+        cond.originalFrame = frame;
+        genericStep(currentDebuggerProcess, cond);
     }
 }

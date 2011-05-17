@@ -112,9 +112,9 @@ AST *KalimatParser::program()
         }
         newLines();
     }
-    entryPoint = new ProcedureDecl(Token(),new Identifier(Token(), "%main"), QVector<Identifier *>(), new BlockStmt(Token(),topLevelStatements), true);
+    entryPoint = new ProcedureDecl(Token(), Token(),new Identifier(Token(), "%main"), QVector<Identifier *>(), new BlockStmt(Token(),topLevelStatements), true);
     elements.append(entryPoint);
-    return new Program(Token(),elements, usedModules, originalElements);
+    return new Program(Token(), elements, usedModules, originalElements);
 }
 
 AST *KalimatParser::module()
@@ -1037,13 +1037,18 @@ Declaration *KalimatParser::procedureDecl()
 
     match(COLON);
     match(NEWLINE);
-    ProcedureDecl *ret = new ProcedureDecl(tok, procName, formals, NULL, true);
+
+    ProcedureDecl *ret = new ProcedureDecl(tok, Token(), procName, formals, NULL, true);
 
     varContext.push(ret);
     BlockStmt *body = block();
     varContext.pop();
 
+    expect(END);
+    Token endToken = lookAhead;
     match(END);
+
+    ret->_endingToken = endToken;
     ret->body(body);
     return ret;
 }
@@ -1055,13 +1060,17 @@ Declaration *KalimatParser::functionDecl()
     QVector<Identifier *> formals=formalParamList();
     match(COLON);
     match(NEWLINE);
-    FunctionDecl *ret = new FunctionDecl(tok, procName, formals, NULL, true);
+    FunctionDecl *ret = new FunctionDecl(tok, Token(), procName, formals, NULL, true);
 
     varContext.push(ret);
     BlockStmt *body = block();
     varContext.pop();
+
+    expect(END);
+    Token endToken = lookAhead;
     match(END);
 
+    ret->_endingToken = endToken;
     ret->body(body);
     return ret;
 }
@@ -1214,13 +1223,17 @@ Declaration *KalimatParser::methodDecl()
     match(COLON);
     match(NEWLINE);
 
-    MethodDecl *ret = new MethodDecl(tok, className, receiverName, methodName, formals, NULL, isFunctionNotProcedure);
+    MethodDecl *ret = new MethodDecl(tok, Token(), className, receiverName, methodName, formals, NULL, isFunctionNotProcedure);
 
     varContext.push(ret);
     BlockStmt *body = block();
     varContext.pop();
     ret->body(body);
+
+    expect(END);
+    Token endingToken = lookAhead;
     match(END);
+    ret->_endingToken = endingToken;
     return ret;
 
 }

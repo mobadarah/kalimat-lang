@@ -139,7 +139,7 @@
      <x>0</x>
      <y>0</y>
      <width>782</width>
-     <height>18</height>
+     <height>26</height>
     </rect>
    </property>
    <property name="layoutDirection">
@@ -200,6 +200,9 @@
     <addaction name="separator"/>
     <addaction name="action_breakpoint"/>
     <addaction name="action_resume"/>
+    <addaction name="action_step"/>
+    <addaction name="action_step_procedure"/>
+    <addaction name="action_step_parameters"/>
    </widget>
    <widget class="QMenu" name="mnuHelp">
     <property name="tearOffEnabled">
@@ -277,6 +280,8 @@
    <addaction name="separator"/>
    <addaction name="action_breakpoint"/>
    <addaction name="action_resume"/>
+   <addaction name="action_step"/>
+   <addaction name="action_step_procedure"/>
   </widget>
   <widget class="QStatusBar" name="statusBar"/>
   <widget class="QDockWidget" name="dockSearchReplace">
@@ -772,7 +777,7 @@
     <string>تنسيق</string>
    </property>
    <property name="shortcut">
-    <string>Ctrl+I, Return</string>
+    <string>Ctrl+I</string>
    </property>
   </action>
   <action name="action_options">
@@ -788,6 +793,9 @@
    <property name="text">
     <string>توقف هنا</string>
    </property>
+   <property name="shortcut">
+    <string>F9</string>
+   </property>
   </action>
   <action name="action_resume">
    <property name="icon">
@@ -796,6 +804,45 @@
    </property>
    <property name="text">
     <string>اكمل</string>
+   </property>
+   <property name="shortcut">
+    <string>F5</string>
+   </property>
+  </action>
+  <action name="action_step">
+   <property name="icon">
+    <iconset resource="icons.qrc">
+     <normaloff>:/icons/icons/stepIcon.png</normaloff>:/icons/icons/stepIcon.png</iconset>
+   </property>
+   <property name="text">
+    <string>خطوة</string>
+   </property>
+   <property name="shortcut">
+    <string>F11</string>
+   </property>
+  </action>
+  <action name="action_step_procedure">
+   <property name="icon">
+    <iconset resource="icons.qrc">
+     <normaloff>:/icons/icons/stepCallIcon.png</normaloff>:/icons/icons/stepCallIcon.png</iconset>
+   </property>
+   <property name="text">
+    <string>قفز استدعاء</string>
+   </property>
+   <property name="shortcut">
+    <string>F10</string>
+   </property>
+  </action>
+  <action name="action_step_parameters">
+   <property name="icon">
+    <iconset resource="icons.qrc">
+     <normaloff>:/icons/icons/stepParamsIcon.png</normaloff>:/icons/icons/stepParamsIcon.png</iconset>
+   </property>
+   <property name="text">
+    <string>قفز عوامل</string>
+   </property>
+   <property name="shortcut">
+    <string>Shift+F10</string>
    </property>
   </action>
  </widget>

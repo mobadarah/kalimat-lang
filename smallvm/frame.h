@@ -20,12 +20,13 @@
 #include <QMap>
 struct Frame
 {
+    Frame *caller;
     Method *currentMethod;
     int ip;
     bool returnReferenceIfRefMethod;
     Frame();
-    Frame(Method *method);
-    Frame(Method *method, int ip);
+    Frame(Method *method, Frame *caller);
+    Frame(Method *method, int ip, Frame *caller);
     Instruction getPreviousRunningInstruction();
 
     QStack<Value *> OperandStack;

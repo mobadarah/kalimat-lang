@@ -17,13 +17,25 @@ struct InstructionLocation
     int offset;
 };
 
+struct LineLocation
+{
+    CodeDocument *doc;
+    int lineNo;
+};
+
 class DebugInfo
 {
     QMap<CodeDocument *, QMap<int, InstructionLocation> > info;
+    QMap<QString, QMap<int, LineLocation> > reverseInfo;
+    QMap<CodeDocument *, QSet<int> > returnLines;
 public:
     DebugInfo();
     void setInstructionForLine(CodeDocument *doc, int lineNo, QString methodName, int offset);
-    bool instructionFromLine(CodeDocument *doc, int lineNo, QString &methodName, int &offset);
+    void setReturnLine(CodeDocument *, int);
+
+    bool instructionFromLine(CodeDocument *doc, int lineNo, QString &methodName, int &offset) const;
+    bool lineFromInstruction(QString methodName, int offset, CodeDocument *&doc, int &lineNo) const;
+    bool isReturnLine(CodeDocument *, int);
 };
 
 #endif // DEBUGINFO_H

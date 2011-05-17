@@ -11,13 +11,18 @@
 #include <QtGui/QMainWindow>
 #include "syntaxhighlighter.h"
 #include "codedocument.h"
-#include "../smallvm/vm_incl.h"
-#include "../smallvm/vm.h"
+
+#ifndef VM_H
+    #include "../smallvm/vm_incl.h"
+    #include "../smallvm/vm.h"
+#endif
+
 #include "../smallvm/externalmethod.h"
 #include "Compiler/codeposition.h"
 #include "Compiler/codegenerator_incl.h"
 #include "documentcontainer.h"
 #include "myedit.h"
+#include "breakpoint.h"
 #include <QQueue>
 #include <QGraphicsView>
 #include <QActionGroup>
@@ -33,6 +38,16 @@ const int MaxRecentFiles = 8;
 class MainWindow;
 class RunWindow;
 
+enum StepMode
+{
+    StepSingle, StepCall, StepParams
+};
+
+struct StepStopCondition
+{
+    virtual bool stopNow(CodeDocument *doc1, int line1, Frame *frame1, CodeDocument *doc2, int line2, Frame *frame2)=0;
+};
+
 class MainWindow : public QMainWindow, public DocumentClient, public Debugger
 {
     Q_OBJECT
@@ -46,20 +61,25 @@ public:
 
     bool isWonderfulMonitorEnabled();
     int wonderfulMonitorDelay();
+    CodePosition getPositionOfRunningInstruction(Frame *f);
+    CodePosition getPositionOfInstruction(QString method, int offset);
     void markCurrentInstruction(VM *vm, int &pos, int &length);
+
     void handleVMError(VMError err);
-    void highlightRunningInstruction(Frame f);
-    void highlightRunningInstruction(Frame f, QColor clr);
+    void highlightRunningInstruction(Frame *f);
+    void highlightRunningInstruction(Frame *f, QColor clr);
     void highlightLine(QTextEdit *editor, int pos);
     void highlightLine(QTextEdit *editor, int pos, QColor color);
     void highlightToken(QTextEdit *editor, int pos, int length);
+    void removeLineHighlights(MyEdit *editor, int line);
     void setLineIndicators(int line, int column);
     void visualizeCallStacks(QQueue<Process *> &callStacks, QGraphicsView *view);
     void visualizeCallStack(QStack<Frame> &callStack, QGraphicsView *view);
 
     void outputMsg(QString s);
 
-    void Break(QString methodName, int offset, Frame frame);
+    void Break(QString methodName, int offset, Frame *frame, Process *process);
+    void programStopped(RunWindow *);
 
     DocumentContainer *docContainer;
     QMap<int, CodePosition> PositionInfo;
@@ -85,7 +105,15 @@ private:
     void saveAll();
 
     // The breakpoint 'reservations' recorded here will be passed to the code generator
-    QMap<CodeDocument *, QSet<int> > breakPoints;
+    QSet<Breakpoint> breakPoints;
+    DebugInfo debugInfo;
+    Breakpoint stoppedAtBreakPoint;
+    Process *currentDebuggerProcess;
+    bool atBreak;
+
+    void genericStep(Process *proc, StepStopCondition &cond);
+    void step(Process *proc);
+    void setDebuggedProcess(Process *);
 private slots:
     void on_actionGo_to_position_triggered();
     void on_actionCompile_without_tags_triggered();
@@ -120,6 +148,8 @@ private slots:
     void on_action_autoFormat_triggered();
     void on_action_breakpoint_triggered();
     void on_action_resume_triggered();
+    void on_action_step_triggered();
+    void on_action_step_procedure_triggered();
 };
 
 #endif // MAINWINDOW_H

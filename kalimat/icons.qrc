@@ -9,5 +9,8 @@
         <file>icons/kalimat.ico</file>
         <file>icons/stopIcon.png</file>
         <file>icons/resumeIcon.png</file>
+        <file>icons/stepIcon.png</file>
+        <file>icons/stepParamsIcon.png</file>
+        <file>icons/stepCallIcon.png</file>
     </qresource>
 </RCC>

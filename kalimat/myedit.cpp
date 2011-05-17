@@ -506,3 +506,8 @@ int MyEdit::lineOfPos(int pos)
 {
     return lineTracker.lineFromPos(pos);
 }
+
+int MyEdit::startPosOfLine(int line)
+{
+    return lineTracker.posFromLineColumn(line, 0);
+}

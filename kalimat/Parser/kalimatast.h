@@ -676,8 +676,9 @@ public:
     QVector<QSharedPointer<Identifier > > _formals;
     QVector<QSharedPointer<Identifier > > _allReferences;
     QScopedPointer<BlockStmt> _body;
+    Token _endingToken;
 public:
-    ProceduralDecl(Token pos, Identifier *procName, QVector<Identifier *> formals, BlockStmt *body, bool isPublic);
+    ProceduralDecl(Token pos, Token endingToken, Identifier *procName, QVector<Identifier *> formals, BlockStmt *body, bool isPublic);
     Identifier *procName() {return _procName.data();}
     int formalCount() { return _formals.count();}
     Identifier *formal(int i) { return _formals[i].data();}
@@ -700,14 +701,14 @@ class IFunction
 class ProcedureDecl : public ProceduralDecl, public IProcedure
 {
 public:
-    ProcedureDecl(Token pos, Identifier *procName, QVector<Identifier *> formals, BlockStmt *body, bool isPublic);
+    ProcedureDecl(Token pos, Token endingToken, Identifier *procName, QVector<Identifier *> formals, BlockStmt *body, bool isPublic);
     QString toString();
     void prettyPrint(CodeFormatter *f);
 };
 class FunctionDecl : public ProceduralDecl, public IFunction
 {
 public:
-    FunctionDecl(Token pos, Identifier *procName, QVector<Identifier *> formals, BlockStmt *body, bool isPublic);
+    FunctionDecl(Token pos, Token endingToken, Identifier *procName, QVector<Identifier *> formals, BlockStmt *body, bool isPublic);
     QString toString();
     void prettyPrint(CodeFormatter *f);
 };
@@ -823,7 +824,7 @@ public:
     QScopedPointer<Identifier> _receiverName;
     bool isFunctionNotProcedure;
 public:
-    MethodDecl(Token pos, Identifier *className, Identifier *receiverName,
+    MethodDecl(Token pos, Token endingToken, Identifier *className, Identifier *receiverName,
                Identifier *methodName, QVector<Identifier *> formals, BlockStmt *body
                , bool isFunctionNotProcedure);
     Identifier *className() { return _className.data();}

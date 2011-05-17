@@ -12,15 +12,17 @@ Frame::Frame()
 
 }
 
-Frame::Frame(Method *method)
+Frame::Frame(Method *method, Frame *caller)
 {
     currentMethod = method;
+    this->caller = caller;
     ip = 0;
     returnReferenceIfRefMethod = true;
 }
-Frame::Frame(Method *method, int ip)
+Frame::Frame(Method *method, int ip, Frame *caller)
 {
     currentMethod = method;
+    this->caller = caller;
     this->ip = ip;
     returnReferenceIfRefMethod = true;
 }

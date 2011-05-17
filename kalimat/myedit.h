@@ -39,6 +39,7 @@ public:
     int column();
 
     int lineOfPos(int pos);
+    int startPosOfLine(int line);
     void tabBehavior();
     void shiftTabBehavior();
     void enterKeyBehavior(QKeyEvent *ev);

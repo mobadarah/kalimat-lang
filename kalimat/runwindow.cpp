@@ -18,6 +18,9 @@
 #include <QWaitCondition>
 #include <QClipboard>
 
+#include <iostream>
+using namespace std;
+
 RunWindow::RunWindow(QWidget *parent, QString pathOfProgramsFile) :
     QMainWindow(parent),
     updateTimer(20),
@@ -40,6 +43,8 @@ void RunWindow::closeEvent(QCloseEvent *ev)
     suspend();
     if(vm != NULL)
         vm->gc();
+    MainWindow *mw = dynamic_cast<MainWindow *>(parentWidget());
+    mw->programStopped(this);
 }
 
 void RunWindow::parentDestroyed(QObject *)
@@ -59,7 +64,7 @@ RunWindow::~RunWindow()
     delete paintSurface;
 }
 
-void RunWindow::Init(QString program, QMap<QString, QString> stringConstants, QMap<CodeDocument *, QSet<int> > breakPoints, DebugInfo debugInfo)
+void RunWindow::Init(QString program, QMap<QString, QString> stringConstants, QSet<Breakpoint> breakPoints, DebugInfo debugInfo)
 {
     try
     {
@@ -181,20 +186,9 @@ void RunWindow::Init(QString program, QMap<QString, QString> stringConstants, QM
 
         InitVMPrelude(vm);
         vm->Load(program);
-        for(QMap<CodeDocument *, QSet<int> >::const_iterator i=breakPoints.begin(); i!=breakPoints.end(); ++i)
+        for(QSet<Breakpoint>::const_iterator i=breakPoints.begin(); i!=breakPoints.end(); ++i)
         {
-            CodeDocument *doc = i.key();
-            const QSet<int> &v = i.value();
-            for(QSet<int>::const_iterator j= v.begin(); j!=v.end(); ++j)
-            {
-                int line =  *j;
-
-                QString methodName;
-                int offset;
-
-                debugInfo.instructionFromLine(doc, line, methodName, offset);
-                vm->setBreakPoint(methodName, offset);
-            }
+            setBreakpoint(*i, debugInfo);
         }
         vm->Init();
 
@@ -210,12 +204,65 @@ void RunWindow::Init(QString program, QMap<QString, QString> stringConstants, QM
     }
 }
 
+void RunWindow::setBreakpoint(Breakpoint b, const DebugInfo &debugInfo)
+{
+    CodeDocument *doc = b.doc;
+    int line =  b.line;
+
+    QString methodName;
+    int offset;
+
+    debugInfo.instructionFromLine(doc, line, methodName, offset);
+    vm->setBreakPoint(methodName, offset);
+
+    cout << "Setting breakpoint at method= " << methodName.toStdString() << " and offset= " << offset
+         << " and line= " << line << endl;
+}
+
 void RunWindow::InitVMPrelude(VM *vm)
 {
     LineIterator in = Utils::readResourceTextFile(":/vm_prelude.txt");
     QString prelude = in.readAll();
     in.close();
     vm->Load(prelude);
+}
+
+void RunWindow::singleStep(Process *proc)
+{
+    MainWindow *mw = dynamic_cast<MainWindow *>(this->parent());
+    int pos,  len, oldPos = -1, oldLen = -1;
+    try
+    {
+        if((state == rwNormal || state ==rwTextInput)&& vm->isRunning() && !vm->processIsFinished(proc))
+        {
+            bool visualize = mw != NULL && mw->isWonderfulMonitorEnabled();
+
+            if(visualize)
+                mw->markCurrentInstruction(vm, pos, len);
+
+            vm->RunSingleInstruction(proc);
+            redrawWindow();
+
+            if(visualize
+                &&  (oldPos != pos ) && (oldLen != len)
+                )
+            {
+                QTime dieTime = QTime::currentTime().addMSecs(mw->wonderfulMonitorDelay());
+                while( QTime::currentTime() < dieTime )
+                    QCoreApplication::processEvents(QEventLoop::AllEvents, 100);
+            }
+            oldPos = pos;
+            oldLen = len;
+
+            qApp->processEvents();
+        }
+        update();// Final update, in case the last instruction didn't update things in time.
+    }
+    catch(VMError err)
+    {
+        reportError(err);
+        this->close();
+    }
 }
 
 void RunWindow::Run()

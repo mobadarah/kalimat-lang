@@ -65,6 +65,26 @@ bool Parser::eof()
     return curToken == tokens.size() ;
 }
 
+bool Parser::expect(TokenType tokenType)
+{
+    QString tokenId;
+    if(tokenFormatter == NULL)
+        tokenId = QString("%1").arg(tokenType);
+    else
+        tokenId = tokenFormatter(tokenType);
+
+    if(eof())
+        throw ParserException(QString("EOF reached while expecting token:%1").arg(tokenId));
+    if(lookAhead.Type == tokenType)
+    {
+        return true;
+    }
+    else
+    {
+        throw ParserException(getPos(), QString("Exprected token of type:%1").arg(tokenId));
+    }
+}
+
 bool Parser::match(TokenType tokenType)
 {
     QString tokenId;

@@ -7,7 +7,8 @@
 
 #include "vm_incl.h"
 #include "vm.h"
-
+#include <iostream>
+using namespace std;
 #define QSTR(x) QString::fromStdWString(x)
 
 QString str(int n)
@@ -32,7 +33,7 @@ void VM::Init()
         BuiltInTypes::FileType = (ValueClass *) constantPool[malaf]->unboxObj();
     _globalFrame = new Frame();
     launchProcess(method);
-
+    _mainProcess = processes.front();
     _isRunning = true;
     debugger = NULL;
 }
@@ -40,7 +41,7 @@ void VM::Init()
 Frame *VM::launchProcess(Method *method)
 {
     Process *p = new Process(this);
-    p->stack.push(Frame(method));
+    p->stack.push(Frame(method, NULL));
     processes.push_back(p);
     Frame *ret = &p->stack.top();
     return ret;
@@ -142,6 +143,10 @@ Frame &VM::globalFrame()
 void VM::setDebugger(Debugger *d)
 {
     debugger = d;
+    if(d)
+    {
+        d->setDebuggedProcess(_mainProcess);
+    }
 }
 
 void VM::clearAllBreakPoints()
@@ -151,7 +156,19 @@ void VM::clearAllBreakPoints()
 
 void VM::setBreakPoint(QString methodName, int offset)
 {
-    Method *method = (Method*) constantPool[methodName]->v.objVal;
+    /*
+      The method in which we want to break may not exist in the VM image
+      if we put a breakpoint in a CodeDoc that is not the program to be run
+      or a module included by it. Therefore we check first if the method exists.
+      TODO: Check how the debugging system behaves with multiple open programs and modules
+    */
+
+    if(!constantPool.contains(methodName))
+        return;
+
+    Method *method = dynamic_cast<Method*>(constantPool[methodName]->v.objVal);
+    if(method == NULL)
+        return;
     Instruction newI = method->Get(offset);
     breakPoints[methodName][offset] = newI;
 
@@ -163,6 +180,18 @@ void VM::clearBreakPoint(QString methodName, int offset)
 {
     Method *method = (Method*) constantPool[methodName]->v.objVal;
     method->Set(offset, breakPoints[methodName][offset]);
+}
+
+bool VM::getCodePos(Process *proc, QString &method, int &offset, Frame *&frame)
+{
+    if(processIsFinished(proc))
+    {
+        return false;
+    }
+    frame = &proc->stack.top();
+    method = frame->currentMethod->getName();
+    offset = frame->ip;
+    return true;
 }
 
 void VM::Register(QString symRef, ExternalMethod *method)
@@ -209,21 +238,33 @@ bool VM::hasRunningInstruction()
     {
         return false;
     }
-    if(stack().isEmpty())
-    {
-        return false;
-    }
-    if(currentFrame()->currentMethod == NULL)
+    if(processIsFinished(currentProcess()))
     {
         return false;
     }
 
-    if(!currentFrame()->currentMethod->HasInstruction(currentFrame()->ip))
-    {
-        return false;
-    }
     return true;
 
+}
+
+bool VM::processIsFinished(Process *process)
+{
+    if(process->stack.isEmpty())
+    {
+        return true;
+    }
+    Frame &frame = process->stack.top();
+    if(frame.currentMethod == NULL)
+    {
+        return true;
+    }
+
+    if(!frame.currentMethod->HasInstruction(currentFrame()->ip))
+    {
+        return true;
+    }
+
+    return false;
 }
 
 Instruction VM::getCurrentInstruction()
@@ -297,21 +338,7 @@ void VM::RunStep()
 
     while(n--)
     {
-        // One of the instructions (e.g a breakpoint) might pause/stop the VM
-        if(!_isRunning)
-            return;
-        if(stack().isEmpty())
-        {
-            pIsRunning = false;
-            break;
-        }
-        if(currentFrame()->currentMethod == NULL)
-        {
-            pIsRunning = false;
-            break;
-        }
-
-        if(!currentFrame()->currentMethod->HasInstruction(currentFrame()->ip))
+        if(processIsFinished(currentProcess()))
         {
             pIsRunning = false;
             break;
@@ -320,8 +347,12 @@ void VM::RunStep()
         {
             break;
         }
-        RunSingleInstruction();
+        RunSingleInstruction(currentProcess());
+        // A breakpoint might pause/stop the VM, we then must stop this function at once
+        if(!_isRunning)
+            return;
     }
+
     Process *p = processes.front();
     processes.pop_front();
     if(pIsRunning)
@@ -335,14 +366,14 @@ void VM::RunStep()
     _isRunning = !processes.empty();
 }
 
-void VM::RunSingleInstruction()
+void VM::RunSingleInstruction(Process *process)
 {
-    Instruction i= currentFrame()->currentMethod->Get(currentFrame()->ip);
-    currentFrame()->ip++;
+    Frame &frame = process->stack.top();
+    Instruction i = frame.currentMethod->Get(frame.ip);
+
+    frame.ip++;
 
     Value *Arg;
-    QString SymRef;
-    QString True, False;
 
     switch(i.opcode)
     {
@@ -1258,7 +1289,7 @@ void VM::CallImpl(QString symRef, bool wantValueNotRef, int arity, CallStyle cal
     if(callStyle == TailCall)
     {
         stack().pop();
-        stack().push(Frame(method));
+        stack().push(Frame(method, currentFrame()));
         frame = currentFrame();
     }
     else if(callStyle == LaunchCall)
@@ -1267,7 +1298,7 @@ void VM::CallImpl(QString symRef, bool wantValueNotRef, int arity, CallStyle cal
     }
     else if(callStyle == NormalCall)
     {
-        stack().push(Frame(method));
+        stack().push(Frame(method, currentFrame()));
         frame = currentFrame();
     }
 
@@ -1323,7 +1354,7 @@ void VM::DoCallMethod(QString SymRef, int arity, CallStyle callStyle)
         Frame *frame = NULL;
         if(callStyle == NormalCall || callStyle == TailCall)
         {
-            stack().push(Frame(method));
+            stack().push(Frame(method, currentFrame()));
             frame = currentFrame();
         }
         else if(callStyle == LaunchCall)
@@ -1671,7 +1702,7 @@ void VM::DoBreak()
     if(breakPoints.contains(curMethodName) &&
          breakPoints[curMethodName].contains(ip))
     {
-        Instruction &i = breakPoints[curMethodName][ip];
+        Instruction i = breakPoints[curMethodName][ip];
         currentFrame()->currentMethod->Set(ip, i);
     }
     else
@@ -1681,7 +1712,7 @@ void VM::DoBreak()
 
     if(debugger)
     {
-        debugger->Break(curMethodName, currentFrame()->ip, *currentFrame());
+        debugger->Break(curMethodName, currentFrame()->ip, currentFrame(), currentProcess());
     }
 }
 
