@@ -11,6 +11,7 @@
 #include <QCheckBox>
 #include <QRadioButton>
 #include <QButtonGroup>
+#include <QComboBox>
 
 #define _ws(a) QString::fromStdWString(a)
 
@@ -507,6 +508,138 @@ Value *ListboxForeignClass::dispatch(int id, QVector<Value *> args)
 
         return allocator->newString(new QString(handle->item(index)->text()));
     }
+    if(id <= controlMethodCutoff)
+        return ControlForeignClass::dispatch(id, args);
+    return NULL;
+}
+
+ComboboxForeignClass::ComboboxForeignClass(QString name, RunWindow *rw)
+    : ControlForeignClass(name, rw)
+{
+    methodIds[_ws(L"اضف")] = methodAddItem;
+
+    methodArities[_ws(L"اضف")]
+            = 2;
+
+    methodIds[_ws(L"اضف.في")] = methodInsertItem;
+
+    methodArities[_ws(L"اضف.في")]
+            = 3;
+
+    methodIds[_ws(L"عنصر.رقم")] = methodGetItem;
+
+    methodArities[_ws(L"عنصر.رقم")]
+            = 2;
+
+    methodIds[_ws(L"حدد.أيحرر")] = methodSetEditable;
+
+    methodArities[_ws(L"حدد.أيحرر")]
+            = 2;
+
+    fields.insert(QString::fromStdWString(L"تغير.اختيار"));
+    fields.insert(QString::fromStdWString(L"تغير.نص"));
+}
+
+IObject *ComboboxForeignClass::newValue(Allocator *allocator)
+{
+    Object *newObj = (Object *) ControlForeignClass::newValue(allocator);
+
+    newObj->slotNames.append(QString::fromStdWString(L"تغير.اختيار"));
+    newObj->slotNames.append(QString::fromStdWString(L"تغير.نص"));
+
+    QComboBox *cb = new QComboBox();
+    cb->setEditable(true);
+    cb->setProperty("objectof", QVariant::fromValue<void *>(newObj));
+    newObj->setSlotValue("handle", allocator->newQObject(cb));
+
+    connect(cb, SIGNAL(currentIndexChanged(int)), this, SLOT(on_select(int)));
+    connect(cb, SIGNAL(editTextChanged(QString)), this, SLOT(on_text_changed(QString)));
+
+    newObj->setSlotValue(QString::fromStdWString(L"تغير.اختيار"), allocator->newChannel());
+    newObj->setSlotValue(QString::fromStdWString(L"تغير.نص"), allocator->newChannel());
+    return newObj;
+}
+
+void ComboboxForeignClass::on_select(int selection)
+{
+    QComboBox *cb = (QComboBox *) sender();
+    Object *object = (Object *) cb->property("objectof").value<void *>();
+    Channel *chan = object->getSlotValue(QString::fromStdWString(L"تغير.اختيار"))->unboxChan();
+    chan->send(allocator->newInt(selection), NULL);
+}
+
+void ComboboxForeignClass::on_text_changed(QString)
+{
+    QComboBox *cb = (QComboBox *) sender();
+    Object *object = (Object *) cb->property("objectof").value<void *>();
+    Channel *chan = object->getSlotValue(QString::fromStdWString(L"تغير.نص"))->unboxChan();
+    chan->send(allocator->null(), NULL);
+}
+
+Value *ComboboxForeignClass::dispatch(int id, QVector<Value *> args)
+{
+
+    if(id == methodSetText)
+    {
+        // حدد.النص
+        IObject *receiver = args[0]->unboxObj();
+        QComboBox *handle = dynamic_cast<QComboBox *>(receiver->getSlotValue("handle")->unboxQObj());
+
+        rw->typeCheck(args[1], BuiltInTypes::StringType);
+        handle->setEditText(*args[1]->unboxStr());
+        return NULL;
+    }
+    if(id == methodGetText)
+    {
+        // نصه
+        IObject *receiver = args[0]->unboxObj();
+        QComboBox *handle = dynamic_cast<QComboBox *>(receiver->getSlotValue("handle")->unboxQObj());
+        return allocator->newString(new QString(handle->currentText()));
+    }
+    if(id == methodAddItem)
+    {
+        // اضف
+        IObject *receiver = args[0]->unboxObj();
+        QComboBox *handle = dynamic_cast<QComboBox *>(receiver->getSlotValue("handle")->unboxQObj());
+        handle->addItem(args[1]->toString());
+        return NULL;
+    }
+    if(id == methodInsertItem)
+    {
+        // اضف.في
+        IObject *receiver = args[0]->unboxObj();
+        QComboBox *handle = dynamic_cast<QComboBox *>(receiver->getSlotValue("handle")->unboxQObj());
+
+        Value *v = args[1];
+
+        rw->typeCheck(args[2], BuiltInTypes::IntType);
+        int index = args[2]->unboxInt();
+
+        handle->insertItem(index, v->toString());
+        return NULL;
+    }
+    if(id == methodGetItem)
+    {
+        // عنصر.رقم
+        IObject *receiver = args[0]->unboxObj();
+        QComboBox *handle = dynamic_cast<QComboBox *>(receiver->getSlotValue("handle")->unboxQObj());
+
+        rw->typeCheck(args[1], BuiltInTypes::IntType);
+        int index = args[1]->unboxInt();
+
+        return allocator->newString(new QString(handle->itemText(index)));
+    }
+    if(id == methodSetEditable)
+    {
+        // حدد.أيحرر
+        IObject *receiver = args[0]->unboxObj();
+        QComboBox *handle = dynamic_cast<QComboBox *>(receiver->getSlotValue("handle")->unboxQObj());
+
+        rw->typeCheck(args[1], BuiltInTypes::BoolType);
+        handle->setEditable(args[1]->unboxBool());
+        return NULL;
+    }
+
     if(id <= controlMethodCutoff)
         return ControlForeignClass::dispatch(id, args);
     return NULL;

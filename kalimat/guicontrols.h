@@ -35,6 +35,8 @@ const int methodSetValue = 9;
 const int methodAddButton = 10;
 const int methodGetButton = 11;
 
+const int methodSetEditable = 12;
+
 class WindowForeignClass : public EasyForeignClass
 {
     RunWindow *rw;
@@ -111,6 +113,18 @@ public:
     Value *dispatch(int id, QVector<Value *>args);
 public slots:
     void on_select(int);
+};
+
+class ComboboxForeignClass : public ControlForeignClass
+{
+    Q_OBJECT
+public:
+    ComboboxForeignClass(QString name, RunWindow *rw);
+    IObject *newValue(Allocator *allocator);
+    Value *dispatch(int id, QVector<Value *>args);
+public slots:
+    void on_select(int);
+    void on_text_changed(QString);
 };
 
 class LabelForeignClass : public ControlForeignClass

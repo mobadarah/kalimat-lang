@@ -183,6 +183,8 @@ void RunWindow::Init(QString program, QMap<QString, QString> stringConstants, QS
         vm->RegisterType(_ws(L"صندوق.استبيان"), new CheckboxForeignClass(_ws(L"صندوق.استبيان"), this));
         vm->RegisterType(_ws(L"صندوق.اختيار"), new RadioButtonForeignClass(_ws(L"صندوق.اختيار"), this));
         vm->RegisterType(_ws(L"مجموعة.اختيارات"), new ButtonGroupForeignClass(_ws(L"مجموعة.اختيارات"), this));
+        vm->RegisterType(_ws(L"صندوق.مركب"), new ComboboxForeignClass(_ws(L"صندوق.مركب"), this));
+
 
         InitVMPrelude(vm);
         vm->Load(program);
