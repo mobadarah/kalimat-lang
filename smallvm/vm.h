@@ -70,7 +70,7 @@ public:
     void RegisterType(QString typeName, IClass *type);
     void DefineStringConstant(QString symRef, QString strValue);
     void ActivateEvent(QString evName, QVector<Value *> args);
-    void RunStep();
+    void RunStep(bool singleInstruction=false);
     void RunSingleInstruction(Process *process);
     Allocator &GetAllocator();
     void gc();

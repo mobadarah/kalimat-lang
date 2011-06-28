@@ -6,7 +6,7 @@
 **************************************************************************/
 
 #include "linetracker.h"
-
+#include <QStringList>
 LineTracker::LineTracker()
 {
 }
@@ -24,6 +24,15 @@ void LineTracker::setText(QString text)
     }
     else
     {
+        QStringList lines = text.split('\n', QString::KeepEmptyParts);
+        int runningIndex = 0;
+        for(int i=0;i< lines.count(); i++)
+        {
+            int n = lines[i].length();
+            lineStartPositions.append(LineInfo(runningIndex, n+1));
+            runningIndex += n+1;
+        }
+        /*
         for(int i=0; i<text.length();i++,count++)
         {
             if(startOfLine)
@@ -46,6 +55,7 @@ void LineTracker::setText(QString text)
             int last = lineStartPositions.count() -1;
             lineStartPositions[last].length = text.count() - lineStartPositions[last].start;
         }
+        //*/
     }
 }
 

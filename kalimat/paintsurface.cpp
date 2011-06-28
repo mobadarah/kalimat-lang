@@ -14,12 +14,12 @@ PaintSurface::PaintSurface(QSize size, QFont font)
     QImage im(size, QImage::Format_RGB32);
     im.fill(qRgb(255,255,255));
     image = im;
+    finalImg = QImage(image.size(), image.format());
     textFont = font;
 }
 
 void PaintSurface::paint(QPainter &painter, TextLayer &textLayer, SpriteLayer &spriteLayer)
 {
-    QImage finalImg(image.size(), image.format());
     QPainter imgPainter(&finalImg);
 
     imgPainter.drawImage(QPoint(0,0), image);
@@ -164,6 +164,7 @@ void PaintSurface::resize(int width, int height)
         int newWidth = qMax(width + 128, image.width());
         int newHeight = qMax(height + 128, image.height());
         resizeImage(&image, QSize(newWidth, newHeight));
+        finalImg = QImage(image.size(), image.format());
     }
 }
 

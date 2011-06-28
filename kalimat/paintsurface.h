@@ -21,6 +21,7 @@
 class PaintSurface
 {
     QImage image;
+    QImage finalImg;
     QFont textFont;
     QColor textColor;
 public:

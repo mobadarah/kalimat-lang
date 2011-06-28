@@ -203,3 +203,13 @@ Predicate *loop(Predicate *p)
 {
     return new ReLoop(p);
 }
+
+Predicate *la(CharPredicate *p)
+{
+    return new LA(p);
+}
+
+Predicate *la(QChar p)
+{
+    return new LA(new CharEquals(p));
+}

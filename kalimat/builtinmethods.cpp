@@ -276,7 +276,7 @@ void ToNumProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
         stack.push(v);
     else
     {
-      vm->signal(TypeError2, QString::fromStdWString(L"عدد"), v->type->getName());
+        vm->signal(ArgumentError, QString::fromStdWString(L"لا يمكن تحويل النص \"%1\" إلى قيمة عددية").arg(*str));
     }
 
 }

@@ -325,9 +325,9 @@ int getInstructionArity(Instruction &i)
     return i.Arg->unboxInt();
 }
 
-void VM::RunStep()
+void VM::RunStep(bool singleInstruction)
 {
-    int n = rand() % 10;
+    int n = singleInstruction? 1 : rand() % 10;
     bool pIsRunning = true;
 
     if(processes.empty())

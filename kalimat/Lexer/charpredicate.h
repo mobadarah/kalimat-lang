@@ -11,6 +11,7 @@
 class Buffer;
 
 class Predicate;
+class CharPredicate;
 
 Predicate *loop(Predicate *p);
 Predicate *choice(Predicate *p1, Predicate *p2);
@@ -18,6 +19,8 @@ Predicate *seq(Predicate *p1, Predicate *p2);
 Predicate *seq(Predicate *p1, Predicate *p2, Predicate *p3);
 Predicate *seq(Predicate *p1, Predicate *p2, Predicate *p3, Predicate *p4);
 Predicate *seq(Predicate *p1, Predicate *p2, Predicate *p3, Predicate *p4, Predicate *p5);
+Predicate *la(CharPredicate *p);
+Predicate *la(QChar p);
 
 class Predicate
 {

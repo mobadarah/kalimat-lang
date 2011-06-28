@@ -19,7 +19,8 @@ SOURCES += main.cpp \
     process.cpp \
     channel.cpp \
     metaclass.cpp \
-    debugger.cpp
+    debugger.cpp \
+    tracelistener.cpp
 HEADERS += \
     value.h \
     instruction.h \
@@ -38,6 +39,7 @@ HEADERS += \
     process.h \
     channel.h \
     metaclass.h \
-    debugger.h
+    debugger.h \
+    tracelistener.h
 FORMS +=
 RESOURCES +=

@@ -12,10 +12,6 @@
 
 QMap<int, QString> KalimatLexer::tokenNameMap;
 
-Predicate *la(CharPredicate *p)
-{
-    return new LA(p);
-}
 KalimatLexer::KalimatLexer() : Lexer()
 {
 

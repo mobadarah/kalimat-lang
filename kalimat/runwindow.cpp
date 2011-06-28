@@ -23,7 +23,7 @@ using namespace std;
 
 RunWindow::RunWindow(QWidget *parent, QString pathOfProgramsFile) :
     QMainWindow(parent),
-    updateTimer(20),
+    updateTimer(30),
     ui(new Ui::RunWindow)
 {
     ui->setupUi(this);
@@ -280,16 +280,22 @@ void RunWindow::Run()
             if(visualize)
                 mw->markCurrentInstruction(vm, pos, len);
 
-            vm->RunStep();
+            if(visualize)
+                vm->RunStep(true);
+            else
+                vm->RunStep();
+
             redrawWindow();
 
             if(visualize
+                    // commenting out the following condition makes the debugger work,
+                    // but not the wonderful monitor :(    --todo: fix this
                 &&  (oldPos != pos ) && (oldLen != len)
                 )
             {
                 QTime dieTime = QTime::currentTime().addMSecs(mw->wonderfulMonitorDelay());
                 while( QTime::currentTime() < dieTime )
-                    QCoreApplication::processEvents(QEventLoop::AllEvents, 100);
+                    QCoreApplication::processEvents(QEventLoop::AllEvents, 30);
             }
             oldPos = pos;
             oldLen = len;
@@ -478,11 +484,11 @@ void RunWindow::activateMouseEvent(QMouseEvent *ev, QString evName)
     paintSurface->TX(x);
     args.append(vm->GetAllocator().newInt(x));
     args.append(vm->GetAllocator().newInt(y));
-    bool normalRunning = vm->isRunning() && state == rwNormal;
+    bool normalRunning = vm->isRunning() && (state == rwNormal || state == rwTextInput);
     try
     {
         vm->ActivateEvent(evName, args);
-        resume();
+        //resume();
         if(!normalRunning && vm->isRunning())
         {
             Run();
@@ -596,10 +602,12 @@ void RunWindow::activateKeyEvent(QKeyEvent *ev, QString evName)
 
         vm->ActivateEvent(evName, args);
         if(state != rwTextInput)
+        {
             resume(); // If the RunWindow was not in a running state (say from a wait() call) then a key
                       // event should wake it up.
                       // TODO: This means a key event in the middle of a long wait will resume execution
                       // prematurely after the event is handled. We should resolve this.
+        }
 
         if(!normalRunning && vm->isRunning())
         {

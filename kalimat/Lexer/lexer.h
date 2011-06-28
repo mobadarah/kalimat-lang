@@ -9,7 +9,6 @@
 #define LEXER_H
 
 class Lexer {
-
     int state;
     QVector<Token> acceptedTokens;
     void *tokenTag;

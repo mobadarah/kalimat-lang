@@ -36,6 +36,7 @@ const int methodAddButton = 10;
 const int methodGetButton = 11;
 
 const int methodSetEditable = 12;
+const int methodAppendText = 13;
 
 class WindowForeignClass : public EasyForeignClass
 {

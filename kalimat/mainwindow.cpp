@@ -50,7 +50,7 @@ MainWindow::MainWindow(QWidget *parent)
     ui->setupUi(this);
 
     QToolBar *notice = new QToolBar("");
-    notice->addAction(QString::fromStdWString(L"هذه هي النسخة الأولية لشهر إبريل 2011. حمل أحدث نسخة من www.kalimat-lang.com"));
+    notice->addAction(QString::fromStdWString(L"هذه هي النسخة الأولية لشهر يونيو 2011. حمل أحدث نسخة من www.kalimat-lang.com"));
 
     addToolBarBreak();
     addToolBar(Qt::TopToolBarArea, notice);
@@ -522,6 +522,9 @@ int MainWindow::wonderfulMonitorDelay()
 void MainWindow::visualizeCallStacks(QQueue<Process *> &callStacks, QGraphicsView *view)
 {
     // todo: Visualize the call stacks; as the function name says :(
+    if(callStacks.empty())
+        return;
+    visualizeCallStack(callStacks.front()->stack, view);
 }
 
 void MainWindow::visualizeCallStack(QStack<Frame> &callStack, QGraphicsView *view)
@@ -1077,7 +1080,7 @@ void MainWindow::on_action_breakpoint_triggered()
 
     if(enabled)
     {
-        highlightLine(editor, editor->textCursor().position(), QColor(240, 240, 240));
+        highlightLine(editor, editor->textCursor().position(), QColor(170, 170, 170));
     }
     else
     {
@@ -1089,11 +1092,17 @@ void MainWindow::on_action_resume_triggered()
 {
     try
     {
-        if(!stoppedRunWindow)
+        if(!stoppedRunWindow || !this->atBreak)
+        {
+            this->on_mnuProgramRun_triggered();
             return;
+        }
 
+
+        MyEdit *editor = (MyEdit *)stoppedAtBreakPoint.doc->getEditor();
         setWindowTitle(QString::fromStdWString(L"كلمات"));
-        removeLineHighlights((MyEdit *)stoppedAtBreakPoint.doc->getEditor(), stoppedAtBreakPoint.line);
+        removeLineHighlights(editor, stoppedAtBreakPoint.line);
+        highlightLine(editor, editor->textCursor().position(), QColor(170, 170, 170));
         atBreak = false;
         stoppedRunWindow->resume();
         stoppedRunWindow->reactivateVM();

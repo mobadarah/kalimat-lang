@@ -66,7 +66,7 @@ void SyntaxHighlighter::highlightToHtml(QString program, QStringList &output)
     {
         lexer->tokenize();
         QVector<Token> tokens = lexer->getTokens();
-        output.append("<div dir=\"rtl\">");
+        output.append("<div dir=\"rtl\" style=\"background-color: rgb(240, 240, 255);\"><pre>");
         int indentlevel = 0;
         for(int i=0; i<tokens.size(); i++)
         {
@@ -100,22 +100,28 @@ void SyntaxHighlighter::highlightToHtml(QString program, QStringList &output)
                    indentlevel++;
                }
                else if(t.Type == NEWLINE &&
-                       (next.Type == END || next.Type == DONE || next.Type == CONTINUE || next.Type == ELSE))
+                       (next.Type == END || next.Type == DONE ||
+                        next.Type == CONTINUE || next.Type == ELSE ||
+                        next.Type == OR))
                {
                    indentlevel--;
                }
                else if(t.Type !=NEWLINE)
                {
-                  output.append("&nbsp;");
+                  output.append(" ");
+                  //output.append("&nbsp;");
                }
            }
            if(t.Type == NEWLINE)
            {
              for(int j=0; j<indentlevel * 4; j++)
-                output.append("&nbsp;");
+             {
+              //  output.append("&nbsp;");
+                output.append(" ");
+             }
            }
        }
-       output.append("</div>");
+       output.append("</pre></div>");
     }
     catch(UnexpectedCharException ex)
     {

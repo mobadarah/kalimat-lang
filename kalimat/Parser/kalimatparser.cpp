@@ -427,8 +427,8 @@ Statement *KalimatParser::forEachStmt()
     }
     match(CONTINUE);
     return new ForAllStmt(forAllTok, id, from, to, theStmt);
-
 }
+
 Statement *KalimatParser::whileStmt()
 {
     bool multiLineStmt = false;

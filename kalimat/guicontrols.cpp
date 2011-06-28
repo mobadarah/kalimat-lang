@@ -325,6 +325,11 @@ Value *ButtonForeignClass::dispatch(int id, QVector<Value *> args)
 TextboxForeignClass::TextboxForeignClass(QString name, RunWindow *rw)
     : ControlForeignClass(name, rw)
 {
+    methodIds[_ws(L"الحق.نص")] = methodAppendText;
+
+    methodArities[_ws(L"الحق.نص")]
+            = 2;
+
     fields.insert(QString::fromStdWString(L"تغير"));
 }
 
@@ -370,6 +375,15 @@ Value *TextboxForeignClass::dispatch(int id, QVector<Value *> args)
         QTextEdit *handle = dynamic_cast<QTextEdit*>(receiver->getSlotValue("handle")->unboxQObj());
         return allocator->newString(new QString(handle->document()->toPlainText()));
     }
+    if(id == methodAppendText)
+    {
+        // الحق.نص
+        IObject *receiver = args[0]->unboxObj();
+        QTextEdit *handle = dynamic_cast<QTextEdit*>(receiver->getSlotValue("handle")->unboxQObj());
+        rw->typeCheck(args[1], BuiltInTypes::StringType);
+        handle->append(*args[1]->unboxStr());
+        return NULL;
+    }
     if(id <= controlMethodCutoff)
         return ControlForeignClass::dispatch(id, args);
     return NULL;
@@ -378,6 +392,10 @@ Value *TextboxForeignClass::dispatch(int id, QVector<Value *> args)
 LineEditForeignClass::LineEditForeignClass(QString name, RunWindow *rw)
     : ControlForeignClass(name, rw)
 {
+    methodIds[_ws(L"الحق.نص")] = methodAppendText;
+
+    methodArities[_ws(L"الحق.نص")]
+            = 2;
     fields.insert(QString::fromStdWString(L"تغير"));
 }
 
@@ -422,6 +440,15 @@ Value *LineEditForeignClass::dispatch(int id, QVector<Value *> args)
         IObject *receiver = args[0]->unboxObj();
         QLineEdit *handle = dynamic_cast<QLineEdit*>(receiver->getSlotValue("handle")->unboxQObj());
         return allocator->newString(new QString(handle->text()));
+    }
+    if(id == methodAppendText)
+    {
+        // الحق.نص
+        IObject *receiver = args[0]->unboxObj();
+        QLineEdit *handle = dynamic_cast<QLineEdit*>(receiver->getSlotValue("handle")->unboxQObj());
+        rw->typeCheck(args[1], BuiltInTypes::StringType);
+        handle->setText(handle->text()+ *args[1]->unboxStr());
+        return NULL;
     }
     if(id <= controlMethodCutoff)
         return ControlForeignClass::dispatch(id, args);
