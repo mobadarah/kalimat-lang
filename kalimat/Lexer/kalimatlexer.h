@@ -103,6 +103,9 @@ const int LBRACKET = 93;
 const int RBRACKET = 94;
 const int HASH = 95;
 const int ELLIPSIS = 96;
+const int LBRACE = 97;
+const int RBRACE = 98;
+const int ROCKET = 99;
 
 const int WHITESPACE = TokenNone;
 
@@ -118,8 +121,9 @@ class KalimatLexer : public Lexer
     CharPredicate *plus, *minus;
     CharPredicate *mul, *div;
 
-    CharPredicate *lparen, *rparen, *lbracket, *rbracket;
+    CharPredicate *lparen, *rparen, *lbracket, *rbracket, *lbrace, *rbrace;
     CharPredicate *dollarSign;
+    Predicate *rocket;
 
     CharPredicate *spacer, *tab, *space;
     Predicate *lineComment;

@@ -87,6 +87,7 @@ private:
     Identifier *identifier();
 
     QVector<Expression *> comma_separated_expressions();
+    QVector<Expression *> comma_separated_pairs();
     QVector<StrLiteral *> usingDirectives();
 
     QString prepareStringLiteral(QString str);

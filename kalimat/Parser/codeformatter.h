@@ -36,6 +36,9 @@ public:
     virtual void openBracket() = 0;
     virtual void closeBracket() = 0;
 
+    virtual void openBrace() = 0;
+    virtual void closeBrace() = 0;
+
 };
 
 class CommonCodeFormatter : public CodeFormatter
@@ -60,6 +63,9 @@ public:
 
     virtual void openBracket() { print("["); }
     virtual void closeBracket() { print("]"); }
+
+    virtual void openBrace() { print("{"); }
+    virtual void closeBrace() { print("}"); }
 
     virtual void print(QString code) = 0;
     virtual void printColored(QString code, QColor clr) = 0;

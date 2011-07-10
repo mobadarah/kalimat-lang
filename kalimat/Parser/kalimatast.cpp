@@ -632,9 +632,22 @@ ArrayLiteral::ArrayLiteral(Token pos, QVector<Expression *>data)
     for(int i=0; i<data.count(); i++)
         _data.append(QSharedPointer<Expression>(data[i]));
 }
+
 QString ArrayLiteral::toString()
 {
     return _ws(L"مصفوفة(%1)").arg(vector_toString(_data));
+}
+
+MapLiteral::MapLiteral(Token pos, QVector<Expression *>data)
+    : Expression(pos)
+{
+    for(int i=0; i<data.count(); i++)
+        _data.append(QSharedPointer<Expression>(data[i]));
+}
+
+QString MapLiteral::toString()
+{
+    return _ws(L"قاموس(%1)").arg(vector_toString(_data));
 }
 
 IInvokation::IInvokation(Token pos)
@@ -1428,6 +1441,11 @@ void BoolLiteral::prettyPrint(CodeFormatter *f)
 void ArrayLiteral::prettyPrint(CodeFormatter *f)
 {
     brackets(&commaSep(mapFmt(this->_data))).run(f);
+}
+
+void MapLiteral::prettyPrint(CodeFormatter *f)
+{
+    braces(&commaSepPairs(mapFmt(this->_data))).run(f);
 }
 
 void Invokation::prettyPrint(CodeFormatter *f)

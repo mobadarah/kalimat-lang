@@ -581,6 +581,19 @@ public:
     void prettyPrint(CodeFormatter *f);
 };
 
+class MapLiteral : public Expression
+{
+public:
+    QVector<QSharedPointer<Expression > > _data;
+public:
+    MapLiteral(Token pos, QVector<Expression *> data);
+    int dataCount() {return _data.count();}
+    Expression *data(int i) { return _data[i].data(); }
+    QVector<QSharedPointer<Expression> > dataVector() { return _data;}
+    QString toString();
+    void prettyPrint(CodeFormatter *f);
+};
+
 class IInvokation : public Expression
 {
 public:
@@ -901,6 +914,18 @@ public:
     }
 };
 
+class braces : public FormatMaker
+{
+    FormatMaker *f;
+public:
+    braces(FormatMaker *_f) { f = _f;}
+    void run(CodeFormatter *cf)
+    {
+        cf->openBrace();
+        f->run(cf);
+        cf->closeBrace();
+    }
+};
 
 class ast : public FormatMaker
 {
@@ -922,6 +947,25 @@ public:
         {
             fs[i]->run(cf);
             if(i+1<fs.count())
+                cf->comma();
+        }
+    }
+};
+
+class commaSepPairs: public FormatMaker
+{
+    QVector<FormatMaker *> fs;
+public:
+    commaSepPairs(FormatMaker *_f1, FormatMaker *_f2) { fs.append(_f1);fs.append(_f2);}
+    commaSepPairs(QVector<FormatMaker *> _fs) { fs = _fs;}
+    void run(CodeFormatter *cf)
+    {
+        for(int i=0; i<fs.count(); i+=2)
+        {
+            fs[i]->run(cf);
+            cf->print("=");
+            fs[i+1]->run(cf);
+            if(i+2<fs.count())
                 cf->comma();
         }
     }

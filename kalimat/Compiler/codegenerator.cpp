@@ -44,6 +44,26 @@ void CodeGenerator::defineInCurrentScope(QString var)
         scopeStack.top().bindings.insert(var);
 }
 
+bool CodeGenerator::currentScopeFuncNotProc()
+{
+    if(scopeStack.empty())
+        throw CompilerException(NULL, InternalCompilerErrorInFunc).arg("currentScopeFuncNotProc");
+    ProceduralDecl *decl = scopeStack.top().proc;
+    if(isa<ProceduralDecl>(decl))
+        return false;
+    else if(isa<FunctionDecl>(decl))
+        return true;
+    else if(isa<MethodDecl>(decl))
+    {
+        MethodDecl *md = (MethodDecl *) decl;
+        return md->isFunctionNotProcedure;
+    }
+    else
+    {
+        throw CompilerException(NULL, InternalCompilerErrorInFunc).arg("currentScopeFuncNotProc");
+    }
+}
+
 void CodeGenerator::generate(Program *program, CodeDocument *curDoc)
 {
     QVector<Declaration *> declarations;
@@ -931,14 +951,17 @@ void CodeGenerator::generateReturnStmt(ReturnStmt *stmt)
 void CodeGenerator::generateDelegationStmt(DelegationStmt *stmt)
 {
     IInvokation *expr = stmt->invokation();
+
+    InvokationContext context = currentScopeFuncNotProc()? FunctionInvokationContext : ProcedureInvokationContext;
+
     if(isa<Invokation>(expr))
     {
-        generateInvokation(dynamic_cast<Invokation *>(expr), TailCallStyle);
+        generateInvokation(dynamic_cast<Invokation *>(expr), context, TailCallStyle);
         return;
     }
     if(isa<MethodInvokation>(expr))
     {
-        generateMethodInvokation(dynamic_cast<MethodInvokation *>(expr), TailCallStyle);
+        generateMethodInvokation(dynamic_cast<MethodInvokation *>(expr), context, TailCallStyle);
         return;
     }
 
@@ -950,12 +973,12 @@ void CodeGenerator::generateLaunchStmt(LaunchStmt *stmt)
     IInvokation *expr = stmt->invokation();
     if(isa<Invokation>(expr))
     {
-        generateInvokation(dynamic_cast<Invokation *>(expr), LaunchProcessStyle);
+        generateInvokation(dynamic_cast<Invokation *>(expr), ProcedureInvokationContext, LaunchProcessStyle);
         return;
     }
     if(isa<MethodInvokation>(expr))
     {
-        generateMethodInvokation(dynamic_cast<MethodInvokation *>(expr), LaunchProcessStyle);
+        generateMethodInvokation(dynamic_cast<MethodInvokation *>(expr), ProcedureInvokationContext, LaunchProcessStyle);
         return;
     }
 
@@ -980,7 +1003,22 @@ void CodeGenerator::generateBlockStmt(BlockStmt *stmt)
 
 void CodeGenerator::generateInvokationStmt(InvokationStmt *stmt)
 {
-    generateExpression(stmt->expression());
+    Expression *expr = stmt->expression();
+
+    if(isa<Invokation>(expr))
+    {
+        generateInvokation(dynamic_cast<Invokation *>(expr), ProcedureInvokationContext);
+        return;
+    }
+    if(isa<MethodInvokation>(expr))
+    {
+        generateMethodInvokation(dynamic_cast<MethodInvokation *>(expr), ProcedureInvokationContext);
+        return;
+    }
+    else
+    {
+        throw CompilerException(stmt, UnimplementedInvokationForm).arg(expr->toString());
+    }
 }
 
 void CodeGenerator::generateSendStmt(SendStmt *stmt)
@@ -1234,14 +1272,19 @@ void CodeGenerator::generateExpression(Expression *expr)
         generateArrayLiteral(dynamic_cast<ArrayLiteral *>(expr));
         return;
     }
+    if(isa<MapLiteral>(expr))
+    {
+        generateMapLiteral(dynamic_cast<MapLiteral *>(expr));
+        return;
+    }
     if(isa<Invokation>(expr))
     {
-        generateInvokation(dynamic_cast<Invokation *>(expr));
+        generateInvokation(dynamic_cast<Invokation *>(expr), FunctionInvokationContext);
         return;
     }
     if(isa<MethodInvokation>(expr))
     {
-        generateMethodInvokation(dynamic_cast<MethodInvokation *>(expr));
+        generateMethodInvokation(dynamic_cast<MethodInvokation *>(expr), FunctionInvokationContext);
         return;
     }
     if(isa<Idafa>(expr))
@@ -1393,8 +1436,34 @@ void CodeGenerator::generateArrayLiteral(ArrayLiteral *expr)
     QString newVar = generateArrayFromValues(expr, expr->dataVector());
 }
 
-void CodeGenerator::generateInvokation(Invokation *expr, MethodCallStyle style)
+void CodeGenerator::generateMapLiteral(MapLiteral *expr)
 {
+    QString newVar = _asm.uniqueVariable();
+
+    gen(expr, QString::fromStdWString(L"callex newmap"));
+    gen(expr, "popl "+ newVar);
+
+    for(int i=0; i<expr->dataCount(); i+=2)
+    {
+       Expression *key = expr->data(i);
+       Expression *value = expr->data(i+1);
+
+       gen(value, "pushl "+ newVar);
+       generateExpression(key);
+       generateExpression(value);
+       gen(key, "setarr");
+    }
+    gen(expr, "pushl " + newVar);
+}
+
+
+void CodeGenerator::generateInvokation(Invokation *expr, InvokationContext context, MethodCallStyle style)
+{
+    if(context == FunctionInvokationContext && this->allProcedures.contains(expr->functor()->toString()))
+    {
+        throw CompilerException(expr, CannotCallProcedureInExpression1).arg(expr->functor()->toString());
+    }
+
     for(int i=expr->argumentCount()-1; i>=0; i--)
     {
         generateExpression(expr->argument(i));
@@ -1411,8 +1480,15 @@ void CodeGenerator::generateInvokation(Invokation *expr, MethodCallStyle style)
 
 }
 
-void CodeGenerator::generateMethodInvokation(MethodInvokation *expr, MethodCallStyle style)
+void CodeGenerator::generateMethodInvokation(MethodInvokation *expr, InvokationContext context, MethodCallStyle style)
 {
+    // We cannot statically check if the method is a function or proc
+    // So there's really nothing we can do about the context here
+    // we'll just let the virtual machine handle it. The VM will find an empty stack and signal
+    // internal error, if it's lucky, otherwise crash or behave weirdly :(
+    // so todo: we should find a better way
+    // I'm actually tempted to go all pythong and make everything functions that return null
+    // by default
     for(int i=expr->argumentCount()-1; i>=0; i--)
     {
         generateExpression(expr->argument(i));

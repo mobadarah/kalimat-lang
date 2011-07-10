@@ -35,6 +35,11 @@ struct Thunk
     virtual void operator()()=0;
 };
 
+enum InvokationContext
+{
+    ProcedureInvokationContext, FunctionInvokationContext
+};
+
 class CodeGenerator
 {
 
@@ -107,8 +112,9 @@ private:
     void generateNullLiteral(NullLiteral *expr);
     void generateBoolLiteral(BoolLiteral *expr);
     void generateArrayLiteral(ArrayLiteral *expr);
-    void generateInvokation(Invokation *expr, MethodCallStyle style = NonTailCallStyle);
-    void generateMethodInvokation(MethodInvokation *expr, MethodCallStyle style = NonTailCallStyle);
+    void generateMapLiteral(MapLiteral *expr);
+    void generateInvokation(Invokation *expr, InvokationContext context, MethodCallStyle style = NonTailCallStyle);
+    void generateMethodInvokation(MethodInvokation *expr, InvokationContext context, MethodCallStyle style = NonTailCallStyle);
     void generateIdafa(Idafa *expr);
     void generateArrayIndex(ArrayIndex *expr);
     void generateMultiDimensionalArrayIndex(MultiDimensionalArrayIndex *expr);
@@ -126,6 +132,7 @@ private:
     void generateStringConstant(AST *src, QString str);
     void defineInCurrentScope(QString);
     bool isBountInCurrentScope(QString);
+    bool currentScopeFuncNotProc();
 
     void popProcedureScope();
     void pushProcedureScope(ProceduralDecl *pd);
@@ -157,6 +164,7 @@ ReadFromCanReadOnlyOneVariable,
 TargetOfLabelMustBeNumberOrIdentifier,
 DuplicateLabel,
 ReturnCanBeUsedOnlyInFunctions,
+CannotCallProcedureInExpression1,
 UndefinedVariable,
 UnacceptableNumberLiteral,
 DeclarationNotSupported,
@@ -164,7 +172,8 @@ LValueFormNotImplemented,
 UnimplementedExpressionForm,
 UnimplementedStatementForm,
 UnimplementedInvokationForm,
-ProgramsCannotUseExternalModulesWithoutSavingThemFirst
+ProgramsCannotUseExternalModulesWithoutSavingThemFirst,
+InternalCompilerErrorInFunc
 };
 
 class CompilerException

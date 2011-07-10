@@ -73,6 +73,9 @@ Value::~Value()
         delete[] v.arrayVal->Elements;
         delete v.arrayVal;
         break;
+    case MapVal:
+        //todo: leak here?
+        break;
     case MultiDimensionalArrayVal:
         delete v.multiDimensionalArrayVal;
         break;
@@ -278,7 +281,9 @@ bool VArray::keyCheck(Value *key, VMError &err)
     if(!(i>=1 && i<=this->count))
     {
         err = VMError(SubscriptOutOfRange2).arg(str(i)).arg(str(this->count));
+        return false;
     }
+    return true;
 }
 
 Value *VArray::get(Value *key)

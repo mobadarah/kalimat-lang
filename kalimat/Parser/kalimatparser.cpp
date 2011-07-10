@@ -1461,6 +1461,7 @@ bool KalimatParser::LA_first_primary_expression()
             LA(C_TRUE) ||
             LA(C_FALSE) ||
             LA(LBRACKET) ||
+            LA(LBRACE) ||
             LA(IDENTIFIER) ||
             LA(LPAREN) ||
             LA(FIELD);
@@ -1501,6 +1502,14 @@ Expression *KalimatParser::primaryExpressionNonInvokation()
         QVector<Expression *> data = comma_separated_expressions();
         match(RBRACKET);
         ret = new ArrayLiteral(lbPos, data);
+    }
+    else if(LA(LBRACE))
+    {
+        Token lbPos = lookAhead;
+        match(LBRACE);
+        QVector<Expression *> data = comma_separated_pairs();
+        match(RBRACE);
+        ret = new MapLiteral(lbPos, data);
     }
     else if(LA(IDENTIFIER))
     {
@@ -1578,6 +1587,28 @@ QVector<Expression *> KalimatParser::comma_separated_expressions()
     }
     return ret;
 }
+
+QVector<Expression *> KalimatParser::comma_separated_pairs()
+{
+    QVector<Expression *> ret;
+    if(LA_first_primary_expression())
+    {
+        ret.append(expression());
+        match(ROCKET);
+        ret.append(expression());
+        while(LA(COMMA))
+        {
+            match(COMMA);
+            newLines();
+            ret.append(expression());
+            match(ROCKET);
+            ret.append(expression());
+        }
+    }
+    return ret;
+}
+
+
 QVector<StrLiteral *> KalimatParser::usingDirectives()
 {
     QVector<StrLiteral *> usedModules;

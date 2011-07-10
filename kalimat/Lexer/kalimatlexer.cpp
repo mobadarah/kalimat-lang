@@ -51,6 +51,7 @@ KalimatLexer::KalimatLexer() : Lexer()
     sm.addAccepting (READY,   ge,         READY,   GE);
     sm.addAccepting (READY,   ne,         READY,   NE);
 
+    sm.addAccepting (READY,   rocket,     READY,   ROCKET);// must come before EQ
     sm.addAccepting (READY,   la(eq),     READY,   EQ);
     sm.addAccepting (READY,   la(lt),     READY,   LT);
     sm.addAccepting (READY,   la(gt),     READY,   GT);
@@ -60,6 +61,8 @@ KalimatLexer::KalimatLexer() : Lexer()
     sm.addAccepting (READY,   la(rparen), READY,   RPAREN);
     sm.addAccepting (READY,   la(lbracket), READY,   LBRACKET);
     sm.addAccepting (READY,   la(rbracket), READY,   RBRACKET);
+    sm.addAccepting (READY,   la(lbrace), READY,   LBRACE);
+    sm.addAccepting (READY,   la(rbrace), READY,   RBRACE);
     sm.addAccepting (READY,   la(comma),  READY,   COMMA);
     sm.addAccepting (READY,   la(semi),   READY,   SEMI);
     sm.addAccepting (READY,   la(colon),  READY,   COLON);
@@ -149,6 +152,11 @@ void KalimatLexer::InitCharPredicates()
 
     lbracket = new CharEquals('[');
     rbracket = new CharEquals(']');
+
+    lbrace = new CharEquals('{');
+    rbrace = new CharEquals('}');
+
+    rocket = new LAStr("=>");
 
     spacer = new CharEquals(' ');
     tab= new CharEquals('\t');
