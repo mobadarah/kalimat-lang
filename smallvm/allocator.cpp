@@ -114,7 +114,7 @@ Value *Allocator::null()
 {
     if(Value::NullValue == NULL)
     {
-        Value::NullValue = allocateNewValue();
+        Value::NullValue = allocateNewValue(false);
         Value::NullValue->tag = NullVal;
         Value::NullValue->type = BuiltInTypes::NullType;
     }
@@ -134,6 +134,16 @@ Value *Allocator::newArray(int size)
         ret->v.arrayVal->Elements[i] = null();
     return ret;
 }
+
+Value *Allocator::newMap()
+{
+    Value *ret = allocateNewValue();
+    ret->tag = MapVal;
+    ret->type = BuiltInTypes::MapType;
+    ret->v.mapVal = new VMap();
+    return ret;
+}
+
 Value *Allocator::newMultiDimensionalArray(QVector<int>dimensions)
 {
     Value *ret = allocateNewValue();
@@ -267,6 +277,25 @@ void Allocator::mark()
                 Value *v2 = elements->Elements[i];
                 if(!v2->mark)
                     reachable.push(v2);
+            }
+        }
+        if(v->tag == MapVal)
+        {
+            VMap *map = v->unboxMap();
+            for(int i=0; i<map->allKeys.count(); i++)
+            {
+                Value *v2 = map->allKeys[i];
+                if(!v2->mark)
+                {
+                    reachable.push(v2);
+                }
+            }
+            foreach(Value *v2, map->Elements)
+            {
+                if(!v2->mark)
+                {
+                    reachable.push(v2);
+                }
             }
         }
         if(v->tag == ObjectVal)

@@ -37,6 +37,8 @@ using namespace std;
 
 void PrintProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 {
+    if(stack.empty())
+        vm->signal(InternalError);
     Value *v = stack.pop();
     QString str = v->toString();
     w->textLayer.print(str);
@@ -750,6 +752,11 @@ void TypeOfProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
     // We use a gcMonitor value of false since we don't want the GC
     // to collect class objects
     stack.push(vm->GetAllocator().newObject(v->type, BuiltInTypes::ClassType, false));
+}
+
+void NewMapProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
+{
+    stack.push(vm->GetAllocator().newMap());
 }
 
 struct FileBlob

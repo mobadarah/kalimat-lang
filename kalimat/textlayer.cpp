@@ -142,6 +142,9 @@ bool TextLayer::cursorFwd()
 
 bool TextLayer::cursorBack()
 {
+    if(state == Input && cursor_col == inputStartCol)
+        return false;
+
     if(cursor_col > 0)
     {
         cursor_col--;
@@ -228,6 +231,9 @@ void TextLayer::backSpace()
 {
     if(cursor_col == 0)
         return;
+    if(cursor_col <= inputStartCol)
+        return;
+
     if(state == Input)
         inputBuffer = inputBuffer.remove(inputCursorPos()-1, 1);
     QString s = visibleTextBuffer[cursor_line];

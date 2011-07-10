@@ -52,7 +52,8 @@ SOURCES += main.cpp \
     guicontrols.cpp \
     ../smallvm/metaclass.cpp \
     Compiler/debuginfo.cpp \
-    breakpoint.cpp
+    breakpoint.cpp \
+    ../smallvm/vmutils.cpp
 HEADERS += mainwindow.h \
     codedocument.h \
     Lexer/token.h \

@@ -7,14 +7,11 @@
 
 #include "vm_incl.h"
 #include "vm.h"
+#include "vmutils.h"
+
 #include <iostream>
 using namespace std;
 #define QSTR(x) QString::fromStdWString(x)
-
-QString str(int n)
-{
-    return QString("%1").arg(n);
-}
 
 VM::VM()
     :allocator(&constantPool, &processes)
@@ -26,7 +23,7 @@ void VM::Init()
     BuiltInTypes::ClassType->setAllocator(&this->allocator);
 
     if(!constantPool.contains("main"))
-        signal(InternalError,QSTR(L"لا يوجد برنامج أساسي لينفّذ"));
+        signal(InternalError1 ,QSTR(L"لا يوجد برنامج أساسي لينفّذ"));
     Method *method = dynamic_cast<Method *>(constantPool["main"]->unboxObj());
     QString malaf = "%file";
     if(constantPool.contains(malaf))
@@ -81,30 +78,51 @@ QQueue<Process *> &VM::getCallStacks()
     return this->processes;
 }
 
+void VM::signalWithStack(VMError err)
+{
+    _isRunning = false;
+    if(!processes.empty())
+        err.callStack = stack();
+    throw err;
+}
+
 void VM::signal(VMErrorType err)
 {
     _isRunning = false;
-    _lastError = VMError(err, stack());
+    if(!processes.empty())
+        _lastError = VMError(err, stack());
+    else
+        _lastError = VMError(err);
+
     throw _lastError;
 }
 void VM::signal(VMErrorType err, QString arg0)
 {
     _isRunning = false;
-    _lastError = VMError(err, stack()).arg(arg0);
+    if(!processes.empty())
+        _lastError = VMError(err, stack()).arg(arg0);
+    else
+        _lastError = VMError(err).arg(arg0);
     throw _lastError;
 }
 
 void VM::signal(VMErrorType err, QString arg0, QString arg1)
 {
     _isRunning = false;
-    _lastError = VMError(err, stack()).arg(arg0).arg(arg1);
+    if(!processes.empty())
+        _lastError = VMError(err, stack()).arg(arg0).arg(arg1);
+    else
+        _lastError = VMError(err).arg(arg0).arg(arg1);
     throw _lastError;
 }
 
 void VM::signal(VMErrorType err, QString arg0, QString arg1, QString arg2)
 {
     _isRunning = false;
-    _lastError = VMError(err, stack()).arg(arg0).arg(arg1).arg(arg2);
+    if(!processes.empty())
+        _lastError = VMError(err, stack()).arg(arg0).arg(arg1).arg(arg2);
+    else
+        _lastError = VMError(err).arg(arg0).arg(arg1).arg(arg2);
     throw _lastError;
 }
 
@@ -1046,12 +1064,16 @@ void VM::DoPushConstant(QString SymRef)
 
 void VM::DoPopLocal(QString SymRef)
 {
+    if(currentFrame()->OperandStack.empty())
+        signal(InternalError);
     Value *v = currentFrame()->OperandStack.pop();
     currentFrame()->Locals[SymRef] = v;
 }
 
 void VM::DoPopGlobal(QString SymRef)
 {
+    if(currentFrame()->OperandStack.empty())
+        signal(InternalError);
     Value *v = currentFrame()->OperandStack.pop();
     globalFrame().Locals[SymRef] = v;
 }
@@ -1417,7 +1439,7 @@ void VM::DoSetField(QString SymRef)
     Value *objVal = currentFrame()->OperandStack.pop();
 
     assert(objVal->tag != NullVal, SettingFieldOnNull);
-    assert(objVal->tag == ObjectVal, SettingFieldOnNonObject);
+    assert(objVal->tag == ObjectVal, SettingFieldOnNonObject1, objVal->type->toString());
     assert(objVal->type->hasField(SymRef), NoSuchField2, SymRef, objVal->type->getName());
 
     IObject *obj = objVal->unboxObj();
@@ -1430,7 +1452,7 @@ void VM::DoGetField(QString SymRef)
     Value *objVal = currentFrame()->OperandStack.pop();
 
     assert(objVal->tag != NullVal, GettingFieldOnNull);
-    assert(objVal->tag == ObjectVal, GettingFieldOnNonObject);
+    assert(objVal->tag == ObjectVal, GettingFieldOnNonObject1, objVal->type->toString());
     assert(objVal->type->hasField(SymRef), NoSuchField2, SymRef, objVal->type->getName());
 
     IObject *obj = objVal->v.objVal;
@@ -1444,7 +1466,7 @@ void VM::DoGetFieldRef(QString SymRef)
     Value *objVal = currentFrame()->OperandStack.pop();
 
     assert(objVal->tag != NullVal, GettingFieldOnNull);
-    assert(objVal->tag == ObjectVal, GettingFieldOnNonObject);
+    assert(objVal->tag == ObjectVal, GettingFieldOnNonObject1, objVal->type->getName());
     assert(objVal->type->hasField(SymRef), NoSuchField2, SymRef, objVal->type->getName());
     Value *ref = allocator.newFieldReference(objVal->unboxObj(), SymRef);
     currentFrame()->OperandStack.push(ref);
@@ -1453,6 +1475,7 @@ void VM::DoGetFieldRef(QString SymRef)
 void VM::DoSetArr()
 {
     // ...arr index val => ...
+    /*
     Value *v = currentFrame()->OperandStack.pop();
     Value *index = currentFrame()->OperandStack.pop();
     Value *arrVal = currentFrame()->OperandStack.pop();
@@ -1465,12 +1488,29 @@ void VM::DoSetArr()
     assert(i>=1 && i<=arr->count, SubscriptOutOfRange2, str(i), str(arr->count));
 
     arr->Elements[i-1] = v;
+    */
 
+
+    Value *v = currentFrame()->OperandStack.pop();
+    Value *index = currentFrame()->OperandStack.pop();
+    Value *arrVal = currentFrame()->OperandStack.pop();
+
+    assert(arrVal->tag == ArrayVal || arrVal->tag == MapVal, SubscribingNonArray);
+    VIndexable *container = arrVal->unboxIndexable();
+
+    VMError err;
+    bool b = container->keyCheck(index, err);
+    if(!b)
+        signalWithStack(err);
+
+    container->set(index, v);
 }
 
 void VM::DoGetArr()
 {
+
     // ...arr index => ...value
+    /*
     Value *index = currentFrame()->OperandStack.pop();
     Value *arrVal= currentFrame()->OperandStack.pop();
 
@@ -1483,6 +1523,19 @@ void VM::DoGetArr()
 
     Value *v = arr->Elements[i-1];
     currentFrame()->OperandStack.push(v);
+    */
+    Value *index = currentFrame()->OperandStack.pop();
+    Value *arrVal= currentFrame()->OperandStack.pop();
+
+    assert(arrVal->tag == ArrayVal || arrVal->tag == MapVal, SubscribingNonArray);
+
+    VMError err;
+    VIndexable *container = arrVal->unboxIndexable();
+    bool b = container->keyCheck(index, err);
+    if(!b)
+        signalWithStack(err);
+    currentFrame()->OperandStack.push(container->get(index));
+
 }
 
 void VM::DoGetArrRef()

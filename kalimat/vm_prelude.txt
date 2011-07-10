@@ -7,6 +7,11 @@ newarr
 ret
 .endmethod
 
+.method قاموس 0 1
+callex newmap
+ret
+.endmethod
+
 .method مصفوفة.متعددة 1 1
 newmdarr
 ret

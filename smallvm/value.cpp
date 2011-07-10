@@ -14,6 +14,8 @@
 #include <QLocale>
 #include "value.h"
 #include "references.h"
+#include "vmerror.h"
+#include "vmutils.h"
 
 #define QSTR(x) QString::fromStdWString(x)
 
@@ -25,7 +27,9 @@ ValueClass *BuiltInTypes::BoolType = new ValueClass(QSTR(L"قيمة.منطقية
 ValueClass *BuiltInTypes::MethodType = new ValueClass("Method", BuiltInTypes::ObjectType);
 ValueClass *BuiltInTypes::ExternalMethodType = new ValueClass("ExternalMethod", BuiltInTypes::ObjectType);
 MetaClass  *BuiltInTypes::ClassType = new MetaClass("Class", NULL);
-ValueClass *BuiltInTypes::ArrayType = new ValueClass(QSTR(L"مصفوفة.قيم"), BuiltInTypes::ObjectType);
+ValueClass *BuiltInTypes::IndexableType = new ValueClass(QSTR(L"مفهرس"), BuiltInTypes::ObjectType);
+ValueClass *BuiltInTypes::ArrayType = new ValueClass(QSTR(L"مصفوفة.قيم"), BuiltInTypes::IndexableType);
+ValueClass *BuiltInTypes::MapType = new ValueClass(QSTR(L"قاموس"), BuiltInTypes::IndexableType);
 ValueClass *BuiltInTypes::StringType = new ValueClass(QSTR(L"نص"), BuiltInTypes::ObjectType);
 ValueClass *BuiltInTypes::SpriteType = new ValueClass(QSTR(L"طيف"), BuiltInTypes::ObjectType);
 ValueClass *BuiltInTypes::FileType = NULL;
@@ -38,7 +42,8 @@ ValueClass *BuiltInTypes::NullType = new ValueClass(QSTR(L"لاشيء"), BuiltIn
 ValueClass *BuiltInTypes::ChannelType = new ValueClass(QSTR(L"قناة"), BuiltInTypes::ObjectType);
 ValueClass *BuiltInTypes::QObjectType = new ValueClass(QSTR(L"QObject"), BuiltInTypes::ObjectType);
 
-Value *Value::NullValue;
+Value *Value::NullValue = NULL;
+
 Value::Value()
 {
     mark = 0;
@@ -109,12 +114,12 @@ void Object::setSlotValue(QString name, Value *val)
     _slots[name] = val;
 }
 
-int Value::unboxInt()
+int Value::unboxInt() const
 {
     return v.intVal;
 }
 
-double Value::unboxDouble()
+double Value::unboxDouble() const
 {
     return v.doubleVal;
 }
@@ -129,45 +134,62 @@ double Value::unboxNumeric()
     return 0.0;
 }
 
-bool Value::unboxBool()
+VIndexable *Value::unboxIndexable() const
+{
+    if(tag == ArrayVal)
+        return unboxArray();
+    if(tag == MapVal)
+        return unboxMap();
+    // This should not be called
+    return NULL;
+}
+
+bool Value::unboxBool() const
 {
     return v.boolVal;
 }
 
-IObject *Value::unboxObj()
+IObject *Value::unboxObj() const
 {
     return v.objVal;
 }
-VArray *Value::unboxArray()
+
+VArray *Value::unboxArray() const
 {
     return v.arrayVal;
 }
+
+VMap *Value::unboxMap() const
+{
+    return v.mapVal;
+}
+
 MultiDimensionalArray<Value *> *Value::unboxMultiDimensionalArray()
 {
     return v.multiDimensionalArrayVal;
 }
 
-QString *Value::unboxStr()
+QString *Value::unboxStr() const
 {
     return v.strVal;
 }
 
-void *Value::unboxRaw()
+void *Value::unboxRaw() const
 {
     return v.rawVal;
 }
 
-Reference *Value::unboxRef()
+Reference *Value::unboxRef() const
 {
     return v.refVal;
 }
 
-Channel *Value::unboxChan()
+Channel *Value::unboxChan() const
 {
     return v.channelVal;
 }
 
-QObject *Value::unboxQObj()
+QObject *Value::unboxQObj() const
 {
     return v.qobjVal;
 }
@@ -180,12 +202,25 @@ QString ArrayToString(VArray *arr)
     return QString("[%1]").arg(lst.join(", "));
 }
 
-QString Value::toString()
+QString MapToString(VMap *map)
+{
+    QStringList lst;
+    for(QMap<Value, Value *>::const_iterator i=map->Elements.begin(); i!=map->Elements.end(); ++i)
+    {
+        const Value &key = i.key();
+        const Value *v = i.value();
+        lst.append(QString("%1=%2").arg(key.toString()).arg(v->toString()));
+    }
+
+    return QString("{%1}").arg(lst.join(", "));
+}
+
+QString Value::toString() const
 {
     QString *sv = NULL;
     QString ret = "<unprintable value>";
     void *val ;
-    Value *v = this;
+    const Value *v = this;
     //QLocale loc(QLocale::Arabic, QLocale::Egypt);
     QLocale loc(QLocale::English, QLocale::UnitedStates);
     loc.setNumberOptions(QLocale::OmitGroupSeparator);
@@ -216,6 +251,9 @@ QString Value::toString()
     case ArrayVal:
         ret = ArrayToString(v->unboxArray());
         break;
+    case MapVal:
+        ret = MapToString(v->unboxMap());
+        break;
     case Boolean:
         ret = v->unboxBool()? QString::fromStdWString(L"صحيح") : QString::fromStdWString(L"خطأ");
         break;
@@ -227,6 +265,63 @@ QString Value::toString()
     }
     QString str = ret;
     return str;
+}
+
+bool VArray::keyCheck(Value *key, VMError &err)
+{
+    if(key->tag != Int)
+    {
+        err = VMError(SubscribtMustBeInteger);
+        return false;
+    }
+    int i = key->unboxInt();
+    if(!(i>=1 && i<=this->count))
+    {
+        err = VMError(SubscriptOutOfRange2).arg(str(i)).arg(str(this->count));
+    }
+}
+
+Value *VArray::get(Value *key)
+{
+    int i = key->unboxInt();
+    return this->Elements[i-1];
+}
+
+void VArray::set(Value *key, Value *v)
+{
+    int i = key->unboxInt();
+    this->Elements[i-1] = v;
+}
+
+bool VMap::keyCheck(Value *key, VMError &err)
+{
+    if(key->tag == Int || key->tag == StringVal)
+        return true;
+    if(key->tag == ArrayVal)
+    {
+        VArray *arr = key->unboxArray();
+        for(int i=0; i<arr->count; i++)
+        {
+            if(!keyCheck(arr->Elements[i], err))
+                return false;
+        }
+        return true;
+    }
+    err = VMError(SubscribtMustBeInteger);
+    return false;
+}
+
+Value *VMap::get(Value *key)
+{
+    if(Elements.contains(*key))
+        return this->Elements[*key];
+    return NULL;
+}
+
+void VMap::set(Value *key, Value *v)
+{
+    allKeys.append(v);
+    Elements[*key] = v;
 }
 
 ValueClass::ValueClass(QString name, ValueClass *baseClass)
@@ -351,3 +446,84 @@ QString ForeignClass::toString()
 {
     return this->name;
 }
+
+bool LexicographicLessThan(VArray *arr1, VArray *arr2)
+{
+    for(int i=0; i<arr2->count; i++)
+    {
+        if(i== arr1->count)
+            return true; // arr1 is a prefix of arr2
+        Value &v1 = *arr1->Elements[i];
+        Value &v2 = *arr2->Elements[i];
+        if(v1 < v2)
+            return true;
+        else if(v1 == v2)
+            continue;
+        else
+            return false;
+
+    }
+    return false;
+}
+
+inline bool operator<(const Value &v1, const Value &v2)
+{
+    // Only int, string, and arrays of [comparable value] are comparable values
+    // Since we need a partial order, we will assume ints < string < array
+    if(v1.tag == Int && v2.tag == Int)
+        return v1.unboxInt() < v2.unboxInt();
+
+    if(v1.tag == StringVal && v2.tag == StringVal)
+        return *v1.unboxStr() < *v2.unboxStr();
+
+    if(v1.tag == ArrayVal && v2.tag == ArrayVal)
+        return LexicographicLessThan(v1.unboxArray(), v2.unboxArray());
+
+    if(v1.tag == Int &&
+            (v2.tag == StringVal || v2.tag == ArrayVal))
+    {
+        return true;
+    }
+
+    if(v1.tag == StringVal && v2.tag == ArrayVal)
+    {
+        return true;
+    }
+
+    return false;
+}
+
+bool ElementWiseCompare(VArray *arr1, VArray *arr2)
+{
+    if(arr1->count != arr2->count)
+        return false;
+    for(int i=0; i<arr1->count; i++)
+    {
+        Value &v1 = *arr1->Elements[i];
+        Value &v2 = *arr2->Elements[i];
+        if(!(v1 == v2))
+            return false;
+    }
+    return true;
+}
+
+inline bool operator==(const Value &v1, const Value &v2)
+{
+    // The == function is only used as a helper for LexicographicLessThan, defined above
+    // Only int, string, and arrays of [comparable value] are comparable values
+
+    if(v1.tag != v2.tag)
+        return false;
+
+    if(v1.tag == Int)
+        return v1.unboxInt() == v2.unboxInt();
+
+    if(v1.tag == StringVal)
+        return *v1.unboxStr() == *v2.unboxStr();
+
+    if(v1.tag == ArrayVal && v2.tag == ArrayVal)
+        return ElementWiseCompare(v1.unboxArray(), v2.unboxArray());
+
+    return false;
+}
+

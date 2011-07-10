@@ -93,6 +93,8 @@ public:
     void signal(VMErrorType toSignal, QString arg0);
     void signal(VMErrorType toSignal, QString arg0, QString arg1);
     void signal(VMErrorType toSignal, QString arg0, QString arg1, QString arg2);
+
+    void signalWithStack(VMError err);
     QString toStr(int);
 
     bool isRunning();

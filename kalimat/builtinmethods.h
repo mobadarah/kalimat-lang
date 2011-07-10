@@ -51,6 +51,7 @@ void BuiltInConstantProc(QStack<Value *> &stack, RunWindow *, VM *vm);
 void StringIsNumericProc(QStack<Value *> &stack, RunWindow *w, VM *vm);
 void StringIsAlphabeticProc(QStack<Value *> &stack, RunWindow *w, VM *vm);
 void TypeOfProc(QStack<Value *> &stack, RunWindow *w, VM *vm);
+void NewMapProc(QStack<Value *> &stack, RunWindow *w, VM *vm);
 
 void RandomProc(QStack<Value *> &stack, RunWindow *, VM *w);
 void ToNumProc(QStack<Value *> &stack, RunWindow *, VM *w);

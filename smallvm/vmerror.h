@@ -8,22 +8,26 @@
 #ifndef VMERROR_H
 #define VMERROR_H
 
+#ifndef FRAME_H
+    #include "frame.h"
+#endif
+
 enum VMErrorType
 {
-    // The number after sme of the errors indicates the # of arguments
+    // The number after some of the errors indicates the # of arguments
     // required to complete the error message string
     NoSuchVariable1, NoSuchProcedure1, NoSuchProcedureOrFunction1,
     NoSuchField2, NoSuchMethod2, NoSuchExternalMethod1, NoSuchEvent,
     NoSuchClass, NameDoesntIndicateAClass1,
 
     UnrecognizedInstruction,UnrecognizedMnemonic2,
-    GettingFieldOnNonObject, SettingFieldOnNonObject, CallingMethodOnNonObject,
+    GettingFieldOnNonObject1, SettingFieldOnNonObject1, CallingMethodOnNonObject,
     GettingFieldOnNull, SettingFieldOnNull, CallingMethodOnNull,
     NumericOperationOnNonNumber1, LogicOperationOnNonBoolean,
 
     DivisionByZero,
     BuiltInOperationOnNonBuiltn,
-    TypeError2, InternalError, WrongNumberOfArguments, FunctionDidntReturnAValue,
+    TypeError2, InternalError, InternalError1, WrongNumberOfArguments, FunctionDidntReturnAValue,
     SubscribingNonArray, SubscribtMustBeInteger, SubscriptOutOfRange2, SubscriptOutOfRange3,
     ArgumentError, MD_IndexingWrongNumberOfDimensions,
     ElementAlreadyDefined1, MethodAlreadyDefinedInClass,

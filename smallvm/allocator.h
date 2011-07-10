@@ -57,6 +57,7 @@ public:
     Value *newString(QString *);
     Value *newObject(IObject *, IClass *, bool gcMonitor = true);
     Value *newArray(int size);
+    Value *newMap();
     Value *newMultiDimensionalArray(QVector<int> dimensions);
     Value *newRaw(void*, IClass *);
     Value *newFieldReference(IObject *obj, QString SymRef);

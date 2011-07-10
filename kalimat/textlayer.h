@@ -23,7 +23,6 @@ class TextLayer
     int visibleTextLines;
     int textLineWidth;
     int cursor_col, cursor_line;
-
     void printChar(QChar c);
     void cr();
     void lf();

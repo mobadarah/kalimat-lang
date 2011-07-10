@@ -20,7 +20,8 @@ SOURCES += main.cpp \
     channel.cpp \
     metaclass.cpp \
     debugger.cpp \
-    tracelistener.cpp
+    tracelistener.cpp \
+    vmutils.cpp
 HEADERS += \
     value.h \
     instruction.h \

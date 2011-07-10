@@ -23,23 +23,45 @@
 #ifndef METACLASS_H
     #include "metaclass.h"
 #endif
+
+
 class Value;
 class ValueClass;
 class Method;
 struct VArray;
 struct Reference;
 class Channel;
+class VMError;
 
 enum Tag
 {
     Int, Double, Boolean, ObjectVal, NullVal, StringVal, RawVal,
-    RefVal, ArrayVal, MultiDimensionalArrayVal, ChannelVal, QObjectVal
+    RefVal, ArrayVal, MultiDimensionalArrayVal, MapVal, ChannelVal, QObjectVal
 };
 
-struct VArray
+struct VIndexable
+{
+    virtual bool keyCheck(Value *key, VMError &err) = 0;
+    virtual void set(Value *key, Value *v) = 0;
+    virtual Value *get(Value *key) = 0;
+};
+
+struct VArray : public VIndexable
 {
     Value **Elements;
     int count;
+    bool keyCheck(Value *key, VMError &err);
+    void set(Value *key, Value *v);
+    Value *get(Value *key);
+};
+
+struct VMap : public VIndexable
+{
+    QVector<Value *> allKeys; //We need this for the GC, since the map itself stores the values as keys, not their pointers
+    QMap<Value, Value *> Elements;
+    bool keyCheck(Value *key, VMError &err);
+    void set(Value *key, Value *v);
+    Value *get(Value *key);
 };
 
 union ValueItem
@@ -53,6 +75,7 @@ union ValueItem
     Reference *refVal;
     VArray *arrayVal;
     MultiDimensionalArray<Value *> *multiDimensionalArrayVal;
+    VMap *mapVal;
     Channel *channelVal;
     QObject *qobjVal;
 };
@@ -66,22 +89,28 @@ struct Value
 
     Value();
     ~Value();
-    int unboxInt();
-    double unboxDouble();
-    bool unboxBool();
-    IObject *unboxObj();
-    VArray *unboxArray();
+    int unboxInt() const;
+    double unboxDouble()  const;
+    bool unboxBool()  const;
+    IObject *unboxObj()  const;
+    VArray *unboxArray() const;
     MultiDimensionalArray<Value *> *unboxMultiDimensionalArray();
-    void *unboxRaw();
-    QString *unboxStr();
-    Reference *unboxRef();
-    Channel *unboxChan();
-    QObject *unboxQObj();
-    QString toString();
+    VMap *unboxMap()  const;
+    void *unboxRaw()  const;
+    QString *unboxStr() const;
+    Reference *unboxRef() const;
+    Channel *unboxChan() const;
+    QObject *unboxQObj() const;
+    QString toString() const;
 
     double unboxNumeric();
+    VIndexable *unboxIndexable() const;
     static Value *NullValue;
 };
+
+// So that we can add (some types of) values to QMap
+inline bool operator<(const Value &v1, const Value &v2);
+inline bool operator==(const Value &v1, const Value &v2);
 
 class BuiltInTypes
 {
@@ -96,7 +125,9 @@ public:
     static ValueClass *MethodType;
     static ValueClass *ExternalMethodType;
     static MetaClass  *ClassType;
+    static ValueClass *IndexableType;
     static ValueClass *ArrayType;
+    static ValueClass *MapType;
     static ValueClass *StringType;
     static ValueClass *SpriteType;
     static ValueClass *FileType;
