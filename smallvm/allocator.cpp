@@ -244,6 +244,19 @@ void Allocator::mark()
         reachable.push(v);
     }
 
+
+    for(QSet<Frame *>::const_iterator it= otherFrames.begin(); it != otherFrames.end(); ++it)
+    {
+        Frame *of = *it;
+        for(int j=0; j<of->Locals.count(); j++)
+        {
+            reachable.push(of->Locals.values()[j]);
+        }
+        for(int j=0; j<of->OperandStack.count(); j++)
+        {
+            reachable.push(of->OperandStack.value(j));
+        }
+    }
     for(QQueue<Process *>::const_iterator iter=processes->begin(); iter!=processes->end(); ++iter)
     {
         const QStack<Frame> &stack = (*iter)->stack;

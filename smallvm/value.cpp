@@ -312,7 +312,7 @@ bool VMap::keyCheck(Value *key, VMError &err)
         }
         return true;
     }
-    err = VMError(SubscribtMustBeInteger);
+    err = VMError(UnacceptableKeyFormMap1).arg(key->type->toString());
     return false;
 }
 

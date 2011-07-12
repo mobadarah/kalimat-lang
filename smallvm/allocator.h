@@ -41,10 +41,12 @@ class Allocator
     // Store VM root objects for GC
     QMap<QString, Value*> *constantPool;
     QQueue<Process *> *processes;
+    QSet<Frame *> otherFrames;
 public:
     Allocator(QMap<QString, Value*> *constantPool,
               QQueue<Process *> *processes);
 
+    void addOtherFrameAsRoot(Frame *f) { otherFrames.insert(f); }
     void gc();
 
     Value *newInt(int i);

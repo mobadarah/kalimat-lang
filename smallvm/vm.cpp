@@ -29,6 +29,7 @@ void VM::Init()
     if(constantPool.contains(malaf))
         BuiltInTypes::FileType = (ValueClass *) constantPool[malaf]->unboxObj();
     _globalFrame = new Frame();
+    allocator.addOtherFrameAsRoot(_globalFrame);
     launchProcess(method);
     _mainProcess = processes.front();
     _isRunning = true;

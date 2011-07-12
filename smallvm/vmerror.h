@@ -28,7 +28,7 @@ enum VMErrorType
     DivisionByZero,
     BuiltInOperationOnNonBuiltn,
     TypeError2, InternalError, InternalError1, WrongNumberOfArguments, FunctionDidntReturnAValue,
-    SubscribingNonArray, SubscribtMustBeInteger, SubscriptOutOfRange2, SubscriptOutOfRange3,
+    SubscribingNonArray, SubscribtMustBeInteger, UnacceptableKeyFormMap1, SubscriptOutOfRange2, SubscriptOutOfRange3,
     ArgumentError, MD_IndexingWrongNumberOfDimensions,
     ElementAlreadyDefined1, MethodAlreadyDefinedInClass,
     RuntimeError,
