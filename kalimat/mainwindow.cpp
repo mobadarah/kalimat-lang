@@ -1092,7 +1092,7 @@ void MainWindow::on_action_resume_triggered()
 {
     try
     {
-        if(!stoppedRunWindow || !this->atBreak)
+        if(!stoppedRunWindow || !stoppedRunWindow->isVisible() || !this->atBreak)
         {
             this->on_mnuProgramRun_triggered();
             return;
@@ -1123,6 +1123,8 @@ void MainWindow::on_action_step_triggered()
 void MainWindow::on_action_step_procedure_triggered()
 {
 
+    if(!currentDebuggerProcess)
+        return; // We're not actually debugging a program
     VM *vm = stoppedRunWindow->getVM();
 
     CodeDocument *doc;
