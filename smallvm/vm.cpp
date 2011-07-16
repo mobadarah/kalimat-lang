@@ -1994,6 +1994,11 @@ bool VM::isRunning()
     return _isRunning;
 }
 
+bool VM::isDone()
+{
+    return processes.empty();
+}
+
 void VM::reactivate()
 {
     _isRunning = true;

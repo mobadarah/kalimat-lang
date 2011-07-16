@@ -98,6 +98,7 @@ public:
     QString toStr(int);
 
     bool isRunning();
+    bool isDone();
     void reactivate();
     Value *__top();
 

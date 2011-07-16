@@ -50,7 +50,7 @@ MainWindow::MainWindow(QWidget *parent)
     ui->setupUi(this);
 
     QToolBar *notice = new QToolBar("");
-    notice->addAction(QString::fromStdWString(L"هذه هي النسخة الأولية لشهر يونيو 2011. حمل أحدث نسخة من www.kalimat-lang.com"));
+    notice->addAction(QString::fromStdWString(L"هذه هي النسخة الأولية لشهر يوليو 2011. حمل أحدث نسخة من www.kalimat-lang.com"));
 
     addToolBarBreak();
     addToolBar(Qt::TopToolBarArea, notice);
@@ -1097,7 +1097,8 @@ void MainWindow::on_action_resume_triggered()
             this->on_mnuProgramRun_triggered();
             return;
         }
-
+        if(!currentDebuggerProcess)
+            return;
 
         MyEdit *editor = (MyEdit *)stoppedAtBreakPoint.doc->getEditor();
         setWindowTitle(QString::fromStdWString(L"كلمات"));

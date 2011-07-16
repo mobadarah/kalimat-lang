@@ -303,6 +303,8 @@ void RunWindow::Run()
 
             qApp->processEvents();
         }
+        if(vm->isDone())
+            mw->programStopped(this);
         update();// Final update, in case the last instruction didn't update things in time.
     }
     catch(VMError err)
