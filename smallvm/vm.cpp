@@ -8,10 +8,59 @@
 #include "vm_incl.h"
 #include "vm.h"
 #include "vmutils.h"
+#include "libffi/include/ffi.h"
 
 #include <iostream>
+#include <stdio.h>
 using namespace std;
 #define QSTR(x) QString::fromStdWString(x)
+
+void initArg(ffi_type *&arg, void *&val, Value *v)
+{
+    if(v->type->subclassOf(BuiltInTypes::IntType))
+    {
+        arg = &ffi_type_uint32;
+        val = new uint32_t(v->unboxInt());
+    }
+    else if(v->type->subclassOf(BuiltInTypes::StringType))
+    {
+        arg = &ffi_type_pointer;
+        val = (void *) v->unboxStr()->toStdString().c_str();
+    }
+}
+
+Value *CallForeign(void *funcPtr, QVector<Value *> argz)
+{
+    int n = argz.count();
+
+    ffi_cif cif;
+    ffi_type **args = new ffi_type*[n];
+    void **values = new void*[n];
+    char *s;
+    int rc;
+
+    /* Initialize the argument info vectors */
+    for(int i=0; i<n; i++)
+    {
+        initArg(args[i], values[i], argz[i]);
+    }
+
+    /* Initialize the cif */
+    if (ffi_prep_cif(&cif, FFI_DEFAULT_ABI, n,
+            &ffi_type_uint, args) == FFI_OK)
+    {
+      s = "Hello World!";
+      ffi_call(&cif, (void (*)()) funcPtr, &rc, values);
+      /* rc now holds the result of the call to puts */
+
+      /* values holds a pointer to the function's arg, so to
+         call puts() again all we need to do is change the
+         value of s */
+      s = "This is cool!";
+      ffi_call(&cif, (void (*)()) puts, &rc, values);
+    }
+    return NULL;
+}
 
 VM::VM()
     :allocator(&constantPool, &processes)

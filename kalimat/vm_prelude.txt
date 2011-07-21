@@ -323,3 +323,18 @@ ret
 	callex newchannel
 	ret
 .endmethod
+
+.method حمل.مكتبة.خارجية 1 1
+	callex loadlibrary
+	ret
+.endmethod
+
+.method عنوان.الدالة 2 1
+	callex getprocaddress
+	ret
+.endmethod
+
+.method استدعاء.الدالة.الخارجية 2 1
+	callex callforeign
+	ret
+.endmethod

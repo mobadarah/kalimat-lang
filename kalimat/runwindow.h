@@ -118,7 +118,7 @@ public:
     void setAsleep(int cookie, Value *channel);
     bool isAsleep(int cookie);
 
-    void typeCheck(Value *val, ValueClass *type);
+    void typeCheck(Value *val, IClass *type);
     void typeError(IClass *expected, IClass *given);
     void beginInput();
     void Run();

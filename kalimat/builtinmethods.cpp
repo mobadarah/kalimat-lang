@@ -802,12 +802,28 @@ int popInt(QStack<Value *> &stack, RunWindow *w, VM *vm)
     return i;
 }
 
+void *popRaw(QStack<Value *> &stack, RunWindow *w, VM *vm, IClass *type)
+{
+    verifyStackNotEmpty(stack, vm);
+    w->typeCheck(stack.top(), type);
+    void *ret = stack.pop()->unboxRaw();
+    return ret;
+}
+
 bool popBool(QStack<Value *> &stack, RunWindow *w, VM *vm)
 {
     verifyStackNotEmpty(stack, vm);
     w->typeCheck(stack.top(), BuiltInTypes::BoolType);
     bool b = stack.pop()->unboxBool();
     return b;
+}
+
+VArray *popArray(QStack<Value *> &stack, RunWindow *w, VM *vm)
+{
+    verifyStackNotEmpty(stack, vm);
+    w->typeCheck(stack.top(), BuiltInTypes::ArrayType);
+    VArray *arr = stack.pop()->unboxArray();
+    return arr;
 }
 
 void DoFileWrite(QStack<Value *> &stack, RunWindow *w, VM *vm, bool newLine)
@@ -950,6 +966,43 @@ void GetMainWindowProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 void NewChannelProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 {
     stack.push(vm->GetAllocator().newChannel());
+}
+
+void LoadLibraryProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
+{
+    QString *libName = popString(stack, w, vm);
+    // todo: will this leak?
+    QLibrary *lib = new QLibrary(*libName);
+    Value *ret = vm->GetAllocator().newRaw(lib, BuiltInTypes::ExternalLibrary);
+    stack.push(ret);
+}
+
+void GetProcAddressProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
+{
+    void *libRaw = popRaw(stack, w, vm, BuiltInTypes::ExternalLibrary);
+    QString *funcName = popString(stack, w, vm);
+    // todo: invalid casts here will crash the VM
+    QLibrary *lib = (QLibrary *) libRaw;
+    // todo: all those conversion might be slow
+    void * func = lib->resolve(funcName->toStdString().c_str());
+    Value *ret = vm->GetAllocator().newRaw(func, BuiltInTypes::ExternalMethodType);
+    stack.push(ret);
+}
+
+void InvokeForeignProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
+{
+    void *funcPtr = popRaw(stack, w, vm, BuiltInTypes::ExternalMethodType);
+    VArray *args = popArray(stack, w, vm);
+    QVector<Value *> argz;
+    for(int i=0; i<args->count; i++)
+    {
+        argz.append(args->Elements[i]);
+    }
+    Value *ret = CallForeign(funcPtr, argz);
+    if(ret)
+        stack.push(ret);
+    else
+        stack.push(vm->GetAllocator().null());
 }
 
 void setupChildren(QGridLayout *layout,Value *v, Reference *ref, QString label, int row, VM *vm)

@@ -147,6 +147,10 @@ void RunWindow::Init(QString program, QMap<QString, QString> stringConstants, QS
         vm->Register("getmainwindow", new WindowProxyMethod(this, vm, GetMainWindowProc));
         vm->Register("newchannel", new WindowProxyMethod(this, vm, NewChannelProc));
 
+        vm->Register("loadlibrary", new WindowProxyMethod(this, vm, LoadLibraryProc));
+        vm->Register("getprocaddress", new WindowProxyMethod(this, vm, GetProcAddressProc));
+        vm->Register("callforeign", new WindowProxyMethod(this, vm, InvokeForeignProc));
+
         for(int i=0; i<stringConstants.keys().count(); i++)
         {
             QString strValue = stringConstants.keys()[i];
@@ -379,7 +383,7 @@ void RunWindow::resetTimer(int interval)
     timerID = startTimer(interval);
 }
 
-void RunWindow::typeCheck(Value *val, ValueClass *type)
+void RunWindow::typeCheck(Value *val, IClass *type)
 {
     vm->assert(val->type->subclassOf(type), TypeError2, type, val->type);
 }

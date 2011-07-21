@@ -26,6 +26,7 @@ ValueClass *BuiltInTypes::DoubleType = new ValueClass(QSTR(L"عدد.حقيقي")
 ValueClass *BuiltInTypes::BoolType = new ValueClass(QSTR(L"قيمة.منطقية"), BuiltInTypes::ObjectType);
 ValueClass *BuiltInTypes::MethodType = new ValueClass("Method", BuiltInTypes::ObjectType);
 ValueClass *BuiltInTypes::ExternalMethodType = new ValueClass("ExternalMethod", BuiltInTypes::ObjectType);
+ValueClass *BuiltInTypes::ExternalLibrary = new ValueClass("ExternalLibrary", BuiltInTypes::ObjectType);
 MetaClass  *BuiltInTypes::ClassType = new MetaClass("Class", NULL);
 ValueClass *BuiltInTypes::IndexableType = new ValueClass(QSTR(L"مفهرس"), BuiltInTypes::ObjectType);
 ValueClass *BuiltInTypes::ArrayType = new ValueClass(QSTR(L"مصفوفة.قيم"), BuiltInTypes::IndexableType);

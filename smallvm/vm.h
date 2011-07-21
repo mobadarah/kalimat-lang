@@ -30,6 +30,8 @@
 
 #include <QQueue>
 
+Value *CallForeign(void *funcPtr, QVector<Value *> argz);
+
 template <typename T> bool isa(void * obj)
 {
     T value = dynamic_cast<T>(obj);

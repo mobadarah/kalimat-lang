@@ -44,3 +44,5 @@ HEADERS += \
     tracelistener.h
 FORMS +=
 RESOURCES +=
+
+LIBS += -L"$$_PRO_FILE_PWD_/libffi/" -llibffi

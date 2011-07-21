@@ -124,6 +124,7 @@ public:
     static ValueClass *BoolType;
     static ValueClass *MethodType;
     static ValueClass *ExternalMethodType;
+    static ValueClass *ExternalLibrary;
     static MetaClass  *ClassType;
     static ValueClass *IndexableType;
     static ValueClass *ArrayType;
