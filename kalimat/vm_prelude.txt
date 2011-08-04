@@ -334,7 +334,7 @@ ret
 	ret
 .endmethod
 
-.method استدعاء.الدالة.الخارجية 2 1
+.method استدعاء.الدالة.الخارجية 4 1
 	callex callforeign
 	ret
 .endmethod

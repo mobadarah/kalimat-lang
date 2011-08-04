@@ -151,6 +151,7 @@ void RunWindow::Init(QString program, QMap<QString, QString> stringConstants, QS
         vm->Register("getprocaddress", new WindowProxyMethod(this, vm, GetProcAddressProc));
         vm->Register("callforeign", new WindowProxyMethod(this, vm, InvokeForeignProc));
 
+
         for(int i=0; i<stringConstants.keys().count(); i++)
         {
             QString strValue = stringConstants.keys()[i];

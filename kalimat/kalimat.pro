@@ -95,6 +95,7 @@ HEADERS += mainwindow.h \
     guicontrols.h \
     Compiler/debuginfo.h \
     breakpoint.h
+
 FORMS += mainwindow.ui \
     runwindow.ui \
     savechangedfiles.ui
@@ -109,3 +110,4 @@ OTHER_FILES +=
 RC_FILE = kalimat.rc
 
 LIBS += -L"$$_PRO_FILE_PWD_/../smallvm/libffi/" -llibffi
+LIBS += -L"$$_PRO_FILE_PWD_/../smallvm/cinvoke/" -lcinvoke

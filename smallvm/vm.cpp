@@ -10,55 +10,171 @@
 #include "vmutils.h"
 #include "libffi/include/ffi.h"
 
+#include "cinvoke/cinvoke.h"
+
 #include <iostream>
 #include <stdio.h>
+#include <windows.h>
+#include <QLibrary>
 using namespace std;
 #define QSTR(x) QString::fromStdWString(x)
 
-void initArg(ffi_type *&arg, void *&val, Value *v)
+
+void mapType(IClass *kalimatType, Value *v, ffi_type *&type, void *&value)
 {
-    if(v->type->subclassOf(BuiltInTypes::IntType))
+    if(kalimatType == BuiltInTypes::c_int)
     {
-        arg = &ffi_type_uint32;
-        val = new uint32_t(v->unboxInt());
+        type = &ffi_type_sint32;
+        value = v? new uint32_t((int)v->unboxNumeric()) : NULL;
     }
-    else if(v->type->subclassOf(BuiltInTypes::StringType))
+    else if(kalimatType == BuiltInTypes::c_long)
     {
-        arg = &ffi_type_pointer;
-        val = (void *) v->unboxStr()->toStdString().c_str();
+        type = &ffi_type_slong;
+        value = v? new long((long)v->unboxNumeric()) : NULL;
+    }
+    else if(kalimatType == BuiltInTypes::c_float)
+    {
+        type = &ffi_type_float;
+        value = v? new float((float)v->unboxNumeric()) : NULL;
+    }
+    else if(kalimatType == BuiltInTypes::c_double)
+    {
+        type = &ffi_type_double;
+        value = v? new double(v->unboxNumeric()) : NULL;
+    }
+    else if(kalimatType == BuiltInTypes::c_char)
+    {
+        type = &ffi_type_schar;
+        value = new char('a');
+    }
+    else if(kalimatType == BuiltInTypes::c_asciiz)
+    {
+        type =&ffi_type_pointer;
+        char **str = new char*;
+
+        if(v)
+        {
+            std::string str_c = v->unboxStr()->toStdString();
+            *str = new char[str_c.length()+1];
+            for(int i=0;i<str_c.length(); i++)
+            {
+                (*str)[i] = str_c[i];
+            }
+            (*str)[str_c.length()] = 0;
+        }
+        value = (void *) str;
+    }
+    else if(kalimatType == BuiltInTypes::c_wstr)
+    {
+        type =&ffi_type_pointer;
+        wchar_t **str = new wchar_t*;
+
+        if(v)
+        {
+            std::wstring str_c = v->unboxStr()->toStdWString();
+            *str = new wchar_t[str_c.length()+1];
+            for(int i=0;i<str_c.length(); i++)
+            {
+                (*str)[i] = str_c[i];
+            }
+            (*str)[str_c.length()] = 0;
+        }
+        value = (void *) str;
+    }
+    else if(kalimatType == BuiltInTypes::c_ptr)
+    {
+        type =&ffi_type_pointer;
+        value = v? (void *) v->unboxInt() : NULL;
     }
 }
 
-Value *CallForeign(void *funcPtr, QVector<Value *> argz)
+void guessType(Value *v, ffi_type *&type, void *&ret)
 {
+    if(v->type->subclassOf(BuiltInTypes::IntType))
+    {
+        type = &ffi_type_uint32;
+        ret = new uint32_t(v->unboxInt());
+    }
+    else if(v->type->subclassOf(BuiltInTypes::StringType))
+    {
+        type = &ffi_type_pointer;
+        ret = (void *) v->unboxStr()->toStdString().c_str();
+    }
+}
+
+
+
+Value *CallForeign()
+{
+
+    // This isn't used in Kalimat - it's just for reference
+    // of how a correct FFI call looks like
+    ffi_cif cif;
+    HINSTANCE dllHandle = LoadLibrary(L"user32.dll");
+
+    int n = 4;
+
+    ffi_type *ffi_argTypes[4];
+    void *values[4];
+    UINT32 a=0;
+    UINT32 b=0;
+    char* s1= "hello";
+    char* s2= "hello2";
+    values[0] = &a;
+    values[1] = &s1;
+    values[2] = &s2;
+    values[3] = &b;
+    ffi_argTypes[0] = &ffi_type_uint32;
+    ffi_argTypes[1] = &ffi_type_pointer;
+    ffi_argTypes[2] = &ffi_type_pointer;
+    ffi_argTypes[3] = &ffi_type_uint;
+    ffi_type *c_retType = &ffi_type_sint;
+    int32_t rc; // return value
+    if (ffi_prep_cif(&cif, FFI_DEFAULT_ABI, 4, c_retType, ffi_argTypes) == FFI_OK)    {
+
+
+        ffi_call(&cif, FFI_FN(GetProcAddress(dllHandle,"MessageBoxA")), &rc, values);
+    }
+
+
+    return NULL;
+
+}
+
+Value *CallForeign(void *funcPtr, QVector<Value *> argz, IClass *retType, QVector<IClass *> argTypes, bool _guessTypes)
+{
+    //*
     int n = argz.count();
+    bool autoConvert = _guessTypes;
 
     ffi_cif cif;
-    ffi_type **args = new ffi_type*[n];
+    ffi_type **ffi_argTypes = new ffi_type*[n];
+    ffi_type *c_retType;
     void **values = new void*[n];
-    char *s;
-    int rc;
 
-    /* Initialize the argument info vectors */
+    //Initialize the argument info vectors
     for(int i=0; i<n; i++)
     {
-        initArg(args[i], values[i], argz[i]);
+        if(autoConvert)
+        {
+            guessType(argz[i], ffi_argTypes[i], values[i]);
+        }
+        else
+        {
+            mapType(argTypes[i], argz[i], ffi_argTypes[i], values[i]);
+        }
     }
 
-    /* Initialize the cif */
-    if (ffi_prep_cif(&cif, FFI_DEFAULT_ABI, n,
-            &ffi_type_uint, args) == FFI_OK)
+
+    void *retVal; //ignored
+    mapType(retType, NULL, c_retType, retVal);
+    // Initialize the cif
+    if (ffi_prep_cif(&cif, FFI_STDCALL, n,
+            c_retType, ffi_argTypes) == FFI_OK)
     {
-      s = "Hello World!";
-      ffi_call(&cif, (void (*)()) funcPtr, &rc, values);
-      /* rc now holds the result of the call to puts */
-
-      /* values holds a pointer to the function's arg, so to
-         call puts() again all we need to do is change the
-         value of s */
-      s = "This is cool!";
-      ffi_call(&cif, (void (*)()) puts, &rc, values);
+      ffi_call(&cif, (void (*)()) funcPtr, &retVal, values);
     }
+    //*/
     return NULL;
 }
 
@@ -645,9 +761,9 @@ void VM::LoadCallInstruction(Opcode type, QString arg, Allocator &allocator,
         ref_arity[0] = ref_arity[0].trimmed();
         ref_arity[1] = ref_arity[1].trimmed();
         Instruction i = Instruction(type)
-                        .wRef(ref_arity[0])
-                        .wArgParse(ref_arity[1], &allocator)
-                        .wCallStyle(callStyle);
+                .wRef(ref_arity[0])
+                .wArgParse(ref_arity[1], &allocator)
+                .wCallStyle(callStyle);
         method->Add(i, label, extraInfo);
     }
     else
@@ -1803,7 +1919,7 @@ void VM::DoBreak()
     currentFrame()->ip--;
     int ip = currentFrame()->ip;
     if(breakPoints.contains(curMethodName) &&
-         breakPoints[curMethodName].contains(ip))
+            breakPoints[curMethodName].contains(ip))
     {
         Instruction i = breakPoints[curMethodName][ip];
         currentFrame()->currentMethod->Set(ip, i);
@@ -1955,8 +2071,8 @@ void VM::EqualityRelatedOp(bool(*intFunc)(int, int),
 
     // If both values are of the same type...
     if(v1->tag == v2->tag
-           && (v1->tag == Int || v1->tag == Double || v1->tag == Boolean || v1->tag == ObjectVal
-               || v1->tag == StringVal || v1->tag == ObjectVal || v1->tag == RawVal || v1->tag == NullVal))
+            && (v1->tag == Int || v1->tag == Double || v1->tag == Boolean || v1->tag == ObjectVal
+                || v1->tag == StringVal || v1->tag == ObjectVal || v1->tag == RawVal || v1->tag == NullVal))
 
     {
         if(v1->tag == Int)

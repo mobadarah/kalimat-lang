@@ -22,6 +22,7 @@ SOURCES += main.cpp \
     debugger.cpp \
     tracelistener.cpp \
     vmutils.cpp
+
 HEADERS += \
     value.h \
     instruction.h \
@@ -46,3 +47,4 @@ FORMS +=
 RESOURCES +=
 
 LIBS += -L"$$_PRO_FILE_PWD_/libffi/" -llibffi
+LIBS += -L"$$_PRO_FILE_PWD_/cinvoke/" -lcinvoke

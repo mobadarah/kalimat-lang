@@ -140,6 +140,16 @@ public:
     static ValueClass *NullType;
     static ValueClass *ChannelType;
     static ValueClass *QObjectType;
+
+    // For FFI
+    static ValueClass *c_int;
+    static ValueClass *c_long;
+    static ValueClass *c_float;
+    static ValueClass *c_double;
+    static ValueClass *c_char;
+    static ValueClass *c_asciiz; // Your standard C ascii null-terminated string
+    static ValueClass *c_wstr;  // C wide string, pointer to wchar_t
+    static ValueClass *c_ptr;
 };
 
 #endif // VALUE_H

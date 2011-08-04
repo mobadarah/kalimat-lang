@@ -43,6 +43,15 @@ ValueClass *BuiltInTypes::NullType = new ValueClass(QSTR(L"لاشيء"), BuiltIn
 ValueClass *BuiltInTypes::ChannelType = new ValueClass(QSTR(L"قناة"), BuiltInTypes::ObjectType);
 ValueClass *BuiltInTypes::QObjectType = new ValueClass(QSTR(L"QObject"), BuiltInTypes::ObjectType);
 
+ValueClass *BuiltInTypes::c_int = new ValueClass(QSTR(L"c_int"), BuiltInTypes::ObjectType);
+ValueClass *BuiltInTypes::c_long = new ValueClass(QSTR(L"c_long"), BuiltInTypes::ObjectType);
+ValueClass *BuiltInTypes::c_float = new ValueClass(QSTR(L"c_float"), BuiltInTypes::ObjectType);
+ValueClass *BuiltInTypes::c_double = new ValueClass(QSTR(L"c_double"), BuiltInTypes::ObjectType);
+ValueClass *BuiltInTypes::c_char = new ValueClass(QSTR(L"c_char"), BuiltInTypes::ObjectType);
+ValueClass *BuiltInTypes::c_asciiz = new ValueClass(QSTR(L"c_asciiz"), BuiltInTypes::ObjectType);
+ValueClass *BuiltInTypes::c_wstr = new ValueClass(QSTR(L"c_wstr"), BuiltInTypes::ObjectType);
+ValueClass *BuiltInTypes::c_ptr= new ValueClass(QSTR(L"c_ptr"), BuiltInTypes::ObjectType);
+
 Value *Value::NullValue = NULL;
 
 Value::Value()

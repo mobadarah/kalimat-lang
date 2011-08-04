@@ -717,6 +717,47 @@ void BuiltInConstantProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
         stack.push(vm->GetAllocator().newString(new QString("\n")));
         return;
     }
+    if((*constName) ==(QString::fromStdWString(L"c_int")))
+    {
+        stack.push(vm->GetAllocator().newObject(BuiltInTypes::c_int, BuiltInTypes::ClassType, false));
+        return;
+    }
+    if((*constName) ==(QString::fromStdWString(L"c_long")))
+    {
+        stack.push(vm->GetAllocator().newObject(BuiltInTypes::c_long, BuiltInTypes::ClassType, false));
+        return;
+    }
+    if((*constName) ==(QString::fromStdWString(L"c_float")))
+    {
+        stack.push(vm->GetAllocator().newObject(BuiltInTypes::c_float, BuiltInTypes::ClassType, false));
+        return;
+    }
+    if((*constName) ==(QString::fromStdWString(L"c_double")))
+    {
+        stack.push(vm->GetAllocator().newObject(BuiltInTypes::c_double, BuiltInTypes::ClassType, false));
+        return;
+    }
+    if((*constName) ==(QString::fromStdWString(L"c_char")))
+    {
+        stack.push(vm->GetAllocator().newObject(BuiltInTypes::c_char, BuiltInTypes::ClassType, false));
+        return;
+    }
+    if((*constName) ==(QString::fromStdWString(L"c_asciiz")))
+    {
+        stack.push(vm->GetAllocator().newObject(BuiltInTypes::c_asciiz, BuiltInTypes::ClassType, false));
+        return;
+    }
+    if((*constName) ==(QString::fromStdWString(L"c_wstr")))
+    {
+        stack.push(vm->GetAllocator().newObject(BuiltInTypes::c_wstr, BuiltInTypes::ClassType, false));
+        return;
+    }
+    if((*constName) ==(QString::fromStdWString(L"c_ptr")))
+    {
+        stack.push(vm->GetAllocator().newObject(BuiltInTypes::c_ptr, BuiltInTypes::ClassType, false));
+        return;
+    }
+
     w->assert(false, ArgumentError, QString::fromStdWString(L"لا يوجد ثابت بهذا الاسم"));
 }
 void StringIsNumericProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
@@ -993,12 +1034,36 @@ void InvokeForeignProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 {
     void *funcPtr = popRaw(stack, w, vm, BuiltInTypes::ExternalMethodType);
     VArray *args = popArray(stack, w, vm);
+    VArray *argTypes = NULL;
+    bool guessArgTypes = false;
+    if(stack.top()->type == BuiltInTypes::NullType)
+    {
+        guessArgTypes = true;
+        stack.pop();
+    }
+    else
+    {
+        argTypes = popArray(stack, w, vm);
+    }
+
+    IClass *retType = (IClass *) stack.pop()->unboxObj();
     QVector<Value *> argz;
+    QVector<IClass *> kargTypes;
     for(int i=0; i<args->count; i++)
     {
         argz.append(args->Elements[i]);
+        if(!guessArgTypes)
+        {
+            IClass *type = dynamic_cast<IClass *>(argTypes->Elements[i]->unboxObj());
+            if(!type)
+            {
+                vm->signal(TypeError2, BuiltInTypes::ClassType->toString(), argTypes->Elements[i]->type->toString());
+            }
+            kargTypes.append(type);
+        }
     }
-    Value *ret = CallForeign(funcPtr, argz);
+
+    Value *ret = CallForeign(funcPtr, argz, retType, kargTypes, guessArgTypes);
     if(ret)
         stack.push(ret);
     else
