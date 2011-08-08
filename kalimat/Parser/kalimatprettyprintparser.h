@@ -3,10 +3,12 @@
 
 class KPPAST : public AST
 {
+    ASTImpl _astImpl;
 public:
-    KPPAST() : AST(Token()) {}
+    KPPAST() : _astImpl(Token()) {}
     virtual void prettyPrint(CodeFormatter *) = 0;
     virtual QString toString()=0;
+    Token getPos() { return _astImpl.getPos();}
 };
 
 class TokPP : public KPPAST

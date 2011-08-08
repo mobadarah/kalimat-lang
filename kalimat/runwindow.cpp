@@ -159,23 +159,37 @@ void RunWindow::Init(QString program, QMap<QString, QString> stringConstants, QS
             vm->DefineStringConstant(strSymRef, strValue);
         }
 
-        IClass *builtIns[] = {BuiltInTypes::ObjectType,
-                           BuiltInTypes::NumericType,
-                           BuiltInTypes::IntType,
-                           BuiltInTypes::DoubleType,
+        IClass *builtIns[] = {
+            BuiltInTypes::ObjectType,
+            BuiltInTypes::NumericType,
+            BuiltInTypes::IntType,
+            BuiltInTypes::DoubleType,
 
-                           BuiltInTypes::BoolType,
-                           BuiltInTypes::MethodType,
-                           BuiltInTypes::ExternalMethodType,
-                           BuiltInTypes::ClassType,
+            BuiltInTypes::BoolType,
+            BuiltInTypes::MethodType,
+            BuiltInTypes::ExternalMethodType,
+            BuiltInTypes::ClassType,
 
-                           BuiltInTypes::ArrayType,
-                           BuiltInTypes::StringType,
-                           BuiltInTypes::SpriteType,
-                           BuiltInTypes::WindowType,
-                           BuiltInTypes::NullType};
+            BuiltInTypes::ArrayType,
+            BuiltInTypes::StringType,
+            BuiltInTypes::SpriteType,
+            BuiltInTypes::WindowType,
+
+            BuiltInTypes::NullType,
+            BuiltInTypes::c_int,
+            BuiltInTypes::c_long,
+            BuiltInTypes::c_float,
+
+            BuiltInTypes::c_double,
+            BuiltInTypes::c_char,
+            BuiltInTypes::c_asciiz,
+            BuiltInTypes::c_wstr,
+
+            BuiltInTypes::c_ptr
+
+                             };
         // todo: handle built-in file type
-        const int numBuiltIns = 13;
+        const int numBuiltIns = 21;
         for(int i=0; i<numBuiltIns; i++)
         {
             vm->RegisterType(builtIns[i]->getName(), builtIns[i]);

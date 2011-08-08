@@ -70,6 +70,11 @@ private:
     Declaration *classDecl();
     Declaration *globalDecl();
     Declaration *methodDecl();
+    Declaration *ffiLibraryDecl();
+
+    FFIProceduralDecl *ffiFunctionDecl();
+    FFIProceduralDecl *ffiProcDecl();
+
 
     BlockStmt *block();
 
@@ -85,6 +90,8 @@ private:
     Expression *primaryExpression();
     Expression *primaryExpressionNonInvokation();
     Identifier *identifier();
+
+    TypeExpression *typeExpression();
 
     QVector<Expression *> comma_separated_expressions();
     QVector<Expression *> comma_separated_pairs();

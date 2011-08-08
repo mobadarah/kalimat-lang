@@ -73,7 +73,11 @@ const int SEND = 62;
 const int RECEIVE = 63;
 const int SELECT = 64;
 const int SIGNAL_ = 65;
-const int KEYWORD_CUTOFF = 65; // As long as the ID of the token is <= KEYWORD_CUTOFF, the
+const int MESSAGE = 66;
+const int OTHER = 67;
+const int LIBRARY = 68;
+const int SYMBOL = 69;
+const int KEYWORD_CUTOFF = 69; // As long as the ID of the token is <= KEYWORD_CUTOFF, the
                                // syntax hilighter will consider it a keyword.
 const int NUM_LITERAL = 71;
 const int ADD_OP = 72;

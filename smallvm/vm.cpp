@@ -10,8 +10,6 @@
 #include "vmutils.h"
 #include "libffi/include/ffi.h"
 
-#include "cinvoke/cinvoke.h"
-
 #include <iostream>
 #include <stdio.h>
 #include <windows.h>
@@ -84,7 +82,7 @@ void mapType(IClass *kalimatType, Value *v, ffi_type *&type, void *&value)
     else if(kalimatType == BuiltInTypes::c_ptr)
     {
         type =&ffi_type_pointer;
-        value = v? (void *) v->unboxInt() : NULL;
+        value = v? new void*((void *)v->unboxInt()) : NULL;
     }
 }
 
@@ -1225,7 +1223,12 @@ void VM::DoPushGlobal(QString SymRef)
 
 void VM::DoPushConstant(QString SymRef)
 {
-    currentFrame()->OperandStack.push(constantPool[SymRef]);
+    if(constantPool.contains(SymRef))
+        currentFrame()->OperandStack.push(constantPool[SymRef]);
+    else
+    {
+        signal(InternalError1, QString("pushc: Constant pool doesn't contain key '%1'").arg(SymRef));
+    }
 }
 
 void VM::DoPopLocal(QString SymRef)
@@ -1504,13 +1507,20 @@ void VM::DoCallMethod(QString SymRef, int arity, CallStyle callStyle)
     // but the execution site pops them in the correct order, i.e the first popped is 'this'
     // followed by the first normal argument...and so on.
     Value *receiver = currentFrame()->OperandStack.pop();
-
+    bool noSuchMethodTrapFound = false;
     assert(receiver->tag != NullVal, CallingMethodOnNull);
     assert(receiver ->tag == ObjectVal, CallingMethodOnNonObject);
 
     IMethod *_method = receiver->type->lookupMethod(SymRef);
+    if(_method == NULL)
+    {
+        _method = receiver->type->lookupMethod("%nosuchmethod");
+        if(_method)
+            noSuchMethodTrapFound = true;
+    }
     assert(_method!=NULL, NoSuchMethod2,SymRef, receiver->type->getName());
 
+    assert(!noSuchMethodTrapFound || arity !=-1, InternalError1, "Calling with %nosuchmethod needs the arity to be specified in the instruction");
     Method *method = dynamic_cast<Method *>(_method);
 
     QVector<Value *> args;
@@ -1518,10 +1528,22 @@ void VM::DoCallMethod(QString SymRef, int arity, CallStyle callStyle)
 
     assert(arity == -1 || _method->Arity() ==-1 || arity == _method->Arity(), WrongNumberOfArguments);
 
-    for(int i=0; i<_method->Arity()-1; i++)
+    if(!noSuchMethodTrapFound)
     {
-        Value *v = currentFrame()->OperandStack.pop();
-        args.append(v);
+        for(int i=0; i<_method->Arity()-1; i++)
+        {
+            Value *v = currentFrame()->OperandStack.pop();
+            args.append(v);
+        }
+    }
+    else
+    {
+        args.append(allocator.newString(new QString(SymRef)));
+        Value *arr = allocator.newArray(arity);
+        for(int i=0; i<arity; i++)
+        {
+            arr->v.arrayVal->Elements[i] = currentFrame()->OperandStack.pop();
+        }
     }
 
 

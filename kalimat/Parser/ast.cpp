@@ -10,11 +10,11 @@
 #include "codeformatter.h"
 #include "ast.h"
 
-AST::AST(Token position)
+ASTImpl::ASTImpl(Token position)
 {
     this->position = position;
 }
-Token AST::getPos()
+Token ASTImpl::getPos()
 {
     return position;
 }

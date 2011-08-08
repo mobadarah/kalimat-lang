@@ -27,6 +27,7 @@
 #endif
 
 class Expression;
+class TypeExpression;
 class Identifier;
 class AssignableExpression;
 class Declaration;
@@ -42,20 +43,23 @@ QString strLiteralRepr(QString value);
 
 class TopLevel : public AST
 {
+    ASTImpl _astImpl;
 public:
     QString attachedComments;
-
 public:
     TopLevel(Token pos);
+    Token getPos() { return _astImpl.getPos();}
 };
 
 class CompilationUnit: public AST
 {
+    ASTImpl _astImpl;
 public:
     CompilationUnit(Token pos);
     QVector<QSharedPointer<StrLiteral> > _usedModules;
     int usedModuleCount() { return _usedModules.count();}
     StrLiteral *usedModule(int i ) { return _usedModules[i].data();}
+    Token getPos() { return _astImpl.getPos(); }
 };
 
 class Program : public CompilationUnit
@@ -466,10 +470,30 @@ public:
     void prettyPrint(CodeFormatter *f);
 };
 
-class Expression : public AST
+class TypeExpression : public AST
+{
+    ASTImpl _astImpl;
+public:
+    TypeExpression(Token pos) : _astImpl(pos) {}
+    Token getPos() { return _astImpl.getPos();}
+};
+
+class TypeIdentifier : public TypeExpression
 {
 public:
+    QString name;
+    TypeIdentifier(Token pos, QString name);
+    QString toString();
+    void prettyPrint(CodeFormatter *f);
+
+};
+
+class Expression : public AST
+{
+    ASTImpl _astImpl;
+public:
     Expression(Token pos);
+    Token getPos() { return _astImpl.getPos();}
 };
 class AssignableExpression : public Expression
 {
@@ -514,6 +538,7 @@ public:
     QString toString();
     void prettyPrint(CodeFormatter *f);
 };
+
 
 class Identifier : public AssignableExpression
 {
@@ -724,6 +749,45 @@ public:
     FunctionDecl(Token pos, Token endingToken, Identifier *procName, QVector<Identifier *> formals, BlockStmt *body, bool isPublic);
     QString toString();
     void prettyPrint(CodeFormatter *f);
+};
+
+class FFIProceduralDecl;
+
+class FFILibraryDecl : public Declaration
+{
+public:
+    QString libName;
+private:
+    QVector<QSharedPointer<FFIProceduralDecl> > _decls;
+public:
+    FFILibraryDecl(Token pos, QString libName, QVector<FFIProceduralDecl *> decls, bool isPublic);
+    int declCount() { return _decls.count(); }
+    FFIProceduralDecl *decl(int index) { return _decls[index].data();}
+    void prettyPrint(CodeFormatter *formatter);
+    QString toString();
+};
+
+class FFIProceduralDecl : public Declaration
+{
+public:
+    bool isFunctionNotProc;
+    QString procName;
+    QString symbol;
+private:
+    QScopedPointer<TypeExpression> _returnType; // NULL -> It's a procedure
+    QVector<QSharedPointer<TypeExpression> > _paramTypes;
+public:
+    FFIProceduralDecl(Token pos, bool isFunctionNotProc,
+        TypeExpression *returnType,
+        QVector<TypeExpression*> paramTypes,
+        QString procName,
+        QString symbol,
+        bool isPublic);
+    TypeExpression *returnType() { return _returnType.data(); }
+    int paramTypeCount() { return _paramTypes.count(); }
+    TypeExpression *paramType(int index) { return _paramTypes.at(index).data(); }
+    void prettyPrint(CodeFormatter *formatter);
+    QString toString();
 };
 
 struct ClassInternalDecl : public PrettyPrintable

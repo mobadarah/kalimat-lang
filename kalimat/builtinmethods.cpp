@@ -1014,6 +1014,9 @@ void LoadLibraryProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
     QString *libName = popString(stack, w, vm);
     // todo: will this leak?
     QLibrary *lib = new QLibrary(*libName);
+    if(!lib->load())
+        vm->signal(InternalError1, QString("Failed to load library '%1'").arg(*libName));
+
     Value *ret = vm->GetAllocator().newRaw(lib, BuiltInTypes::ExternalLibrary);
     stack.push(ret);
 }

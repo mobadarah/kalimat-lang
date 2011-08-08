@@ -236,7 +236,9 @@ Statement *KalimatParser::statement()
 
 bool KalimatParser::LA_first_declaration()
 {
-    return LA(PROCEDURE) || LA(FUNCTION) || LA(CLASS) || LA_first_method_declaration() || LA2(IDENTIFIER, GLOBAL) ;
+    return LA(PROCEDURE) || LA(FUNCTION) || LA(CLASS)
+            || LA_first_method_declaration() || LA2(IDENTIFIER, GLOBAL)
+            || LA(LIBRARY);
 }
 
 Declaration *KalimatParser::declaration()
@@ -263,6 +265,10 @@ Declaration *KalimatParser::declaration()
     else if(LA2(IDENTIFIER, GLOBAL))
     {
         ret = globalDecl();
+    }
+    else if(LA(LIBRARY))
+    {
+        ret = ffiLibraryDecl();
     }
     if(ret == NULL)
         throw ParserException(getPos(), "Expected a declaration");
@@ -1218,10 +1224,29 @@ Declaration *KalimatParser::methodDecl()
         match(ON);
     }
     Token tok  = lookAhead;
-    methodName = identifier();
+    if(LA(IDENTIFIER))
+    {
+        methodName = identifier();
+    }
+    else if(isFunctionNotProcedure && LA(MESSAGE))
+    {
+        match(MESSAGE);
+        match(OTHER);
+        methodName = new Identifier(tok, "%nosuchmethod");
+    }
+    else
+    {
+        throw ParserException(tok, "Syntax error");
+    }
+
     formals = formalParamList();
     match(COLON);
     match(NEWLINE);
+
+    if(methodName->name == "%nosuchmethod" && formals.count() !=2)
+    {
+        throw ParserException(tok, QString::fromStdWString(L"الرد على رسالة أخرى لابد أن يأخذ عاملين"));
+    }
 
     MethodDecl *ret = new MethodDecl(tok, Token(), className, receiverName, methodName, formals, NULL, isFunctionNotProcedure);
 
@@ -1237,6 +1262,118 @@ Declaration *KalimatParser::methodDecl()
     return ret;
 
 }
+
+Declaration *KalimatParser::ffiLibraryDecl()
+{
+    Token tok = lookAhead;
+    match(LIBRARY);
+    FFILibraryDecl *ffiLib = NULL;
+    QVector<FFIProceduralDecl *> decls;
+    if(LA(STR_LITERAL))
+    {
+        StrLiteral *libName = new StrLiteral(lookAhead, prepareStringLiteral(lookAhead.Lexeme));
+        match(STR_LITERAL);
+        match(COLON);
+        match(NEWLINE);
+        newLines();
+        while(LA(FUNCTION) || LA(PROCEDURE))
+        {
+            if(LA(FUNCTION))
+                decls.append(ffiFunctionDecl());
+            else
+                decls.append(ffiProcDecl());
+            newLines();
+        }
+        match(END);
+        ffiLib = new FFILibraryDecl(tok, libName->value, decls, true);
+        return ffiLib;
+    }
+    else
+    {
+        throw ParserException(tok, "Expected string literal");
+    }
+}
+
+FFIProceduralDecl *KalimatParser::ffiFunctionDecl()
+{
+    QVector<TypeExpression *> argTypes;
+    TypeExpression *retType = NULL;
+    QString symbol;
+    Token pos = lookAhead;
+    match(FUNCTION);
+
+    Identifier *fname = identifier();
+    symbol = fname->name;
+    if(LA(SYMBOL))
+    {
+        match(SYMBOL);
+        if(LA(STR_LITERAL))
+        {
+            StrLiteral *s = new StrLiteral(lookAhead, prepareStringLiteral(lookAhead.Lexeme));
+            symbol = s->value;
+            match(STR_LITERAL);
+        }
+        else
+        {
+            throw ParserException(pos, "Expected string literal after keyword 'symbol'");
+        }
+    }
+
+    match(LPAREN);
+    if(LA(IDENTIFIER))
+    {
+        argTypes.append(typeExpression());
+        while(LA(COMMA))
+        {
+            match(COMMA);
+            argTypes.append(typeExpression());
+        }
+    }
+    match(RPAREN);
+    retType = typeExpression();
+    return new FFIProceduralDecl(pos, true, retType, argTypes, fname->name, symbol, true);
+}
+
+FFIProceduralDecl *KalimatParser::ffiProcDecl()
+{
+    QVector<TypeExpression *> argTypes;
+    TypeExpression *retType = NULL;
+    QString symbol;
+    Token pos = lookAhead;
+    match(PROCEDURE);
+
+    Identifier *fname = identifier();
+    symbol = fname->name;
+    if(LA(SYMBOL))
+    {
+        match(SYMBOL);
+        if(LA(STR_LITERAL))
+        {
+            StrLiteral *s = new StrLiteral(lookAhead, lookAhead.Lexeme);
+            symbol = s->value;
+            match(STR_LITERAL);
+        }
+        else
+        {
+            throw ParserException(pos, "Expected string literal after keyword 'symbol'");
+        }
+    }
+
+    match(LPAREN);
+    if(LA(IDENTIFIER))
+    {
+        argTypes.append(typeExpression());
+        while(LA(COMMA))
+        {
+            match(COMMA);
+            argTypes.append(typeExpression());
+        }
+    }
+    match(RPAREN);
+    retType = NULL;
+    return new FFIProceduralDecl(pos, false, retType, argTypes, fname->name, symbol, true);
+}
+
 bool KalimatParser::LA_first_expression()
 {
     return LA_first_primary_expression()
@@ -1572,6 +1709,19 @@ Identifier *KalimatParser::identifier()
     }
     throw ParserException(getPos(), "Expected Identifier");
 }
+
+TypeExpression *KalimatParser::typeExpression()
+{
+    TypeIdentifier *ret = NULL;
+    if(LA(IDENTIFIER))
+    {
+        ret = new TypeIdentifier(lookAhead, lookAhead.Lexeme);
+        match(IDENTIFIER);
+        return ret;
+    }
+    throw ParserException(getPos(), "Expected Type Identifier");
+}
+
 QVector<Expression *> KalimatParser::comma_separated_expressions()
 {
     QVector<Expression *> ret;

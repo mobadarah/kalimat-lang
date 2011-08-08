@@ -971,4 +971,3 @@ Value *ButtonGroupForeignClass::dispatch(int id, QVector<Value *> args)
 
     return NULL;
 }
-

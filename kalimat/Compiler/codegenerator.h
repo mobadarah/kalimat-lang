@@ -74,6 +74,8 @@ private:
     void generateExpression(Expression *expr);
     void generateProcedureDeclaration(ProcedureDecl * decl);
     void generateFunctionDeclaration(FunctionDecl * decl);
+    void generateFFILibraryDeclaration(FFILibraryDecl *decl);
+    void generateFFIProceduralDeclaration(FFIProceduralDecl *decl, QString libName);
     void generateClassDeclaration(ClassDecl * decl);
     void generateGlobalDeclaration(GlobalDecl * decl);
     void generateMethodDeclaration(MethodDecl * decl);

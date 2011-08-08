@@ -258,6 +258,10 @@ void CodeGenerator::generateDeclaration(Declaration * decl)
         // It's handled in the firstPass().
         // But we need this 'else' clause to stop the final 'else' from throwing a "not supported yet" exception
     }
+    else if(isa<FFILibraryDecl>(decl))
+    {
+        generateFFILibraryDeclaration(dynamic_cast<FFILibraryDecl *>(decl));
+    }
     else
     {
         throw CompilerException(decl, DeclarationNotSupported).arg(decl->toString());
@@ -310,6 +314,172 @@ void CodeGenerator::generateFunctionDeclaration(FunctionDecl * decl)
                                     decl->procName()->name, scopeStack.top().instructionCount);
     gen(decl, "ret");
     gen(decl,".endmethod");
+}
+
+void CodeGenerator::generateFFILibraryDeclaration(FFILibraryDecl *decl)
+{
+    for(int i=0; i<decl->declCount(); i++)
+    {
+        generateFFIProceduralDeclaration(decl->decl(i), decl->libName);
+    }
+}
+
+void CodeGenerator::generateFFIProceduralDeclaration(FFIProceduralDecl *decl, QString libName)
+{
+    /*
+      .method رسالة 4 1
+      -- 1: set arg type array
+      pushv 4
+      newarr
+      popl %argTypeArr
+
+      pushl %argTypeArr
+      pushv 1
+      pushc مشير.سي
+      setarr
+
+      pushl %argTypeArr
+      pushv 2
+      pushc نص.عريض.سي
+      setarr
+      ...
+
+      -- 2: load library and set function address
+      pushc %symbolId
+      pushc %libNameId
+      callex loadlibrary
+      callex getprocaddress
+      popl %funcPtr
+
+      -- 3: set args array
+      pushv 4
+      newarr
+      popl %argArr
+
+
+      popl %anArg
+      pushl %argArr
+      pushl %anArg
+      pushv 1
+      setarr
+
+      popl %anArg
+      pushl %argArr
+      pushl %anArg
+      pushv 2
+      setarr
+      ...
+
+      -- 4: call ff
+
+      pushc retTypeName
+      pushl %argTypeArr
+      pushl %argArr
+      pushl %funcPtr
+
+      callex callforeign
+
+      .endmethod
+    */
+    // Push a dummy procedure scope since all calls to gen()
+    // attempt to increment an instruction count in the current procedure scope
+    // todo: we've called new() 3 times here, this is a memory leak which
+    // can be rectified by cleaning up after we popProcedureScope at the end
+    // of this function
+    pushProcedureScope(new FunctionDecl(decl->getPos(), decl->getPos(),
+                                        new Identifier(decl->getPos(),decl->procName), QVector<Identifier *>(), new BlockStmt(decl->getPos(), QVector<Statement *>()), false)
+                                          );
+    gen(decl, QString(".method %1 %2 %3").
+                             arg(decl->procName)
+                            .arg(decl->paramTypeCount())
+                            .arg(decl->isFunctionNotProc?1:0));
+
+    // -- 1: set arg type array
+    /*
+    pushv 4
+    newarr
+    popl %argTypeArr
+
+    pushl %argTypeArr
+    pushv 1
+    pushc مشير.سي
+    setarr
+    */
+    gen(decl, "pushv ", decl->paramTypeCount());
+    gen(decl, "newarr");
+    gen(decl, "popl %argTypeArr");
+
+    for(int i=0; i<decl->paramTypeCount(); i++)
+    {
+        gen(decl, "pushl %argTypeArr");
+        gen(decl, "pushv ", i+1);
+        // TODO: We now assume type expressions are always TypeId !!
+        TypeIdentifier *id = (TypeIdentifier *) decl->paramType(i);
+        gen(decl, QString("pushc ") + id->name);
+        gen(decl, "setarr");
+    }
+
+    //-- 2: load library and set function address
+    generateStringConstant(decl, decl->symbol);
+    generateStringConstant(decl, libName);
+    gen(decl, "callex loadlibrary");
+    gen(decl, "callex getprocaddress");
+    gen(decl, "popl %funcPtr");
+
+    //-- 3: set args array
+    /*
+    pushv 4
+    newarr
+    popl %argArr
+
+    popl %anArg
+    pushl %argArr
+    pushl %anArg
+    pushv 1
+    setarr
+    */
+    gen(decl, "pushv ", decl->paramTypeCount());
+    gen(decl, "newarr");
+    gen(decl, "popl %argArr");
+
+    for(int i=0; i<decl->paramTypeCount(); i++)
+    {
+        gen(decl, "popl %anArg");
+        gen(decl, "pushl %argArr");
+        gen(decl, "pushv ", i+1);
+        gen(decl, "pushl %anArg");
+
+        gen(decl, "setarr");
+    }
+
+    //-- 4: call ff
+
+    if(decl->isFunctionNotProc)
+    {
+        TypeIdentifier *id = (TypeIdentifier *) decl->returnType();
+        gen(decl, QString("pushc ") + id->name);
+    }
+    else
+    {
+        gen(decl, QString::fromStdWString(L"pushc معدوم.سي"));
+    }
+
+    gen(decl, "pushl %argTypeArr");
+    gen(decl, "pushl %argArr");
+    gen(decl, "pushl %funcPtr");
+    gen(decl, "callex callforeign");
+
+    //TODO: see this debuInfo thing on the next line
+    //debugInfo.setInstructionForLine(currentCodeDoc, decl->_endingToken.Line,
+     //                               decl->procName()->name, scopeStack.top().instructionCount);
+    if(!decl->isFunctionNotProc)
+    {
+        // For convinience, a foreign proc can call a foreign function and ignore its return type
+        gen(decl, "popl %dummy");
+    }
+    gen(decl, "ret");
+    gen(decl,".endmethod");
+    popProcedureScope();
 }
 
 void CodeGenerator::generateClassDeclaration(ClassDecl *decl)

@@ -9,7 +9,7 @@
 #include "utils.h"
 using namespace std;
 
-CompilationUnit::CompilationUnit(Token pos) : AST(pos)
+CompilationUnit::CompilationUnit(Token pos) : _astImpl(pos)
 {
 
 }
@@ -58,7 +58,7 @@ QString Module::toString()
 }
 
 TopLevel::TopLevel(Token pos)
-    :AST(pos)
+    :_astImpl(pos)
 {
 
 }
@@ -68,7 +68,7 @@ Statement::Statement(Token pos): TopLevel(pos)
 
 }
 
-Expression::Expression(Token pos) : AST(pos)
+Expression::Expression(Token pos) : _astImpl(pos)
 {
 
 }
@@ -493,6 +493,16 @@ QString Identifier::toString()
     return name;
 }
 
+TypeIdentifier::TypeIdentifier(Token pos ,QString name)
+        :TypeExpression(pos)
+{
+    this->name = name;
+}
+QString TypeIdentifier::toString()
+{
+    return name;
+}
+
 BinaryOperation::BinaryOperation(Token pos ,QString op, Expression *op1, Expression *op2)
     : Expression(pos),
     _operator(op),
@@ -796,6 +806,47 @@ MethodInfo::MethodInfo()
 {
     arity = -1;
     isFunction = false;
+}
+
+FFILibraryDecl::FFILibraryDecl(Token pos, QString libName, QVector<FFIProceduralDecl *> decls, bool isPublic)
+    : Declaration(pos, isPublic)
+{
+    this->libName = libName;
+    for(int i=0; i<decls.count(); i++)
+        _decls.append(QSharedPointer<FFIProceduralDecl>(decls[i]));
+}
+
+QString FFILibraryDecl::toString()
+{
+    QStringList strs;
+    for(int i=0; i<declCount(); i++)
+        strs.append(decl(i)->toString());
+    return QString("library(%1, %2)").arg(libName).arg(strs.join(", "));
+}
+
+FFIProceduralDecl::FFIProceduralDecl(Token pos,
+                                     bool isFunctionNotProc,
+                                     TypeExpression *theReturnType,
+                                     QVector<TypeExpression *> paramTypes,
+                                     QString procName,
+                                     QString symbol,
+                                     bool isPublic)
+    : Declaration(pos, isPublic), _returnType(theReturnType)
+{
+    this->isFunctionNotProc = isFunctionNotProc;
+    this->procName = procName;
+    this->symbol = symbol;
+    for(int i=0; i<paramTypes.count(); i++)
+        _paramTypes.append(QSharedPointer<TypeExpression>(paramTypes[i]));
+}
+
+QString FFIProceduralDecl::toString()
+{
+    QStringList str1;
+    for(int i=0; i<paramTypeCount(); i++)
+        str1.append(paramType(i)->toString());
+    return QString ("ffi(%1,%2,%3,[%4])").arg(procName).arg(symbol)
+            .arg(returnType()->toString()).arg(str1.join(", "));
 }
 
 ClassDecl::ClassDecl(Token pos,
@@ -1418,6 +1469,11 @@ void Identifier::prettyPrint(CodeFormatter *f)
     f->print(name);
 }
 
+void TypeIdentifier::prettyPrint(CodeFormatter *f)
+{
+    f->print(name);
+}
+
 void NumLiteral::prettyPrint(CodeFormatter *f)
 {
     f->print(repr());
@@ -1513,6 +1569,50 @@ void FunctionDecl::prettyPrint(CodeFormatter *f)
     this->body()->prettyPrint(f);
     f->printKw(L"نهاية");
     f->nl(); // for extra neatness, add an empty line after definitions
+}
+
+void FFILibraryDecl::prettyPrint(CodeFormatter *f)
+{
+    f->printKw(L"مكتبة");
+    f->print(QString("\"%1\"").arg(libName));
+    f->colon();
+    f->nl();
+    f->indent();
+    for(int i=0; i<declCount(); i++)
+        decl(i)->prettyPrint(f);
+    f->deindent();
+    f->printKw(L"نهاية");
+    f->nl(); // for extra neatness, add an empty line after definitions
+}
+
+void FFIProceduralDecl::prettyPrint(CodeFormatter *f)
+{
+    if(this->isFunctionNotProc)
+        f->printKw(L"دالة");
+    else
+        f->printKw("إجراء");
+
+    f->print(this->procName);
+    f->space();
+    if(symbol != procName)
+    {
+        f->printKw(L"برمز");
+        f->print(QString("\"%1\"").arg(symbol));
+    }
+    f->openParen();
+    for(int i=0; i<paramTypeCount(); i++)
+    {
+        paramType(i)->prettyPrint(f);
+        if(i < paramTypeCount() -1)
+            f->comma();
+    }
+    f->closeParen();
+    if(isFunctionNotProc)
+    {
+        returnType()->prettyPrint(f);
+    }
+
+    f->nl();
 }
 
 void Has::prettyPrint(CodeFormatter *f)

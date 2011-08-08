@@ -110,4 +110,3 @@ OTHER_FILES +=
 RC_FILE = kalimat.rc
 
 LIBS += -L"$$_PRO_FILE_PWD_/../smallvm/libffi/" -llibffi
-LIBS += -L"$$_PRO_FILE_PWD_/../smallvm/cinvoke/" -lcinvoke

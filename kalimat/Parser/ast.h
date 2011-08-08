@@ -15,11 +15,17 @@ struct PrettyPrintable
 
 class AST : public PrettyPrintable
 {
-    Token position;
 public:
-    AST(Token position);
     //virtual ~AST();
     virtual QString toString()=0;
+    virtual Token getPos()=0;
+};
+
+class ASTImpl
+{
+    Token position;
+public:
+    ASTImpl(Token position);
     Token getPos();
 };
 

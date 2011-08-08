@@ -47,4 +47,3 @@ FORMS +=
 RESOURCES +=
 
 LIBS += -L"$$_PRO_FILE_PWD_/libffi/" -llibffi
-LIBS += -L"$$_PRO_FILE_PWD_/cinvoke/" -lcinvoke
