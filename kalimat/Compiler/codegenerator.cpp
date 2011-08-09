@@ -320,7 +320,20 @@ void CodeGenerator::generateFFILibraryDeclaration(FFILibraryDecl *decl)
 {
     for(int i=0; i<decl->declCount(); i++)
     {
-        generateFFIProceduralDeclaration(decl->decl(i), decl->libName);
+        Declaration *d = decl->decl(i);
+        if(isa<FFIProceduralDecl>(d))
+        {
+            generateFFIProceduralDeclaration(dynamic_cast<FFIProceduralDecl *>(d), decl->libName);
+        }
+        else if(isa<FFIStructDecl>(d))
+        {
+            generateFFIStructDeclaration(dynamic_cast<FFIStructDecl *>(d));
+        }
+        else
+        {
+            throw CompilerException(decl, DeclarationNotSupported);
+        }
+
     }
 }
 
@@ -480,6 +493,11 @@ void CodeGenerator::generateFFIProceduralDeclaration(FFIProceduralDecl *decl, QS
     gen(decl, "ret");
     gen(decl,".endmethod");
     popProcedureScope();
+}
+
+void CodeGenerator::generateFFIStructDeclaration(FFIStructDecl *decl)
+{
+
 }
 
 void CodeGenerator::generateClassDeclaration(ClassDecl *decl)

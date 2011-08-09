@@ -1268,7 +1268,7 @@ Declaration *KalimatParser::ffiLibraryDecl()
     Token tok = lookAhead;
     match(LIBRARY);
     FFILibraryDecl *ffiLib = NULL;
-    QVector<FFIProceduralDecl *> decls;
+    QVector<Declaration *> decls;
     if(LA(STR_LITERAL))
     {
         StrLiteral *libName = new StrLiteral(lookAhead, prepareStringLiteral(lookAhead.Lexeme));
@@ -1276,12 +1276,14 @@ Declaration *KalimatParser::ffiLibraryDecl()
         match(COLON);
         match(NEWLINE);
         newLines();
-        while(LA(FUNCTION) || LA(PROCEDURE))
+        while(LA(FUNCTION) || LA(PROCEDURE) || LA(CLASS))
         {
             if(LA(FUNCTION))
                 decls.append(ffiFunctionDecl());
-            else
+            else if(LA(PROCEDURE))
                 decls.append(ffiProcDecl());
+            else if(LA(CLASS))
+                decls.append(ffiStructDecl());
             newLines();
         }
         match(END);
@@ -1372,6 +1374,40 @@ FFIProceduralDecl *KalimatParser::ffiProcDecl()
     match(RPAREN);
     retType = NULL;
     return new FFIProceduralDecl(pos, false, retType, argTypes, fname->name, symbol, true);
+}
+
+FFIStructDecl *KalimatParser::ffiStructDecl()
+{
+    QVector<Identifier *> fieldNames;
+    QVector<TypeExpression *> fieldTypes;
+    Token tok = lookAhead;
+    match(CLASS);
+    Identifier *name = identifier();
+    match(COLON);
+    match(NEWLINE);
+    newLines();
+    QVector<int> batches;
+
+    while(LA(HAS))
+    {
+        batches.append(1);
+        fieldNames.append(identifier());
+        match(IS);
+        fieldTypes.append(typeExpression());
+        while(LA(COMMA))
+        {
+            batches[batches.count() -1]++;
+            match(COMMA);
+            fieldNames.append(identifier());
+            match(IS);
+            fieldTypes.append(typeExpression());
+        }
+        match(NEWLINE);
+        newLines();
+    }
+
+    match(END);
+    return new FFIStructDecl(tok, name, fieldNames, fieldTypes, batches, true);
 }
 
 bool KalimatParser::LA_first_expression()

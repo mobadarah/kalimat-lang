@@ -12,8 +12,9 @@
 
 #include <iostream>
 #include <stdio.h>
-#include <windows.h>
 #include <QLibrary>
+#include <stdint.h>
+
 using namespace std;
 #define QSTR(x) QString::fromStdWString(x)
 
@@ -23,22 +24,22 @@ void mapType(IClass *kalimatType, Value *v, ffi_type *&type, void *&value)
     if(kalimatType == BuiltInTypes::c_int)
     {
         type = &ffi_type_sint32;
-        value = v? new uint32_t((int)v->unboxNumeric()) : NULL;
+        value = v? new uint32_t((uint32_t)v->unboxNumeric()) : new uint32_t;
     }
     else if(kalimatType == BuiltInTypes::c_long)
     {
         type = &ffi_type_slong;
-        value = v? new long((long)v->unboxNumeric()) : NULL;
+        value = v? new long((long)v->unboxNumeric()) : new long;
     }
     else if(kalimatType == BuiltInTypes::c_float)
     {
         type = &ffi_type_float;
-        value = v? new float((float)v->unboxNumeric()) : NULL;
+        value = v? new float((float)v->unboxNumeric()) : new float;
     }
     else if(kalimatType == BuiltInTypes::c_double)
     {
         type = &ffi_type_double;
-        value = v? new double(v->unboxNumeric()) : NULL;
+        value = v? new double(v->unboxNumeric()) : new double;
     }
     else if(kalimatType == BuiltInTypes::c_char)
     {
@@ -82,7 +83,51 @@ void mapType(IClass *kalimatType, Value *v, ffi_type *&type, void *&value)
     else if(kalimatType == BuiltInTypes::c_ptr)
     {
         type =&ffi_type_pointer;
-        value = v? new void*((void *)v->unboxInt()) : NULL;
+        value = v? new void*((void *)v->unboxInt()) : new void *;
+    }
+}
+
+void toKalimatType(IClass *kalimatType, Value *&value, void *v, Allocator *allocator)
+{
+    if(kalimatType == BuiltInTypes::c_int)
+    {
+        value = allocator->newInt(*((uint32_t *)v));
+    }
+    else if(kalimatType == BuiltInTypes::c_long)
+    {
+        value = allocator->newInt(*((ulong *)v));
+    }
+    else if(kalimatType == BuiltInTypes::c_float)
+    {
+        value = allocator->newDouble(*((float *)v));
+    }
+    else if(kalimatType == BuiltInTypes::c_double)
+    {
+        value = allocator->newDouble(*((double *)v));
+    }
+    else if(kalimatType == BuiltInTypes::c_char)
+    {
+        char x[2];
+        x[0] = *((char *) v);
+        x[1] = '\0';
+        QString s = QString("%1").arg(x);
+        value = allocator->newString(new QString(s));
+    }
+    else if(kalimatType == BuiltInTypes::c_asciiz)
+    {
+        char *str = *((char **) v);
+        QString s = QString("%1").arg(str);
+        value = allocator->newString(new QString(s));
+    }
+    else if(kalimatType == BuiltInTypes::c_wstr)
+    {
+        wchar_t *str = *((wchar_t **) v);
+        QString s = QString::fromWCharArray(str);
+        value = allocator->newString(new QString(s));
+    }
+    else if(kalimatType == BuiltInTypes::c_ptr)
+    {
+        value = allocator->newInt(*((uint32_t *)v));
     }
 }
 
@@ -100,46 +145,7 @@ void guessType(Value *v, ffi_type *&type, void *&ret)
     }
 }
 
-
-
-Value *CallForeign()
-{
-
-    // This isn't used in Kalimat - it's just for reference
-    // of how a correct FFI call looks like
-    ffi_cif cif;
-    HINSTANCE dllHandle = LoadLibrary(L"user32.dll");
-
-    int n = 4;
-
-    ffi_type *ffi_argTypes[4];
-    void *values[4];
-    UINT32 a=0;
-    UINT32 b=0;
-    char* s1= "hello";
-    char* s2= "hello2";
-    values[0] = &a;
-    values[1] = &s1;
-    values[2] = &s2;
-    values[3] = &b;
-    ffi_argTypes[0] = &ffi_type_uint32;
-    ffi_argTypes[1] = &ffi_type_pointer;
-    ffi_argTypes[2] = &ffi_type_pointer;
-    ffi_argTypes[3] = &ffi_type_uint;
-    ffi_type *c_retType = &ffi_type_sint;
-    int32_t rc; // return value
-    if (ffi_prep_cif(&cif, FFI_DEFAULT_ABI, 4, c_retType, ffi_argTypes) == FFI_OK)    {
-
-
-        ffi_call(&cif, FFI_FN(GetProcAddress(dllHandle,"MessageBoxA")), &rc, values);
-    }
-
-
-    return NULL;
-
-}
-
-Value *CallForeign(void *funcPtr, QVector<Value *> argz, IClass *retType, QVector<IClass *> argTypes, bool _guessTypes)
+Value *CallForeign(void *funcPtr, QVector<Value *> argz, IClass *retType, QVector<IClass *> argTypes, bool _guessTypes, Allocator *allocator)
 {
     //*
     int n = argz.count();
@@ -147,7 +153,7 @@ Value *CallForeign(void *funcPtr, QVector<Value *> argz, IClass *retType, QVecto
 
     ffi_cif cif;
     ffi_type **ffi_argTypes = new ffi_type*[n];
-    ffi_type *c_retType;
+    ffi_type *c_retType = NULL;
     void **values = new void*[n];
 
     //Initialize the argument info vectors
@@ -163,17 +169,21 @@ Value *CallForeign(void *funcPtr, QVector<Value *> argz, IClass *retType, QVecto
         }
     }
 
-
-    void *retVal; //ignored
-    mapType(retType, NULL, c_retType, retVal);
+    void *retVal = NULL;
+    mapType(retType, NULL , c_retType, retVal);
     // Initialize the cif
-    if (ffi_prep_cif(&cif, FFI_STDCALL, n,
+    if (ffi_prep_cif(&cif, FFI_DEFAULT_ABI, n,
             c_retType, ffi_argTypes) == FFI_OK)
     {
-      ffi_call(&cif, (void (*)()) funcPtr, &retVal, values);
+      ffi_call(&cif, (void (*)()) funcPtr, retVal , values);
     }
     //*/
-    return NULL;
+    Value *ret = NULL;
+    if(c_retType != &ffi_type_void)
+    {
+        toKalimatType(retType, ret, retVal, allocator);
+    }
+    return ret;
 }
 
 VM::VM()

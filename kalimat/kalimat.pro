@@ -109,4 +109,6 @@ OTHER_FILES +=
 # QMAKE_CXXFLAGS += -std=c++0x
 RC_FILE = kalimat.rc
 
-LIBS += -L"$$_PRO_FILE_PWD_/../smallvm/libffi/" -llibffi
+win32:LIBS += -L"$$_PRO_FILE_PWD_/../smallvm/libffi/" -llibffi
+
+unix:LIBS += -lffi

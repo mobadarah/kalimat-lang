@@ -808,12 +808,12 @@ MethodInfo::MethodInfo()
     isFunction = false;
 }
 
-FFILibraryDecl::FFILibraryDecl(Token pos, QString libName, QVector<FFIProceduralDecl *> decls, bool isPublic)
+FFILibraryDecl::FFILibraryDecl(Token pos, QString libName, QVector<Declaration *> decls, bool isPublic)
     : Declaration(pos, isPublic)
 {
     this->libName = libName;
     for(int i=0; i<decls.count(); i++)
-        _decls.append(QSharedPointer<FFIProceduralDecl>(decls[i]));
+        _decls.append(QSharedPointer<Declaration    >(decls[i]));
 }
 
 QString FFILibraryDecl::toString()
@@ -847,6 +847,32 @@ QString FFIProceduralDecl::toString()
         str1.append(paramType(i)->toString());
     return QString ("ffi(%1,%2,%3,[%4])").arg(procName).arg(symbol)
             .arg(returnType()->toString()).arg(str1.join(", "));
+}
+
+FFIStructDecl::FFIStructDecl(Token pos,
+                             Identifier *name,
+                             QVector<Identifier *> fieldNames,
+                             QVector<TypeExpression *> fieldTypes,
+                             QVector<int> fieldBatches,
+                             bool isPublic)
+    : Declaration(pos, isPublic), _name(name)
+{
+    for(int i=0; i<fieldNames.count(); i++)
+    {
+        _fieldNames.append(QSharedPointer<Identifier>(fieldNames[i]));
+        _fieldTypes.append(QSharedPointer<TypeExpression>(fieldTypes[i]));
+    }
+    this->fieldBatches = fieldBatches;
+}
+
+QString FFIStructDecl::toString()
+{
+    QStringList strs;
+    for(int i=0; i<fieldCount(); i++)
+    {
+        strs.append(QString("%1:%2").arg(fieldName(i)->toString()).arg(fieldType(i)->toString()));
+    }
+    return QString("ffiStruct(%1,%2)").arg(name()->toString()).arg(strs.join(", "));
 }
 
 ClassDecl::ClassDecl(Token pos,
@@ -1613,6 +1639,34 @@ void FFIProceduralDecl::prettyPrint(CodeFormatter *f)
     }
 
     f->nl();
+}
+
+void FFIStructDecl::prettyPrint(CodeFormatter *f)
+{
+    f->printKw(L"فصيلة");
+    this->name()->prettyPrint(f);
+    f->colon();
+    f->nl();
+    f->indent();
+
+    int index = 0;
+    for(int i=0; i<fieldBatches.count(); i++)
+    {
+        f->printKw(L"له");
+
+        for(int j=0; j< fieldBatches[i]; j++)
+        {
+            fieldName(index)->prettyPrint(f);
+            f->space();
+            f->printKw(L"هو");
+            fieldType(index)->prettyPrint(f);
+            index++;
+        }
+        f->nl();
+    }
+    f->deindent();
+    f->printKw(L"نهاية");
+    f->nl(); // for extra neatness, add an empty line after definitions
 }
 
 void Has::prettyPrint(CodeFormatter *f)

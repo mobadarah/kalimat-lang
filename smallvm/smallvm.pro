@@ -46,4 +46,5 @@ HEADERS += \
 FORMS +=
 RESOURCES +=
 
-LIBS += -L"$$_PRO_FILE_PWD_/libffi/" -llibffi
+win32:LIBS += -L"$$_PRO_FILE_PWD_/../smallvm/libffi/" -llibffi
+unix:LIBS += -lffi

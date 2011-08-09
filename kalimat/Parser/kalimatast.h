@@ -758,11 +758,11 @@ class FFILibraryDecl : public Declaration
 public:
     QString libName;
 private:
-    QVector<QSharedPointer<FFIProceduralDecl> > _decls;
+    QVector<QSharedPointer<Declaration> > _decls;
 public:
-    FFILibraryDecl(Token pos, QString libName, QVector<FFIProceduralDecl *> decls, bool isPublic);
+    FFILibraryDecl(Token pos, QString libName, QVector<Declaration *> decls, bool isPublic);
     int declCount() { return _decls.count(); }
-    FFIProceduralDecl *decl(int index) { return _decls[index].data();}
+    Declaration *decl(int index) { return _decls[index].data();}
     void prettyPrint(CodeFormatter *formatter);
     QString toString();
 };
@@ -786,6 +786,29 @@ public:
     TypeExpression *returnType() { return _returnType.data(); }
     int paramTypeCount() { return _paramTypes.count(); }
     TypeExpression *paramType(int index) { return _paramTypes.at(index).data(); }
+    void prettyPrint(CodeFormatter *formatter);
+    QString toString();
+};
+
+class FFIStructDecl : public Declaration
+{
+public:
+    QVector<int> fieldBatches; // For grouping HAS a, b, c; HAS d,e declarations for pretty printing
+private:
+    QScopedPointer<Identifier> _name;
+    QVector<QSharedPointer<Identifier> > _fieldNames;
+    QVector<QSharedPointer<TypeExpression> > _fieldTypes;
+public:
+    FFIStructDecl(Token pos,
+                  Identifier *name,
+                  QVector<Identifier*> fieldNames,
+                  QVector<TypeExpression*> fieldTypes,
+                  QVector<int> fieldBatches,
+                  bool isPublic);
+    int fieldCount() { return _fieldNames.count();}
+    Identifier *name() { return _name.data(); }
+    Identifier *fieldName(int index) { return _fieldNames[index].data();}
+    TypeExpression *fieldType(int index) { return _fieldTypes[index].data();}
     void prettyPrint(CodeFormatter *formatter);
     QString toString();
 };

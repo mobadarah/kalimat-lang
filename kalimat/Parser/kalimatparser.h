@@ -74,7 +74,7 @@ private:
 
     FFIProceduralDecl *ffiFunctionDecl();
     FFIProceduralDecl *ffiProcDecl();
-
+    FFIStructDecl *ffiStructDecl();
 
     BlockStmt *block();
 

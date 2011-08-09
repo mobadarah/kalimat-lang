@@ -30,7 +30,7 @@
 
 #include <QQueue>
 
-Value *CallForeign(void *funcPtr, QVector<Value *> argz, IClass *retType, QVector<IClass *> argTypes, bool guessTypes);
+Value *CallForeign(void *funcPtr, QVector<Value *> argz, IClass *retType, QVector<IClass *> argTypes, bool guessTypes, Allocator *allocator);
 
 template <typename T> bool isa(void * obj)
 {

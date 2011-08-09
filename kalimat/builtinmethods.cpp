@@ -1029,6 +1029,11 @@ void GetProcAddressProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
     QLibrary *lib = (QLibrary *) libRaw;
     // todo: all those conversion might be slow
     void * func = lib->resolve(funcName->toStdString().c_str());
+    if(func == NULL)
+    {
+        vm->signal(InternalError1, QString("Cannot find function in called '%1' in external library %2")
+                   .arg(*funcName).arg(lib->fileName()));
+    }
     Value *ret = vm->GetAllocator().newRaw(func, BuiltInTypes::ExternalMethodType);
     stack.push(ret);
 }
@@ -1066,7 +1071,7 @@ void InvokeForeignProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
         }
     }
 
-    Value *ret = CallForeign(funcPtr, argz, retType, kargTypes, guessArgTypes);
+    Value *ret = CallForeign(funcPtr, argz, retType, kargTypes, guessArgTypes, &vm->GetAllocator());
     if(ret)
         stack.push(ret);
     else
