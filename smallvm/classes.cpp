@@ -1,5 +1,6 @@
 #include "classes.h"
 #include "allocator.h"
+#include "vmerror.h"
 
 IObject *ValueClass::newValue(Allocator *allocator)
 {
@@ -38,4 +39,76 @@ void ValueClass::InitObjectLayoutHelper(ValueClass *_class, Object *object, Allo
         object->slotNames.append(*i);
     }
 
+}
+
+PointerClass::PointerClass(IClass *pointee)
+{
+    this->pointee = pointee;
+}
+
+bool PointerClass::hasSlot(QString name)
+{
+    return false;
+}
+
+QList<QString> PointerClass::getSlotNames()
+{
+    return QList<QString>();
+}
+
+Value *PointerClass::getSlotValue(QString name)
+{
+    return NULL;
+}
+
+void PointerClass::setSlotValue(QString name, Value *val)
+{
+
+}
+
+QString PointerClass::getName()
+{
+    return QString::fromStdWString(L"مشير(%1)").arg(pointee->getName());
+}
+
+bool PointerClass::hasField(QString name)
+{
+    return false;
+}
+
+IClass *PointerClass::baseClass()
+{
+    return BuiltInTypes::ObjectType;
+}
+
+bool PointerClass::subclassOf(IClass *c)
+{
+    // We assume "Pointer" is covariant
+    // todo: revise this decision
+    if(c == BuiltInTypes::ObjectType)
+        return true;
+    PointerClass *c2 = dynamic_cast<PointerClass *>(c);
+    if(!c2)
+        return false;
+    return pointee->subclassOf(c2->pointee);
+}
+
+IMethod *PointerClass::lookupMethod(QString name)
+{
+    return baseClass()->lookupMethod(name);
+}
+
+IObject *PointerClass::newValue(Allocator *allocator)
+{
+    throw VMError(InternalError);
+}
+
+bool PointerClass::getFieldAttribute(QString attr, Value *&ret, Allocator *allocator)
+{
+    return false;
+}
+
+QString PointerClass::toString()
+{
+    return getName();
 }

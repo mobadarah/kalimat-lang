@@ -51,6 +51,7 @@ void BuiltInConstantProc(QStack<Value *> &stack, RunWindow *, VM *vm);
 void StringIsNumericProc(QStack<Value *> &stack, RunWindow *w, VM *vm);
 void StringIsAlphabeticProc(QStack<Value *> &stack, RunWindow *w, VM *vm);
 void TypeOfProc(QStack<Value *> &stack, RunWindow *w, VM *vm);
+void TypeFromIdProc(QStack<Value *> &stack, RunWindow *w, VM *vm);
 void NewMapProc(QStack<Value *> &stack, RunWindow *w, VM *vm);
 
 void RandomProc(QStack<Value *> &stack, RunWindow *, VM *w);
@@ -98,6 +99,7 @@ void NewChannelProc(QStack<Value *> &stack, RunWindow *w, VM *vm);
 
 void LoadLibraryProc(QStack<Value *> &stack, RunWindow *w, VM *vm);
 void GetProcAddressProc(QStack<Value *> &stack, RunWindow *w, VM *vm);
+void AddressOfProc(QStack<Value *> &stack, RunWindow *w, VM *vm);
 void InvokeForeignProc(QStack<Value *> &stack, RunWindow *w, VM *vm);
 
 double verifyNumeric(Value *v, RunWindow *w); // TODO: make this a method of RunWindow

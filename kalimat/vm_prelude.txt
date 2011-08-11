@@ -334,6 +334,16 @@ ret
 	ret
 .endmethod
 
+.method عنوان 1 1
+	callex addressof
+	ret
+.endmethod
+
+.method مشار.إليه 1 1
+	callex contentof
+	ret
+.endmethod
+
 .method استدعاء.الدالة.الخارجية 4 1
 	callex callforeign
 	ret

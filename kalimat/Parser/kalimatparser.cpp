@@ -1295,8 +1295,6 @@ Declaration *KalimatParser::ffiLibraryDecl()
                 decls.append(ffiFunctionDecl());
             else if(LA(PROCEDURE))
                 decls.append(ffiProcDecl());
-            else if(LA(CLASS))
-                decls.append(ffiStructDecl());
             newLines();
         }
         match(END);
@@ -1335,7 +1333,7 @@ FFIProceduralDecl *KalimatParser::ffiFunctionDecl()
     }
 
     match(LPAREN);
-    if(LA(IDENTIFIER))
+    if(LA_first_typeExpression())
     {
         argTypes.append(typeExpression());
         while(LA(COMMA))
@@ -1375,7 +1373,7 @@ FFIProceduralDecl *KalimatParser::ffiProcDecl()
     }
 
     match(LPAREN);
-    if(LA(IDENTIFIER))
+    if(LA_first_typeExpression())
     {
         argTypes.append(typeExpression());
         while(LA(COMMA))
@@ -1387,40 +1385,6 @@ FFIProceduralDecl *KalimatParser::ffiProcDecl()
     match(RPAREN);
     retType = NULL;
     return new FFIProceduralDecl(pos, false, retType, argTypes, fname->name, symbol, true);
-}
-
-FFIStructDecl *KalimatParser::ffiStructDecl()
-{
-    QVector<Identifier *> fieldNames;
-    QVector<TypeExpression *> fieldTypes;
-    Token tok = lookAhead;
-    match(CLASS);
-    Identifier *name = identifier();
-    match(COLON);
-    match(NEWLINE);
-    newLines();
-    QVector<int> batches;
-
-    while(LA(HAS))
-    {
-        batches.append(1);
-        fieldNames.append(identifier());
-        match(IS);
-        fieldTypes.append(typeExpression());
-        while(LA(COMMA))
-        {
-            batches[batches.count() -1]++;
-            match(COMMA);
-            fieldNames.append(identifier());
-            match(IS);
-            fieldTypes.append(typeExpression());
-        }
-        match(NEWLINE);
-        newLines();
-    }
-
-    match(END);
-    return new FFIStructDecl(tok, name, fieldNames, fieldTypes, batches, true);
 }
 
 bool KalimatParser::LA_first_expression()
@@ -1759,16 +1723,30 @@ Identifier *KalimatParser::identifier()
     throw ParserException(getPos(), "Expected Identifier");
 }
 
+bool KalimatParser::LA_first_typeExpression()
+{
+    return LA(IDENTIFIER) || LA(POINTER);
+}
+
 TypeExpression *KalimatParser::typeExpression()
 {
-    TypeIdentifier *ret = NULL;
+    if(LA(POINTER))
+    {
+        Token tok = lookAhead;
+        match(POINTER);
+        match(LPAREN);
+        TypeExpression *pointee = typeExpression();
+        match(RPAREN);
+        return new PointerTypeExpression(tok, pointee);
+    }
     if(LA(IDENTIFIER))
     {
+        TypeIdentifier *ret = NULL;
         ret = new TypeIdentifier(lookAhead, lookAhead.Lexeme);
         match(IDENTIFIER);
         return ret;
     }
-    throw ParserException(getPos(), "Expected Type Identifier");
+    throw ParserException(getPos(), "Expected Type Expression");
 }
 
 QVector<Expression *> KalimatParser::comma_separated_expressions()

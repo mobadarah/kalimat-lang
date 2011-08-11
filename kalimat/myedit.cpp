@@ -266,6 +266,7 @@ void MyEdit::enterKeyBehavior(QKeyEvent *ev)
         return;
     }
     QVector<Token> toks = lxr.getTokens();
+    int libraryDecl[] = { LIBRARY, STR_LITERAL, COLON };
     int classDecl[] = { CLASS, IDENTIFIER, COLON };
     int ifStmtStart[] = { IF }, ifStmtEnd[] = { COLON };
     int elsePart[] = { ELSE, COLON };
@@ -293,6 +294,7 @@ void MyEdit::enterKeyBehavior(QKeyEvent *ev)
     if(endOfLine)
     {
         if(insertEnding && (tokensEqual(toks, classDecl, 3) ||
+           tokensEqual   (toks, libraryDecl, 3) ||
            tokensBeginEnd(toks, procDeclStart, procDeclEnd, 3, 2) ||
            tokensBeginEnd(toks, funcDeclStart, funcDeclEnd, 3, 2) ||
            tokensBeginEnd(toks, responseDeclStart, responseDeclEnd, 3, 2) ||

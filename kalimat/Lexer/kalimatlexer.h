@@ -78,39 +78,40 @@ const int OTHER = 67;
 const int LIBRARY = 68;
 const int SYMBOL = 69;
 const int MARSHALLAS = 70;
-const int KEYWORD_CUTOFF = 70; // As long as the ID of the token is <= KEYWORD_CUTOFF, the
+const int POINTER = 71;
+const int KEYWORD_CUTOFF = 71; // As long as the ID of the token is <= KEYWORD_CUTOFF, the
                                // syntax hilighter will consider it a keyword.
-const int NUM_LITERAL = 71;
-const int ADD_OP = 72;
-const int SUB_OP = 73;
-const int MUL_OP = 74;
-const int DIV_OP = 75;
-const int EQ = 76;
-const int LT = 77;
-const int GT = 78;
-const int LE = 79;
-const int GE = 80;
-const int NE = 81;
+const int NUM_LITERAL = 91;
+const int ADD_OP = 92;
+const int SUB_OP = 93;
+const int MUL_OP = 94;
+const int DIV_OP = 95;
+const int EQ = 96;
+const int LT = 97;
+const int GT = 98;
+const int LE = 99;
+const int GE = 100;
+const int NE = 101;
 
 
-const int LPAREN = 82;
-const int RPAREN = 83;
-const int IDENTIFIER = 84;
-const int COMMENT = 85;
-const int NEWLINE = 86;
-const int COMMA = 87;
-const int SEMI = 88;
-const int STR_LITERAL = 89;
-const int COLON = 90;
-const int KASRA = 91;
-const int DOLLAR = 92;
-const int LBRACKET = 93;
-const int RBRACKET = 94;
-const int HASH = 95;
-const int ELLIPSIS = 96;
-const int LBRACE = 97;
-const int RBRACE = 98;
-const int ROCKET = 99;
+const int LPAREN = 102;
+const int RPAREN = 103;
+const int IDENTIFIER = 104;
+const int COMMENT = 105;
+const int NEWLINE = 106;
+const int COMMA = 107;
+const int SEMI = 108;
+const int STR_LITERAL = 109;
+const int COLON = 100;
+const int KASRA = 111;
+const int DOLLAR = 112;
+const int LBRACKET = 113;
+const int RBRACKET = 114;
+const int HASH = 115;
+const int ELLIPSIS = 116;
+const int LBRACE = 117;
+const int RBRACE = 118;
+const int ROCKET = 119;
 
 const int WHITESPACE = TokenNone;
 

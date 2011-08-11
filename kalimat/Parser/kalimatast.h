@@ -488,6 +488,17 @@ public:
 
 };
 
+class PointerTypeExpression : public TypeExpression
+{
+    QScopedPointer<TypeExpression> _pointeeType;
+public:
+    PointerTypeExpression(Token pos, TypeExpression *pointeeType);
+    QString toString();
+    void prettyPrint(CodeFormatter *f);
+    TypeExpression *pointeeType() { return _pointeeType.data();}
+
+};
+
 class Expression : public AST
 {
     ASTImpl _astImpl;

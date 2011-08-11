@@ -426,9 +426,10 @@ void CodeGenerator::generateFFIProceduralDeclaration(FFIProceduralDecl *decl, QS
     {
         gen(decl, "pushl %argTypeArr");
         gen(decl, "pushv ", i+1);
-        // TODO: We now assume type expressions are always TypeId !!
-        TypeIdentifier *id = (TypeIdentifier *) decl->paramType(i);
-        gen(decl, QString("pushc ") + id->name);
+
+        generateStringConstant(decl, typeExpressionToAssemblyTypeId(decl->paramType(i)));
+        gen(decl, "callex typefromid");
+
         gen(decl, "setarr");
     }
 
@@ -469,8 +470,8 @@ void CodeGenerator::generateFFIProceduralDeclaration(FFIProceduralDecl *decl, QS
 
     if(decl->isFunctionNotProc)
     {
-        TypeIdentifier *id = (TypeIdentifier *) decl->returnType();
-        gen(decl, QString("pushc ") + id->name);
+        generateStringConstant(decl, typeExpressionToAssemblyTypeId(decl->returnType()));
+        gen(decl, "callex typefromid");
     }
     else
     {
@@ -1745,7 +1746,19 @@ void CodeGenerator::generateObjectCreation(ObjectCreation *expr)
 
 QString CodeGenerator::typeExpressionToAssemblyTypeId(TypeExpression *expr)
 {
-    return ((TypeIdentifier *) expr)->name;
+    if(isa<TypeIdentifier>(expr))
+    {
+        return ((TypeIdentifier *) expr)->name;
+    }
+    else if(isa<PointerTypeExpression>(expr))
+    {
+        PointerTypeExpression *p = (PointerTypeExpression *) expr;
+        return QString("*%1").arg(typeExpressionToAssemblyTypeId(p->pointeeType()));
+    }
+    else
+    {
+        throw CompilerException(expr, UnimplementedTypeForm);
+    }
 }
 
 void CodeGenerator::generateStringConstant(AST *src, QString str)

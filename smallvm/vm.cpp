@@ -254,15 +254,25 @@ void VM::DefineStringConstant(QString symRef, QString strValue)
     constantPool[symRef] = v;
 }
 
-IClass *VM::GetType(QString symref)
+Value *VM::GetType(QString vmTypeId)
 {
-    if(!constantPool.contains(symref))
-        signal(InternalError1, QString("VM::GetType Cannot find type:%1").arg(symref));
-    Value *v = constantPool[symref];
-    if(!(v->type == BuiltInTypes::ClassType))
-        signal(InternalError1, QString("VM::GetType: Constant pool entry '%1' not a type").arg(symref));
-    return (IClass *) v->unboxObj();
-
+    if(vmTypeId.startsWith("*"))
+    {
+        IClass *pointee = (IClass *) GetType(vmTypeId.mid(1))->unboxObj();
+        // todo: Currently we do not allow the GC to claim our new pointer type
+        // should we unload it at some point?
+        // todo: intern pointer types
+        return allocator.newObject(new PointerClass(pointee), BuiltInTypes::ClassType, false);
+    }
+    else
+    {
+        if(!constantPool.contains(vmTypeId))
+            signal(InternalError1, QString("VM::GetType Cannot find type:%1").arg(vmTypeId));
+        Value *v = constantPool[vmTypeId];
+        if(!(v->type == BuiltInTypes::ClassType))
+            signal(InternalError1, QString("VM::GetType: Constant pool entry '%1' not a type").arg(vmTypeId));
+        return v;
+    }
 }
 
 bool VM::hasRunningInstruction()

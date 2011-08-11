@@ -503,6 +503,16 @@ QString TypeIdentifier::toString()
     return name;
 }
 
+PointerTypeExpression::PointerTypeExpression(Token pos, TypeExpression *pointeeType)
+    :TypeExpression(pos), _pointeeType(pointeeType)
+{
+}
+
+QString PointerTypeExpression::toString()
+{
+    return QString("pointer(%1)").arg(pointeeType()->toString());
+}
+
 BinaryOperation::BinaryOperation(Token pos ,QString op, Expression *op1, Expression *op2)
     : Expression(pos),
     _operator(op),
@@ -1508,6 +1518,14 @@ void Identifier::prettyPrint(CodeFormatter *f)
 void TypeIdentifier::prettyPrint(CodeFormatter *f)
 {
     f->print(name);
+}
+
+void PointerTypeExpression::prettyPrint(CodeFormatter *f)
+{
+    f->printKw(L"مشير");
+    f->openParen();
+    pointeeType()->prettyPrint(f);
+    f->closeParen();
 }
 
 void NumLiteral::prettyPrint(CodeFormatter *f)

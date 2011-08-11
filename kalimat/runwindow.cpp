@@ -93,6 +93,7 @@ void RunWindow::Init(QString program, QMap<QString, QString> stringConstants, QS
         vm->Register("stringisnumeric", new WindowProxyMethod(this, vm, StringIsNumericProc));
         vm->Register("stringisalphabetic", new WindowProxyMethod(this, vm, StringIsAlphabeticProc));
         vm->Register("typeof", new WindowProxyMethod(this, vm, TypeOfProc));
+        vm->Register("typefromid", new WindowProxyMethod(this, vm, TypeFromIdProc));
         vm->Register("newmap", new WindowProxyMethod(this, vm, NewMapProc));
 
         vm->Register("random", new WindowProxyMethod(this, vm, RandomProc));
@@ -149,6 +150,7 @@ void RunWindow::Init(QString program, QMap<QString, QString> stringConstants, QS
 
         vm->Register("loadlibrary", new WindowProxyMethod(this, vm, LoadLibraryProc));
         vm->Register("getprocaddress", new WindowProxyMethod(this, vm, GetProcAddressProc));
+        vm->Register("addressof", new WindowProxyMethod(this, vm, AddressOfProc));
         vm->Register("callforeign", new WindowProxyMethod(this, vm, InvokeForeignProc));
 
 

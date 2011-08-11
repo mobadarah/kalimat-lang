@@ -141,4 +141,26 @@ private:
     static IMethod *ffiMethodProxy;
 };
 
+struct PointerClass : public IClass
+{
+    IClass *pointee;
+    PointerClass(IClass *pointee);
+    // IObject
+    virtual bool hasSlot(QString name);
+    virtual QList<QString> getSlotNames();
+    virtual Value *getSlotValue(QString name);
+    virtual void setSlotValue(QString name, Value *val);
+
+    //IClass
+    QString getName();
+    virtual bool hasField(QString name);
+    IClass *baseClass();
+    virtual bool subclassOf(IClass *c);
+    virtual IMethod *lookupMethod(QString name);
+    virtual IObject *newValue(Allocator *allocator);
+    virtual bool getFieldAttribute(QString attr, Value *&ret, Allocator *allocator);
+    QString toString();
+
+};
+
 #endif // CLASSES_H

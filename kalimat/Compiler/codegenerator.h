@@ -176,6 +176,7 @@ LValueFormNotImplemented,
 UnimplementedExpressionForm,
 UnimplementedStatementForm,
 UnimplementedInvokationForm,
+UnimplementedTypeForm,
 ProgramsCannotUseExternalModulesWithoutSavingThemFirst,
 InternalCompilerErrorInFunc
 };

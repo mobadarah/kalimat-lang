@@ -1,5 +1,4 @@
 #include "vm_ffi.h"
-#include "libffi/include/ffi.h"
 
 #include <stdint.h>
 
@@ -55,6 +54,10 @@ void kalimat_to_ffi_type(IClass *kalimatType, ffi_type *&type, VM *vm)
     {
         type =&ffi_type_pointer;
     }
+    else if(dynamic_cast<PointerClass *>(kalimatType) != NULL)
+    {
+        type = &ffi_type_pointer;
+    }
     else if(dynamic_cast<ValueClass *>(kalimatType) != NULL)
     {
         // Let's make a struct
@@ -69,7 +72,7 @@ void kalimat_to_ffi_type(IClass *kalimatType, ffi_type *&type, VM *vm)
                 if(vm->GetType(str) == NULL)
                     vm->signal(InternalError1, QString("Marshalling type '%1' does not exist").arg(str));
 
-                IClass *fieldClass = vm->GetType(str);
+                IClass *fieldClass = (IClass *) vm->GetType(str)->unboxObj();
                 ffi_type *fieldFfiType;
                 kalimat_to_ffi_type(fieldClass, fieldFfiType, vm);
                 fieldCTypes.append(fieldFfiType);
@@ -148,6 +151,11 @@ void kalimat_to_ffi_value(IClass *kalimatType, Value *v, ffi_type *type, void *&
         {
             *((void **)value) = (void *) v->unboxInt();
         }
+        else if(dynamic_cast<PointerClass *>(kalimatType) != NULL)
+        {
+            void *ptr = v->unboxRaw();
+            *((void **) value) = ptr;
+        }
     }
     else if(type->type ==FFI_TYPE_STRUCT && dynamic_cast<ValueClass *>(kalimatType) != NULL)
     {
@@ -164,7 +172,7 @@ void kalimat_to_ffi_value(IClass *kalimatType, Value *v, ffi_type *type, void *&
                 if(vm->GetType(str) == NULL)
                     vm->signal(InternalError1, QString("Marshalling type '%1' does not exist").arg(str));
 
-                IClass *fieldClass = vm->GetType(str);
+                IClass *fieldClass = (IClass *) vm->GetType(str)->unboxObj();
 
                 fieldKalimatTypes.append(fieldClass);
                 fieldKalimatValues.append(obj->getSlotValue(vc->fieldNames[i]));
@@ -225,6 +233,14 @@ void toKalimatType(IClass *kalimatType, ffi_type *type, Value *&value, void *v, 
     {
         value = allocator->newInt(*((uint32_t *)v));
     }
+    else if(dynamic_cast<PointerClass *>(kalimatType) != NULL)
+    {
+        PointerClass *pc = dynamic_cast<PointerClass *>(kalimatType);
+        void * pointee = *((void **) v);
+        ffi_type *pointee_c_type;
+        kalimat_to_ffi_type(pc->pointee, pointee_c_type, vm);
+        toKalimatType(pc->pointee, pointee_c_type, value, pointee, vm);
+    }
     else if(dynamic_cast<ValueClass *>(kalimatType) && type->type == FFI_TYPE_STRUCT)
     {
         ValueClass *vc = (ValueClass *) kalimatType;
@@ -240,7 +256,7 @@ void toKalimatType(IClass *kalimatType, ffi_type *type, Value *&value, void *v, 
                 if(vm->GetType(str) == NULL)
                     vm->signal(InternalError1, QString("Marshalling type '%1' does not exist").arg(str));
 
-                IClass *fieldClass = vm->GetType(str);
+                IClass *fieldClass = (IClass *) vm->GetType(str)->unboxObj();
 
                 fieldKalimatTypes.append(fieldClass);
                 fieldKalimatNames.append(vc->fieldNames[i]);

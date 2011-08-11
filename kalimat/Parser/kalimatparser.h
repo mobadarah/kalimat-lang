@@ -32,6 +32,7 @@ private:
     bool LA_first_primary_expression();
     bool LA_first_method_declaration();
     bool LA_first_assignment_or_invokation();
+    bool LA_first_typeExpression();
 
     AST *program();
 
@@ -74,7 +75,6 @@ private:
 
     FFIProceduralDecl *ffiFunctionDecl();
     FFIProceduralDecl *ffiProcDecl();
-    FFIStructDecl *ffiStructDecl();
 
     BlockStmt *block();
 

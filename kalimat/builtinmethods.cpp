@@ -33,6 +33,7 @@
 #include <QPushButton>
 #include <QVariant>
 
+#include "../smallvm/vm_ffi.h"
 using namespace std;
 
 void PrintProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
@@ -793,6 +794,24 @@ void TypeOfProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
     // We use a gcMonitor value of false since we don't want the GC
     // to collect class objects
     stack.push(vm->GetAllocator().newObject(v->type, BuiltInTypes::ClassType, false));
+}
+
+void TypeFromIdProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
+{
+    QString *typeId = popString(stack, w, vm);
+    Value *type = vm->GetType(*typeId);
+    stack.push(type);
+}
+
+void AddressOfProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
+{
+    Value *v = popValue(stack, w, vm);
+    ffi_type *type;
+    kalimat_to_ffi_type(v->type, type, vm);
+    void *ptr = malloc(type->size);
+    kalimat_to_ffi_value(v->type, v, type, ptr, vm);
+    //todo:
+    stack.push(vm->GetAllocator().newRaw(ptr, new PointerClass(v->type)));
 }
 
 void NewMapProc(QStack<Value *> &stack, RunWindow *w, VM *vm)

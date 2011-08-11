@@ -69,7 +69,7 @@ public:
     void Register(QString symRef, ExternalMethod *method);
     void RegisterType(QString typeName, IClass *type);
     void DefineStringConstant(QString symRef, QString strValue);
-    IClass *GetType(QString symref);
+    Value *GetType(QString symref);
 
     void ActivateEvent(QString evName, QVector<Value *> args);
     void RunStep(bool singleInstruction=false);
