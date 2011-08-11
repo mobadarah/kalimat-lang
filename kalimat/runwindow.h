@@ -14,6 +14,7 @@
 #ifndef VM_H
     #include "../smallvm/vm_incl.h"
     #include "../smallvm/vm.h"
+    #include "../smallvm/vm_ffi.h"
 #endif
 
 #ifndef EXTERNALMETHOD_H

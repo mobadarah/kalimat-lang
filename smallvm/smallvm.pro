@@ -21,7 +21,8 @@ SOURCES += main.cpp \
     metaclass.cpp \
     debugger.cpp \
     tracelistener.cpp \
-    vmutils.cpp
+    vmutils.cpp \
+    vm_ffi.cpp
 
 HEADERS += \
     value.h \
@@ -42,7 +43,8 @@ HEADERS += \
     channel.h \
     metaclass.h \
     debugger.h \
-    tracelistener.h
+    tracelistener.h \
+    vm_ffi.h
 FORMS +=
 RESOURCES +=
 

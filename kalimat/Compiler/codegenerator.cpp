@@ -513,7 +513,13 @@ void CodeGenerator::generateClassDeclaration(ClassDecl *decl)
         */
     for(int i=0;i<decl->fieldCount();i++)
     {
-        gen(decl,".field " + decl->field(i)->name);
+        QString fieldName = decl->field(i)->name;
+        QString attrs = "";
+        if(decl->fieldHasMarshalType(fieldName))
+        {
+            attrs = QString(" marshalas=%1").arg(typeExpressionToAssemblyTypeId(decl->marshalTypeOf(fieldName)));
+        }
+        gen(decl,".field " + fieldName + attrs);
     }
     for(int i=0; i<decl->methodCount(); i++)
     {
@@ -1735,6 +1741,11 @@ QString CodeGenerator::generateArrayFromValues(AST *src, QVector<QSharedPointer<
 void CodeGenerator::generateObjectCreation(ObjectCreation *expr)
 {
     gen(expr, "new "+expr->className()->name);
+}
+
+QString CodeGenerator::typeExpressionToAssemblyTypeId(TypeExpression *expr)
+{
+    return ((TypeIdentifier *) expr)->name;
 }
 
 void CodeGenerator::generateStringConstant(AST *src, QString str)

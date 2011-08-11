@@ -123,6 +123,7 @@ private:
     void generateMultiDimensionalArrayIndex(MultiDimensionalArrayIndex *expr);
     void generateObjectCreation(ObjectCreation* expr);
 
+    QString typeExpressionToAssemblyTypeId(TypeExpression *expr);
     QString generateArrayFromValues(AST *src, QVector<QSharedPointer<Expression> > values);
     void generateAssignmentToLvalue(AST *src, AssignableExpression *lval,
                                         Thunk &);

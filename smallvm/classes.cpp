@@ -8,6 +8,14 @@ IObject *ValueClass::newValue(Allocator *allocator)
     return newObj;
 }
 
+bool ValueClass::getFieldAttribute(QString attr, Value *&ret, Allocator *allocator)
+{
+    if(!fieldAttributes.contains(attr))
+        return false;
+    ret = fieldAttributes[attr];
+    return true;
+}
+
 
 void ValueClass::InitObjectLayout(Object *object, Allocator *allocator)
 {

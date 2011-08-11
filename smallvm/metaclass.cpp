@@ -25,6 +25,11 @@ IObject *MetaClass::newValue(Allocator *allocator)
     throw VMError(InternalError);
 }
 
+bool MetaClass::getFieldAttribute(QString attr, Value *&ret, Allocator *allocator)
+{
+    return false;
+}
+
 Value *MetaClass::dispatch(int id, QVector<Value *> args)
 {
     if(id == 0)

@@ -880,6 +880,7 @@ ClassDecl::ClassDecl(Token pos,
                      QVector<Identifier*>fields,
                      QMap<QString, MethodInfo> methodPrototypes,
                      QVector<QSharedPointer<ClassInternalDecl> > internalDecls,
+                     QMap<QString, TypeExpression *> fieldMarshalAs,
                      bool isPublic)
         :Declaration(pos, isPublic),
         _name(name),
@@ -892,6 +893,10 @@ ClassDecl::ClassDecl(Token pos,
     {
         _fields.append(QSharedPointer<Identifier>(fields[i]));
     }
+    for(QMap<QString, TypeExpression *>::const_iterator i= fieldMarshalAs.begin(); i != fieldMarshalAs.end(); ++i)
+    {
+        _fieldMarshallAs[i.key()] = QSharedPointer<TypeExpression>(i.value());
+    }
 }
 
 ClassDecl::ClassDecl(Token pos,
@@ -900,6 +905,7 @@ ClassDecl::ClassDecl(Token pos,
                      QVector<Identifier*>fields,
                      QMap<QString, MethodInfo> methodPrototypes,
                      QVector<QSharedPointer<ClassInternalDecl> > internalDecls,
+                     QMap<QString, TypeExpression *> fieldMarshalAs,
                      bool isPublic)
         :Declaration(pos, isPublic),
         _name(name),
@@ -910,6 +916,10 @@ ClassDecl::ClassDecl(Token pos,
 {
     for(int i=0; i<fields.count(); i++)
         _fields.append(QSharedPointer<Identifier>(fields[i]));
+    for(QMap<QString, TypeExpression *>::const_iterator i= fieldMarshalAs.begin(); i != fieldMarshalAs.end(); ++i)
+    {
+        _fieldMarshallAs[i.key()] = QSharedPointer<TypeExpression>(i.value());
+    }
 }
 
 QString ClassDecl::toString()

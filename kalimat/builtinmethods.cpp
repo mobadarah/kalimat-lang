@@ -1071,7 +1071,7 @@ void InvokeForeignProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
         }
     }
 
-    Value *ret = CallForeign(funcPtr, argz, retType, kargTypes, guessArgTypes, &vm->GetAllocator());
+    Value *ret = CallForeign(funcPtr, argz, retType, kargTypes, guessArgTypes, vm);
     if(ret)
         stack.push(ret);
     else

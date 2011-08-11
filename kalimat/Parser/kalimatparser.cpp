@@ -1084,6 +1084,7 @@ Declaration *KalimatParser::classDecl()
 {
     QVector<Identifier *> fields;
     QMap<QString, MethodInfo> methods;
+    QMap<QString, TypeExpression *> fieldMarshallAs;
 
     match(CLASS);
     Token tok  = lookAhead;
@@ -1103,12 +1104,24 @@ Declaration *KalimatParser::classDecl()
             Identifier *fname = identifier();
             h->add(fname);
             fields.append(fname);
+            if(LA(MARSHALLAS))
+            {
+                match(MARSHALLAS);
+                TypeExpression *te = typeExpression();
+                fieldMarshallAs[fname->name] = te;
+            }
             while(LA(COMMA))
             {
                 match(COMMA);
                 fname = identifier();
                 h->add(fname);
                 fields.append(fname);
+                if(LA(MARSHALLAS))
+                {
+                    match(MARSHALLAS);
+                    TypeExpression *te = typeExpression();
+                    fieldMarshallAs[fname->name] = te;
+                }
             }
             match(NEWLINE);
             internalDecls.append(QSharedPointer<ClassInternalDecl>(h));
@@ -1183,7 +1196,7 @@ Declaration *KalimatParser::classDecl()
         newLines();
     }
     match(END);
-    return new ClassDecl(tok, ancestorName, className, fields, methods, internalDecls, true);
+    return new ClassDecl(tok, ancestorName, className, fields, methods, internalDecls, fieldMarshallAs, true);
 
 }
 Declaration *KalimatParser::globalDecl()

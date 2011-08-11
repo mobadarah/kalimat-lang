@@ -30,8 +30,6 @@
 
 #include <QQueue>
 
-Value *CallForeign(void *funcPtr, QVector<Value *> argz, IClass *retType, QVector<IClass *> argTypes, bool guessTypes, Allocator *allocator);
-
 template <typename T> bool isa(void * obj)
 {
     T value = dynamic_cast<T>(obj);
@@ -71,6 +69,8 @@ public:
     void Register(QString symRef, ExternalMethod *method);
     void RegisterType(QString typeName, IClass *type);
     void DefineStringConstant(QString symRef, QString strValue);
+    IClass *GetType(QString symref);
+
     void ActivateEvent(QString evName, QVector<Value *> args);
     void RunStep(bool singleInstruction=false);
     void RunSingleInstruction(Process *process);

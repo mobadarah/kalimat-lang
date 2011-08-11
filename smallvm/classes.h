@@ -57,6 +57,7 @@ struct IClass : public IObject
     virtual bool subclassOf(IClass *c)=0; // Interpreted as "subclass of or equals"
     virtual IMethod *lookupMethod(QString name)=0;
     virtual IObject *newValue(Allocator *allocator)=0;
+    virtual bool getFieldAttribute(QString attr, Value *&ret, Allocator *allocator)=0;
 };
 
 struct ValueClass : public IClass
@@ -77,6 +78,7 @@ struct ValueClass : public IClass
     virtual bool subclassOf(IClass *c);
     IMethod *lookupMethod(QString name);
     IObject *newValue(Allocator *allocator);
+    virtual bool getFieldAttribute(QString attr, Value *&ret, Allocator *allocator);
     QString toString();
 private:
     void InitObjectLayout(Object *object, Allocator *allocator);
@@ -88,6 +90,7 @@ public:
     QVector<QString> fieldNames; // In order of definition
     QVector<ValueClass*> BaseClasses;
     QMap<QString, Value*> methods;
+    QMap<QString, Value *> fieldAttributes;
 };
 
 struct ForeignClass : public IClass

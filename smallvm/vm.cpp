@@ -8,183 +8,14 @@
 #include "vm_incl.h"
 #include "vm.h"
 #include "vmutils.h"
-#include "libffi/include/ffi.h"
-
+#include "vm_ffi.h"
 #include <iostream>
 #include <stdio.h>
 #include <QLibrary>
-#include <stdint.h>
 
 using namespace std;
 #define QSTR(x) QString::fromStdWString(x)
 
-
-void mapType(IClass *kalimatType, Value *v, ffi_type *&type, void *&value)
-{
-    if(kalimatType == BuiltInTypes::c_int)
-    {
-        type = &ffi_type_sint32;
-        value = v? new uint32_t((uint32_t)v->unboxNumeric()) : new uint32_t;
-    }
-    else if(kalimatType == BuiltInTypes::c_long)
-    {
-        type = &ffi_type_slong;
-        value = v? new long((long)v->unboxNumeric()) : new long;
-    }
-    else if(kalimatType == BuiltInTypes::c_float)
-    {
-        type = &ffi_type_float;
-        value = v? new float((float)v->unboxNumeric()) : new float;
-    }
-    else if(kalimatType == BuiltInTypes::c_double)
-    {
-        type = &ffi_type_double;
-        value = v? new double(v->unboxNumeric()) : new double;
-    }
-    else if(kalimatType == BuiltInTypes::c_char)
-    {
-        type = &ffi_type_schar;
-        value = new char('a');
-    }
-    else if(kalimatType == BuiltInTypes::c_asciiz)
-    {
-        type =&ffi_type_pointer;
-        char **str = new char*;
-
-        if(v)
-        {
-            std::string str_c = v->unboxStr()->toStdString();
-            *str = new char[str_c.length()+1];
-            for(int i=0;i<str_c.length(); i++)
-            {
-                (*str)[i] = str_c[i];
-            }
-            (*str)[str_c.length()] = 0;
-        }
-        value = (void *) str;
-    }
-    else if(kalimatType == BuiltInTypes::c_wstr)
-    {
-        type =&ffi_type_pointer;
-        wchar_t **str = new wchar_t*;
-
-        if(v)
-        {
-            std::wstring str_c = v->unboxStr()->toStdWString();
-            *str = new wchar_t[str_c.length()+1];
-            for(int i=0;i<str_c.length(); i++)
-            {
-                (*str)[i] = str_c[i];
-            }
-            (*str)[str_c.length()] = 0;
-        }
-        value = (void *) str;
-    }
-    else if(kalimatType == BuiltInTypes::c_ptr)
-    {
-        type =&ffi_type_pointer;
-        value = v? new void*((void *)v->unboxInt()) : new void *;
-    }
-}
-
-void toKalimatType(IClass *kalimatType, Value *&value, void *v, Allocator *allocator)
-{
-    if(kalimatType == BuiltInTypes::c_int)
-    {
-        value = allocator->newInt(*((uint32_t *)v));
-    }
-    else if(kalimatType == BuiltInTypes::c_long)
-    {
-        value = allocator->newInt(*((ulong *)v));
-    }
-    else if(kalimatType == BuiltInTypes::c_float)
-    {
-        value = allocator->newDouble(*((float *)v));
-    }
-    else if(kalimatType == BuiltInTypes::c_double)
-    {
-        value = allocator->newDouble(*((double *)v));
-    }
-    else if(kalimatType == BuiltInTypes::c_char)
-    {
-        char x[2];
-        x[0] = *((char *) v);
-        x[1] = '\0';
-        QString s = QString("%1").arg(x);
-        value = allocator->newString(new QString(s));
-    }
-    else if(kalimatType == BuiltInTypes::c_asciiz)
-    {
-        char *str = *((char **) v);
-        QString s = QString("%1").arg(str);
-        value = allocator->newString(new QString(s));
-    }
-    else if(kalimatType == BuiltInTypes::c_wstr)
-    {
-        wchar_t *str = *((wchar_t **) v);
-        QString s = QString::fromWCharArray(str);
-        value = allocator->newString(new QString(s));
-    }
-    else if(kalimatType == BuiltInTypes::c_ptr)
-    {
-        value = allocator->newInt(*((uint32_t *)v));
-    }
-}
-
-void guessType(Value *v, ffi_type *&type, void *&ret)
-{
-    if(v->type->subclassOf(BuiltInTypes::IntType))
-    {
-        type = &ffi_type_uint32;
-        ret = new uint32_t(v->unboxInt());
-    }
-    else if(v->type->subclassOf(BuiltInTypes::StringType))
-    {
-        type = &ffi_type_pointer;
-        ret = (void *) v->unboxStr()->toStdString().c_str();
-    }
-}
-
-Value *CallForeign(void *funcPtr, QVector<Value *> argz, IClass *retType, QVector<IClass *> argTypes, bool _guessTypes, Allocator *allocator)
-{
-    //*
-    int n = argz.count();
-    bool autoConvert = _guessTypes;
-
-    ffi_cif cif;
-    ffi_type **ffi_argTypes = new ffi_type*[n];
-    ffi_type *c_retType = NULL;
-    void **values = new void*[n];
-
-    //Initialize the argument info vectors
-    for(int i=0; i<n; i++)
-    {
-        if(autoConvert)
-        {
-            guessType(argz[i], ffi_argTypes[i], values[i]);
-        }
-        else
-        {
-            mapType(argTypes[i], argz[i], ffi_argTypes[i], values[i]);
-        }
-    }
-
-    void *retVal = NULL;
-    mapType(retType, NULL , c_retType, retVal);
-    // Initialize the cif
-    if (ffi_prep_cif(&cif, FFI_DEFAULT_ABI, n,
-            c_retType, ffi_argTypes) == FFI_OK)
-    {
-      ffi_call(&cif, (void (*)()) funcPtr, retVal , values);
-    }
-    //*/
-    Value *ret = NULL;
-    if(c_retType != &ffi_type_void)
-    {
-        toKalimatType(retType, ret, retVal, allocator);
-    }
-    return ret;
-}
 
 VM::VM()
     :allocator(&constantPool, &processes)
@@ -421,6 +252,17 @@ void VM::DefineStringConstant(QString symRef, QString strValue)
     QString *str = new QString(strValue);
     Value *v = allocator.newString(str);
     constantPool[symRef] = v;
+}
+
+IClass *VM::GetType(QString symref)
+{
+    if(!constantPool.contains(symref))
+        signal(InternalError1, QString("VM::GetType Cannot find type:%1").arg(symref));
+    Value *v = constantPool[symref];
+    if(!(v->type == BuiltInTypes::ClassType))
+        signal(InternalError1, QString("VM::GetType: Constant pool entry '%1' not a type").arg(symref));
+    return (IClass *) v->unboxObj();
+
 }
 
 bool VM::hasRunningInstruction()
@@ -907,6 +749,22 @@ void VM::Load(QString assemblyCode)
             {
                 curClass->fieldNames.append(arg);
                 curClass->fields.insert(arg);
+            }
+            if(lineParts.count()==3)
+            {
+                QString metaData = lineParts[2].trimmed();
+                QStringList kvPairs = metaData.split(";", QString::SkipEmptyParts);
+                for(QStringList::Iterator j= kvPairs.begin(); j !=kvPairs.end(); ++j)
+                {
+                    QString pair = *j;
+                    QStringList kv = pair.split("=", QString::SkipEmptyParts);
+                    if(kv.count() == 2)
+                    {
+                        QString key = kv[0];
+                        QString val = kv[1];
+                        curClass->fieldAttributes[key] = allocator.newString(new QString(val));
+                    }
+                }
             }
         }
         else if(opcode == ".extends")

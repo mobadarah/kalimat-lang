@@ -12,7 +12,7 @@ public:
     MetaClass(QString name, Allocator *allocator);
     virtual IObject *newValue(Allocator *allocator);
     virtual Value *dispatch(int id, QVector<Value *>args);
-
+    virtual bool getFieldAttribute(QString attr, Value *&ret, Allocator *allocator);
     // We need to set this before the VM starts
     // because a metaclass can be used to create new objects
     // and thus needs an allocator

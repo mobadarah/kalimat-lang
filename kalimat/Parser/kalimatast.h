@@ -845,6 +845,7 @@ struct ConcreteResponseInfo : public PrettyPrintable
 
 struct Has : public ClassInternalDecl
 {
+    QMap<QString, QSharedPointer<TypeExpression> > _fieldMarshallAs;
     QVector<QSharedPointer<Identifier> > fields;
     void prettyPrint(CodeFormatter *f);
     void add(Identifier *field)
@@ -871,6 +872,7 @@ class ClassDecl : public Declaration
 public:
     QScopedPointer<Identifier> _name;
     QVector<QSharedPointer<Identifier > > _fields;
+    QMap<QString, QSharedPointer<TypeExpression> > _fieldMarshallAs;
     QMap<QString, MethodInfo>  _methodPrototypes;
     QMap<QString, QSharedPointer<MethodDecl> > _methods;
     QScopedPointer<Identifier> _ancestorName;
@@ -882,6 +884,7 @@ public:
               QVector<Identifier *> fields,
               QMap<QString,MethodInfo> methodPrototypes,
               QVector<QSharedPointer<ClassInternalDecl> > internalDecls,
+              QMap<QString, TypeExpression *> fieldMarshalAs,
               bool isPublic);
     ClassDecl(Token pos,
               Identifier *ancestorName,
@@ -889,6 +892,7 @@ public:
               QVector<Identifier *> fields,
               QMap<QString,MethodInfo> methodPrototypes,
               QVector<QSharedPointer<ClassInternalDecl> > internalDecls,
+              QMap<QString, TypeExpression *> fieldMarshalAs,
               bool isPublic);
     Identifier *name() { return _name.data();}
     int fieldCount() { return _fields.count();}
@@ -901,6 +905,9 @@ public:
     MethodInfo methodPrototype(QString name);
     int prototypeCount() { return _methodPrototypes.count();}
     Identifier *ancestor() { return _ancestorName.data();}
+    bool fieldHasMarshalType(QString fieldName) { return _fieldMarshallAs.contains(fieldName); }
+    TypeExpression *marshalTypeOf(QString fieldName) { return _fieldMarshallAs[fieldName].data(); }
+
     void setAncestorClass(QSharedPointer<ClassDecl> cd);
     void insertMethod(QString name, QSharedPointer<MethodDecl> m);
     QString toString();
