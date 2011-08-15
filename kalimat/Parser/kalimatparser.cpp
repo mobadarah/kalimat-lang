@@ -49,10 +49,10 @@ void KalimatParser::init(QString s, Lexer *lxr, void *tag, QString fileName)
             {
                 pendingSisterHood = false;
                 tokens[i].sister = new Token(sis);
-                MainWindow::that->outputMsg(QString(
+                /*MainWindow::that->outputMsg(QString(
                         "Token: %1 has sister: %2)")
                         .arg(tokens[i].Lexeme)
-                        .arg(sis.Lexeme));
+                        .arg(sis.Lexeme));*/
             }
             tokens2.append(tokens[i]);
         }
