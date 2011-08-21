@@ -7,9 +7,10 @@
 
 #include "vm_incl.h"
 #include "vm.h"
+#include "utils.h"
 #include "vmutils.h"
 #include "vm_ffi.h"
-//#include <iostream>
+#include <iostream>
 #include <stdio.h>
 #include <QLibrary>
 
@@ -252,6 +253,8 @@ void VM::DefineStringConstant(QString symRef, QString strValue)
     QString *str = new QString(strValue);
     Value *v = allocator.newString(str);
     constantPool[symRef] = v;
+    cout << "Defined string constant " << symRef.toStdString() << endl;
+    cout.flush();
 }
 
 Value *VM::GetType(QString vmTypeId)
@@ -696,16 +699,18 @@ void VM::Load(QString assemblyCode)
         }
         if(opcode == ".strconst")
         {
-            if(lineParts.count() != 3)
-                signal(InternalError1, "Malformed .strconst input");
-
-            QString &sym = arg;
-            QByteArray base64 = lineParts[2].toAscii();
-            QByteArray arr = QByteArray::fromBase64(base64);
-            QDataStream stream(arr);
-            QString data;
-            stream >> data;
-            DefineStringConstant(sym, data);
+            if(lineParts.count() == 3)
+            {
+                QString &sym = arg;
+                QString data = base64Decode(lineParts[2]);
+                DefineStringConstant(sym, data);
+            }
+            else
+            {
+                cout << "in strconst lineParts.count is " << lineParts.count() << endl;
+                cout.flush();
+                signal(InternalError1, QString("Malformed strconst input: '%1'").arg(line));
+            }
         }
         else if(opcode == ".method")
         {

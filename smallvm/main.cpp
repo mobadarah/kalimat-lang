@@ -6,11 +6,14 @@
 **************************************************************************/
 
 #include <QtGui/QApplication>
-//#include <iostream>
+#include <iostream>
 #include <QTextStream>
 #include "runtime/runwindow.h"
+#include "utils.h"
 
-//using namespace std;
+using namespace std;
+QMap<QString, QString> tempConstants;
+
 Q_DECL_EXPORT
 void RunSmallVMCode(QWidget *parent,
                     QString pathOfProgramsFile,
@@ -25,24 +28,16 @@ void RunSmallVMCode(QWidget *parent,
     rw->Init(program, stringConstants, breakPoints, debugInfo);
 }
 
-QString decodeBase64(QString source)
-{
-    QByteArray base64(source.toAscii());
-    //cout << "byte array count:" << source.count() << endl;
-
-    QByteArray original = QByteArray::fromBase64(base64);
-    QString ret = QString::fromUtf8(original.data(), original.count());
-
-    //wcout << "String after decoding:" << ret.toStdWString() << endl;
-    //cout.flush();
-    //wcout.flush();
-
-    return ret;
-
-}
-
 extern "C"
 {
+Q_DECL_EXPORT
+void SmallVMAddStringConstant(char *symBase64, char *strBase64)
+{
+    QString sym = base64Decode(symBase64);
+    QString val = base64Decode(strBase64);
+    tempConstants[val] = sym;
+}
+
 Q_DECL_EXPORT
 void RunSmallVMCodeBase64(char *pathOfProgramsFile,
                           char *programBase64)
@@ -51,12 +46,20 @@ void RunSmallVMCodeBase64(char *pathOfProgramsFile,
     char *argv[1] = {"aa.exe"};
     QApplication app(argc, argv);
 
-    //cout << "program before decoding:" <<programBase64 << endl;
-    RunWindow *rw = new RunWindow(NULL, pathOfProgramsFile, new NullaryVMClient());
-    QString programCode = decodeBase64(programBase64);
-    rw->show();
-    rw->Init(programCode, QMap<QString, QString>(), QSet<Breakpoint>(), DebugInfo());
-    app.exec();
+    cout << "program before decoding:" <<programBase64 << endl;
+    cout.flush();
+    try
+    {
+        RunWindow *rw = new RunWindow(NULL, pathOfProgramsFile, new NullaryVMClient());
+        QString programCode = base64Decode(programBase64);
+        rw->show();
+        rw->Init(programCode, tempConstants, QSet<Breakpoint>(), DebugInfo());
+        app.exec();
+    }
+    catch(VMError)
+    {
+        app.exit(1);
+    }
 }
 }
 int main(int argc, char *argv[])

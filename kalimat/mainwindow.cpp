@@ -16,6 +16,7 @@
 #include "Compiler/compiler.h"
 
 #include "../smallvm/runtime/runwindow.h"
+#include "../smallvm/utils.h"
 #include "syntaxhighlighter.h"
 
 #include "Parser/kalimatprettyprintparser.h"
@@ -298,6 +299,7 @@ void MainWindow::on_actionCompile_without_tags_triggered()
         else
             output = compiler.CompileFromFile(doc->getFileName(), NULL);
 
+        output = compiler.generator.getStringConstantsAsOpCodes() + output;
         QRegExp rx("@([^\n])*\n");
         output = output.replace(rx, "\r\n");
         ui->outputView->append(output);
@@ -1162,24 +1164,17 @@ void MainWindow::on_action_step_procedure_triggered()
     }
 }
 
-QString base64encode(QString other)
-{
-    QByteArray arr = other.toUtf8();
-
-    QByteArray arr2 = arr.toBase64();
-
-    return QString(arr2.data());
-}
-
 void MainWindow::on_actionMake_exe_triggered()
 {
     QFileDialog saveDlg;
-   // QString targetFile = saveDlg.getSaveFileName();
+    saveDlg.setFilter("Executable file (.exe)|*.exe");
+    QString targetFile = saveDlg.getSaveFileName();
 
     CodeDocument *doc = NULL;
 
-    //QString stagingArea = "/home/samy/Desktop/kalimatstagingarea";
-    QString stagingArea = "c:/Users/samy/Desktop/stagingarea";
+    // QString stagingArea = "/home/samy/Desktop/kalimatstagingarea";
+    // QString stagingArea = "c:/Users/samy/Desktop/stagingarea";
+
     try
     {
         currentEditor()->setExtraSelections(QList<QTextEdit::ExtraSelection>());
@@ -1210,18 +1205,18 @@ void MainWindow::on_actionMake_exe_triggered()
         }
         //ui->outputView->append(output);
 
-        QString strConstants = compiler.generator.getStringConstantsAsOpCodes();
-        QFile programCode(stagingArea+ "/program.txt");
-        QDataStream stream(&programCode);
-        programCode.open(QIODevice::WriteOnly| QIODevice::Text);
-        stream << strConstants + compiler.generator.getOutput();
-        programCode.close();
+        QString stagingArea = qApp->applicationDirPath() + "/stagingarea";
 
-        QString bb = strConstants + compiler.generator.getOutput();
+        QStringList strConstants;
 
-        QByteArray bta;
-        QDataStream btta(&bta, QIODevice::WriteOnly);
-        btta << bb;
+        for(QMap<QString, QString>::const_iterator i = compiler.generator.getStringConstants().begin()
+            ; i!=compiler.generator.getStringConstants().end(); ++i)
+        {
+            QString sym = base64encode(i.value());
+            QString data = base64encode(i.key());
+            strConstants.append(QString("SmallVMAddStringConstant('%1','%2')").arg(sym).arg(data));
+        }
+        QString bb = compiler.generator.getOutput();
 
         QString baha = base64encode(bb);
         QStringList segments;
@@ -1230,17 +1225,25 @@ void MainWindow::on_actionMake_exe_triggered()
             segments.append("'" + baha.left(80)+"'");
             baha = baha.mid(80);
         }
-        QString pascalProgram = QString("program RunSmallVM;\n\
-                                        {$APPTYPE GUI}\n\
-        function RunSmallVMCodeBase64(A:PChar;B:PChar):Integer;stdcall ;external 'smallvm.dll';\n\
+        //                        {$APPTYPE GUI}\n\
+
+        QString pascalProgram = QString("{$LONGSTRINGS ON} \n\
+                                        program RunSmallVM;\n\
+        procedure RunSmallVMCodeBase64(A:PChar;B:PChar);stdcall ;external 'smallvm.dll';\n\
+        procedure SmallVMAddStringConstant(A:PChar; B:PChar); stdcall; external 'smallvm.dll';\n\
                                         begin\n\
-      RunSmallVMCodeBase64('',%1);\n\
-                                        end.")
+                %1\n%2\n\
+                RunSmallVMCodeBase64('',%3);\n\
+                            end.")
+                .arg(strConstants.join(";\n"))
+                .arg(strConstants.count() >0? ";\n":"")
                 .arg(segments.join("+"));
 
 
-        QString fn = doc ? doc->getFileName()+ ".pas" : "untitled.pas";
-        QString pasFileName = stagingArea + "/" + QFileInfo(fn).fileName();
+        QString fn = doc ? doc->getFileName() : "untitled";
+        fn = QFileInfo(fn).fileName();
+        QString pasFileName = stagingArea + "/" + fn + ".pas";
+        QString exeFileName = stagingArea + "/" + fn + ".exe";
         QFile pascal(pasFileName);
 
         pascal.open(QIODevice::WriteOnly|QIODevice::Text);
@@ -1255,6 +1258,11 @@ void MainWindow::on_actionMake_exe_triggered()
         argz.append(pasFileName);
         fpc.start(stagingArea + "/fpc.exe", argz);
         fpc.waitForFinished(10000);
+        if(fpc.exitCode() == 0)
+        {
+            if(QFile::copy(exeFileName, targetFile))
+                QFile::remove(exeFileName);
+        }
     }
     catch(UnexpectedCharException ex)
     {

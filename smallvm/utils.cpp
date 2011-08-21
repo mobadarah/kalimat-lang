@@ -6,10 +6,35 @@
 **************************************************************************/
 
 #include "utils.h"
-
+#include <iostream>
+using namespace std;
 QString _ws(QStdWString str)
 {
     return QString::fromStdWString(str);
+}
+
+QString base64encode(QString other)
+{
+    QByteArray arr = other.toUtf8();
+
+    QByteArray arr2 = arr.toHex();
+
+    return QString(arr2);
+}
+
+QString base64Decode(QString source)
+{
+    cout << "byte array count:" << source.count() << endl;
+
+    QByteArray original = QByteArray::fromHex(source.toUtf8());
+    QString ret = QString::fromUtf8(original.data());
+
+    wcout << "String length after decoding:" << ret.length() << endl;
+    cout.flush();
+    wcout.flush();
+
+    return ret;
+
 }
 
 QString readFile(QString path)

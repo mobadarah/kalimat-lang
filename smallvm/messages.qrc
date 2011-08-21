@@ -1,0 +1,6 @@
+<RCC>
+    <qresource prefix="/">
+        <file>error_map.txt</file>
+        <file>vm_prelude.txt</file>
+    </qresource>
+</RCC>

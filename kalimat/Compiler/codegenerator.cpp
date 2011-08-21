@@ -48,12 +48,7 @@ QString CodeGenerator::getStringConstantsAsOpCodes()
         QString sym = i.value();
         QString data = i.key();
 
-        QByteArray encoded;
-        QDataStream stream(&encoded, QIODevice::WriteOnly);
-        stream << data;
-
-        QByteArray encoded2(encoded.toBase64());
-        data = QString(encoded2);
+        data = base64encode(data);
 
         ret.append(QString(".strconst %1 %2").arg(sym).arg(data));
         ++i;

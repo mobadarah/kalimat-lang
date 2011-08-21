@@ -76,7 +76,8 @@ HEADERS += \
     runtime/guieditwidgethandler.h
 FORMS +=  runtime/runwindow.ui
 
-RESOURCES +=
+RESOURCES += \
+    messages.qrc
 
 win32:LIBS += -L"$$_PRO_FILE_PWD_/../smallvm/libffi/" -llibffi
 unix:LIBS += -lffi

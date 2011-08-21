@@ -158,6 +158,7 @@ void RunWindow::Init(QString program, QMap<QString, QString> stringConstants, QS
 
         for(int i=0; i<stringConstants.keys().count(); i++)
         {
+
             QString strValue = stringConstants.keys()[i];
             QString strSymRef = stringConstants[strValue];
             vm->DefineStringConstant(strSymRef, strValue);
@@ -342,8 +343,12 @@ void RunWindow::reportError(VMError err)
             if(err.args.count()==1)
                 msg = "<u>" + msg +"</u>" + ":<p>"+ err.args[0]+ "</p";
         */
+        cout << "runwindow::reportError message before translation is:" << msg.toStdString() << endl;
+        cout.flush();
         for(int i=0; i<err.args.count(); i++)
+        {
             msg = msg.arg(err.args[i]);
+        }
 
         QMessageBox box;
         box.setTextFormat(Qt::RichText);

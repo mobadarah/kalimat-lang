@@ -14,6 +14,9 @@
 
 QString _ws(QStdWString str);
 QString readFile(QString path);
+QString base64encode(QString other);
+QString base64Decode(QString source);
+
 class LineIterator
 {
 public:
