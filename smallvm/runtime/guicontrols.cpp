@@ -145,6 +145,7 @@ Value *WindowForeignClass::dispatch(int id, QVector<Value *> args)
         widget->setWindowTitle(*t);
         return NULL;
     }
+    return NULL;
 }
 
 bool WindowForeignObject::hasSlot(QString name)
@@ -153,6 +154,7 @@ bool WindowForeignObject::hasSlot(QString name)
     {
         return true;
     }
+    return false;
 }
 
 QList<QString> WindowForeignObject::getSlotNames()
@@ -166,6 +168,7 @@ Value *WindowForeignObject::getSlotValue(QString name)
 {
     if(name == "handle")
         return handle;
+    return NULL;
 }
 
 void WindowForeignObject::setSlotValue(QString name, Value *val)
@@ -937,7 +940,6 @@ Value *ButtonGroupForeignClass::dispatch(int id, QVector<Value *> args)
     {
         // اضف
         IObject *receiver = args[0]->unboxObj();
-        QObject *qobj =  receiver->getSlotValue("handle")->unboxQObj();
         QButtonGroup *handle = dynamic_cast<QButtonGroup *>(receiver->getSlotValue("handle")->unboxQObj());
 
         ensureValueIsWidget(args[1]);

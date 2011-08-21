@@ -11,19 +11,17 @@
 #include "Parser/parser_incl.h"
 #include "Parser/kalimatast.h"
 #include "Parser/kalimatparser.h"
-#include "codedocument.h"
+#include "../smallvm/codedocument.h"
 #include "Compiler/codegenerator.h"
 #include "Compiler/compiler.h"
 
-#include "runwindow.h"
+#include "../smallvm/runtime/runwindow.h"
 #include "syntaxhighlighter.h"
 
 #include "Parser/kalimatprettyprintparser.h"
 #include "savechangedfiles.h"
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
-
-#include "utils.h"
 
 #include <QMessageBox>
 #include <QFileDialog>
@@ -35,7 +33,8 @@
 #include <QToolBar>
 #include <QClipboard>
 #include <QTextEdit>
-
+#include <QProcess>
+#include <QTextStream>
 MainWindow *MainWindow::that = NULL;
 
 MainWindow::MainWindow(QWidget *parent)
@@ -383,13 +382,18 @@ void MainWindow::on_mnuProgramRun_triggered()
 
 
         this->PositionInfo = compiler.generator.getPositionInfo();
-        RunWindow *rw = new RunWindow(this, path);
-        atBreak = false;
-        connect(this, SIGNAL(destroyed(QObject*)), rw, SLOT(parentDestroyed(QObject *)));
-        rw->show();
-        stoppedRunWindow = rw;
         debugInfo = compiler.generator.debugInfo;
+
+        RunWindow *rw = new RunWindow(this, path, this);
+
+        connect(this, SIGNAL(destroyed(QObject*)), rw, SLOT(parentDestroyed(QObject *)));
+
+        stoppedRunWindow = rw;
+        atBreak = false;
+
+        rw->show();
         rw->Init(output, compiler.generator.getStringConstants(), breakPoints, debugInfo);
+
     }
     catch(UnexpectedCharException ex)
     {
@@ -1156,4 +1160,145 @@ void MainWindow::on_action_step_procedure_triggered()
         cond.originalFrame = frame;
         genericStep(currentDebuggerProcess, cond);
     }
+}
+
+QString base64encode(QString other)
+{
+    QByteArray arr = other.toUtf8();
+
+    QByteArray arr2 = arr.toBase64();
+
+    return QString(arr2.data());
+}
+
+void MainWindow::on_actionMake_exe_triggered()
+{
+    QFileDialog saveDlg;
+   // QString targetFile = saveDlg.getSaveFileName();
+
+    CodeDocument *doc = NULL;
+
+    //QString stagingArea = "/home/samy/Desktop/kalimatstagingarea";
+    QString stagingArea = "c:/Users/samy/Desktop/stagingarea";
+    try
+    {
+        currentEditor()->setExtraSelections(QList<QTextEdit::ExtraSelection>());
+        saveAll();
+        ui->outputView->clear();
+        doc = docContainer->getCurrentDocument();
+        Compiler compiler(docContainer);
+
+        QString output;
+
+        QString path;
+        if(doc->isDocNewFile() || doc->isFileDirty())
+        {
+            output = compiler.CompileFromCode(doc->getEditor()->document()->toPlainText(), doc);
+        }
+        else
+        {
+            output = compiler.CompileFromFile(doc->getFileName(), doc);
+        }
+
+        if(doc->isDocNewFile())
+        {
+            path = "";
+        }
+        else
+        {
+            path = doc->getFileName();
+        }
+        //ui->outputView->append(output);
+
+        QString strConstants = compiler.generator.getStringConstantsAsOpCodes();
+        QFile programCode(stagingArea+ "/program.txt");
+        QDataStream stream(&programCode);
+        programCode.open(QIODevice::WriteOnly| QIODevice::Text);
+        stream << strConstants + compiler.generator.getOutput();
+        programCode.close();
+
+        QString bb = strConstants + compiler.generator.getOutput();
+
+        QByteArray bta;
+        QDataStream btta(&bta, QIODevice::WriteOnly);
+        btta << bb;
+
+        QString baha = base64encode(bb);
+        QStringList segments;
+        while(baha.length() > 0)
+        {
+            segments.append("'" + baha.left(80)+"'");
+            baha = baha.mid(80);
+        }
+        QString pascalProgram = QString("program RunSmallVM;\n\
+                                        {$APPTYPE GUI}\n\
+        function RunSmallVMCodeBase64(A:PChar;B:PChar):Integer;stdcall ;external 'smallvm.dll';\n\
+                                        begin\n\
+      RunSmallVMCodeBase64('',%1);\n\
+                                        end.")
+                .arg(segments.join("+"));
+
+
+        QString fn = doc ? doc->getFileName()+ ".pas" : "untitled.pas";
+        QString pasFileName = stagingArea + "/" + QFileInfo(fn).fileName();
+        QFile pascal(pasFileName);
+
+        pascal.open(QIODevice::WriteOnly|QIODevice::Text);
+        QTextStream p(&pascal);
+        p.setCodec("UTF-8");
+        p << pascalProgram;
+        pascal.close();
+
+        QProcess fpc;
+
+        QStringList argz;
+        argz.append(pasFileName);
+        fpc.start(stagingArea + "/fpc.exe", argz);
+        fpc.waitForFinished(10000);
+    }
+    catch(UnexpectedCharException ex)
+    {
+        //show_error(ex->buildMessage());
+        show_error(QString::fromStdWString(L"لا يمكن كتابة هذا الرمز هنا '%1'").arg(ex.getCulprit()));
+        if(doc != NULL)
+        {
+            CodeDocument *dc = doc;
+            highlightLine(dc->getEditor(), ex.getLine());
+        }
+    }
+    catch(UnexpectedEndOfFileException ex)
+    {
+        //show_error("Unexpected end of file");
+        //show_error(QString::fromStdWString(L"خطأ في تركيب البرنامج"));
+        show_error(QString::fromStdWString(L"انتهى البرنامج قبل أن يكون له معنى"));
+    }
+    catch(ParserException ex)
+    {
+        //show_error(ex->message);
+        show_error(QString::fromStdWString(L"خطأ في تركيب البرنامج"));
+        if(doc != NULL && ex.hasPosInfo)
+        {
+            CodeDocument *dc = doc;
+            if(ex.pos.tag != NULL)
+            {
+                dc = (CodeDocument *) ex.pos.tag;
+            }
+            highlightLine(dc->getEditor(), ex.pos.Pos);
+        }
+    }
+    catch(CompilerException ex)
+    {
+       show_error(ex.getMessage());
+       // show_error(QString(L"خطأ في تركيب البرنامج"));
+       if(doc != NULL)
+       {
+           CodeDocument *dc = doc;
+           if(ex.source->getPos().tag != NULL)
+           {
+               dc = (CodeDocument *) ex.source->getPos().tag;
+           }
+           highlightLine(dc->getEditor(), ex.source->getPos().Pos);
+       }
+    }
+
 }

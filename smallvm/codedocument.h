@@ -28,12 +28,12 @@ private:
     QString _fileName;
     QTextEdit *editor;
     QTabWidget *tabs;
-    DocumentContainer *container;
-    CodeDocument(QString fileName, QTabWidget *tabs, QWidget *tabWidget, DocumentContainer *container);
+    RecentFileHandler *listener;
+    CodeDocument(QString fileName, QTabWidget *tabs, QWidget *tabWidget, RecentFileHandler *listener);
 public:
 
-    static CodeDocument *newDoc(QString fileName, QTabWidget *tabs, QWidget *tabWidget, DocumentContainer *container);
-    static CodeDocument *openDoc(QString fileName, QTabWidget *tabs, QWidget *tabWidget, DocumentContainer *container);
+    static CodeDocument *newDoc(QString fileName, QTabWidget *tabs, QWidget *tabWidget, RecentFileHandler *listener);
+    static CodeDocument *openDoc(QString fileName, QTabWidget *tabs, QWidget *tabWidget, RecentFileHandler *listener);
     virtual ~CodeDocument();
     QTextEdit *getEditor();
     void setDirty(bool dirty);

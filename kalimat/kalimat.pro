@@ -17,7 +17,6 @@ SOURCES += main.cpp \
     Parser/kalimatparser.cpp \
     Parser/kalimatast.cpp \
     syntaxhighlighter.cpp \
-    runwindow.cpp \
     ../smallvm/vm.cpp \
     ../smallvm/value.cpp \
     ../smallvm/method.cpp \
@@ -25,23 +24,14 @@ SOURCES += main.cpp \
     ../smallvm/externalmethod.cpp \
     ../smallvm/vmerror.cpp \
     ../smallvm/frame.cpp \
-    sprite.cpp \
-    codedocument.cpp \
     savechangedfiles.cpp \
-    utils.cpp \
     Compiler/codegenerator.cpp \
     Compiler/compiler.cpp \
     documentcontainer.cpp \
     ../smallvm/allocator.cpp \
     Compiler/codegenhelper.cpp \
-    painttimer.cpp \
     linetracker.cpp \
     myedit.cpp \
-    textlayer.cpp \
-    spritelayer.cpp \
-    builtinmethods.cpp \
-    paintsurface.cpp \
-    guieditwidgethandler.cpp \
     Parser/codeformatter.cpp \
     ../smallvm/references.cpp \
     ../smallvm/classes.cpp \
@@ -49,14 +39,25 @@ SOURCES += main.cpp \
     ../smallvm/easyforeignclass.cpp \
     ../smallvm/channel.cpp \
     ../smallvm/process.cpp \
-    guicontrols.cpp \
     ../smallvm/metaclass.cpp \
-    Compiler/debuginfo.cpp \
-    breakpoint.cpp \
     ../smallvm/vmutils.cpp \
-    ../smallvm/vm_ffi.cpp
+    ../smallvm/vm_ffi.cpp \
+    ../smallvm/runtime/vmclient.cpp \
+    ../smallvm/runtime/textlayer.cpp \
+    ../smallvm/runtime/spritelayer.cpp \
+    ../smallvm/runtime/sprite.cpp \
+    ../smallvm/runtime/runwindow.cpp \
+    ../smallvm/runtime/painttimer.cpp \
+    ../smallvm/runtime/paintsurface.cpp \
+    ../smallvm/runtime/guieditwidgethandler.cpp \
+    ../smallvm/runtime/guicontrols.cpp \
+    ../smallvm/runtime/builtinmethods.cpp \
+    ../smallvm/debugger.cpp \
+    ../smallvm/codedocument.cpp \
+    ../smallvm/breakpoint.cpp \
+    ../smallvm/debuginfo.cpp \
+    ../smallvm/utils.cpp
 HEADERS += mainwindow.h \
-    codedocument.h \
     Lexer/token.h \
     Lexer/statemachine.h \
     Lexer/state.h \
@@ -73,33 +74,26 @@ HEADERS += mainwindow.h \
     Parser/parser_incl.h \
     Parser/kalimatast.h \
     syntaxhighlighter.h \
-    runwindow.h \
-    sprite.h \
     savechangedfiles.h \
     Compiler/codeposition.h \
-    utils.h \
     Compiler/codegenerator.h \
     Compiler/codegenerator_incl.h \
     Compiler/compiler.h \
     documentcontainer.h \
     Compiler/codegenhelper.h \
-    painttimer.h \
     linetracker.h \
     myedit.h \
-    textlayer.h \
-    spritelayer.h \
-    builtinmethods.h \
-    paintsurface.h \
-    guieditwidgethandler.h \
     Parser/codeformatter.h \
     Parser/kalimatprettyprintparser.h \
-    guicontrols.h \
-    Compiler/debuginfo.h \
-    breakpoint.h
+    ../smallvm/debuginfo.h \
+    ../smallvm/runtime/runwindow.h \
+    ../smallvm/runtime/guieditwidgethandler.h \
+    ../smallvm/runtime/guicontrols.h \
+    ../smallvm/codedocument.h
 
 FORMS += mainwindow.ui \
-    runwindow.ui \
-    savechangedfiles.ui
+    savechangedfiles.ui \
+    ../smallvm/runtime/runwindow.ui
 
 # QT += testlib
 # CONFIG += qtestlib

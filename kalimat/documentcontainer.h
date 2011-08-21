@@ -14,7 +14,7 @@
 #include <QMap>
 #include <QString>
 
-#include "codedocument.h"
+#include "../smallvm/codedocument.h"
 
 class DocumentClient
 {

@@ -45,16 +45,16 @@
     #include "builtinmethods.h"
 #endif
 
-#ifndef CODEDOCUMENT_H
-    #include "codedocument.h"
-#endif
-
 #ifndef DEBUGINFO_H
-    #include "Compiler/debuginfo.h"
+    #include "../debuginfo.h"
 #endif
 
 #ifndef BREAKPOINT_H
-    #include "breakpoint.h"
+    #include "../breakpoint.h"
+#endif
+
+#ifndef VMCLIENT_H
+    #include "vmclient.h"
 #endif
 
 namespace Ui {
@@ -69,7 +69,7 @@ enum RunWindowState
 class RunWindow : public QMainWindow {
     Q_OBJECT
 public:
-    RunWindow(QWidget *parent, QString pathOfProgramsFile);
+    RunWindow(QWidget *parent, QString pathOfProgramsFile, VMClient *client = NULL);
     ~RunWindow();
     void Init(QString program, QMap<QString, QString> stringConstants, QSet<Breakpoint> breakPoints, DebugInfo debugInfo);
     void InitVMPrelude(VM *vm);
@@ -80,6 +80,7 @@ public:
 private:
     QString pathOfProgramsFile;
     VM *vm;
+    VMClient *client;
     WindowReadMethod *readMethod;
     QMap<VMErrorType, QString> ErrorMap;
     QString translate_error(VMError err);

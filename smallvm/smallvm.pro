@@ -2,7 +2,8 @@
 # Project created by QtCreator 2010-03-04T20:06:04
 # -------------------------------------------------
 TARGET = smallvm
-TEMPLATE = app
+TEMPLATE = lib
+CONFIG += dll
 SOURCES += main.cpp \
     value.cpp \
     instruction.cpp \
@@ -22,7 +23,21 @@ SOURCES += main.cpp \
     debugger.cpp \
     tracelistener.cpp \
     vmutils.cpp \
-    vm_ffi.cpp
+    vm_ffi.cpp \
+    runtime/textlayer.cpp \
+    runtime/spritelayer.cpp \
+    runtime/sprite.cpp \
+    runtime/runwindow.cpp \
+    runtime/painttimer.cpp \
+    runtime/paintsurface.cpp \
+    runtime/guicontrols.cpp \
+    runtime/builtinmethods.cpp \
+    codedocument.cpp \
+    breakpoint.cpp \
+    utils.cpp \
+    runtime/vmclient.cpp \
+    runtime/guieditwidgethandler.cpp \
+    debuginfo.cpp
 
 HEADERS += \
     value.h \
@@ -44,8 +59,23 @@ HEADERS += \
     metaclass.h \
     debugger.h \
     tracelistener.h \
-    vm_ffi.h
-FORMS +=
+    vm_ffi.h \
+    runtime/textlayer.h \
+    runtime/spritelayer.h \
+    runtime/sprite.h \
+    runtime/runwindow.h \
+    runtime/painttimer.h \
+    runtime/paintsurface.h \
+    runtime/guicontrols.h \
+    runtime/builtinmethods.h \
+    debuginfo.h \
+    codedocument.h \
+    breakpoint.h \
+    utils.h \
+    runtime/vmclient.h \
+    runtime/guieditwidgethandler.h
+FORMS +=  runtime/runwindow.ui
+
 RESOURCES +=
 
 win32:LIBS += -L"$$_PRO_FILE_PWD_/../smallvm/libffi/" -llibffi

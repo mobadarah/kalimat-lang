@@ -499,6 +499,19 @@ public:
 
 };
 
+class FunctionTypeExpression : public TypeExpression
+{
+    QScopedPointer<TypeExpression> _retType;
+    QVector<QSharedPointer<TypeExpression> > _argTypes;
+public:
+    FunctionTypeExpression(Token pos, TypeExpression *retType, QVector<TypeExpression *> argTypes);
+    QString toString();
+    void prettyPrint(CodeFormatter *formatter);
+    TypeExpression *retType() { return _retType.data(); }
+    int argTypeCount() { return _argTypes.count(); }
+    TypeExpression *argType(int i) { return _argTypes[i].data(); }
+};
+
 class Expression : public AST
 {
     ASTImpl _astImpl;

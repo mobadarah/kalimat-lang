@@ -6,10 +6,9 @@
 **************************************************************************/
 
 #include "runwindow.h"
-#include "mainwindow.h"
 #include "ui_runwindow.h"
 
-#include "utils.h"
+#include "../utils.h"
 #include "guicontrols.h"
 
 #include <QPainter>
@@ -17,11 +16,14 @@
 #include <QMessageBox>
 #include <QWaitCondition>
 #include <QClipboard>
-
+#include <QTime>
 #include <iostream>
+#include <QFileInfo>
+#include <QDir>
+
 using namespace std;
 
-RunWindow::RunWindow(QWidget *parent, QString pathOfProgramsFile) :
+RunWindow::RunWindow(QWidget *parent, QString pathOfProgramsFile, VMClient *client) :
     QMainWindow(parent),
     updateTimer(30),
     ui(new Ui::RunWindow)
@@ -36,6 +38,7 @@ RunWindow::RunWindow(QWidget *parent, QString pathOfProgramsFile) :
     readMethod = new WindowReadMethod(this, vm);
     vm = NULL;
     textLayer.clearText();
+    this->client = client;
 }
 
 void RunWindow::closeEvent(QCloseEvent *ev)
@@ -43,8 +46,7 @@ void RunWindow::closeEvent(QCloseEvent *ev)
     suspend();
     if(vm != NULL)
         vm->gc();
-    MainWindow *mw = dynamic_cast<MainWindow *>(parentWidget());
-    mw->programStopped(this);
+    client->programStopped(this);
 }
 
 void RunWindow::parentDestroyed(QObject *)
@@ -216,8 +218,7 @@ void RunWindow::Init(QString program, QMap<QString, QString> stringConstants, QS
         }
         vm->Init();
 
-        MainWindow *mw = dynamic_cast<MainWindow *>(this->parent());
-        vm->setDebugger(mw);
+        vm->setDebugger(client);
 
         Run();
     }
@@ -253,16 +254,15 @@ void RunWindow::InitVMPrelude(VM *vm)
 
 void RunWindow::singleStep(Process *proc)
 {
-    MainWindow *mw = dynamic_cast<MainWindow *>(this->parent());
     int pos,  len, oldPos = -1, oldLen = -1;
     try
     {
         if((state == rwNormal || state ==rwTextInput)&& vm->isRunning() && !vm->processIsFinished(proc))
         {
-            bool visualize = mw != NULL && mw->isWonderfulMonitorEnabled();
+            bool visualize = client->isWonderfulMonitorEnabled();
 
             if(visualize)
-                mw->markCurrentInstruction(vm, pos, len);
+                client->markCurrentInstruction(vm, pos, len);
 
             vm->RunSingleInstruction(proc);
             redrawWindow();
@@ -271,7 +271,7 @@ void RunWindow::singleStep(Process *proc)
                 &&  (oldPos != pos ) && (oldLen != len)
                 )
             {
-                QTime dieTime = QTime::currentTime().addMSecs(mw->wonderfulMonitorDelay());
+                QTime dieTime = QTime::currentTime().addMSecs(client->wonderfulMonitorDelay());
                 while( QTime::currentTime() < dieTime )
                     QCoreApplication::processEvents(QEventLoop::AllEvents, 100);
             }
@@ -291,16 +291,15 @@ void RunWindow::singleStep(Process *proc)
 
 void RunWindow::Run()
 {
-    MainWindow *mw = dynamic_cast<MainWindow *>(this->parent());
     int pos,  len, oldPos = -1, oldLen = -1;
     try
     {
         while((state == rwNormal || state ==rwTextInput)&& vm->isRunning())
         {
-            bool visualize = mw != NULL && mw->isWonderfulMonitorEnabled();
+            bool visualize = client->isWonderfulMonitorEnabled();
 
             if(visualize)
-                mw->markCurrentInstruction(vm, pos, len);
+                client->markCurrentInstruction(vm, pos, len);
 
             if(visualize)
                 vm->RunStep(true);
@@ -315,7 +314,7 @@ void RunWindow::Run()
                 &&  (oldPos != pos ) && (oldLen != len)
                 )
             {
-                QTime dieTime = QTime::currentTime().addMSecs(mw->wonderfulMonitorDelay());
+                QTime dieTime = QTime::currentTime().addMSecs(client->wonderfulMonitorDelay());
                 while( QTime::currentTime() < dieTime )
                     QCoreApplication::processEvents(QEventLoop::AllEvents, 30);
             }
@@ -325,7 +324,7 @@ void RunWindow::Run()
             qApp->processEvents();
         }
         if(vm->isDone())
-            mw->programStopped(this);
+            client->programStopped(this);
         update();// Final update, in case the last instruction didn't update things in time.
     }
     catch(VMError err)
@@ -353,11 +352,7 @@ void RunWindow::reportError(VMError err)
         box.setText(msg);
         box.exec();
 
-        MainWindow *mw = dynamic_cast<MainWindow *>(this->parent());
-        if(mw!= NULL)
-        {
-            mw->handleVMError(err);
-        }
+        client->handleVMError(err);
 }
 
 QString RunWindow::pathOfRunningProgram()

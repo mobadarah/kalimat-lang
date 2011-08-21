@@ -10,12 +10,12 @@
 #include "Parser/parser_incl.h"
 #include "Parser/kalimatast.h"
 #include "Parser/kalimatparser.h"
-#include "codedocument.h"
+#include "../../smallvm/codedocument.h"
 #include "documentcontainer.h"
 #include "codegenerator.h"
 
 #include "compiler.h"
-#include "utils.h"
+#include "../../smallvm/utils.h"
 
 Compiler::Compiler(DocumentContainer *container)
 {

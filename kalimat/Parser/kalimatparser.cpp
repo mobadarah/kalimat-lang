@@ -228,8 +228,9 @@ Statement *KalimatParser::statement()
     if(firstToken.sister != NULL)
     {
         ret->attachedComments = firstToken.sister->Lexeme;
-        MainWindow::that->outputMsg(QString("Statement: %1; has sister: %2")
+     /*   MainWindow::that->outputMsg(QString("Statement: %1; has sister: %2")
                                     .arg(ret->toString()).arg(ret->attachedComments));
+                                    */
     }
     return ret;
 }
@@ -276,8 +277,8 @@ Declaration *KalimatParser::declaration()
     if(firstToken.sister != NULL)
     {
         ret->attachedComments = firstToken.sister->Lexeme;
-        MainWindow::that->outputMsg(QString("Declaration: %1; has sister: %2")
-                                    .arg(ret->toString()).arg(ret->attachedComments));
+       /* MainWindow::that->outputMsg(QString("Declaration: %1; has sister: %2")
+                                    .arg(ret->toString()).arg(ret->attachedComments));*/
     }
     return ret;
 }
@@ -1725,7 +1726,7 @@ Identifier *KalimatParser::identifier()
 
 bool KalimatParser::LA_first_typeExpression()
 {
-    return LA(IDENTIFIER) || LA(POINTER);
+    return LA(IDENTIFIER) || LA(POINTER) || LA(PROCEDURE) || LA(FUNCTION);
 }
 
 TypeExpression *KalimatParser::typeExpression()
@@ -1739,13 +1740,51 @@ TypeExpression *KalimatParser::typeExpression()
         match(RPAREN);
         return new PointerTypeExpression(tok, pointee);
     }
-    if(LA(IDENTIFIER))
+    else if(LA(IDENTIFIER))
     {
         TypeIdentifier *ret = NULL;
         ret = new TypeIdentifier(lookAhead, lookAhead.Lexeme);
         match(IDENTIFIER);
         return ret;
     }
+    else if(LA(PROCEDURE))
+    {
+        QVector<TypeExpression *> argTypes;
+        Token tok = lookAhead;
+        match(PROCEDURE);
+        match(LPAREN);
+        if(LA_first_typeExpression())
+        {
+            argTypes.append(typeExpression());
+            while(LA(COMMA))
+            {
+                match(COMMA);
+                argTypes.append(typeExpression());
+            }
+        }
+        match(RPAREN);
+        return new FunctionTypeExpression(tok, NULL, argTypes);
+    }
+    else if(LA(FUNCTION))
+    {
+        QVector<TypeExpression *> argTypes;
+        Token tok = lookAhead;
+        match(FUNCTION);
+        match(LPAREN);
+        if(LA_first_typeExpression())
+        {
+            argTypes.append(typeExpression());
+            while(LA(COMMA))
+            {
+                match(COMMA);
+                argTypes.append(typeExpression());
+            }
+        }
+        match(RPAREN);
+        TypeExpression *retType = typeExpression();
+        return new FunctionTypeExpression(tok, retType, argTypes);
+    }
+
     throw ParserException(getPos(), "Expected Type Expression");
 }
 
@@ -1784,7 +1823,6 @@ QVector<Expression *> KalimatParser::comma_separated_pairs()
     }
     return ret;
 }
-
 
 QVector<StrLiteral *> KalimatParser::usingDirectives()
 {

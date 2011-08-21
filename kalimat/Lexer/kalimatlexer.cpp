@@ -7,7 +7,7 @@
 
 #include "lexer_incl.h"
 #include "kalimatlexer.h"
-#include "../utils.h"
+#include "../smallvm/utils.h" // for LineIterator, todo: this is a bad dependency
 #include <QString>
 
 QMap<int, QString> KalimatLexer::tokenNameMap;

@@ -14,31 +14,30 @@
 #include <QGraphicsBlurEffect>
 
 #include "codedocument.h"
-#include "documentcontainer.h"
 
 //#include "mainwindow.h"
 
-CodeDocument *CodeDocument::newDoc(QString fileName, QTabWidget *tabs, QWidget *tabWidget, DocumentContainer *container)
+CodeDocument *CodeDocument::newDoc(QString fileName, QTabWidget *tabs, QWidget *tabWidget, RecentFileHandler *listener)
 {
-    CodeDocument *ret = new CodeDocument(fileName, tabs, tabWidget, container);
+    CodeDocument *ret = new CodeDocument(fileName, tabs, tabWidget, listener);
     ret->isNewFile = true;
     return ret;
 }
 
-CodeDocument *CodeDocument::openDoc(QString fileName, QTabWidget *tabs, QWidget *tabWidget, DocumentContainer *container)
+CodeDocument *CodeDocument::openDoc(QString fileName, QTabWidget *tabs, QWidget *tabWidget, RecentFileHandler *listener)
 {
-    CodeDocument *ret = new CodeDocument(fileName, tabs, tabWidget, container);
+    CodeDocument *ret = new CodeDocument(fileName, tabs, tabWidget, listener);
     ret->isNewFile = false;
     ret->load();
     return ret;
 }
 
-CodeDocument::CodeDocument(QString fileName, QTabWidget *tabs, QWidget *tabWidget, DocumentContainer *container) : QObject(NULL)
+CodeDocument::CodeDocument(QString fileName, QTabWidget *tabs, QWidget *tabWidget, RecentFileHandler *listener) : QObject(NULL)
 {
     isNewFile = true;            // prevent setFile from updating the recentFileHandler
                                  // upon construction
 
-    this->container = container; // setFileName & setDirty use the 'container' member, always set it first
+    this->listener = listener; // setFileName & setDirty use the 'container' member, always set it first
     initTabLink(tabs, tabWidget);
     setFileName(fileName);
     setDirty(false);
@@ -88,9 +87,9 @@ QString CodeDocument::getFileName()
 void CodeDocument::setFileName(QString fn)
 {
     _fileName = fn;
-    if(!isNewFile && container!= NULL)
+    if(!isNewFile && listener!= NULL)
     {
-        container->onFileTouched(fn, this);
+        listener-> onFileTouched(fn, this);
     }
 }
 

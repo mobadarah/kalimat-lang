@@ -203,6 +203,8 @@
     <addaction name="action_step"/>
     <addaction name="action_step_procedure"/>
     <addaction name="action_step_parameters"/>
+    <addaction name="separator"/>
+    <addaction name="actionMake_exe"/>
    </widget>
    <widget class="QMenu" name="mnuHelp">
     <property name="tearOffEnabled">
@@ -843,6 +845,11 @@
    </property>
    <property name="shortcut">
     <string>Shift+F10</string>
+   </property>
+  </action>
+  <action name="actionMake_exe">
+   <property name="text">
+    <string>عمل ملف تنفيذي...</string>
    </property>
   </action>
  </widget>

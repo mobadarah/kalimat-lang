@@ -10,7 +10,7 @@
 
 #include <QtGui/QMainWindow>
 #include "syntaxhighlighter.h"
-#include "codedocument.h"
+#include "../smallvm/codedocument.h"
 
 #ifndef VM_H
     #include "../smallvm/vm_incl.h"
@@ -22,7 +22,8 @@
 #include "Compiler/codegenerator_incl.h"
 #include "documentcontainer.h"
 #include "myedit.h"
-#include "breakpoint.h"
+#include "../smallvm/breakpoint.h"
+#include "../smallvm/runtime/vmclient.h"
 #include <QQueue>
 #include <QGraphicsView>
 #include <QActionGroup>
@@ -48,7 +49,7 @@ struct StepStopCondition
     virtual bool stopNow(CodeDocument *doc1, int line1, Frame *frame1, CodeDocument *doc2, int line2, Frame *frame2)=0;
 };
 
-class MainWindow : public QMainWindow, public DocumentClient, public Debugger
+class MainWindow : public QMainWindow, public DocumentClient, public VMClient
 {
     Q_OBJECT
 
@@ -150,6 +151,7 @@ private slots:
     void on_action_resume_triggered();
     void on_action_step_triggered();
     void on_action_step_procedure_triggered();
+    void on_actionMake_exe_triggered();
 };
 
 #endif // MAINWINDOW_H

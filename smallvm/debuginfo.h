@@ -2,13 +2,10 @@
 #define DEBUGINFO_H
 
 #include <QMap>
-
-#ifndef KALIMATAST_H
-    #include "../Parser/kalimatast.h"
-#endif
+#include <QSet>
 
 #ifndef CODEDOCUMENT_H
-    #include "../codedocument.h"
+    #include "codedocument.h"
 #endif
 
 struct InstructionLocation

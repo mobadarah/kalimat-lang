@@ -9,7 +9,7 @@
 #include "../Parser/codeformatter.h"
 #include "../Parser/ast.h"
 #include "../Parser/kalimatast.h"
-#include "codedocument.h"
+#include "../smallvm/codedocument.h"
 #include "codeposition.h"
 #include "codegenhelper.h"
 #include "codegenerator.h"

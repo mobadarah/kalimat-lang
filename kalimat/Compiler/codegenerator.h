@@ -11,7 +11,7 @@
 #include "codegenhelper.h"
 
 #ifndef DEBUGINFO_H
-    #include "debuginfo.h"
+    #include "../smallvm/debuginfo.h"
 #endif
 
 enum MethodCallStyle
@@ -66,6 +66,7 @@ public:
     void generate(Program *program, CodeDocument *curDoc);
     QString getOutput();
     void compileModule(Module *module, CodeDocument *curDoc);
+    QString getStringConstantsAsOpCodes();
 private:
 
     void generateEntryPoint(QVector<Statement *> statements);

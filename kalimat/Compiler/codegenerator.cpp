@@ -13,7 +13,8 @@
 #include <QStack>
 
 #include "codegenerator_incl.h"
-#include "../utils.h"
+#include "../../smallvm/utils.h"
+
 template<typename T1, typename T2> bool isa(T2 *value)
 {
     T1 *test = dynamic_cast<T1 *>(value);
@@ -36,6 +37,29 @@ void CodeGenerator::Init()
 QString CodeGenerator::getOutput()
 {
     return _asm.getOutput();
+}
+
+QString CodeGenerator::getStringConstantsAsOpCodes()
+{
+    QStringList ret;
+    QMap<QString,QString>::const_iterator i = getStringConstants().begin();
+    while(i != getStringConstants().end())
+    {
+        QString sym = i.value();
+        QString data = i.key();
+
+        QByteArray encoded;
+        QDataStream stream(&encoded, QIODevice::WriteOnly);
+        stream << data;
+
+        QByteArray encoded2(encoded.toBase64());
+        data = QString(encoded2);
+
+        ret.append(QString(".strconst %1 %2").arg(sym).arg(data));
+        ++i;
+    }
+    ret.append("");
+    return ret.join("\n");
 }
 
 void CodeGenerator::defineInCurrentScope(QString var)

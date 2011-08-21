@@ -1179,6 +1179,7 @@ void setupChildren(QGridLayout *layout,Value *v, Reference *ref, QString label, 
     case MultiDimensionalArrayVal:
     case ChannelVal:
     case QObjectVal:
+    case MapVal:
         break;
     }
 }

@@ -9,7 +9,7 @@
 #include "vm.h"
 #include "vmutils.h"
 #include "vm_ffi.h"
-#include <iostream>
+//#include <iostream>
 #include <stdio.h>
 #include <QLibrary>
 
@@ -694,7 +694,20 @@ void VM::Load(QString assemblyCode)
             opcode = lineParts[0];
             arg = arg = lineParts.count()>1? lineParts[1] : "";
         }
-        if(opcode == ".method")
+        if(opcode == ".strconst")
+        {
+            if(lineParts.count() != 3)
+                signal(InternalError1, "Malformed .strconst input");
+
+            QString &sym = arg;
+            QByteArray base64 = lineParts[2].toAscii();
+            QByteArray arr = QByteArray::fromBase64(base64);
+            QDataStream stream(arr);
+            QString data;
+            stream >> data;
+            DefineStringConstant(sym, data);
+        }
+        else if(opcode == ".method")
         {
             curMethodName = arg.trimmed();
             int arity = -1;

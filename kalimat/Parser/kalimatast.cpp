@@ -6,7 +6,7 @@
 **************************************************************************/
 
 #include "kalimatast.h"
-#include "utils.h"
+#include "../../smallvm/utils.h"
 using namespace std;
 
 CompilationUnit::CompilationUnit(Token pos) : _astImpl(pos)
@@ -513,6 +513,20 @@ QString PointerTypeExpression::toString()
     return QString("pointer(%1)").arg(pointeeType()->toString());
 }
 
+FunctionTypeExpression::FunctionTypeExpression(Token pos, TypeExpression *retType, QVector<TypeExpression *> argTypes)
+    :TypeExpression(pos), _retType(retType)
+{
+    for(int i=0; i<argTypes.count(); i++)
+        _argTypes.append(QSharedPointer<TypeExpression>(argTypes[i]));
+}
+QString FunctionTypeExpression::toString()
+{
+    QStringList strs;
+    for(int i=0; i<argTypeCount(); i++)
+        strs.append(argType(i)->toString());
+    return QString("func(%1,[%2])").arg(retType()?retType()->toString():"void",strs.join(", "));
+}
+
 BinaryOperation::BinaryOperation(Token pos ,QString op, Expression *op1, Expression *op2)
     : Expression(pos),
     _operator(op),
@@ -521,6 +535,7 @@ BinaryOperation::BinaryOperation(Token pos ,QString op, Expression *op1, Express
 
 {
 }
+
 QString BinaryOperation::toString()
 {
     return _ws(L"عملية(%1، %2، %3)")
@@ -856,7 +871,7 @@ QString FFIProceduralDecl::toString()
     for(int i=0; i<paramTypeCount(); i++)
         str1.append(paramType(i)->toString());
     return QString ("ffi(%1,%2,%3,[%4])").arg(procName).arg(symbol)
-            .arg(returnType()->toString()).arg(str1.join(", "));
+            .arg(returnType()?returnType()->toString():"void").arg(str1.join(", "));
 }
 
 FFIStructDecl::FFIStructDecl(Token pos,
@@ -1525,6 +1540,22 @@ void PointerTypeExpression::prettyPrint(CodeFormatter *f)
     f->printKw(L"مشير");
     f->openParen();
     pointeeType()->prettyPrint(f);
+    f->closeParen();
+}
+
+void FunctionTypeExpression::prettyPrint(CodeFormatter *f)
+{
+    if(retType())
+        f->printKw(L"دالة");
+    else
+        f->printKw(L"إجراء");
+    f->openParen();
+    for(int i=0; i<argTypeCount(); i++)
+    {
+        argType(i)->prettyPrint(f);
+        if(i<argTypeCount()-1)
+            f->comma();
+    }
     f->closeParen();
 }
 
