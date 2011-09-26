@@ -32,7 +32,6 @@ arrlength
 ret
 .endmethod
 
-
 .method كنص 1
 callex to_string
 ret
@@ -348,3 +347,37 @@ ret
 	callex callforeign
 	ret
 .endmethod
+
+.class معلومات.حادثة.فارة
+    .field س
+    .field ص
+    .field الزر.الأيمن
+    .field الزر.الأيسر
+.endclass
+
+.class معلومات.حادثة.لوحة.مفاتيح
+    .field زر
+    .field حرف
+.endclass
+
+.method قناة.الفارة 0 1
+    callex mouse_event_channel
+    ret
+.endmethod
+
+.method قناة.ضغط.الفارة 0 1
+    callex mouseDown_event_channel
+    ret
+.endmethod
+
+.method قناة.رفع.الفارة 0 1
+    callex mouseUp_event_channel
+    ret
+.endmethod
+
+
+.method قناة.لوحة.المفاتيح 0 1
+    callex kb_event_channel
+    ret
+.endmethod
+

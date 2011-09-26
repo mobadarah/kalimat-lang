@@ -103,6 +103,8 @@ AST *KalimatParser::program()
         else if(LA_first_statement())
         {
             Statement *stmt = statement();
+            if(!eof())
+                match(NEWLINE);
             topLevelStatements.append(stmt);
             originalElements.append(stmt);
         }
@@ -1011,6 +1013,8 @@ BlockStmt *KalimatParser::block()
     while(LA_first_statement())
     {
         stmts.append(statement());
+        if(!eof())
+            match(NEWLINE);
         newLines();
     }
     return new BlockStmt(tok, stmts);
@@ -1081,6 +1085,45 @@ Declaration *KalimatParser::functionDecl()
     ret->body(body);
     return ret;
 }
+
+void KalimatParser::addPropertySetter(Token pos, Identifier *methodName, QVector<Identifier *> formals,
+                                      QMap<QString, PropInfo> &propertyInfo)
+{
+    // Since this is 'responds', the property has to be a setter
+
+    if(!methodName->name.startsWith(QString::fromStdWString(L"حدد.")))
+    {
+        throw ParserException(pos, QString::fromStdWString(L"الاستجابة التي تكتب الخاصية لابد أن تبدأ بـ 'حدد.'"));
+    }
+    else if(formals.count() !=1)
+    {
+        throw ParserException(pos, QString::fromStdWString(L"الاستجابة التي تكتب الخاصية لابد أن تأخذ عاملاً واحداً.'"));
+    }
+    QString realName = methodName->name.mid(4); // remove حدد.
+    if(!propertyInfo.contains(realName))
+    {
+        propertyInfo[realName] = PropInfo();
+        propertyInfo[realName].write = true;
+    }
+}
+
+void KalimatParser::addPropertyGetter(Token pos, Identifier *methodName, QVector<Identifier *> formals,
+                                      QMap<QString, PropInfo> &propertyInfo)
+{
+    // Since this is 'replies', the property has to be a getter
+
+    if(formals.count() !=0)
+    {
+        throw ParserException(pos, QString::fromStdWString(L"الرد الذي يكتب الخاصية لابد ألّا يأخذ عواملاً.'"));
+    }
+    QString realName = methodName->name;
+    if(!propertyInfo.contains(realName))
+    {
+        propertyInfo[realName] = PropInfo();
+        propertyInfo[realName].read = true;
+    }
+}
+
 Declaration *KalimatParser::classDecl()
 {
     QVector<Identifier *> fields;
@@ -1095,6 +1138,7 @@ Declaration *KalimatParser::classDecl()
     match(NEWLINE);
     newLines();
     QVector<QSharedPointer<ClassInternalDecl> > internalDecls;
+    QMap<QString, PropInfo> propertyInfo;
 
     while(LA(HAS)|| LA(RESPONDS) || LA(REPLIES) || LA(BUILT))
     {
@@ -1141,6 +1185,13 @@ Declaration *KalimatParser::classDecl()
                 ri->add(*i);
 
             rt->add(ri);
+            if(LA(PROPERTY))
+            {
+                Token p = lookAhead;
+                match(PROPERTY);
+                addPropertySetter(p, methodName,formals,propertyInfo);
+            }
+
             methods[methodName->name] = MethodInfo(formals.count(), false);
             while(LA(COMMA))
             {
@@ -1151,6 +1202,12 @@ Declaration *KalimatParser::classDecl()
                 for(QVector<Identifier *>::const_iterator i=formals.begin(); i!= formals.end(); ++i)
                     ri->add(*i);
                 rt->add(ri);
+                if(LA(PROPERTY))
+                {
+                    Token p = lookAhead;
+                    match(PROPERTY);
+                    addPropertySetter(p, methodName,formals,propertyInfo);
+                }
                 methods[methodName->name] = MethodInfo(formals.count(), false);
             }
             internalDecls.append(QSharedPointer<ClassInternalDecl>(rt));
@@ -1168,6 +1225,13 @@ Declaration *KalimatParser::classDecl()
             for(QVector<Identifier *>::const_iterator i=formals.begin(); i!= formals.end(); ++i)
                 ri->add(*i);
             rt->add(ri);
+            if(LA(PROPERTY))
+            {
+                Token p = lookAhead;
+                match(PROPERTY);
+                addPropertyGetter(p, methodName,formals,propertyInfo);
+            }
+
             methods[methodName->name] = MethodInfo(formals.count(), true);
             while(LA(COMMA))
             {
@@ -1178,6 +1242,12 @@ Declaration *KalimatParser::classDecl()
                 for(QVector<Identifier *>::const_iterator i=formals.begin(); i!= formals.end(); ++i)
                     ri->add(*i);
                 rt->add(ri);
+                if(LA(PROPERTY))
+                {
+                    Token p = lookAhead;
+                    match(PROPERTY);
+                    addPropertyGetter(p, methodName,formals,propertyInfo);
+                }
                 methods[methodName->name] = MethodInfo(formals.count(), true);
             }
             internalDecls.append(QSharedPointer<ClassInternalDecl>(rt));
@@ -1614,8 +1684,9 @@ bool KalimatParser::LA_first_primary_expression()
             LA(LBRACKET) ||
             LA(LBRACE) ||
             LA(IDENTIFIER) ||
-            LA(LPAREN) ||
-            LA(FIELD);
+            LA(LPAREN);
+                //todo: decide if we still want to keep the field accessor field(obj, id)
+                //||  LA(FIELD);
 }
 
 Expression *KalimatParser::primaryExpressionNonInvokation()
@@ -1693,6 +1764,8 @@ Expression *KalimatParser::primaryExpressionNonInvokation()
         ret = expression();
         match(RPAREN);
     }
+    /*
+      //todo: decide if we still want to keep the field accessor field(obj, id)
     else if(LA(FIELD))
     {
         match(FIELD);
@@ -1703,6 +1776,7 @@ Expression *KalimatParser::primaryExpressionNonInvokation()
         match(RPAREN);
         ret = new Idafa(modaf->getPos(), modaf, modaf_elaih);
     }
+    */
     else
     {
         throw ParserException(getPos(), "Expected a literal, identifier, or parenthesized expression");
@@ -1734,6 +1808,7 @@ TypeExpression *KalimatParser::typeExpression()
     if(LA(POINTER))
     {
         Token tok = lookAhead;
+
         match(POINTER);
         match(LPAREN);
         TypeExpression *pointee = typeExpression();
@@ -1791,7 +1866,7 @@ TypeExpression *KalimatParser::typeExpression()
 QVector<Expression *> KalimatParser::comma_separated_expressions()
 {
     QVector<Expression *> ret;
-    if(LA_first_primary_expression())
+    if(LA_first_expression())
     {
         ret.append(expression());
         while(LA(COMMA))

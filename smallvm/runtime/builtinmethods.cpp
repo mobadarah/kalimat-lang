@@ -50,6 +50,27 @@ void PushReadChanProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
     stack.push(w->readChannel);
 }
 
+void MouseEventChanProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
+{
+    stack.push(w->mouseEventChannel);
+}
+
+void MouseDownEventChanProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
+{
+    stack.push(w->mouseDownEventChannel);
+}
+
+void MouseUpEventChanProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
+{
+    stack.push(w->mouseUpEventChannel);
+}
+
+
+void KbEventChanProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
+{
+    stack.push(w->kbEventChannel);
+}
+
 WindowReadMethod::WindowReadMethod(RunWindow *parent, VM *vm)
 {
     this->parent = parent;
@@ -579,6 +600,19 @@ void DrawSpriteProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
     w->checkCollision(sprite);
     w->redrawWindow();
 }
+
+void ShowSpriteProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
+{
+    w->typeCheck(stack.top(), BuiltInTypes::SpriteType);
+    void *rawVal = stack.pop()->unboxRaw();
+    Sprite  *sprite = (Sprite *) rawVal;
+
+    sprite->visible = true;
+    w->spriteLayer.showSprite(sprite);
+    w->checkCollision(sprite);
+    w->redrawWindow();
+}
+
 void HideSpriteProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 {
     w->typeCheck(stack.top(), BuiltInTypes::SpriteType);
@@ -651,17 +685,6 @@ void GetSpriteHeightProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
     stack.push(vm->GetAllocator().newInt(ret));
 }
 
-void ShowSpriteProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
-{
-    w->typeCheck(stack.top(), BuiltInTypes::SpriteType);
-    void *rawVal = stack.pop()->unboxRaw();
-    Sprite  *sprite = (Sprite *) rawVal;
-
-    sprite->visible = true;
-    w->spriteLayer.showSprite(sprite);
-    w->checkCollision(sprite);
-    w->redrawWindow();
-}
 void WaitProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 {
     int ms = stack.pop()->unboxNumeric();

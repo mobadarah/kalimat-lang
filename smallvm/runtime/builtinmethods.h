@@ -43,6 +43,10 @@ void GetSpriteHeightProc(QStack<Value *> &stack, RunWindow *w, VM *vm);
 
 void WaitProc(QStack<Value *> &, RunWindow *, VM *);
 void CheckAsleepProc(QStack<Value *> &stack, RunWindow *w, VM *vm);
+void MouseEventChanProc(QStack<Value *> &stack, RunWindow *w, VM *vm);
+void MouseDownEventChanProc(QStack<Value *> &stack, RunWindow *w, VM *vm);
+void MouseUpEventChanProc(QStack<Value *> &stack, RunWindow *w, VM *vm);
+void KbEventChanProc(QStack<Value *> &stack, RunWindow *w, VM *vm);
 
 void ClsProc(QStack<Value *> &stack, RunWindow *, VM *w);
 void ClearTextProc(QStack<Value *> &stack, RunWindow *w, VM *vm);

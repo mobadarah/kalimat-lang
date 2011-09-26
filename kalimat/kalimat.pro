@@ -99,7 +99,8 @@ FORMS += mainwindow.ui \
 # CONFIG += qtestlib
 # QT += webkit
 RESOURCES += keywords.qrc \
-    icons.qrc
+    icons.qrc \
+    ../smallvm/messages.qrc
 OTHER_FILES += 
 # QMAKE_CXXFLAGS += -std=c++0x
 RC_FILE = kalimat.rc

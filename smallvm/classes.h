@@ -49,6 +49,12 @@ struct IForeignMethod : public IMethod
     virtual Value *invoke(QVector<Value *> args)=0;
 };
 
+struct PropertyDesc
+{
+    QString name;
+    bool readOnly;
+};
+
 struct IClass : public IObject
 {
     virtual QString getName() = 0;
@@ -58,6 +64,9 @@ struct IClass : public IObject
     virtual IMethod *lookupMethod(QString name)=0;
     virtual IObject *newValue(Allocator *allocator)=0;
     virtual bool getFieldAttribute(QString attr, Value *&ret, Allocator *allocator)=0;
+    // TODO: we need a relection API with attributes, similar to e.g .net
+    // instead of these ad-hoc solutions
+    virtual QVector<PropertyDesc> getProperties()=0;
 };
 
 struct ValueClass : public IClass
@@ -79,6 +88,7 @@ struct ValueClass : public IClass
     IMethod *lookupMethod(QString name);
     IObject *newValue(Allocator *allocator);
     virtual bool getFieldAttribute(QString attr, Value *&ret, Allocator *allocator);
+    virtual QVector<PropertyDesc> getProperties();
     QString toString();
 private:
     void InitObjectLayout(Object *object, Allocator *allocator);
@@ -91,6 +101,7 @@ public:
     QVector<ValueClass*> BaseClasses;
     QMap<QString, Value*> methods;
     QMap<QString, Value *> fieldAttributes;
+    QVector<PropertyDesc> properties;
 };
 
 struct ForeignClass : public IClass
@@ -159,6 +170,7 @@ struct PointerClass : public IClass
     virtual IMethod *lookupMethod(QString name);
     virtual IObject *newValue(Allocator *allocator);
     virtual bool getFieldAttribute(QString attr, Value *&ret, Allocator *allocator);
+    virtual QVector<PropertyDesc> getProperties();
     QString toString();
 
 };

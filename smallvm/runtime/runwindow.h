@@ -70,6 +70,8 @@ class RunWindow : public QMainWindow {
     Q_OBJECT
 public:
     RunWindow(QWidget *parent, QString pathOfProgramsFile, VMClient *client = NULL);
+    RunWindow(QString pathOfProgramsFile, VMClient *client = NULL);
+    void setup(QString pathOfProgramsFile, VMClient *client);
     ~RunWindow();
     void Init(QString program, QMap<QString, QString> stringConstants, QSet<Breakpoint> breakPoints, DebugInfo debugInfo);
     void InitVMPrelude(VM *vm);
@@ -96,6 +98,11 @@ public:
     TextLayer textLayer;
     SpriteLayer spriteLayer;
     PaintSurface *paintSurface;
+
+    Value *mouseEventChannel;
+    Value *mouseDownEventChannel;
+    Value *mouseUpEventChannel;
+    Value *kbEventChannel;
     void checkCollision(Sprite *s);
     void onCollision(Sprite *s1, Sprite *s2);
     void cls();
@@ -106,6 +113,7 @@ public:
     PaintTimer updateTimer;
 private:
     Ui::RunWindow *ui;
+
     void activateMouseEvent(QMouseEvent *ev, QString evName);
     void activateKeyEvent(QKeyEvent *ev, QString evName);
 public:

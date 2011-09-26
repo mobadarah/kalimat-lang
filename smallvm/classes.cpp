@@ -17,6 +17,10 @@ bool ValueClass::getFieldAttribute(QString attr, Value *&ret, Allocator *allocat
     return true;
 }
 
+QVector<PropertyDesc> ValueClass::getProperties()
+{
+    return properties;
+}
 
 void ValueClass::InitObjectLayout(Object *object, Allocator *allocator)
 {
@@ -106,6 +110,11 @@ IObject *PointerClass::newValue(Allocator *allocator)
 bool PointerClass::getFieldAttribute(QString attr, Value *&ret, Allocator *allocator)
 {
     return false;
+}
+
+QVector<PropertyDesc> PointerClass::getProperties()
+{
+    return QVector<PropertyDesc>();
 }
 
 QString PointerClass::toString()

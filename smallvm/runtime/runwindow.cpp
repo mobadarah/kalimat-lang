@@ -17,7 +17,7 @@
 #include <QWaitCondition>
 #include <QClipboard>
 #include <QTime>
-#include <iostream>
+//#include <iostream>
 #include <QFileInfo>
 #include <QDir>
 
@@ -27,6 +27,19 @@ RunWindow::RunWindow(QWidget *parent, QString pathOfProgramsFile, VMClient *clie
     QMainWindow(parent),
     updateTimer(30),
     ui(new Ui::RunWindow)
+{
+    setup(pathOfProgramsFile, client);
+}
+
+RunWindow::RunWindow(QString pathOfProgramsFile, VMClient *client) :
+    updateTimer(30),
+    ui(new Ui::RunWindow)
+{
+    setup(pathOfProgramsFile, client);
+}
+
+
+void RunWindow::setup(QString pathOfProgramsFile, VMClient *client)
 {
     ui->setupUi(this);
     this->pathOfProgramsFile = pathOfProgramsFile;
@@ -47,6 +60,12 @@ void RunWindow::closeEvent(QCloseEvent *ev)
     if(vm != NULL)
         vm->gc();
     client->programStopped(this);
+    if(parentWidget() == NULL)
+    {
+        // Workaround because .exe programs don't terminate currently
+        QApplication::instance()->exit(0);
+        exit(0);
+    }
 }
 
 void RunWindow::parentDestroyed(QObject *)
@@ -64,6 +83,12 @@ RunWindow::~RunWindow()
     }
     delete readMethod;
     delete paintSurface;
+
+    delete mouseEventChannel;
+    delete mouseDownEventChannel;
+    delete mouseUpEventChannel;
+    delete kbEventChannel;
+    delete readChannel;
 }
 
 void RunWindow::Init(QString program, QMap<QString, QString> stringConstants, QSet<Breakpoint> breakPoints, DebugInfo debugInfo)
@@ -72,6 +97,11 @@ void RunWindow::Init(QString program, QMap<QString, QString> stringConstants, QS
     {
         vm = new VM();
         readChannel =  vm->GetAllocator().newChannel(false);
+        mouseEventChannel = vm->GetAllocator().newChannel(false);
+        mouseDownEventChannel = vm->GetAllocator().newChannel(false);
+        mouseUpEventChannel = vm->GetAllocator().newChannel(false);
+        kbEventChannel = vm->GetAllocator().newChannel(false);
+
         vm->DefineStringConstant("new_line", "\n");
         vm->Register("print", new WindowProxyMethod(this, vm, PrintProc));
         vm->Register("input", readMethod);
@@ -124,6 +154,7 @@ void RunWindow::Init(QString program, QMap<QString, QString> stringConstants, QS
         vm->Register("str_len", new WindowProxyMethod(this, vm, StrLenProc));
 
         vm->Register("load_sprite", new WindowProxyMethod(this, vm, LoadSpriteProc));
+        vm->Register("showsprite", new WindowProxyMethod(this, vm, ShowSpriteProc));
         vm->Register("hidesprite", new WindowProxyMethod(this, vm, HideSpriteProc));
 
         vm->Register("getspriteleft", new WindowProxyMethod(this, vm, GetSpriteLeftProc));
@@ -135,6 +166,10 @@ void RunWindow::Init(QString program, QMap<QString, QString> stringConstants, QS
 
         vm->Register("wait", new WindowProxyMethod(this, vm, WaitProc));
         vm->Register("check_asleep", new WindowProxyMethod(this, vm, CheckAsleepProc));
+        vm->Register("mouse_event_channel", new WindowProxyMethod(this, vm, MouseEventChanProc));
+        vm->Register("mouseDown_event_channel", new WindowProxyMethod(this, vm, MouseUpEventChanProc));
+        vm->Register("mouseUp_event_channel", new WindowProxyMethod(this, vm, MouseUpEventChanProc));
+        vm->Register("kb_event_channel", new WindowProxyMethod(this, vm, KbEventChanProc));
 
         vm->Register("file_write", new WindowProxyMethod(this, vm, FileWriteProc));
         vm->Register("file_write_using_width", new WindowProxyMethod(this, vm, FileWriteUsingWidthProc));
@@ -241,8 +276,8 @@ void RunWindow::setBreakpoint(Breakpoint b, const DebugInfo &debugInfo)
     debugInfo.instructionFromLine(doc, line, methodName, offset);
     vm->setBreakPoint(methodName, offset);
 
-    cout << "Setting breakpoint at method= " << methodName.toStdString() << " and offset= " << offset
-         << " and line= " << line << endl;
+    //cout << "Setting breakpoint at method= " << methodName.toStdString() << " and offset= " << offset
+    //     << " and line= " << line << endl;
 }
 
 void RunWindow::InitVMPrelude(VM *vm)
@@ -343,8 +378,8 @@ void RunWindow::reportError(VMError err)
             if(err.args.count()==1)
                 msg = "<u>" + msg +"</u>" + ":<p>"+ err.args[0]+ "</p";
         */
-        cout << "runwindow::reportError message before translation is:" << msg.toStdString() << endl;
-        cout.flush();
+        //cout << "runwindow::reportError message before translation is:" << msg.toStdString() << endl;
+        //cout.flush();
         for(int i=0; i<err.args.count(); i++)
         {
             msg = msg.arg(err.args[i]);
@@ -506,11 +541,34 @@ void RunWindow::activateMouseEvent(QMouseEvent *ev, QString evName)
     int y = ev->y();
 
     paintSurface->TX(x);
-    args.append(vm->GetAllocator().newInt(x));
-    args.append(vm->GetAllocator().newInt(y));
+
+    Value *xval = vm->GetAllocator().newInt(x);
+    Value *yval = vm->GetAllocator().newInt(y);
+    args.append(xval);
+    args.append(yval);
+
     bool normalRunning = vm->isRunning() && (state == rwNormal || state == rwTextInput);
     try
     {
+        // Send to mouse event channel
+        Value *mouseDataV = vm->GetAllocator().newObject((IClass *)vm->GetType(QString::fromStdWString(L"معلومات.حادثة.فارة"))->unboxObj());
+        IObject *mouseData = mouseDataV->unboxObj();
+        mouseData->setSlotValue(QString::fromStdWString(L"س"), xval);
+        mouseData->setSlotValue(QString::fromStdWString(L"ص"), yval);
+
+        bool leftBtn = ev->buttons() & Qt::LeftButton;
+        bool rightBtn = ev->buttons() & Qt::RightButton;
+
+        mouseData->setSlotValue(QString::fromStdWString(L"الزر.الأيسر"), vm->GetAllocator().newBool(leftBtn));
+        mouseData->setSlotValue(QString::fromStdWString(L"الزر.الأيمن"), vm->GetAllocator().newBool(rightBtn));
+        mouseEventChannel->unboxChan()->send(mouseDataV, NULL);
+
+        if(evName == "mousedown")
+            mouseDownEventChannel->unboxChan()->send(mouseDataV, NULL);
+        else if(evName == "mouseup")
+            mouseUpEventChannel->unboxChan()->send(mouseDataV, NULL);
+
+
         vm->ActivateEvent(evName, args);
         //resume();
         if(!normalRunning && vm->isRunning())
@@ -619,10 +677,19 @@ void RunWindow::activateKeyEvent(QKeyEvent *ev, QString evName)
         int k = ev->key();
         QString *txt = new QString(ev->text());
 
-        args.append(vm->GetAllocator().newInt(k));
-        args.append(vm->GetAllocator().newString(txt));
+        Value *key = vm->GetAllocator().newInt(k);
+        Value *kchar = vm->GetAllocator().newString(txt);
+        args.append(key);
+        args.append(kchar);
 
         bool normalRunning = vm->isRunning() && state == rwNormal;
+
+        // Send to KB channel
+        Value *kbInfoV = vm->GetAllocator().newObject((IClass *)vm->GetType(QString::fromStdWString(L"معلومات.حادثة.لوحة.مفاتيح"))->unboxObj());
+        IObject *obj = kbInfoV->unboxObj();
+        obj->setSlotValue(QString::fromStdWString(L"زر"), key);
+        obj->setSlotValue(QString::fromStdWString(L"حرف"), kchar);
+        kbEventChannel->unboxChan()->send(kbInfoV, NULL);
 
         vm->ActivateEvent(evName, args);
         if(state != rwTextInput)

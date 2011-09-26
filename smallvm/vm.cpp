@@ -10,7 +10,7 @@
 #include "utils.h"
 #include "vmutils.h"
 #include "vm_ffi.h"
-#include <iostream>
+//#include <iostream>
 #include <stdio.h>
 #include <QLibrary>
 
@@ -33,6 +33,7 @@ void VM::Init()
     QString malaf = "%file";
     if(constantPool.contains(malaf))
         BuiltInTypes::FileType = (ValueClass *) constantPool[malaf]->unboxObj();
+
     _globalFrame = new Frame();
     allocator.addOtherFrameAsRoot(_globalFrame);
     launchProcess(method);
@@ -253,8 +254,8 @@ void VM::DefineStringConstant(QString symRef, QString strValue)
     QString *str = new QString(strValue);
     Value *v = allocator.newString(str);
     constantPool[symRef] = v;
-    cout << "Defined string constant " << symRef.toStdString() << endl;
-    cout.flush();
+    //cout << "Defined string constant " << symRef.toStdString() << endl;
+    //cout.flush();
 }
 
 Value *VM::GetType(QString vmTypeId)
@@ -707,8 +708,8 @@ void VM::Load(QString assemblyCode)
             }
             else
             {
-                cout << "in strconst lineParts.count is " << lineParts.count() << endl;
-                cout.flush();
+                //cout << "in strconst lineParts.count is " << lineParts.count() << endl;
+                //cout.flush();
                 signal(InternalError1, QString("Malformed strconst input: '%1'").arg(line));
             }
         }
@@ -1678,7 +1679,9 @@ void VM::DoNewMD_Arr()
     for(int i=0; i<arr->count; i++)
     {
         assert(arr->Elements[i]->tag == Int, TypeError2, BuiltInTypes::IntType, arr->Elements[i]->type);
-        dimensions.append(arr->Elements[i]->unboxInt());
+        int z = arr->Elements[i]->unboxInt();
+        assert(z>=1, ArgumentError, QString::fromStdWString(L"حجم المصفوفة لابد أن يكون أكبر من صفر في البعد رقم %1").arg(i));
+        dimensions.append(z);
     }
     Value *mdarr = allocator.newMultiDimensionalArray(dimensions);
     currentFrame()->OperandStack.push(mdarr);

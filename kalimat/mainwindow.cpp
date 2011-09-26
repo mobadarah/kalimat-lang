@@ -1227,7 +1227,7 @@ void MainWindow::on_actionMake_exe_triggered()
         }
         //                        {$APPTYPE GUI}\n\
 
-        QString pascalProgram = QString("{$LONGSTRINGS ON} \n\
+        QString pascalProgram = QString(" {$APPTYPE GUI} {$LONGSTRINGS ON} \n\
                                         program RunSmallVM;\n\
         procedure RunSmallVMCodeBase64(A:PChar;B:PChar);stdcall ;external 'smallvm.dll';\n\
         procedure SmallVMAddStringConstant(A:PChar; B:PChar); stdcall; external 'smallvm.dll';\n\
@@ -1243,6 +1243,8 @@ void MainWindow::on_actionMake_exe_triggered()
         QString fn = doc ? doc->getFileName() : "untitled";
         fn = QFileInfo(fn).fileName();
         QString pasFileName = stagingArea + "/" + fn + ".pas";
+        QString oFileName = stagingArea + "/" + fn + ".o";
+        QString aFileName = stagingArea + "/libimp" + fn + ".a";
         QString exeFileName = stagingArea + "/" + fn + ".exe";
         QFile pascal(pasFileName);
 
@@ -1258,10 +1260,26 @@ void MainWindow::on_actionMake_exe_triggered()
         argz.append(pasFileName);
         fpc.start(stagingArea + "/fpc.exe", argz);
         fpc.waitForFinished(10000);
+        bool success = false;
         if(fpc.exitCode() == 0)
         {
-            if(QFile::copy(exeFileName, targetFile))
-                QFile::remove(exeFileName);
+            success = QFile::copy(exeFileName, targetFile);
+            QFile::remove(exeFileName);
+            QFile::remove(pasFileName);
+            QFile::remove(oFileName);
+            QFile::remove(aFileName);
+        }
+        if(!success)
+        {
+            QMessageBox box(QMessageBox::Information, QString::fromStdWString(L"عمل ملف تنفيذي"),
+                                  QString::fromStdWString(L"خطأ في عمل الملف التنفيذي"));
+            box.exec();
+        }
+        else
+        {
+            QMessageBox box(QMessageBox::Information, QString::fromStdWString(L"عمل ملف تنفيذي"),
+                                  QString::fromStdWString(L"تم عمل الملف التنفيذي. لكي يعمل برنامجك يجب أن تضع معه الملفات الموجودة في الفهرس المسمى dll المتفرع من مجلد كلمات على جهازك"));
+            box.exec();
         }
     }
     catch(UnexpectedCharException ex)

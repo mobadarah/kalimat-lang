@@ -10,6 +10,11 @@
 
 class KalimatParser : public Parser
 {
+    struct PropInfo
+    {
+        bool read, write;
+        PropInfo() { read = write = false;}
+    };
 public:
     KalimatParser();
     ~KalimatParser();
@@ -99,6 +104,10 @@ private:
 
     QString prepareStringLiteral(QString str);
     QString getOperation(Token token);
+    void addPropertySetter(Token pos, Identifier *methodName, QVector<Identifier *> formals,
+                                          QMap<QString, PropInfo> &propertyInfo);
+    void addPropertyGetter(Token pos, Identifier *methodName, QVector<Identifier *> formals,
+                                          QMap<QString, PropInfo> &propertyInfo);
     void newLines();
 };
 

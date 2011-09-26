@@ -30,6 +30,11 @@ bool MetaClass::getFieldAttribute(QString attr, Value *&ret, Allocator *allocato
     return false;
 }
 
+QVector<PropertyDesc> MetaClass::getProperties()
+{
+    return QVector<PropertyDesc>();
+}
+
 Value *MetaClass::dispatch(int id, QVector<Value *> args)
 {
     if(id == 0)

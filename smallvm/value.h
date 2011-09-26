@@ -94,7 +94,7 @@ struct Value
     bool unboxBool()  const;
     IObject *unboxObj()  const;
     VArray *unboxArray() const;
-    MultiDimensionalArray<Value *> *unboxMultiDimensionalArray();
+    MultiDimensionalArray<Value *> *unboxMultiDimensionalArray() const;
     VMap *unboxMap()  const;
     void *unboxRaw()  const;
     QString *unboxStr() const;
@@ -115,7 +115,7 @@ inline bool operator==(const Value &v1, const Value &v2);
 class BuiltInTypes
 {
 public:
-    static ValueClass *ObjectType; // Must be declare before all of the other types, since their
+    static ValueClass *ObjectType; // Must be declared before all of the other types, since their
                                    // Initialization depends on it
 
     static ValueClass *NumericType;

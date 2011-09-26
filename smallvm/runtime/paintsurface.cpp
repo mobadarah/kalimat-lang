@@ -64,9 +64,9 @@ void PaintSurface::drawSpriteLayer(QPainter &imgPainter, SpriteLayer &spriteLaye
         Sprite *s = spriteLayer.sprites()[i];
         if(s->visible)
         {
-            imgPainter.setCompositionMode(QPainter::RasterOp_SourceAndDestination);
-            imgPainter.drawPixmap(s->location, s->mask);
-            imgPainter.setCompositionMode(QPainter::RasterOp_SourceOrDestination);
+            //imgPainter.setCompositionMode(QPainter::RasterOp_SourceAndDestination);
+            //imgPainter.drawPixmap(s->location, s->mask);
+            //imgPainter.setCompositionMode(QPainter::RasterOp_SourceOrDestination);
             imgPainter.drawPixmap(s->location, s->image);
         }
     }

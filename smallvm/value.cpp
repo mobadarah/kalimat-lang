@@ -177,7 +177,7 @@ VMap *Value::unboxMap() const
     return v.mapVal;
 }
 
-MultiDimensionalArray<Value *> *Value::unboxMultiDimensionalArray()
+MultiDimensionalArray<Value *> *Value::unboxMultiDimensionalArray() const
 {
     return v.multiDimensionalArrayVal;
 }
@@ -232,11 +232,13 @@ QString Value::toString() const
 {
     QString *sv = NULL;
     QString ret = "<unprintable value>";
+    QStringList elems;
     void *val ;
     const Value *v = this;
     //QLocale loc(QLocale::Arabic, QLocale::Egypt);
     QLocale loc(QLocale::English, QLocale::UnitedStates);
     loc.setNumberOptions(QLocale::OmitGroupSeparator);
+    QVector<int> dims;
     switch(v->tag)
     {
     case Int:
@@ -263,6 +265,13 @@ QString Value::toString() const
         ret = "<a reference>";
     case ArrayVal:
         ret = ArrayToString(v->unboxArray());
+        break;
+    case MultiDimensionalArrayVal:
+        dims = v->unboxMultiDimensionalArray()->dimensions;
+
+        for(QVector<int>::const_iterator i=dims.begin(); i != dims.end(); ++i)
+            elems.append(QString("%1").arg(*i));
+        ret = QString::fromWCharArray(L"]مصفوفة بأبعاد [%1>").arg(elems.join(", "));
         break;
     case MapVal:
         ret = MapToString(v->unboxMap());

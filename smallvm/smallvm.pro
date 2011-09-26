@@ -4,6 +4,7 @@
 TARGET = smallvm
 TEMPLATE = lib
 CONFIG += dll
+CONFIG -= console
 SOURCES += main.cpp \
     value.cpp \
     instruction.cpp \

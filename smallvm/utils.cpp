@@ -6,7 +6,7 @@
 **************************************************************************/
 
 #include "utils.h"
-#include <iostream>
+//#include <iostream>
 using namespace std;
 QString _ws(QStdWString str)
 {
@@ -24,14 +24,14 @@ QString base64encode(QString other)
 
 QString base64Decode(QString source)
 {
-    cout << "byte array count:" << source.count() << endl;
+    //cout << "byte array count:" << source.count() << endl;
 
     QByteArray original = QByteArray::fromHex(source.toUtf8());
     QString ret = QString::fromUtf8(original.data());
 
-    wcout << "String length after decoding:" << ret.length() << endl;
-    cout.flush();
-    wcout.flush();
+    //wcout << "String length after decoding:" << ret.length() << endl;
+    //cout.flush();
+    //wcout.flush();
 
     return ret;
 

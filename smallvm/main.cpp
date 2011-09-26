@@ -7,6 +7,7 @@
 
 #include <QtGui/QApplication>
 #include <iostream>
+#include <QMessageBox>
 #include <QTextStream>
 #include "runtime/runwindow.h"
 #include "utils.h"
@@ -23,9 +24,9 @@ void RunSmallVMCode(QWidget *parent,
                     QSet<Breakpoint> breakPoints,
                     DebugInfo debugInfo)
 {
-    RunWindow *rw = new RunWindow(parent, pathOfProgramsFile, client);
-    rw->show();
-    rw->Init(program, stringConstants, breakPoints, debugInfo);
+    RunWindow rw(parent, pathOfProgramsFile, client);
+    rw.show();
+    rw.Init(program, stringConstants, breakPoints, debugInfo);
 }
 
 extern "C"
@@ -42,18 +43,18 @@ Q_DECL_EXPORT
 void RunSmallVMCodeBase64(char *pathOfProgramsFile,
                           char *programBase64)
 {
-    int argc = 1;
-    char *argv[1] = {"aa.exe"};
+    int argc = 0;
+    char **argv = NULL;// = {"aa.exe"};
     QApplication app(argc, argv);
 
-    cout << "program before decoding:" <<programBase64 << endl;
-    cout.flush();
+    //cout << "program before decoding:" <<programBase64 << endl;
+    //cout.flush();
     try
     {
-        RunWindow *rw = new RunWindow(NULL, pathOfProgramsFile, new NullaryVMClient());
+        RunWindow rw(pathOfProgramsFile, new NullaryVMClient());
         QString programCode = base64Decode(programBase64);
-        rw->show();
-        rw->Init(programCode, tempConstants, QSet<Breakpoint>(), DebugInfo());
+        rw.show();
+        rw.Init(programCode, tempConstants, QSet<Breakpoint>(), DebugInfo());
         app.exec();
     }
     catch(VMError)

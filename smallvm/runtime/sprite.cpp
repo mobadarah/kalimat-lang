@@ -23,8 +23,9 @@ void Sprite::setImage(QPixmap image)
 
 void Sprite::prepareMask(QPixmap image)
 {
-    mask = image.createHeuristicMask(false);
-  //  mask = image.createMaskFromColor(image.toImage().pixel(0,0));
+    //mask = image.createHeuristicMask(false);
+    mask = image.createMaskFromColor(image.toImage().pixel(0,0));
+    this->image.setMask(mask);
 }
 
 QRect Sprite::boundingRect()
