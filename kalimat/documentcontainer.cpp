@@ -44,6 +44,8 @@ DocumentContainer::DocumentContainer(QString settingsOrganizationName,
         recentFileActions.append(rf);
     }
     updateRecentFiles();
+
+
 }
 DocumentContainer::~DocumentContainer()
 {
@@ -188,23 +190,12 @@ void DocumentContainer::handleOpen()
     {
         int n = dlg.selectedFiles().count();
         bool anyLoaded = false;
-        for(int i=0; i<n; i++)
-        {
-            fileName = dlg.selectedFiles()[i];
+        dir = OpenExistingFiles(dlg.selectedFiles());
 
-            if(!fileName.isEmpty())
-            {
-                if(!anyLoaded)
-                {
-                    anyLoaded = true;
-                    removeInitialEmptyDocument();
-                }
-                QFileInfo f = QFileInfo(fileName);
-                dir = f.absoluteDir().absolutePath();
-                settings.setValue("last_open_dir", dir);
-                CodeDocument *doc = addDocument(QFileInfo(fileName).fileName(), fileName, client->CreateEditorWidget(), false);
-                client->LoadDocIntoWidget(doc, doc->getEditor());
-            }
+        // set last opened Dir
+        if (!dir.isEmpty())
+        {
+            settings.setValue("last_open_dir", dir);
         }
     }
 }
@@ -320,3 +311,33 @@ void DocumentContainer::onFileTouched(QString fileName, CodeDocument *doc)
     settings.setValue("recent_files", recent);
     updateRecentFiles();
 }
+
+// Opens an existing file, and returns the parent directory path
+QString DocumentContainer::OpenExistingFiles(const QStringList& fileNames)
+{
+    int     n = fileNames.count();
+    bool    anyLoaded = false;
+    QString fileName;
+    QString dir = "";
+
+    for(int i=0; i<n; i++)
+    {
+        fileName = fileNames[i];
+
+        if(!fileName.isEmpty())
+        {
+            if(!anyLoaded)
+            {
+                anyLoaded = true;
+                removeInitialEmptyDocument();
+            }
+            QFileInfo f = QFileInfo(fileName);
+            dir = f.absoluteDir().absolutePath();
+            CodeDocument *doc = addDocument(QFileInfo(fileName).fileName(), fileName, client->CreateEditorWidget(), false);
+            client->LoadDocIntoWidget(doc, doc->getEditor());
+        }
+    }
+
+    return dir;
+}
+

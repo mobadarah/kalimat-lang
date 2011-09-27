@@ -86,6 +86,11 @@ MainWindow::MainWindow(QWidget *parent)
     stoppedRunWindow = NULL;
     atBreak = false;
     currentDebuggerProcess = NULL;
+
+    setAcceptDrops(true);
+    ui->editorTabs->setAcceptDrops(true);
+    ui->txtSearchString->installEventFilter(this);
+    ui->txtReplacementString->installEventFilter(this);
 }
 
 void MainWindow::outputMsg(QString s)
@@ -773,7 +778,15 @@ void MainWindow::on_btnFindPrev_clicked()
         QString searchStr = ui->txtSearchString->text();
         bool result = editor->find(searchStr, QTextDocument::FindBackward);
         if(!result)
+        {
             ui->lblFindStatus->setText(QString::fromStdWString(L"وصلنا لبداية الملف"));
+
+            // set the cursor at the end of the document
+            QTextCursor c = editor->textCursor();
+            c.clearSelection();
+            c.movePosition(QTextCursor::End, QTextCursor::MoveAnchor);
+            editor->setTextCursor(c);
+        }
         else
             ensurePositionBeforeAnchor(editor);
     }
@@ -788,7 +801,15 @@ void MainWindow::on_btnFindNext_clicked()
         QString searchStr = ui->txtSearchString->text();
         bool result = editor->find(searchStr);
         if(!result)
+        {
             ui->lblFindStatus->setText(QString::fromStdWString(L"وصلنا لنهاية الملف"));
+
+            // set the cursor at the begining of the document
+            QTextCursor c = editor->textCursor();
+            c.clearSelection();
+            c.setPosition(0, QTextCursor::MoveAnchor);
+            editor->setTextCursor(c);
+        }
         else
         {
             ensurePositionBeforeAnchor(editor);
@@ -801,28 +822,25 @@ void MainWindow::on_btnReplacePrev_clicked()
     QTextEdit *editor = currentEditor();
     if(editor != NULL)
     {
+        // get selected text..
         ui->lblFindStatus->setText("");
-        QString searchStr = ui->txtSearchString->text();
-        // See the comment in on_btnReplaceNext_clicked() to explain
-        // why we clear selection first
-        QTextCursor c =editor->textCursor();
-        c.setPosition(c.selectionStart());
-        editor->setTextCursor(c);
-        editor->textCursor().clearSelection();
+        bool bResult = (editor->textCursor().selectedText().compare(ui->txtSearchString->text()) == 0);
 
-        bool result = editor->find(searchStr, QTextDocument::FindBackward);
-        if(result)
+        // if matches search string
+        if(bResult)
         {
+            // replace it..
             editor->textCursor().insertText(ui->txtReplacementString->text());
+
+            // move cursor before it
             int n =  ui->txtReplacementString->text().length();
             QTextCursor c = editor->textCursor();
-            c.movePosition(QTextCursor::PreviousCharacter, QTextCursor::KeepAnchor, n);
+            c.movePosition(QTextCursor::PreviousCharacter, QTextCursor::MoveAnchor, n);
             editor->setTextCursor(c);
         }
-        else
-        {
-            ui->lblFindStatus->setText(QString::fromStdWString(L"وصلنا لبداية الملف"));
-        }
+
+        // then search for the next match
+        this->on_btnFindPrev_clicked();
     }
 }
 
@@ -839,26 +857,19 @@ void MainWindow::on_btnReplaceNext_clicked()
            To work around this, we clear the selection before calling replace() on the text editor.
         */
 
-        QTextCursor c =editor->textCursor();
-        c.setPosition(c.selectionStart());
-        editor->setTextCursor(c);
-        editor->textCursor().clearSelection();
+        // get selected text..
         ui->lblFindStatus->setText("");
-        QString searchStr = ui->txtSearchString->text();
-        bool result = editor->find(searchStr);
-        if(result)
-        {
-            editor->textCursor().insertText(ui->txtReplacementString->text());
-            int n =  ui->txtReplacementString->text().length();
-            QTextCursor c = editor->textCursor();
-            c.movePosition(QTextCursor::PreviousCharacter, QTextCursor::KeepAnchor, n);
-            editor->setTextCursor(c);
+        bool bResult = (editor->textCursor().selectedText().compare(ui->txtSearchString->text()) == 0);
 
-        }
-        else
+        // if matches search string
+        if(bResult)
         {
-            ui->lblFindStatus->setText(QString::fromStdWString(L"وصلنا لنهاية الملف"));
+            // replace it..
+            editor->textCursor().insertText(ui->txtReplacementString->text());
         }
+
+        // then search for the next match
+        this->on_btnFindNext_clicked();
     }
 }
 
@@ -1327,4 +1338,73 @@ void MainWindow::on_actionMake_exe_triggered()
        }
     }
 
+}
+
+void MainWindow::makeDrag()
+{
+    QDrag *dr = new QDrag(this);
+     // The data to be transferred by the drag and drop operation is contained in a QMimeData object
+     QMimeData *data = new QMimeData;
+     data->setText("This is a test");
+     // Assign ownership of the QMimeData object to the QDrag object.
+     dr->setMimeData(data);
+     // Start the drag and drop operation
+     dr->start();
+}
+
+void MainWindow::dragMoveEvent(QDragMoveEvent *de)
+{
+    // The event needs to be accepted here
+    de->accept();
+}
+
+void MainWindow::dropEvent(QDropEvent *event)
+{
+    // Unpack dropped data and handle it the way you want
+    QList<QUrl> urlList =  event->mimeData()->urls();
+    QStringList fileNames;
+
+    int len = urlList.size();
+    for (int i = 0; i<len; i++)
+    {
+        qDebug() << "Formats:"<<  urlList.at(i).toLocalFile();
+        fileNames << urlList.at(i).toLocalFile();
+    }
+
+    docContainer->OpenExistingFiles(fileNames);
+}
+
+void MainWindow::dragEnterEvent(QDragEnterEvent *event)
+{
+    // Set the drop action to be the proposed action.
+     if (event->mimeData()->hasUrls())
+        event->acceptProposedAction();
+     else
+         qDebug("Error: Only Files can be dragged to this window");
+}
+
+
+bool MainWindow::eventFilter(QObject *sender, QEvent *event)
+{
+    if (event->type() == QEvent::KeyPress) {
+
+        QKeyEvent *keyEvent = static_cast<QKeyEvent *>(event);
+        qDebug("Filter - key pressed !! %d", keyEvent->key());
+        if (keyEvent->key() == Qt::Key_Enter || keyEvent->key() == Qt::Key_Return)
+        {
+            if (sender == ui->txtSearchString)
+                this->on_btnFindNext_clicked();
+            else if (sender == ui->txtReplacementString)
+                this->on_btnReplaceNext_clicked();
+            return true;
+        }
+        else if (keyEvent->key() == Qt::Key_Escape)
+        {
+            ui->dockSearchReplace->hide();
+            return true;
+        }
+        else
+            return false;
+    }
+    return false;
 }

@@ -81,6 +81,7 @@ public:
 
     void Break(QString methodName, int offset, Frame *frame, Process *process);
     void programStopped(RunWindow *);
+    bool eventFilter(QObject *sender, QEvent *event);
 
     DocumentContainer *docContainer;
     QMap<int, CodePosition> PositionInfo;
@@ -152,6 +153,11 @@ private slots:
     void on_action_step_triggered();
     void on_action_step_procedure_triggered();
     void on_actionMake_exe_triggered();
+    void makeDrag();
+protected:
+     void dropEvent(QDropEvent *de);
+     void dragMoveEvent(QDragMoveEvent *de);
+     void dragEnterEvent(QDragEnterEvent *event);
 };
 
 #endif // MAINWINDOW_H

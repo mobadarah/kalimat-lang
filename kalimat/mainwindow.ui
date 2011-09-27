@@ -139,7 +139,7 @@
      <x>0</x>
      <y>0</y>
      <width>782</width>
-     <height>26</height>
+     <height>18</height>
     </rect>
    </property>
    <property name="layoutDirection">
@@ -312,6 +312,9 @@
      <property name="text">
       <string>ابحث عن</string>
      </property>
+     <property name="alignment">
+      <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+     </property>
     </widget>
     <widget class="QLabel" name="label_2">
      <property name="geometry">
@@ -325,6 +328,9 @@
      <property name="text">
       <string>واستبدل به</string>
      </property>
+     <property name="alignment">
+      <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+     </property>
     </widget>
     <widget class="QLineEdit" name="txtSearchString">
      <property name="geometry">
@@ -336,7 +342,7 @@
       </rect>
      </property>
      <property name="alignment">
-      <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+      <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
      </property>
     </widget>
     <widget class="QLineEdit" name="txtReplacementString">
@@ -364,6 +370,9 @@
      <property name="text">
       <string>&lt;</string>
      </property>
+     <property name="shortcut">
+      <string>Shift+F3</string>
+     </property>
     </widget>
     <widget class="QPushButton" name="btnFindNext">
      <property name="geometry">
@@ -376,6 +385,15 @@
      </property>
      <property name="text">
       <string>&gt;</string>
+     </property>
+     <property name="shortcut">
+      <string>F3</string>
+     </property>
+     <property name="autoDefault">
+      <bool>true</bool>
+     </property>
+     <property name="default">
+      <bool>true</bool>
      </property>
     </widget>
     <widget class="QPushButton" name="btnReplacePrev">

@@ -53,6 +53,7 @@ public:
     void handleSaveAs();
     void handleClose(QCloseEvent *ev);
     void handleTabCloseRequested(int index);
+    QString OpenExistingFiles(const QStringList& fileNames);
 
     void updateRecentFiles();
     CodeDocument *getDocumentFromTab(int index);
