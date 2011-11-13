@@ -92,7 +92,6 @@ protected:
     void changeEvent(QEvent *e);
 private:
     RunWindowState state;
-    QMap<int, Value *> asleep;
 public:
     Value *readChannel;
     TextLayer textLayer;
@@ -125,7 +124,7 @@ public:
     void resume();
     void reactivateVM();
 
-    void setAsleep(int cookie, Value *channel);
+    void setAsleep(int cookie, Value *channel, int ms);
     bool isAsleep(int cookie);
 
     void typeCheck(Value *val, IClass *type);

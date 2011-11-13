@@ -687,20 +687,23 @@ void GetSpriteHeightProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 
 void WaitProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 {
+    /*
     int ms = stack.pop()->unboxNumeric();
-    Value *channel = vm->GetAllocator().newChannel();
+    // The GC could collect the channel
+    // even when the RunWindow is still to send it a message
+    // therefore in the wait() builtin
+    // we shall store a reference to it
+    // in a local variable
+
+    Value *channel = vm->GetAllocator().newChannel(false);
     //w->suspend();
     int cookie = w->startTimer(ms);
-    w->setAsleep(cookie, channel);
+    w->setAsleep(cookie, channel, ms);
     stack.push(channel);
-}
-
-void CheckAsleepProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
-{
-    qApp->processEvents();
-    int cookie = popInt(stack, w, vm);
-    bool res = w->isAsleep(cookie);
-    stack.push(vm->GetAllocator().newBool(res));
+    */
+    int ms = stack.pop()->unboxNumeric();
+    Process *proc = vm->currentProcess();
+    vm->makeItSleep(proc, ms);
 }
 
 void ZoomProc(QStack<Value *> &stack, RunWindow *w, VM *vm)

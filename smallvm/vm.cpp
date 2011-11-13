@@ -153,6 +153,14 @@ Process *VM::currentProcess()
     return processes.front();
 }
 
+void VM::makeItSleep(Process *proc, int ms)
+{
+    proc->sleep();
+    //this->running.removeOne(proc);
+    proc->timeToWake = QTime::currentTime().addMSecs(ms);
+    timerWaiting.append(proc);
+}
+
 Frame *VM::currentFrame()
 {
     if(stack().empty())
@@ -377,6 +385,17 @@ void VM::RunStep(bool singleInstruction)
 {
     int n = singleInstruction? 1 : rand() % 10;
     bool pIsRunning = true;
+
+    QTime qt = QTime::currentTime();
+
+    if(timerWaiting.count() >0 && timerWaiting.front()->timeToWake < qt)
+    {
+        Process *proc = timerWaiting.front();
+        timerWaiting.pop_front();
+        proc->awaken();
+        processes.removeOne(proc);
+        processes.push_front(proc);
+    }
 
     if(processes.empty())
     {

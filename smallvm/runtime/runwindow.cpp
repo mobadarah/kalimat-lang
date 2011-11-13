@@ -165,7 +165,6 @@ void RunWindow::Init(QString program, QMap<QString, QString> stringConstants, QS
         vm->Register("getspriteheight", new WindowProxyMethod(this, vm, GetSpriteHeightProc));
 
         vm->Register("wait", new WindowProxyMethod(this, vm, WaitProc));
-        vm->Register("check_asleep", new WindowProxyMethod(this, vm, CheckAsleepProc));
         vm->Register("mouse_event_channel", new WindowProxyMethod(this, vm, MouseEventChanProc));
         vm->Register("mouseDown_event_channel", new WindowProxyMethod(this, vm, MouseUpEventChanProc));
         vm->Register("mouseUp_event_channel", new WindowProxyMethod(this, vm, MouseUpEventChanProc));
@@ -420,13 +419,7 @@ QString RunWindow::ensureCompletePath(QString fileName)
 
 void RunWindow::timerEvent(QTimerEvent *ev)
 {
-    int id = ev->timerId();
-    killTimer(id);
-    if(state != rwWaiting)
-    {
-        Value *channel = asleep[id];
-        channel->unboxChan()->send(vm->GetAllocator().null(), NULL);
-    }
+
 }
 
 void RunWindow::resetTimer(int interval)
@@ -463,16 +456,6 @@ void RunWindow::resume()
 void RunWindow::reactivateVM()
 {
     vm->reactivate();
-}
-
-void RunWindow::setAsleep(int cookie, Value *channel)
-{
-    asleep[cookie] = channel;
-}
-
-bool RunWindow::isAsleep(int cookie)
-{
-    return asleep[cookie];
 }
 
 void RunWindow::redrawWindow()

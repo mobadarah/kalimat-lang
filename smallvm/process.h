@@ -16,6 +16,7 @@
 #include <QStack>
 #include <QVector>
 #include <QMap>
+#include <QTime>
 
 enum ProcessState
 {
@@ -34,6 +35,7 @@ struct Process
     QVector<Channel *> allChans;
     int nsend;
     VM *owner;
+    QTime timeToWake;
 public:
     Process(VM *owner);
     void awaken();

@@ -42,7 +42,6 @@ void GetSpriteWidthProc(QStack<Value *> &stack, RunWindow *w, VM *vm);
 void GetSpriteHeightProc(QStack<Value *> &stack, RunWindow *w, VM *vm);
 
 void WaitProc(QStack<Value *> &, RunWindow *, VM *);
-void CheckAsleepProc(QStack<Value *> &stack, RunWindow *w, VM *vm);
 void MouseEventChanProc(QStack<Value *> &stack, RunWindow *w, VM *vm);
 void MouseDownEventChanProc(QStack<Value *> &stack, RunWindow *w, VM *vm);
 void MouseUpEventChanProc(QStack<Value *> &stack, RunWindow *w, VM *vm);

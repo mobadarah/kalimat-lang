@@ -40,6 +40,7 @@ class VM
 {
     QMap<QString, Value*> constantPool;
     QQueue<Process *> processes;
+    QQueue<Process *> timerWaiting;
 
     // The allocator must be declared after the 'constantPool' and 'stack'
     // members, since it's initialized with them in VMs constructor initializer list!!
@@ -82,6 +83,7 @@ public:
     bool processIsFinished(Process *process);
     Instruction getCurrentInstruction();
     Process *currentProcess();
+    void makeItSleep(Process *proc, int ms);
 
     void setDebugger(Debugger *);
     void clearAllBreakPoints();

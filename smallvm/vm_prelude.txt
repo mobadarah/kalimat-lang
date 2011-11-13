@@ -150,8 +150,7 @@ ret
 
 .method انتظر 1
 callex wait
-receive
-popl dummy
+
 ret
 .endmethod
 
