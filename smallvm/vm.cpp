@@ -11,7 +11,6 @@
 #include "vmutils.h"
 #include "vm_ffi.h"
 //#include <iostream>
-#include <stdio.h>
 #include <QLibrary>
 
 using namespace std;
@@ -37,7 +36,7 @@ void VM::Init()
     _globalFrame = new Frame();
     allocator.addOtherFrameAsRoot(_globalFrame);
     launchProcess(method);
-    _mainProcess = processes.front();
+    _mainProcess = running.front();
     _isRunning = true;
     debugger = NULL;
 }
@@ -47,6 +46,7 @@ Frame *VM::launchProcess(Method *method)
     Process *p = new Process(this);
     p->stack.push(Frame(method, NULL));
     processes.push_back(p);
+    running.push_back(p);
     Frame *ret = &p->stack.top();
     return ret;
 }
@@ -88,7 +88,7 @@ QQueue<Process *> &VM::getCallStacks()
 void VM::signalWithStack(VMError err)
 {
     _isRunning = false;
-    if(!processes.empty())
+    if(!running.empty())
         err.callStack = stack();
     throw err;
 }
@@ -96,7 +96,7 @@ void VM::signalWithStack(VMError err)
 void VM::signal(VMErrorType err)
 {
     _isRunning = false;
-    if(!processes.empty())
+    if(!running.empty())
         _lastError = VMError(err, stack());
     else
         _lastError = VMError(err);
@@ -106,7 +106,7 @@ void VM::signal(VMErrorType err)
 void VM::signal(VMErrorType err, QString arg0)
 {
     _isRunning = false;
-    if(!processes.empty())
+    if(!running.empty())
         _lastError = VMError(err, stack()).arg(arg0);
     else
         _lastError = VMError(err).arg(arg0);
@@ -116,7 +116,7 @@ void VM::signal(VMErrorType err, QString arg0)
 void VM::signal(VMErrorType err, QString arg0, QString arg1)
 {
     _isRunning = false;
-    if(!processes.empty())
+    if(!running.empty())
         _lastError = VMError(err, stack()).arg(arg0).arg(arg1);
     else
         _lastError = VMError(err).arg(arg0).arg(arg1);
@@ -126,7 +126,7 @@ void VM::signal(VMErrorType err, QString arg0, QString arg1)
 void VM::signal(VMErrorType err, QString arg0, QString arg1, QString arg2)
 {
     _isRunning = false;
-    if(!processes.empty())
+    if(!running.empty())
         _lastError = VMError(err, stack()).arg(arg0).arg(arg1).arg(arg2);
     else
         _lastError = VMError(err).arg(arg0).arg(arg1).arg(arg2);
@@ -145,20 +145,21 @@ VMError VM::GetLastError()
 
 QStack<Frame> &VM::stack()
 {
-    return processes.front()->stack;
+    return running.front()->stack;
 }
 
 Process *VM::currentProcess()
 {
-    return processes.front();
+    return running.front();
 }
 
 void VM::makeItSleep(Process *proc, int ms)
 {
     proc->sleep();
-    //this->running.removeOne(proc);
-    proc->timeToWake = QTime::currentTime().addMSecs(ms);
+
+    proc->timeToWake = QDateTime::currentDateTime().addMSecs(ms);
     timerWaiting.append(proc);
+    running.removeOne(proc);
 }
 
 Frame *VM::currentFrame()
@@ -290,7 +291,7 @@ Value *VM::GetType(QString vmTypeId)
 bool VM::hasRunningInstruction()
 {
     //todo: use this instead of the initial checks in RunStep()
-    if(processes.empty())
+    if(running.empty())
     {
         return false;
     }
@@ -386,18 +387,18 @@ void VM::RunStep(bool singleInstruction)
     int n = singleInstruction? 1 : rand() % 10;
     bool pIsRunning = true;
 
-    QTime qt = QTime::currentTime();
+    QDateTime qt = QDateTime::currentDateTime();
 
     if(timerWaiting.count() >0 && timerWaiting.front()->timeToWake < qt)
     {
         Process *proc = timerWaiting.front();
         timerWaiting.pop_front();
         proc->awaken();
-        processes.removeOne(proc);
-        processes.push_front(proc);
+        // This is O(n) , todo:
+        running.push_front(proc);
     }
 
-    if(processes.empty())
+    if(running.empty())
     {
         _isRunning = false;
         return;
@@ -420,14 +421,15 @@ void VM::RunStep(bool singleInstruction)
             return;
     }
 
-    Process *p = processes.front();
-    processes.pop_front();
+    Process *p = running.front();
+    running.pop_front();
     if(pIsRunning)
     {
-        processes.push_back(p);
+        running.push_back(p);
     }
     else
     {
+        processes.removeOne(p);
         delete p; // since it will not return to the queue
     }
     _isRunning = !processes.empty();
@@ -2089,7 +2091,7 @@ Value *VM::_div(Value *v1, Value *v2)
 
 Value *VM::__top()
 {
-    assert(!processes.empty(), InternalError);
+    assert(!running.empty(), InternalError);
     assert(!stack().empty(), InternalError);
     return currentFrame()->OperandStack.top();
 }

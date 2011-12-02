@@ -112,6 +112,8 @@ const int ELLIPSIS = 116;
 const int LBRACE = 117;
 const int RBRACE = 118;
 const int ROCKET = 119;
+const int MATCHES = 120;
+const int QUESTION = 121;
 
 const int WHITESPACE = TokenNone;
 
@@ -130,6 +132,7 @@ class KalimatLexer : public Lexer
     CharPredicate *lparen, *rparen, *lbracket, *rbracket, *lbrace, *rbrace;
     CharPredicate *dollarSign;
     Predicate *rocket;
+    Predicate *matches, *question;
 
     CharPredicate *spacer, *tab, *space;
     Predicate *lineComment;

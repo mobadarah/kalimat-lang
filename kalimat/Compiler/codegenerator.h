@@ -109,6 +109,16 @@ private:
     void generateSelectStmt(SelectStmt *stmt);
     void generateBinaryOperation(BinaryOperation *expr);
     void generateIsaOperation(IsaOperation *expr);
+    void generateMatchOperation(MatchOperation *expr);
+    void generatePattern(Pattern *patterns,
+                                        Expression *expression,
+                                        QMap<AssignableExpression *, Identifier *> &bindings);
+    void generateSimpleLiteralPattern(SimpleLiteralPattern *pattern, Expression *matchee, QMap<AssignableExpression *, Identifier *> &bindings);
+    void generateVarPattern(VarPattern *pattern, Expression *matchee, QMap<AssignableExpression *, Identifier *> &bindings);
+    void generateAssignedVarPattern(AssignedVarPattern *pattern, Expression *matchee, QMap<AssignableExpression *, Identifier *> &bindings);
+    void generateArrayPattern(ArrayPattern *pattern, Expression *matchee, QMap<AssignableExpression *, Identifier *> &bindings);
+    void generateObjPattern(ObjPattern *pattern, Expression *matchee, QMap<AssignableExpression *, Identifier *> &bindings);
+    void generateMapPattern(MapPattern *pattern, Expression *matchee, QMap<AssignableExpression *, Identifier *> &bindings);
     void generateUnaryOperation(UnaryOperation *expr);
     void generateIdentifier(Identifier *expr);
     void generateNumLiteral(NumLiteral *expr);
@@ -178,6 +188,7 @@ UnimplementedExpressionForm,
 UnimplementedStatementForm,
 UnimplementedInvokationForm,
 UnimplementedTypeForm,
+UnimplementedPatternForm,
 ProgramsCannotUseExternalModulesWithoutSavingThemFirst,
 InternalCompilerErrorInFunc
 };

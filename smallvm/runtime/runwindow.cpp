@@ -209,26 +209,28 @@ void RunWindow::Init(QString program, QMap<QString, QString> stringConstants, QS
             BuiltInTypes::ExternalMethodType,
             BuiltInTypes::ClassType,
 
+            BuiltInTypes::IndexableType,
             BuiltInTypes::ArrayType,
+            BuiltInTypes::MapType,
             BuiltInTypes::StringType,
+
             BuiltInTypes::SpriteType,
             BuiltInTypes::WindowType,
-
             BuiltInTypes::NullType,
             BuiltInTypes::c_int,
+
             BuiltInTypes::c_long,
             BuiltInTypes::c_float,
-
             BuiltInTypes::c_double,
             BuiltInTypes::c_char,
+
             BuiltInTypes::c_asciiz,
             BuiltInTypes::c_wstr,
-
             BuiltInTypes::c_ptr
 
                              };
         // todo: handle built-in file type
-        const int numBuiltIns = 21;
+        const int numBuiltIns = 23;
         for(int i=0; i<numBuiltIns; i++)
         {
             vm->RegisterType(builtIns[i]->getName(), builtIns[i]);
@@ -306,8 +308,8 @@ void RunWindow::singleStep(Process *proc)
                 &&  (oldPos != pos ) && (oldLen != len)
                 )
             {
-                QTime dieTime = QTime::currentTime().addMSecs(client->wonderfulMonitorDelay());
-                while( QTime::currentTime() < dieTime )
+                QDateTime dieTime = QDateTime::currentDateTime().addMSecs(client->wonderfulMonitorDelay());
+                while( QDateTime::currentDateTime() < dieTime )
                     QCoreApplication::processEvents(QEventLoop::AllEvents, 100);
             }
             oldPos = pos;

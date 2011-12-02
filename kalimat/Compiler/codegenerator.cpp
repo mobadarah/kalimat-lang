@@ -1451,6 +1451,11 @@ void CodeGenerator::generateExpression(Expression *expr)
         generateIsaOperation(dynamic_cast<IsaOperation *>(expr));
         return;
     }
+    if(isa<MatchOperation>(expr))
+    {
+        generateMatchOperation(dynamic_cast<MatchOperation *>(expr));
+        return;
+    }
     if(isa<UnaryOperation>(expr))
     {
         generateUnaryOperation(dynamic_cast<UnaryOperation *>(expr));
@@ -1599,6 +1604,272 @@ void CodeGenerator::generateIsaOperation(IsaOperation *expr)
     gen(expr, "isa " + typeId);
 }
 
+void CodeGenerator::generateMatchOperation(MatchOperation *expr)
+{
+
+    QMap<AssignableExpression *, Identifier *> bindings;
+    generatePattern(expr->pattern(), expr->expression(), bindings);
+
+    // Now use all the bindings we've collected
+    QString bind = _asm.uniqueLabel(), nobind = _asm.uniqueLabel(), exit = _asm.uniqueLabel();
+    gen(expr, QString("if %1,%2").arg(bind).arg(nobind));
+    gen(expr, QString("%1:").arg(bind));
+    for(QMap<AssignableExpression *, Identifier *>::const_iterator i=bindings.begin(); i!=bindings.end();++i)
+    {
+        // todo: we want to execute the equivalent of matchedVar = tempVar
+        // but tempVar is undefined to the compiler refuses the dummy assignment
+        // we currently define the temp var, but this pollutes the namespace
+        // so we should use generateAssignmentToLVal instead
+        defineInCurrentScope(i.value()->name);
+        // todo: this leaks!!
+        generateAssignmentStmt(new AssignmentStmt(i.key()->getPos(), i.key(), i.value()));
+    }
+    gen(expr, "pushv true");
+    gen(expr, QString("jmp %1").arg(exit));
+    gen(expr, QString("%1:").arg(nobind));
+    gen(expr, "pushv false");
+    gen(expr, QString("jmp %1").arg(exit));
+    gen(expr, QString("%1:").arg(exit));
+}
+
+void CodeGenerator::generatePattern(Pattern *pattern,
+                                    Expression *expression,
+                                    QMap<AssignableExpression *, Identifier *> &bindings)
+{
+    if(isa<SimpleLiteralPattern>(pattern))
+    {
+        generateSimpleLiteralPattern(dynamic_cast<SimpleLiteralPattern *>(pattern), expression, bindings);
+    }
+    else if(isa<VarPattern>(pattern))
+    {
+        generateVarPattern(dynamic_cast<VarPattern *>(pattern), expression, bindings);
+    }
+    else if(isa<AssignedVarPattern>(pattern))
+    {
+        generateAssignedVarPattern(dynamic_cast<AssignedVarPattern *>(pattern), expression, bindings);
+    }
+    else if(isa<ArrayPattern>(pattern))
+    {
+        generateArrayPattern(dynamic_cast<ArrayPattern*>(pattern), expression, bindings);
+    }
+    else if(isa<ObjPattern>(pattern))
+    {
+        generateObjPattern(dynamic_cast<ObjPattern *>(pattern), expression, bindings);
+    }
+    else if(isa<MapPattern>(pattern))
+    {
+        generateMapPattern(dynamic_cast<MapPattern *>(pattern), expression, bindings);
+    }
+    else
+    {
+        throw CompilerException(pattern, UnimplementedPatternForm).arg(pattern->toString());
+    }
+}
+
+void CodeGenerator::generateSimpleLiteralPattern(SimpleLiteralPattern *pattern,
+                                                 Expression *matchee,
+                                                 QMap<AssignableExpression *, Identifier *> &bindings)
+{
+    generateExpression(pattern->value());
+    generateExpression(matchee);
+    gen(matchee, "eq");
+}
+
+void CodeGenerator::generateVarPattern(VarPattern *pattern,
+                                       Expression *matchee,
+                                       QMap<AssignableExpression *, Identifier *> &bindings)
+{
+    generateExpression(pattern->id());
+    generateExpression(matchee);
+    gen(matchee, "eq");
+}
+
+void CodeGenerator::generateAssignedVarPattern(AssignedVarPattern *pattern,
+                                               Expression *matchee,
+                                               QMap<AssignableExpression *, Identifier *> &bindings)
+{
+    /*
+      <matchee>
+      popl %tmp
+      pushv true
+    */
+    QString tempVar = _asm.uniqueVariable();
+    generateExpression(matchee);
+    gen(matchee, QString("popl ") + tempVar);
+    gen(pattern->lv(), "pushv true");
+    bindings.insert(pattern->lv(), new Identifier(matchee->getPos(), tempVar));
+}
+
+void CodeGenerator::generateArrayPattern(ArrayPattern *pattern,
+                                         Expression *matchee,
+                                         QMap<AssignableExpression *, Identifier *> &bindings)
+{
+    QString arrVar = _asm.uniqueVariable();
+    // todo: for why this is ugly please refer to the comment
+    // about defineInCurrentScope() in generateMatchOperation()
+    defineInCurrentScope(arrVar);
+    // todo: this leaks
+    Identifier *arrVarExpr = new Identifier(pattern->getPos(), arrVar);
+    QString exit = _asm.uniqueLabel();
+    QString ok, no, goon;
+    generateExpression(matchee);
+    gen(matchee, QString("popl %1").arg(arrVar));
+    gen(matchee, QString("pushl %1").arg(arrVar));
+    gen(pattern, _ws(L"isa مصفوفة.قيم"));
+    ok = _asm.uniqueLabel();
+    no = _asm.uniqueLabel();
+    goon = _asm.uniqueLabel();
+    gen(pattern, QString("if %1,%2").arg(ok).arg(no));
+    gen(pattern, QString("%1:").arg(ok));
+    gen(pattern, "pushv true");
+    gen(pattern, QString("jmp %1").arg(goon));
+    gen(pattern, QString("%1:").arg(no));
+    gen(pattern, "pushv false");
+    gen(pattern, QString("jmp %1").arg(exit));
+    gen(pattern, QString("%1:").arg(goon));
+
+    if(pattern->fixedLength)
+    {
+        gen(pattern, "pushv ", pattern->elementCount());
+        gen(pattern, QString("pushl ") + arrVar);
+        gen(pattern, "arrlength");
+        gen(pattern, "eq");
+
+        ok = _asm.uniqueLabel();
+        no = _asm.uniqueLabel();
+        goon = _asm.uniqueLabel();
+        gen(pattern, QString("if %1,%2").arg(ok).arg(no));
+        gen(pattern, QString("%1:").arg(ok));
+        gen(pattern, "pushv true");
+        gen(pattern, QString("jmp %1").arg(goon));
+        gen(pattern, QString("%1:").arg(no));
+        gen(pattern, "pushv false");
+        gen(pattern, QString("jmp %1").arg(exit));
+        gen(pattern, QString("%1:").arg(goon));
+    }
+    for(int i=0; i<pattern->elementCount(); i++)
+    {
+        // todo: this leaks also
+        NumLiteral *idx = new NumLiteral(pattern->element(i)->getPos(), QString("%1").arg(i+1));
+        Expression *expr = new ArrayIndex(pattern->element(i)->getPos(), arrVarExpr, idx);
+        generatePattern(pattern->element(i), expr, bindings);
+
+        ok = _asm.uniqueLabel();
+        no = _asm.uniqueLabel();
+        goon = _asm.uniqueLabel();
+        gen(pattern, QString("if %1,%2").arg(ok).arg(no));
+        gen(pattern, QString("%1:").arg(ok));
+        gen(pattern, "pushv true");
+        gen(pattern, QString("jmp %1").arg(goon));
+        gen(pattern, QString("%1:").arg(no));
+        gen(pattern, "pushv false");
+        gen(pattern, QString("jmp %1").arg(exit));
+        gen(pattern, QString("%1:").arg(goon));
+    }
+    gen(pattern, QString("%1:").arg(exit));
+}
+
+void CodeGenerator::generateObjPattern(ObjPattern *pattern,
+                                       Expression *matchee,
+                                       QMap<AssignableExpression *, Identifier *> &bindings)
+{
+    QString objVar = _asm.uniqueVariable();
+    // todo: for why this is ugly please refer to the comment
+    // about defineInCurrentScope() in generateMatchOperation()
+    defineInCurrentScope(objVar);
+    // todo: this leaks
+    Identifier *objVarExpr = new Identifier(pattern->getPos(), objVar);
+    QString exit = _asm.uniqueLabel();
+    QString ok, no, goon;
+    generateExpression(matchee);
+    gen(matchee, QString("popl %1").arg(objVar));
+    gen(matchee, QString("pushl %1").arg(objVar));
+    gen(pattern, _ws(L"isa %1").arg(pattern->classId()->name));
+    ok = _asm.uniqueLabel();
+    no = _asm.uniqueLabel();
+    goon = _asm.uniqueLabel();
+    gen(pattern, QString("if %1,%2").arg(ok).arg(no));
+    gen(pattern, QString("%1:").arg(ok));
+    gen(pattern, "pushv true");
+    gen(pattern, QString("jmp %1").arg(goon));
+    gen(pattern, QString("%1:").arg(no));
+    gen(pattern, "pushv false");
+    gen(pattern, QString("jmp %1").arg(exit));
+    gen(pattern, QString("%1:").arg(goon));
+
+
+    for(int i=0; i<pattern->fieldCount(); i++)
+    {
+        // todo: this leaks also
+        Expression *expr = new Idafa(pattern->fieldName(i)->getPos(), pattern->fieldName(i), objVarExpr);
+        generatePattern(pattern->fieldPattern(i), expr, bindings);
+
+        ok = _asm.uniqueLabel();
+        no = _asm.uniqueLabel();
+        goon = _asm.uniqueLabel();
+        gen(pattern, QString("if %1,%2").arg(ok).arg(no));
+        gen(pattern, QString("%1:").arg(ok));
+        gen(pattern, "pushv true");
+        gen(pattern, QString("jmp %1").arg(goon));
+        gen(pattern, QString("%1:").arg(no));
+        gen(pattern, "pushv false");
+        gen(pattern, QString("jmp %1").arg(exit));
+        gen(pattern, QString("%1:").arg(goon));
+    }
+    gen(pattern, QString("%1:").arg(exit));
+}
+
+void CodeGenerator::generateMapPattern(MapPattern *pattern,
+                                       Expression *matchee,
+                                       QMap<AssignableExpression *, Identifier *> &bindings)
+{
+    QString mapVar = _asm.uniqueVariable();
+    // todo: for why this is ugly please refer to the comment
+    // about defineInCurrentScope() in generateMatchOperation()
+    defineInCurrentScope(mapVar);
+    // todo: this leaks
+    Identifier *mapVarExpr = new Identifier(pattern->getPos(), mapVar);
+    QString exit = _asm.uniqueLabel();
+    QString ok, no, goon;
+    generateExpression(matchee);
+    gen(matchee, QString("popl %1").arg(mapVar));
+    gen(matchee, QString("pushl %1").arg(mapVar));
+    gen(pattern, _ws(L"isa قاموس.قيم"));
+    ok = _asm.uniqueLabel();
+    no = _asm.uniqueLabel();
+    goon = _asm.uniqueLabel();
+    gen(pattern, QString("if %1,%2").arg(ok).arg(no));
+    gen(pattern, QString("%1:").arg(ok));
+    gen(pattern, "pushv true");
+    gen(pattern, QString("jmp %1").arg(goon));
+    gen(pattern, QString("%1:").arg(no));
+    gen(pattern, "pushv false");
+    gen(pattern, QString("jmp %1").arg(exit));
+    gen(pattern, QString("%1:").arg(goon));
+
+
+    for(int i=0; i<pattern->pairCount(); i++)
+    {
+        // todo: this leaks also
+        Expression *idx = pattern->key(i);
+        Expression *expr = new ArrayIndex(pattern->key(i)->getPos(), mapVarExpr, idx);
+        generatePattern(pattern->value(i), expr, bindings);
+
+        ok = _asm.uniqueLabel();
+        no = _asm.uniqueLabel();
+        goon = _asm.uniqueLabel();
+        gen(pattern, QString("if %1,%2").arg(ok).arg(no));
+        gen(pattern, QString("%1:").arg(ok));
+        gen(pattern, "pushv true");
+        gen(pattern, QString("jmp %1").arg(goon));
+        gen(pattern, QString("%1:").arg(no));
+        gen(pattern, "pushv false");
+        gen(pattern, QString("jmp %1").arg(exit));
+        gen(pattern, QString("%1:").arg(goon));
+    }
+    gen(pattern, QString("%1:").arg(exit));
+}
+
 void CodeGenerator::generateUnaryOperation(UnaryOperation *expr)
 {
     generateExpression(expr->operand());
@@ -1701,7 +1972,7 @@ void CodeGenerator::generateMethodInvokation(MethodInvokation *expr, InvokationC
     // we'll just let the virtual machine handle it. The VM will find an empty stack and signal
     // internal error, if it's lucky, otherwise crash or behave weirdly :(
     // so todo: we should find a better way
-    // I'm actually tempted to go all pythong and make everything functions that return null
+    // I'm actually tempted to go all pythonic and make everything functions that return null
     // by default
     for(int i=expr->argumentCount()-1; i>=0; i--)
     {

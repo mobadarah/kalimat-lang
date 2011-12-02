@@ -34,6 +34,7 @@ private:
     bool LA_first_declaration();
     bool LA_first_io_statement();
     bool LA_first_grfx_statement();
+    bool LA_first_simple_literal();
     bool LA_first_primary_expression();
     bool LA_first_method_declaration();
     bool LA_first_assignment_or_invokation();
@@ -89,11 +90,21 @@ private:
     Expression *andOrExpression();
     Expression *notExpression();
     Expression *comparisonExpression();
+
+    bool LA_first_pattern();
+    Pattern *pattern();
+    Pattern *simpleLiteralPattern();
+    Pattern *varOrObjPattern();
+    Pattern *assignedVarPattern();
+    Pattern *arrayPattern();
+    Pattern *mapPattern();
+
     Expression *arithmeticExpression();
     Expression *multiplicativeExpression();
     Expression *positiveOrNegativeExpression();
     Expression *primaryExpression();
     Expression *primaryExpressionNonInvokation();
+    SimpleLiteral *simpleLiteral();
     Identifier *identifier();
 
     TypeExpression *typeExpression();

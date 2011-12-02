@@ -89,6 +89,7 @@ bool Declaration::isPublic()
 IOStatement::IOStatement(Token pos) : Statement(pos)
 {
 }
+
 GraphicsStatement::GraphicsStatement(Token pos) : Statement(pos)
 {
 
@@ -103,7 +104,7 @@ AssignmentStmt::AssignmentStmt(Token pos ,AssignableExpression *_variable, Expre
 
 QString AssignmentStmt::toString()
 {
-    return QString("=(%1، %2)").arg(variable()->toString(),value()->toString());
+    return _ws(L"=(%1، %2)").arg(variable()->toString(),value()->toString());
 }
 
 IfStmt::IfStmt(Token pos ,Expression *cond, Statement *_thenStmt, Statement *elseStmt)
@@ -527,6 +528,88 @@ QString FunctionTypeExpression::toString()
     return QString("func(%1,[%2])").arg(retType()?retType()->toString():"void",strs.join(", "));
 }
 
+Pattern::Pattern(Token pos)
+    : _astImpl(pos)
+{
+
+}
+
+QString VarPattern::toString()
+{
+    return id()->toString();
+}
+
+ArrayPattern::ArrayPattern(Token pos, QVector<Pattern *> elements)
+    : Pattern(pos)
+{
+    for(QVector<Pattern *>::const_iterator i=elements.begin(); i != elements.end(); ++i)
+    {
+        _elements.append(QSharedPointer<Pattern>(*i));
+    }
+}
+
+QString ArrayPattern::toString()
+{
+    QStringList items;
+    for(int i=0; i<elementCount(); i++)
+        items.append(element(i)->toString());
+    return _ws(L"نمط.مصفوفة([%1 %2])").arg(items.join(", ")).arg(this->fixedLength? "": "...");
+}
+
+ObjPattern::ObjPattern(Token pos,
+                       Identifier *classId,
+                       QVector<Identifier *> fieldNames,
+                       QVector<Pattern *> fieldPatterns)
+    : Pattern(pos), _classId(classId)
+{
+    for(QVector<Identifier *>::const_iterator i=fieldNames.begin(); i != fieldNames.end(); ++i)
+    {
+        _fieldNames.append(QSharedPointer<Identifier>(*i));
+    }
+
+    for(QVector<Pattern *>::const_iterator i=fieldPatterns.begin(); i != fieldPatterns.end(); ++i)
+    {
+        _fieldPatterns.append(QSharedPointer<Pattern>(*i));
+    }
+}
+
+QString ObjPattern::toString()
+{
+    QStringList pairs;
+    for(int i=0;i<this->fieldCount(); i++)
+    {
+        pairs.append(QString("%1=%2").arg(fieldName(i)->name).arg(fieldPattern(i)->toString()));
+    }
+    return QString(_ws(L"نمط.كائني(%1،%2)")).arg(this->classId()->name).arg(pairs.join(", "));
+}
+
+MapPattern::MapPattern(Token pos,
+                       QVector<Expression *> keys,
+                       QVector<Pattern *> values)
+    : Pattern(pos)
+{
+    for(QVector<Expression*>::const_iterator i=keys.begin(); i != keys.end(); ++i)
+    {
+        _keys.append(QSharedPointer<Expression>(*i));
+    }
+
+    for(QVector<Pattern *>::const_iterator i=values.begin(); i != values.end(); ++i)
+    {
+        _values.append(QSharedPointer<Pattern>(*i));
+    }
+}
+
+QString MapPattern::toString()
+{
+    QStringList pairs;
+    for(int i=0;i<this->pairCount(); i++)
+    {
+        pairs.append(QString("%1=>%2").arg(key(i)->toString()).arg(value(i)->toString()));
+    }
+    return QString(_ws(L"نمط.قاموسي(%1)"))
+            .arg(pairs.join(", "));
+}
+
 BinaryOperation::BinaryOperation(Token pos ,QString op, Expression *op1, Expression *op2)
     : Expression(pos),
     _operator(op),
@@ -557,6 +640,21 @@ QString IsaOperation::toString()
     return _ws(L"%1 هو %2").arg(expression()->toString()).arg(type()->toString());
 }
 
+MatchOperation::MatchOperation(Token pos,
+                               Expression *expression,
+                               Pattern *pattern)
+    : Expression(pos),
+      _expression(expression),
+      _pattern(pattern)
+{
+
+}
+
+QString MatchOperation::toString()
+{
+    return _ws(L"%1 ~ %2").arg(expression()->toString()).arg(pattern()->toString());
+}
+
 UnaryOperation::UnaryOperation(Token pos ,QString __operator, Expression *operand)
     : Expression(pos),
     _operator(__operator),
@@ -571,7 +669,7 @@ QString UnaryOperation::toString()
 }
 
 
-NumLiteral::NumLiteral(Token pos ,QString lexeme) :Expression(pos)
+NumLiteral::NumLiteral(Token pos ,QString lexeme) : SimpleLiteral(pos)
 {
     bool ok;
     QLocale loc(QLocale::Arabic, QLocale::Egypt);
@@ -602,7 +700,7 @@ QString NumLiteral::repr()
     return QString("%1").arg(longNotDouble? lValue: dValue);
 }
 
-StrLiteral::StrLiteral(Token pos ,QString value) : Expression(pos)
+StrLiteral::StrLiteral(Token pos ,QString value) : SimpleLiteral(pos)
 {
     this->value = value;
 }
@@ -633,7 +731,7 @@ QString StrLiteral::repr()
     return strLiteralRepr(this->value);
 }
 
-NullLiteral::NullLiteral(Token pos) : Expression(pos)
+NullLiteral::NullLiteral(Token pos) : SimpleLiteral(pos)
 {
 
 }
@@ -647,7 +745,7 @@ QString NullLiteral::repr()
     return _ws(L"لاشيء");
 }
 
-BoolLiteral::BoolLiteral(Token pos, bool _value) : Expression(pos)
+BoolLiteral::BoolLiteral(Token pos, bool _value) : SimpleLiteral(pos)
 {
     value = _value;
 }
@@ -662,7 +760,7 @@ QString BoolLiteral::repr()
 }
 
 ArrayLiteral::ArrayLiteral(Token pos, QVector<Expression *>data)
-    : Expression(pos)
+    : Literal(pos)
 {
     for(int i=0; i<data.count(); i++)
         _data.append(QSharedPointer<Expression>(data[i]));
@@ -674,7 +772,7 @@ QString ArrayLiteral::toString()
 }
 
 MapLiteral::MapLiteral(Token pos, QVector<Expression *>data)
-    : Expression(pos)
+    : Literal(pos)
 {
     for(int i=0; i<data.count(); i++)
         _data.append(QSharedPointer<Expression>(data[i]));
@@ -1444,6 +1542,48 @@ void InvokationStmt::prettyPrint(CodeFormatter *f)
     this->expression()->prettyPrint(f);
 }
 
+void VarPattern::prettyPrint(CodeFormatter *f)
+{
+    id()->prettyPrint(f);
+}
+
+void ArrayPattern::prettyPrint(CodeFormatter *f)
+{
+    //todo: ArrayPattern::prettyPrint() by not copying to new vector
+    QVector<PrettyPrintable *> data;
+    for(int i=0; i<elementCount(); i++)
+        data.append(element(i));
+
+    brackets(&commaSep(mapFmt(this->_elements))).run(f);
+}
+
+void ObjPattern::prettyPrint(CodeFormatter *f)
+{
+    this->classId()->prettyPrint(f);
+    f->space();
+    f->printKw(_ws(L"له"));
+    QVector<PrettyPrintable *> data;
+    //todo: optimize ObjPattern::prettyPrint() by not copying to new vector
+    for(int i=0; i<this->fieldCount(); i++)
+    {
+        data.append(fieldName(i));
+        data.append(fieldPattern(i));
+    }
+    commaSepPairs(mapFmt(data), "=").run(f);
+}
+
+void MapPattern::prettyPrint(CodeFormatter *f)
+{
+    QVector<PrettyPrintable *> data;
+    //todo: optimize ObjPattern::prettyPrint() by not copying to new vector
+    for(int i=0; i<this->pairCount(); i++)
+    {
+        data.append(key(i));
+        data.append(value(i));
+    }
+    braces(&commaSepPairs(mapFmt(data), "=>")).run(f);
+}
+
 QString translateOperator(QString op)
 {
     if(op == "add")
@@ -1518,6 +1658,15 @@ void IsaOperation::prettyPrint(CodeFormatter *f)
     this->type()->prettyPrint(f);
 }
 
+void MatchOperation::prettyPrint(CodeFormatter *f)
+{
+    this->expression()->prettyPrint(f);
+    f->space();
+    f->print(_ws(L"~"));
+    f->space();
+    this->pattern()->prettyPrint(f);
+}
+
 void UnaryOperation::prettyPrint(CodeFormatter *f)
 {
     f->print(translateOperator(this->_operator));
@@ -1586,7 +1735,7 @@ void ArrayLiteral::prettyPrint(CodeFormatter *f)
 
 void MapLiteral::prettyPrint(CodeFormatter *f)
 {
-    braces(&commaSepPairs(mapFmt(this->_data))).run(f);
+    braces(&commaSepPairs(mapFmt(this->_data), "=>")).run(f);
 }
 
 void Invokation::prettyPrint(CodeFormatter *f)

@@ -40,6 +40,7 @@ class VM
 {
     QMap<QString, Value*> constantPool;
     QQueue<Process *> processes;
+    QQueue<Process *> running;
     QQueue<Process *> timerWaiting;
 
     // The allocator must be declared after the 'constantPool' and 'stack'

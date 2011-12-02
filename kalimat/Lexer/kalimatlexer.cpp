@@ -55,6 +55,8 @@ KalimatLexer::KalimatLexer() : Lexer()
     sm.addAccepting (READY,   la(eq),     READY,   EQ);
     sm.addAccepting (READY,   la(lt),     READY,   LT);
     sm.addAccepting (READY,   la(gt),     READY,   GT);
+    sm.addAccepting (READY,   matches,    READY,   MATCHES);
+    sm.addAccepting (READY,   question,   READY,   QUESTION);
 
     sm.addAccepting (READY,   ellipsis,  READY,   ELLIPSIS);
     sm.addAccepting (READY,   la(lparen), READY,   LPAREN);
@@ -157,6 +159,8 @@ void KalimatLexer::InitCharPredicates()
     rbrace = new CharEquals('}');
 
     rocket = new LAStr("=>");
+    matches = new LAStr(L"~");
+    question = new ReChoice(new LAStr("?"), new LAStr(QString::fromStdWString(L"؟")));
 
     spacer = new CharEquals(' ');
     tab= new CharEquals('\t');
@@ -233,6 +237,8 @@ QString TokenNameFromId(int id)
         while(!in.atEnd())
         {
             QStringList data = in.readLine().split(' ', QString::SkipEmptyParts, Qt::CaseSensitive);
+            if(data.length() == 0)
+                continue; // we encountered a blank line
             QString name = data.at(0);
             QString _id = data.at(1);
             int id = _id.toInt();

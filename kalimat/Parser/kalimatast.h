@@ -519,10 +519,115 @@ public:
     Expression(Token pos);
     Token getPos() { return _astImpl.getPos();}
 };
+
 class AssignableExpression : public Expression
 {
 public:
     AssignableExpression(Token pos);
+};
+
+class Literal : public Expression
+{
+public:
+    Literal(Token pos): Expression(pos) {}
+};
+
+class SimpleLiteral : public Literal
+{
+public:
+    SimpleLiteral(Token pos) : Literal(pos) {}
+};
+
+class Pattern : public AST
+{
+    ASTImpl _astImpl;
+public:
+    Pattern(Token pos);
+    Token getPos() { return _astImpl.getPos();}
+};
+
+class SimpleLiteralPattern : public Pattern
+{
+    QScopedPointer<SimpleLiteral> _value;
+public:
+    SimpleLiteralPattern(Token pos, SimpleLiteral *value)
+        : Pattern(pos),_value(value) {}
+    SimpleLiteral *value() { return _value.data(); }
+    QString toString() { return value()->toString(); }
+    void prettyPrint(CodeFormatter *formatter)
+    {
+        value()->prettyPrint(formatter);
+    }
+};
+
+class VarPattern : public Pattern
+{
+    QScopedPointer<Identifier> _id;
+public:
+    VarPattern(Token pos, Identifier *id) : Pattern(pos),_id(id) {}
+    Identifier *id() { return _id.data(); }
+    QString toString();
+    void prettyPrint(CodeFormatter *formatter);
+};
+
+class AssignedVarPattern : public Pattern
+{
+    QScopedPointer<AssignableExpression> _lv;
+public:
+    AssignedVarPattern(Token pos, AssignableExpression *lv)
+        : Pattern(pos),_lv(lv)
+    {
+    }
+    AssignableExpression *lv() { return _lv.data(); }
+    QString toString() { return QString("? %1").arg(lv()->toString()); }
+    void prettyPrint(CodeFormatter *formatter)
+    {
+        formatter->print("? ");
+        lv()->prettyPrint(formatter);
+    }
+};
+
+class ArrayPattern : public Pattern
+{
+    QVector<QSharedPointer<Pattern> > _elements;
+public:
+    bool fixedLength;
+public:
+    ArrayPattern(Token pos, QVector<Pattern *> elements);
+    int elementCount() { return _elements.count(); }
+    Pattern *element(int i) { return _elements[i].data(); }
+    QString toString();
+    void prettyPrint(CodeFormatter *formatter);
+};
+
+class ObjPattern : public Pattern
+{
+    QScopedPointer<Identifier> _classId;
+    QVector<QSharedPointer<Identifier> > _fieldNames;
+    QVector<QSharedPointer<Pattern> > _fieldPatterns;
+public:
+    ObjPattern(Token pos, Identifier *classId,
+               QVector<Identifier *> fieldNames,
+               QVector<Pattern *> fieldPatterns);
+    Identifier *classId() { return _classId.data(); }
+    int fieldCount() { return _fieldNames.count(); }
+    Identifier *fieldName(int i) { return _fieldNames[i].data(); }
+    Pattern *fieldPattern(int i) { return _fieldPatterns[i].data(); }
+    QString toString();
+    void prettyPrint(CodeFormatter *formatter);
+};
+
+class MapPattern : public Pattern
+{
+    QVector<QSharedPointer<Expression> > _keys;
+    QVector<QSharedPointer<Pattern> > _values;
+public:
+    MapPattern(Token pos, QVector<Expression *> keys, QVector<Pattern *> values);
+    int pairCount() { return _keys.count(); }
+    Expression *key(int i) { return _keys[i].data(); }
+    Pattern *value(int i) { return _values[i].data(); }
+    QString toString();
+    void prettyPrint(CodeFormatter *formatter);
 };
 
 class BinaryOperation : public Expression
@@ -551,6 +656,19 @@ public:
     void prettyPrint(CodeFormatter *f);
 };
 
+class MatchOperation : public Expression
+{
+public:
+    QScopedPointer<Expression> _expression;
+    QScopedPointer<Pattern> _pattern;
+public:
+    MatchOperation(Token pos, Expression *expression, Pattern *pattern);
+    Expression *expression() { return _expression.data(); }
+    Pattern *pattern() { return _pattern.data(); }
+    QString toString();
+    void prettyPrint(CodeFormatter *f);
+};
+
 class UnaryOperation : public Expression
 {
 public:
@@ -574,7 +692,7 @@ public:
     void prettyPrint(CodeFormatter *f);
 };
 
-class NumLiteral : public Expression
+class NumLiteral : public SimpleLiteral
 {
 public:
     long lValue;
@@ -588,7 +706,7 @@ public:
     void prettyPrint(CodeFormatter *f);
 };
 
-class StrLiteral : public Expression
+class StrLiteral : public SimpleLiteral
 {
 public:
     QString value;
@@ -598,7 +716,7 @@ public:
     QString repr();
     void prettyPrint(CodeFormatter *f);
 };
-class NullLiteral : public Expression
+class NullLiteral : public SimpleLiteral
 {
 public:
     NullLiteral(Token pos);
@@ -606,7 +724,7 @@ public:
     QString repr();
     void prettyPrint(CodeFormatter *f);
 };
-class BoolLiteral : public Expression
+class BoolLiteral : public SimpleLiteral
 {
 public:
     bool value;
@@ -617,7 +735,7 @@ public:
     void prettyPrint(CodeFormatter *f);
 };
 
-class ArrayLiteral : public Expression
+class ArrayLiteral : public Literal
 {
 public:
     QVector<QSharedPointer<Expression > > _data;
@@ -630,7 +748,7 @@ public:
     void prettyPrint(CodeFormatter *f);
 };
 
-class MapLiteral : public Expression
+class MapLiteral : public Literal
 {
 public:
     QVector<QSharedPointer<Expression > > _data;
@@ -1073,15 +1191,25 @@ public:
 class commaSepPairs: public FormatMaker
 {
     QVector<FormatMaker *> fs;
+    QString abSeparator;
 public:
-    commaSepPairs(FormatMaker *_f1, FormatMaker *_f2) { fs.append(_f1);fs.append(_f2);}
-    commaSepPairs(QVector<FormatMaker *> _fs) { fs = _fs;}
+    commaSepPairs(FormatMaker *_f1, FormatMaker *_f2, QString _abSep)
+    {
+        fs.append(_f1);
+        fs.append(_f2);
+        abSeparator = _abSep;
+    }
+    commaSepPairs(QVector<FormatMaker *> _fs, QString _abSep)
+    {
+        fs = _fs;
+        abSeparator = _abSep;
+    }
     void run(CodeFormatter *cf)
     {
         for(int i=0; i<fs.count(); i+=2)
         {
             fs[i]->run(cf);
-            cf->print("=");
+            cf->print(abSeparator);
             fs[i+1]->run(cf);
             if(i+2<fs.count())
                 cf->comma();
@@ -1147,6 +1275,16 @@ QVector<FormatMaker *> mapFmt(QVector<QSharedPointer<V> >v, int from=0)
     QVector<FormatMaker *> ret;
     for(int i=from; i<v.count(); i++)
         ret.append(new ast(v[i].data()));
+    return ret;
+}
+
+// TODO: This leaks!
+template<typename V>
+QVector<FormatMaker *> mapFmt(QVector<V> v, int from=0)
+{
+    QVector<FormatMaker *> ret;
+    for(int i=from; i<v.count(); i++)
+        ret.append(new ast(v[i]));
     return ret;
 }
 

@@ -1529,12 +1529,138 @@ Expression *KalimatParser::comparisonExpression()
             Identifier *t2 = identifier();
             t = new IsaOperation(tok, t, t2);
         }
+        else if(LA(MATCHES))
+        {
+            Token tok  = lookAhead;
+            match(lookAhead.Type);
+            Pattern *t2 = pattern();
+            t = new MatchOperation(tok, t, t2);
+        }
         else
         {
             break;
         }
     }
     return t;
+}
+
+bool KalimatParser::LA_first_pattern()
+{
+    return LA(IDENTIFIER) || LA(QUESTION) || LA(LBRACKET)
+            || LA(LBRACE) || LA_first_simple_literal();
+}
+
+Pattern *KalimatParser::pattern()
+{
+    if(LA_first_simple_literal())
+        return simpleLiteralPattern();
+    if(LA(IDENTIFIER))
+        return varOrObjPattern();
+    if(LA(QUESTION))
+        return assignedVarPattern();
+    if(LA(LBRACKET))
+        return arrayPattern();
+    if(LA(LBRACE))
+        return mapPattern();
+}
+
+Pattern *KalimatParser::simpleLiteralPattern()
+{
+    SimpleLiteral *sl = simpleLiteral();
+    return new SimpleLiteralPattern(sl->getPos(), sl);
+}
+
+Pattern *KalimatParser::assignedVarPattern()
+{
+    match(QUESTION);
+    Expression *expr = expression();
+
+    AssignableExpression *id = dynamic_cast<AssignableExpression *>(expr);
+    if(id == NULL)
+    {
+        throw ParserException(getPos(), "After ? must be an assignable expression");
+    }
+    return new AssignedVarPattern(id->getPos(), id);
+}
+
+Pattern *KalimatParser::varOrObjPattern()
+{
+    Identifier *id = identifier();
+    if(LA(HAS))
+    {
+        match(HAS);
+        QVector<Identifier *> fnames;
+        QVector<Pattern *> fpatterns;
+        fnames.append(identifier());
+        match(EQ);
+        fpatterns.append(pattern());
+        while(LA(COMMA))
+        {
+            match(COMMA);
+            newLines();
+            fnames.append(identifier());
+            match(EQ);
+            fpatterns.append(pattern());
+        }
+        return new ObjPattern(id->getPos(), id, fnames, fpatterns);
+    }
+    else
+    {
+        return new VarPattern(id->getPos(), id);
+    }
+}
+
+Pattern *KalimatParser::arrayPattern()
+{
+    bool fixedLen = true;
+    QVector<Pattern *> patterns;
+    Token pos = lookAhead;
+    match(LBRACKET);
+    if(LA_first_pattern())
+    {
+        patterns.append(pattern());
+        while(LA(COMMA))
+        {
+            match(COMMA);
+            newLines();
+            if(LA(ELLIPSIS))
+            {
+                match(ELLIPSIS);
+                fixedLen = false;
+                break;
+            }
+            else
+            {
+                patterns.append(pattern());
+            }
+        }
+    }
+    match(RBRACKET);
+    return new ArrayPattern(pos, patterns);
+}
+
+Pattern *KalimatParser::mapPattern()
+{
+    QVector<Expression *> keys;
+    QVector<Pattern *> patterns;
+    Token pos = lookAhead;
+    match(LBRACE);
+    if(LA_first_expression())
+    {
+        keys.append(expression());
+        match(ROCKET);
+        patterns.append(pattern());
+        while(LA(COMMA))
+        {
+            match(COMMA);
+            newLines();
+            keys.append(expression());
+            match(ROCKET);
+            patterns.append(pattern());
+        }
+    }
+    match(RBRACE);
+    return new MapPattern(pos, keys, patterns);
 }
 
 Expression *KalimatParser::arithmeticExpression()
@@ -1674,13 +1800,19 @@ Expression *KalimatParser::primaryExpression()
     }
     return ret;
 }
-bool KalimatParser::LA_first_primary_expression()
+
+bool KalimatParser::LA_first_simple_literal()
 {
     return LA(NUM_LITERAL) ||
-            LA(STR_LITERAL) ||
-            LA(NOTHING) ||
-            LA(C_TRUE) ||
-            LA(C_FALSE) ||
+                LA(STR_LITERAL) ||
+                LA(NOTHING) ||
+                LA(C_TRUE) ||
+                LA(C_FALSE);
+}
+
+bool KalimatParser::LA_first_primary_expression()
+{
+    return LA_first_simple_literal() ||
             LA(LBRACKET) ||
             LA(LBRACE) ||
             LA(IDENTIFIER) ||
@@ -1689,9 +1821,9 @@ bool KalimatParser::LA_first_primary_expression()
                 //||  LA(FIELD);
 }
 
-Expression *KalimatParser::primaryExpressionNonInvokation()
+SimpleLiteral *KalimatParser::simpleLiteral()
 {
-    Expression *ret = NULL;
+    SimpleLiteral *ret = NULL;
     if(LA(NUM_LITERAL))
     {
         ret = new NumLiteral(lookAhead, lookAhead.Lexeme);
@@ -1716,6 +1848,20 @@ Expression *KalimatParser::primaryExpressionNonInvokation()
     {
         ret = new BoolLiteral(lookAhead, false);
         match(lookAhead.Type);
+    }
+    else
+    {
+        throw ParserException(getPos(), "Expected a simple literal");
+    }
+    return ret;
+}
+
+Expression *KalimatParser::primaryExpressionNonInvokation()
+{
+    Expression *ret = NULL;
+    if(LA_first_simple_literal())
+    {
+        return simpleLiteral();
     }
     else if(LA(LBRACKET))
     {

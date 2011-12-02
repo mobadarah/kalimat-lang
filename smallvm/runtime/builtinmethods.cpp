@@ -787,6 +787,7 @@ void BuiltInConstantProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 
     w->assert(false, ArgumentError, QString::fromStdWString(L"لا يوجد ثابت بهذا الاسم"));
 }
+
 void StringIsNumericProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 {
     QString *s = popString(stack, w, vm);
@@ -880,6 +881,7 @@ QString *popString(QStack<Value *> &stack, RunWindow *w, VM *vm)
     QString *s = stack.pop()->unboxStr();
     return s;
 }
+
 int popInt(QStack<Value *> &stack, RunWindow *w, VM *vm)
 {
     verifyStackNotEmpty(stack, vm);
