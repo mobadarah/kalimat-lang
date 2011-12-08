@@ -12,6 +12,7 @@
 #include "vm_ffi.h"
 //#include <iostream>
 #include <QLibrary>
+#include <time.h>
 
 using namespace std;
 #define QSTR(x) QString::fromStdWString(x)
@@ -155,11 +156,11 @@ Process *VM::currentProcess()
 
 void VM::makeItSleep(Process *proc, int ms)
 {
-    proc->sleep();
+    proc->state = TimerWaitingProcess;
 
-    proc->timeToWake = QDateTime::currentDateTime().addMSecs(ms);
+    proc->timeToWake = clock() + ms * CLOCKS_PER_SEC / 1000;
     timerWaiting.append(proc);
-    running.removeOne(proc);
+    // running.removeOne(proc);
 }
 
 Frame *VM::currentFrame()
@@ -387,9 +388,9 @@ void VM::RunStep(bool singleInstruction)
     int n = singleInstruction? 1 : rand() % 10;
     bool pIsRunning = true;
 
-    QDateTime qt = QDateTime::currentDateTime();
+    clock_t qt = clock();
 
-    if(timerWaiting.count() >0 && timerWaiting.front()->timeToWake < qt)
+    if(timerWaiting.count() > 0 && timerWaiting.front()->timeToWake < qt)
     {
         Process *proc = timerWaiting.front();
         timerWaiting.pop_front();
@@ -398,39 +399,51 @@ void VM::RunStep(bool singleInstruction)
         running.push_front(proc);
     }
 
-    if(running.empty())
+    if(running.empty() && timerWaiting.empty())
     {
         _isRunning = false;
         return;
     }
+    if(running.empty())
+    {
+        return;
+    }
+    Process *runningNow = running.front();
+    while(runningNow->state == SleepingProcess)
+    {
+        running.pop_front();
+        running.push_back(runningNow);
+        runningNow = running.front();
+    }
 
     while(n--)
     {
-        if(processIsFinished(currentProcess()))
+        if(processIsFinished(runningNow))
         {
             pIsRunning = false;
             break;
         }
-        if(currentProcess()->state == SleepingProcess)
+        if(runningNow->state == SleepingProcess)
         {
             break;
         }
-        RunSingleInstruction(currentProcess());
+        RunSingleInstruction(runningNow);
         // A breakpoint might pause/stop the VM, we then must stop this function at once
         if(!_isRunning)
             return;
     }
 
-    Process *p = running.front();
-    running.pop_front();
-    if(pIsRunning)
+    // Notice that it may be already removed, e.g by a call to receive
+    // or sleep
+    running.removeOne(runningNow);
+    if(pIsRunning && !(runningNow->state == TimerWaitingProcess))
     {
-        running.push_back(p);
+        running.push_back(runningNow);
     }
-    else
+    else if(!pIsRunning)
     {
-        processes.removeOne(p);
-        delete p; // since it will not return to the queue
+        processes.removeOne(runningNow);
+        delete runningNow; // since it will not return to the queue
     }
     _isRunning = !processes.empty();
 }

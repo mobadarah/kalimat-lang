@@ -56,6 +56,7 @@ void StringIsAlphabeticProc(QStack<Value *> &stack, RunWindow *w, VM *vm);
 void TypeOfProc(QStack<Value *> &stack, RunWindow *w, VM *vm);
 void TypeFromIdProc(QStack<Value *> &stack, RunWindow *w, VM *vm);
 void NewMapProc(QStack<Value *> &stack, RunWindow *w, VM *vm);
+void HasKeyProc(QStack<Value *> &stack, RunWindow *w, VM *vm);
 
 void RandomProc(QStack<Value *> &stack, RunWindow *, VM *w);
 void ToNumProc(QStack<Value *> &stack, RunWindow *, VM *w);

@@ -14,7 +14,6 @@ SOURCES += main.cpp \
     Lexer/kalimatlexer.cpp \ # ../../Qt/2009.04/share/qtcreator/gdbmacros/gdbmacros.cpp \
     Lexer/action.cpp \
     Parser/ast.cpp \
-    Parser/kalimatparser.cpp \
     Parser/kalimatast.cpp \
     syntaxhighlighter.cpp \
     ../smallvm/vm.cpp \
@@ -56,7 +55,9 @@ SOURCES += main.cpp \
     ../smallvm/codedocument.cpp \
     ../smallvm/breakpoint.cpp \
     ../smallvm/debuginfo.cpp \
-    ../smallvm/utils.cpp
+    ../smallvm/utils.cpp \
+    Parser/astreifier.cpp \
+    Parser/kalimatparser.cpp
 HEADERS += mainwindow.h \
     Lexer/token.h \
     Lexer/statemachine.h \
@@ -89,7 +90,8 @@ HEADERS += mainwindow.h \
     ../smallvm/runtime/runwindow.h \
     ../smallvm/runtime/guieditwidgethandler.h \
     ../smallvm/runtime/guicontrols.h \
-    ../smallvm/codedocument.h
+    ../smallvm/codedocument.h \
+    Parser/astreifier.h
 
 FORMS += mainwindow.ui \
     savechangedfiles.ui \
@@ -108,3 +110,7 @@ RC_FILE = kalimat.rc
 win32:LIBS += -L"$$_PRO_FILE_PWD_/../smallvm/libffi/" -llibffi
 
 unix:LIBS += -lffi
+
+
+
+

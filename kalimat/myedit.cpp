@@ -9,6 +9,9 @@
 #include "Lexer/lexer_incl.h"
 #include "Lexer/kalimatlexer.h"
 #include "mainwindow.h"
+
+#include <QComboBox>
+
 bool isAfterNumber(QTextEdit *edit)
 {
     bool replace = false;
@@ -369,6 +372,21 @@ void MyEdit::enterKeyBehavior(QKeyEvent *ev)
 
 void MyEdit::colonBehavior(QKeyEvent *ev)
 {
+    /*
+    QComboBox *autoCompleteCombo = new QComboBox(this);
+    autoCompleteCombo->addItem(QString::fromStdWString(L"اطبع"));
+    autoCompleteCombo->addItem(QString::fromStdWString(L"اضف"));
+    autoCompleteCombo->addItem(QString::fromStdWString(L"حدد.لونه"));
+    autoCompleteCombo->setSizeAdjustPolicy(QComboBox::AdjustToContents);
+    autoCompleteCombo->setLayoutDirection(Qt::RightToLeft);
+    int x = this->cursorRect().topLeft().x();
+    int y = this->cursorRect().topLeft().y();
+    autoCompleteCombo->move(x - autoCompleteCombo->width(),
+                            y);
+
+    autoCompleteCombo->showPopup();
+    //ev->setAccepted(false);
+    */
     int elsePart[] = { ELSE, COLON };
     int elseIfStart[] = { ELSE, IF }, elseIfEnd[] = { COLON };
 

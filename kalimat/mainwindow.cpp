@@ -50,7 +50,7 @@ MainWindow::MainWindow(QWidget *parent)
     ui->setupUi(this);
 
     QToolBar *notice = new QToolBar("");
-    notice->addAction(QString::fromStdWString(L"هذه هي النسخة الأولية لشهر نوفمبر 2011. حمل أحدث نسخة من www.kalimat-lang.com"));
+    notice->addAction(QString::fromStdWString(L"هذه هي النسخة الأولية لشهر ديسمبر 2011. حمل أحدث نسخة من www.kalimat-lang.com"));
 
     addToolBarBreak();
     addToolBar(Qt::TopToolBarArea, notice);
@@ -1237,7 +1237,7 @@ void MainWindow::on_actionMake_exe_triggered()
             baha = baha.mid(80);
         }
         //                        {$APPTYPE GUI}\n\
-
+        //
         QString pascalProgram = QString(" {$APPTYPE GUI} {$LONGSTRINGS ON} \n\
                                         program RunSmallVM;\n\
         procedure RunSmallVMCodeBase64(A:PChar;B:PChar);stdcall ;external 'smallvm.dll';\n\

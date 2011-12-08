@@ -12,6 +12,11 @@ callex newmap
 ret
 .endmethod
 
+.method به.مفتاح 2 1
+callex haskey
+ret
+.endmethod
+
 .method مصفوفة.متعددة 1 1
 newmdarr
 ret

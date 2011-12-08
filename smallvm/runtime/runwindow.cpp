@@ -127,6 +127,7 @@ void RunWindow::Init(QString program, QMap<QString, QString> stringConstants, QS
         vm->Register("typeof", new WindowProxyMethod(this, vm, TypeOfProc));
         vm->Register("typefromid", new WindowProxyMethod(this, vm, TypeFromIdProc));
         vm->Register("newmap", new WindowProxyMethod(this, vm, NewMapProc));
+        vm->Register("haskey", new WindowProxyMethod(this, vm, HasKeyProc));
 
         vm->Register("random", new WindowProxyMethod(this, vm, RandomProc));
         vm->Register("sin", new WindowProxyMethod(this, vm, SinProc));

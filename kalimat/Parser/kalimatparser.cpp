@@ -1556,6 +1556,8 @@ Pattern *KalimatParser::pattern()
         return simpleLiteralPattern();
     if(LA(IDENTIFIER))
         return varOrObjPattern();
+    if(LA(IS))
+        return varOrObjPattern();
     if(LA(QUESTION))
         return assignedVarPattern();
     if(LA(LBRACKET))
@@ -1585,12 +1587,22 @@ Pattern *KalimatParser::assignedVarPattern()
 
 Pattern *KalimatParser::varOrObjPattern()
 {
+    bool mustBeObj = false;
+    QVector<Identifier *> fnames;
+    QVector<Pattern *> fpatterns;
+
+    if(LA(ANYOF))
+    {
+        match(ANYOF);
+        mustBeObj = true;
+    }
+
     Identifier *id = identifier();
     if(LA(HAS))
     {
+        mustBeObj = true;
         match(HAS);
-        QVector<Identifier *> fnames;
-        QVector<Pattern *> fpatterns;
+
         fnames.append(identifier());
         match(EQ);
         fpatterns.append(pattern());
@@ -1602,6 +1614,9 @@ Pattern *KalimatParser::varOrObjPattern()
             match(EQ);
             fpatterns.append(pattern());
         }
+    }
+    if(mustBeObj)
+    {
         return new ObjPattern(id->getPos(), id, fnames, fpatterns);
     }
     else

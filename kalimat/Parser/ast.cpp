@@ -14,6 +14,7 @@ ASTImpl::ASTImpl(Token position)
 {
     this->position = position;
 }
+
 Token ASTImpl::getPos()
 {
     return position;

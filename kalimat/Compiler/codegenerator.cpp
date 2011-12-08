@@ -207,6 +207,7 @@ void CodeGenerator::secondPass(Declaration * decl)
         }
     }
 }
+
 void CodeGenerator::thirdPass(Declaration * decl)
 {
     if(isa<MethodDecl>(decl))
@@ -1711,6 +1712,7 @@ void CodeGenerator::generateArrayPattern(ArrayPattern *pattern,
     // todo: this leaks
     Identifier *arrVarExpr = new Identifier(pattern->getPos(), arrVar);
     QString exit = _asm.uniqueLabel();
+    QString dummy = _asm.uniqueVariable();
     QString ok, no, goon;
     generateExpression(matchee);
     gen(matchee, QString("popl %1").arg(arrVar));
@@ -1730,6 +1732,9 @@ void CodeGenerator::generateArrayPattern(ArrayPattern *pattern,
 
     if(pattern->fixedLength)
     {
+        // If we reached here, we have a true on the stack
+        // therefore we pop it
+        gen(pattern, QString("popl ") + dummy);
         gen(pattern, "pushv ", pattern->elementCount());
         gen(pattern, QString("pushl ") + arrVar);
         gen(pattern, "arrlength");
@@ -1749,6 +1754,10 @@ void CodeGenerator::generateArrayPattern(ArrayPattern *pattern,
     }
     for(int i=0; i<pattern->elementCount(); i++)
     {
+        // If we reached here, we have a true on the stack
+        // therefore we pop it
+        gen(pattern, QString("popl ") + dummy);
+
         // todo: this leaks also
         NumLiteral *idx = new NumLiteral(pattern->element(i)->getPos(), QString("%1").arg(i+1));
         Expression *expr = new ArrayIndex(pattern->element(i)->getPos(), arrVarExpr, idx);
@@ -1780,6 +1789,7 @@ void CodeGenerator::generateObjPattern(ObjPattern *pattern,
     // todo: this leaks
     Identifier *objVarExpr = new Identifier(pattern->getPos(), objVar);
     QString exit = _asm.uniqueLabel();
+    QString dummy = _asm.uniqueVariable();
     QString ok, no, goon;
     generateExpression(matchee);
     gen(matchee, QString("popl %1").arg(objVar));
@@ -1800,6 +1810,10 @@ void CodeGenerator::generateObjPattern(ObjPattern *pattern,
 
     for(int i=0; i<pattern->fieldCount(); i++)
     {
+        // If we reached here, we have a true on the stack
+        // therefore we pop it
+        gen(pattern, QString("popl ") + dummy);
+
         // todo: this leaks also
         Expression *expr = new Idafa(pattern->fieldName(i)->getPos(), pattern->fieldName(i), objVarExpr);
         generatePattern(pattern->fieldPattern(i), expr, bindings);
@@ -1830,6 +1844,7 @@ void CodeGenerator::generateMapPattern(MapPattern *pattern,
     // todo: this leaks
     Identifier *mapVarExpr = new Identifier(pattern->getPos(), mapVar);
     QString exit = _asm.uniqueLabel();
+    QString dummy = _asm.uniqueVariable();
     QString ok, no, goon;
     generateExpression(matchee);
     gen(matchee, QString("popl %1").arg(mapVar));
@@ -1848,10 +1863,48 @@ void CodeGenerator::generateMapPattern(MapPattern *pattern,
     gen(pattern, QString("%1:").arg(goon));
 
 
+    QVector<QString> evaluatedKeys;
+
     for(int i=0; i<pattern->pairCount(); i++)
     {
+        // If we reached here, we have a true on the stack
+        // therefore we pop it
+        gen(pattern, QString("popl ") + dummy);
+
+        generateExpression(pattern->key(i));
+        QString keyI = _asm.uniqueVariable();
+        evaluatedKeys.append(keyI);
+        //todo: ugly ugly ugly
+        // to see why please refer to the comment
+        // about defineInCurrentScope() in generateMatchOperation()
+        defineInCurrentScope(keyI);
+        gen(pattern->key(i), QString("popl ")+ keyI);
+        gen(pattern->key(i), QString("pushl ")+ keyI);
+        gen(pattern, QString("pushl ")+ mapVar);
+        gen(pattern->key(i), "callex haskey");
+
+
+        ok = _asm.uniqueLabel();
+        no = _asm.uniqueLabel();
+        goon = _asm.uniqueLabel();
+        gen(pattern, QString("if %1,%2").arg(ok).arg(no));
+        gen(pattern, QString("%1:").arg(ok));
+        gen(pattern, "pushv true");
+        gen(pattern, QString("jmp %1").arg(goon));
+        gen(pattern, QString("%1:").arg(no));
+        gen(pattern, "pushv false");
+        gen(pattern, QString("jmp %1").arg(exit));
+        gen(pattern, QString("%1:").arg(goon));
+    }
+
+    for(int i=0; i<pattern->pairCount(); i++)
+    {
+        // If we reached here, we have a true on the stack
+        // therefore we pop it
+        gen(pattern, QString("popl ") + dummy);
+
         // todo: this leaks also
-        Expression *idx = pattern->key(i);
+        Expression *idx = new Identifier(pattern->key(i)->getPos(), evaluatedKeys[i]);
         Expression *expr = new ArrayIndex(pattern->key(i)->getPos(), mapVarExpr, idx);
         generatePattern(pattern->value(i), expr, bindings);
 

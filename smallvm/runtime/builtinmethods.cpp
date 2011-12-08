@@ -583,7 +583,6 @@ void LoadSpriteProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 }
 void DrawSpriteProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 {
-
     w->typeCheck(stack.top(), BuiltInTypes::SpriteType);
     void *rawVal = stack.pop()->unboxRaw();
     Sprite  *sprite = (Sprite *) rawVal;
@@ -735,7 +734,6 @@ void SetTextColorProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
     w->redrawWindow();
 }
 
-
 void BuiltInConstantProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 {
     QString *constName = popString(stack, w, vm);
@@ -845,6 +843,22 @@ void NewMapProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 {
     stack.push(vm->GetAllocator().newMap());
 }
+
+void HasKeyProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
+{
+    w->typeCheck(stack.top(), BuiltInTypes::MapType);
+    Value *v = popValue(stack, w, vm);
+
+    Value *key = popValue(stack, w, vm);
+
+    VMap *m = v->unboxMap();
+    VMError err;
+    if(!m->keyCheck(key, err))
+        throw err;
+    bool result = (m->get(key) != NULL);
+    stack.push(vm->GetAllocator().newBool(result));
+}
+
 
 struct FileBlob
 {
