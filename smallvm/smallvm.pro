@@ -38,7 +38,8 @@ SOURCES += main.cpp \
     utils.cpp \
     runtime/vmclient.cpp \
     runtime/guieditwidgethandler.cpp \
-    debuginfo.cpp
+    debuginfo.cpp \
+    qobjectforeignclass.cpp
 
 HEADERS += \
     value.h \
@@ -74,7 +75,8 @@ HEADERS += \
     breakpoint.h \
     utils.h \
     runtime/vmclient.h \
-    runtime/guieditwidgethandler.h
+    runtime/guieditwidgethandler.h \
+    qobjectforeignclass.h
 FORMS +=  runtime/runwindow.ui
 
 RESOURCES += \
@@ -82,3 +84,5 @@ RESOURCES += \
 
 win32:LIBS += -L"$$_PRO_FILE_PWD_/../smallvm/libffi/" -llibffi
 unix:LIBS += -lffi
+
+

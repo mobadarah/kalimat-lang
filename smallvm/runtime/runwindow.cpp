@@ -329,6 +329,15 @@ void RunWindow::singleStep(Process *proc)
 
 void RunWindow::Run()
 {
+    QWidget *qw = new QWidget;
+
+    QMap<QString, QString> trans;
+    trans["setWindowTitle"] = QString::fromStdWString(L"عنوانه");
+    trans["show"] = QString::fromStdWString(L"شو");
+    Value *pv = vm->wrapQObject(QString::fromStdWString(L"ودجت"),
+                    qw, trans, false);
+    vm->DoPushVal(pv);
+    vm->DoPopGlobal(QString::fromStdWString(L"ن"));
     int pos,  len, oldPos = -1, oldLen = -1;
     try
     {

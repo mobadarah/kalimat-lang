@@ -13,6 +13,7 @@
 //#include <iostream>
 #include <QLibrary>
 #include <time.h>
+#include "qobjectforeignclass.h"
 
 using namespace std;
 #define QSTR(x) QString::fromStdWString(x)
@@ -287,6 +288,23 @@ Value *VM::GetType(QString vmTypeId)
             signal(InternalError1, QString("VM::GetType: Constant pool entry '%1' not a type").arg(vmTypeId));
         return v;
     }
+}
+
+Value *VM::wrapQObject(QString newClassName, QObject *obj, QMap<QString, QString> translations, bool wrapAll)
+{
+    if(!constantPool.contains(newClassName))
+    {
+        RegisterType(newClassName,
+                     new QObjectForeignClass(this,
+                                             newClassName,
+                                             obj->metaObject(),
+                                             translations,
+                                             wrapAll));
+    }
+    IClass *cls = (IClass *) GetType(newClassName)->unboxObj();
+    IObject *nobj = cls->newValue(&GetAllocator());
+    nobj->setSlotValue("handle", allocator.newQObject(obj));
+    return allocator.newObject(nobj, cls);
 }
 
 bool VM::hasRunningInstruction()

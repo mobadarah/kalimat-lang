@@ -73,6 +73,18 @@ public:
     void DefineStringConstant(QString symRef, QString strValue);
     Value *GetType(QString symref);
 
+    /*
+      Creates & defines a (SmallVM) class which acts as a wrapper
+      for a QObject. If the QObject's metaclass has already been
+      created it will be reused. Then wraps the 'obj' parameter
+      in an instance of that class & returns it.
+
+      The translations map gives an Arabic name for the English
+      property or method name. If the Map doesn't contain a name
+      that means we don't want it in the wrapper, unless 'wrapAll'
+      is true, then if there is no translation in the map the English
+    */
+    Value *wrapQObject(QString newClassName, QObject *obj,QMap<QString, QString> translations, bool wrapAll);
     void ActivateEvent(QString evName, QVector<Value *> args);
     void RunStep(bool singleInstruction=false);
     void RunSingleInstruction(Process *process);

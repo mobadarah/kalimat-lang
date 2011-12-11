@@ -5,6 +5,8 @@
     #include "classes.h"
 #endif
 
+#include <QMetaClassInfo>
+
 class EasyForeignClass;
 
 class ForeignMethodProxy : public IForeignMethod

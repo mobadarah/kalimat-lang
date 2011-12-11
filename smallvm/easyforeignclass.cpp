@@ -1,4 +1,6 @@
 #include "easyforeignclass.h"
+#include "value.h"
+#include "vm_ffi.h"
 
 ForeignMethodProxy::ForeignMethodProxy(QString name, EasyForeignClass *owner, int id, int arity)
 {

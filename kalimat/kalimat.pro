@@ -57,7 +57,8 @@ SOURCES += main.cpp \
     ../smallvm/debuginfo.cpp \
     ../smallvm/utils.cpp \
     Parser/astreifier.cpp \
-    Parser/kalimatparser.cpp
+    Parser/kalimatparser.cpp \
+    ../smallvm/qobjectforeignclass.cpp
 HEADERS += mainwindow.h \
     Lexer/token.h \
     Lexer/statemachine.h \
@@ -110,6 +111,7 @@ RC_FILE = kalimat.rc
 win32:LIBS += -L"$$_PRO_FILE_PWD_/../smallvm/libffi/" -llibffi
 
 unix:LIBS += -lffi
+
 
 
 
