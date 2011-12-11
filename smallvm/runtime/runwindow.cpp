@@ -330,10 +330,11 @@ void RunWindow::singleStep(Process *proc)
 void RunWindow::Run()
 {
     QWidget *qw = new QWidget;
-
     QMap<QString, QString> trans;
     trans["setWindowTitle"] = QString::fromStdWString(L"عنوانه");
     trans["show"] = QString::fromStdWString(L"شو");
+    trans["close"] = QString::fromStdWString(L"اغلق");
+    trans["width"] = QString::fromStdWString(L"عرضه");
     Value *pv = vm->wrapQObject(QString::fromStdWString(L"ودجت"),
                     qw, trans, false);
     vm->DoPushVal(pv);

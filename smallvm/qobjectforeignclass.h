@@ -12,6 +12,8 @@ class QObjectForeignClass : public EasyForeignClass
     bool wrapAll;
     QMap<QString, QString> translations;
     QMap<int, QMetaMethod> methodInvokations;
+    QMap<int, QMetaProperty> propertyInvokations;
+    QSet<int> propertyWriters;
 public:
     QObjectForeignClass(VM *vm,
                         QString className,

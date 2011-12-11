@@ -26,10 +26,13 @@ QObjectForeignClass::QObjectForeignClass(VM *vm,
 
 {
     int methodIdSeq = 0;
+    int n = qClass->methodCount();
     for(int i=0; i< qClass->methodCount(); i++)
     {
         QMetaMethod m = qClass->method(i);
+        QString sg = m.signature();
         QString methodName = metaMethodName(m);
+        QString tp = m.typeName();
         if(wrapAll || translations.contains(methodName))
         {
             if(translations.contains(methodName))
@@ -39,7 +42,37 @@ QObjectForeignClass::QObjectForeignClass(VM *vm,
             this->methodArities[methodName] = m.parameterNames().count() + 1;
             methodInvokations[id] = m;
         }
+    }
+    for(int i=0; i< qClass->propertyCount(); i++)
+    {
+        QMetaProperty p = qClass->property(i);
+        QString pn = p.name();
+        if(wrapAll || translations.contains(pn))
+        {
+            // todo: support write-only properties in QObject wrappers
+            if(!p.isReadable())
+                continue;
+            if(translations.contains(pn))
+                pn = translations[pn];
+            int id = methodIdSeq++;
+            this->methodIds[pn] = id;
+            this->methodArities[pn] = 1;
+            this->propertyInvokations[id] = p;
 
+            PropertyDesc pd;
+            pd.name = pn;
+            pd.readOnly = !p.isWritable();
+            properties.append(pd);
+
+            if(p.isWritable())
+            {
+                pn = QString::fromStdWString(L"حدد.") + pn;
+                id = methodIdSeq++;
+                this->methodIds[pn] = id;
+                this->methodArities[pn] = 2;
+                this->propertyInvokations[id] = p;
+            }
+        }
     }
 }
 
@@ -66,6 +99,11 @@ QGenericArgument wrap(QByteArray typeName_, Value *val, VM *vm)
         qVal = malloc(map[typeName]->size);
         kalimat_to_ffi_value(val->type, val,
                              map[typeName], qVal, vm);
+        return QGenericArgument(typeName.toAscii(), qVal);
+    }
+    if(typeName == "bool")
+    {
+        qVal = new bool(val->unboxBool());
         return QGenericArgument(typeName.toAscii(), qVal);
     }
     if(typeName == "QChar")
@@ -102,6 +140,10 @@ Value *unwrap(QGenericReturnArgument ret, VM *vm)
     {
         return vm->GetAllocator().newInt(*((char *)ret.data()));
     }
+    if(strcmp(ret.name(), "bool") == 0)
+    {
+        return vm->GetAllocator().newBool(*((bool *)ret.data()));
+    }
     if(strcmp(ret.name(), "QChar") == 0)
     {
         return vm->GetAllocator().newInt(((QChar *)ret.data())->unicode());
@@ -111,17 +153,108 @@ Value *unwrap(QGenericReturnArgument ret, VM *vm)
         return vm->GetAllocator().newString(
                     ((QString*)ret.data()));
     }
+}
 
+QVariant wrapVariant(QByteArray typeName_, Value *val, VM *vm)
+{
+    QString typeName(typeName_);
 
+    if(typeName == "int")
+    {
+        return QVariant((int) val->unboxNumeric());
+    }
+    /*
+      todo: see this
+    if(typeName == "long")
+    {
+        return QVariant((long) val->unboxNumeric());
+    }
+    */
+    if(typeName == "float")
+    {
+        return QVariant((float) val->unboxNumeric());
+    }
+    if(typeName == "double")
+    {
+        return QVariant((double) val->unboxNumeric());
+    }
+    if(typeName == "char")
+    {
+        return QVariant((char) val->unboxNumeric());
+    }
+    if(typeName == "bool")
+    {
+        return QVariant(val->unboxBool());
+    }
+    if(typeName == "QChar")
+    {
+        return QVariant(QChar((int) val->unboxNumeric()));
+    }
+    if(typeName == "QString")
+    {
+        return QVariant(*val->unboxStr());
+    }
+}
+
+Value *unwrapVariant(QVariant ret, VM *vm)
+{
+    if(strcmp(ret.typeName(), "int") == 0)
+    {
+        return vm->GetAllocator().newInt(ret.value<int>());
+    }
+    if(strcmp(ret.typeName(), "long") == 0)
+    {
+        return vm->GetAllocator().newInt(ret.value<long>());
+    }
+    if(strcmp(ret.typeName(), "float") == 0)
+    {
+        return vm->GetAllocator().newDouble(ret.value<float>());
+    }
+    if(strcmp(ret.typeName(), "double") == 0)
+    {
+        return vm->GetAllocator().newDouble(ret.value<double>());
+    }
+    if(strcmp(ret.typeName(), "char") == 0)
+    {
+        return vm->GetAllocator().newInt(ret.value<char>());
+    }
+    if(strcmp(ret.typeName(), "bool") == 0)
+    {
+        return vm->GetAllocator().newBool(ret.value<bool>());
+    }
+    if(strcmp(ret.typeName(), "QChar") == 0)
+    {
+        return vm->GetAllocator().newInt(ret.value<QChar>().unicode());
+    }
+    if(strcmp(ret.typeName(), "QString") == 0)
+    {
+        return vm->GetAllocator().newString(
+                    (new QString(ret.value<QString>())));
+    }
 }
 
 Value *QObjectForeignClass::dispatch(int id, QVector<Value *> args)
 {
-    QMetaMethod m = methodInvokations[id];
     IObject *handle = args[0]->unboxObj();
     QObject *receiver = handle->getSlotValue("handle")->unboxQObj();
 
-    QString sg = m.signature();
+    if(propertyInvokations.contains(id))
+    {
+        QMetaProperty prop = propertyInvokations[id];
+        if(propertyWriters.contains(id))
+        {
+            QVariant propVal = wrapVariant(prop.typeName(), args[1], vm);
+            prop.write(receiver, propVal);
+            return NULL;
+        }
+        else
+        {
+            QVariant propVal = prop.read(receiver);
+            return unwrapVariant(propVal, vm);
+        }
+    }
+    QMetaMethod m = methodInvokations[id];
+
     void * ret = QMetaType::construct(QMetaType::type(m.typeName()));
     QGenericReturnArgument qRet(m.typeName(), ret);
     switch(m.parameterNames().count())
