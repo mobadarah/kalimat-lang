@@ -75,6 +75,7 @@ public:
     ~RunWindow();
     void Init(QString program, QMap<QString, QString> stringConstants, QSet<Breakpoint> breakPoints, DebugInfo debugInfo);
     void InitVMPrelude(VM *vm);
+    void RegisterQtTypes(VM *vm);
     void assert(bool condition,  VMErrorType errorType, QString errorMsg);
     QString pathOfRunningProgram();
     QString ensureCompletePath(QString fileName);
@@ -87,7 +88,7 @@ private:
     QMap<VMErrorType, QString> ErrorMap;
     QString translate_error(VMError err);
     void reportError(VMError );
-
+    void registerQtClass(VM *vm, QObject *toRegAndDelete, QString kalimatClass, bool wrapAll=false);
 protected:
     void changeEvent(QEvent *e);
 private:
@@ -112,7 +113,7 @@ public:
     PaintTimer updateTimer;
 private:
     Ui::RunWindow *ui;
-
+    static QMap<QString, QString> qtMethodTranslations;
     void activateMouseEvent(QMouseEvent *ev, QString evName);
     void activateKeyEvent(QKeyEvent *ev, QString evName);
 public:

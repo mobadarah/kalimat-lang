@@ -80,6 +80,7 @@ IObject *QObjectForeignClass::newValue(Allocator *allocator)
 {
     Object *newObj = new Object();
     newObj->slotNames.append("handle");
+    setSlotValue("handle", allocator->newQObject(this->qClass->newInstance()));
     return newObj;
 }
 
@@ -115,6 +116,14 @@ QGenericArgument wrap(QByteArray typeName_, Value *val, VM *vm)
     {
         qVal = new QString(*val->unboxStr());
         return QGenericArgument(typeName.toAscii(), qVal);
+    }
+    // todo: this is a ^&%^## hack!!!
+    if(typeName.startsWith("Q") && vm->classForQtClass(typeName))
+    {
+        // It's a registered meta type!
+        IObject *obj = val->unboxObj();
+            return QGenericArgument(typeName.toAscii(),
+                                    obj->getSlotValue("handle")->unboxQObj());
     }
 }
 
@@ -152,6 +161,12 @@ Value *unwrap(QGenericReturnArgument ret, VM *vm)
     {
         return vm->GetAllocator().newString(
                     ((QString*)ret.data()));
+    }
+    IClass *cls;
+    if(cls = vm->classForQtClass(QString(ret.name())))
+    {
+        return vm->wrapQObject(cls,
+                               (QObject *) ret.data());
     }
 }
 

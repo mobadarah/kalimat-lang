@@ -1,0 +1,9 @@
+﻿show=اظهر
+close=اغلق
+width=عرضه
+height=ارتفاعه
+x=س
+y=ص
+visible=مرئي
+windowTitle=عنوانه
+text=نصه

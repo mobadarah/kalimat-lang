@@ -6,6 +6,7 @@
 **************************************************************************/
 
 #include "utils.h"
+#include <QStringList>
 //#include <iostream>
 using namespace std;
 QString _ws(QStdWString str)
@@ -58,6 +59,18 @@ LineIterator Utils::readResourceTextFile(QString fileName)
     iter.file = inputFile;
     iter.stream = in;
     return iter;
+}
+
+QMap<QString, QString> Utils::readAequalBFile(LineIterator &iter)
+{
+    QMap<QString, QString> ret;
+    while(!iter.atEnd())
+    {
+        QString line = iter.readLine();
+        QStringList s = line.split('=');
+        ret[s[0]] = s[1];
+    }
+    return ret;
 }
 
 QString LineIterator::readLine()

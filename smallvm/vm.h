@@ -39,6 +39,9 @@ template <typename T> bool isa(void * obj)
 class VM
 {
     QMap<QString, Value*> constantPool;
+    // Maps from original QObject-based class name
+    // to name in SmallVM (English or Arabic)
+    QMap<QString, QString> translatedQbjClasses;
     QQueue<Process *> processes;
     QQueue<Process *> running;
     QQueue<Process *> timerWaiting;
@@ -84,7 +87,10 @@ public:
       that means we don't want it in the wrapper, unless 'wrapAll'
       is true, then if there is no translation in the map the English
     */
-    Value *wrapQObject(QString newClassName, QObject *obj,QMap<QString, QString> translations, bool wrapAll);
+    Value *wrapQObject(QObject *obj, QString newClassName,QMap<QString, QString> translations, bool wrapAll);
+    Value *wrapQObject(IClass *cls, QObject *obj);
+    IClass *classForQtClass(QString className);
+
     void ActivateEvent(QString evName, QVector<Value *> args);
     void RunStep(bool singleInstruction=false);
     void RunSingleInstruction(Process *process);

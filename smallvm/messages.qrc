@@ -2,5 +2,6 @@
     <qresource prefix="/">
         <file>error_map.txt</file>
         <file>vm_prelude.txt</file>
+        <file>qt_method_translations.txt</file>
     </qresource>
 </RCC>

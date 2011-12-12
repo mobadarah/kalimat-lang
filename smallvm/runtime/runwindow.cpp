@@ -11,6 +11,7 @@
 #include "../utils.h"
 #include "guicontrols.h"
 
+#include <QPushButton>
 #include <QPainter>
 #include <QKeyEvent>
 #include <QMessageBox>
@@ -22,6 +23,8 @@
 #include <QDir>
 
 using namespace std;
+
+QMap<QString, QString> RunWindow::qtMethodTranslations;
 
 RunWindow::RunWindow(QWidget *parent, QString pathOfProgramsFile, VMClient *client) :
     QMainWindow(parent),
@@ -249,6 +252,8 @@ void RunWindow::Init(QString program, QMap<QString, QString> stringConstants, QS
 
 
         InitVMPrelude(vm);
+        RegisterQtTypes(vm);
+
         vm->Load(program);
         for(QSet<Breakpoint>::const_iterator i=breakPoints.begin(); i!=breakPoints.end(); ++i)
         {
@@ -290,6 +295,18 @@ void RunWindow::InitVMPrelude(VM *vm)
     vm->Load(prelude);
 }
 
+void RunWindow::RegisterQtTypes(VM *vm)
+{
+
+    if(qtMethodTranslations.empty())
+    {
+        LineIterator iter = Utils::readResourceTextFile(":/qt_method_translations.txt");
+        qtMethodTranslations = Utils::readAequalBFile(iter);
+    }
+    registerQtClass(vm, new QWidget, _ws(L"ودجت"));
+    registerQtClass(vm, new QPushButton, _ws(L"بشبطن"));
+}
+
 void RunWindow::singleStep(Process *proc)
 {
     int pos,  len, oldPos = -1, oldLen = -1;
@@ -329,16 +346,6 @@ void RunWindow::singleStep(Process *proc)
 
 void RunWindow::Run()
 {
-    QWidget *qw = new QWidget;
-    QMap<QString, QString> trans;
-    trans["setWindowTitle"] = QString::fromStdWString(L"عنوانه");
-    trans["show"] = QString::fromStdWString(L"شو");
-    trans["close"] = QString::fromStdWString(L"اغلق");
-    trans["width"] = QString::fromStdWString(L"عرضه");
-    Value *pv = vm->wrapQObject(QString::fromStdWString(L"ودجت"),
-                    qw, trans, false);
-    vm->DoPushVal(pv);
-    vm->DoPopGlobal(QString::fromStdWString(L"ن"));
     int pos,  len, oldPos = -1, oldLen = -1;
     try
     {
@@ -405,6 +412,12 @@ void RunWindow::reportError(VMError err)
         box.exec();
 
         client->handleVMError(err);
+}
+
+void RunWindow::registerQtClass(VM *vm, QObject *toRegAndDelete, QString kalimatClass, bool wrapAll)
+{
+    vm->wrapQObject(toRegAndDelete, kalimatClass, qtMethodTranslations, wrapAll);
+    delete toRegAndDelete;
 }
 
 QString RunWindow::pathOfRunningProgram()

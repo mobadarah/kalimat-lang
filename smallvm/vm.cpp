@@ -290,7 +290,7 @@ Value *VM::GetType(QString vmTypeId)
     }
 }
 
-Value *VM::wrapQObject(QString newClassName, QObject *obj, QMap<QString, QString> translations, bool wrapAll)
+Value *VM::wrapQObject(QObject *obj, QString newClassName, QMap<QString, QString> translations, bool wrapAll)
 {
     if(!constantPool.contains(newClassName))
     {
@@ -300,11 +300,29 @@ Value *VM::wrapQObject(QString newClassName, QObject *obj, QMap<QString, QString
                                              obj->metaObject(),
                                              translations,
                                              wrapAll));
+        translatedQbjClasses[obj->metaObject()->className()]
+                = newClassName;
     }
     IClass *cls = (IClass *) GetType(newClassName)->unboxObj();
     IObject *nobj = cls->newValue(&GetAllocator());
     nobj->setSlotValue("handle", allocator.newQObject(obj));
     return allocator.newObject(nobj, cls);
+}
+
+Value *VM::wrapQObject(IClass *cls, QObject *obj)
+{
+    IObject *nobj = cls->newValue(&GetAllocator());
+    nobj->setSlotValue("handle", allocator.newQObject(obj));
+    return allocator.newObject(nobj, cls);
+}
+
+IClass *VM::classForQtClass(QString className)
+{
+    if(translatedQbjClasses.contains(className))
+    {
+        return (IClass *) GetType(translatedQbjClasses[className])->unboxObj();
+    }
+    return NULL;
 }
 
 bool VM::hasRunningInstruction()

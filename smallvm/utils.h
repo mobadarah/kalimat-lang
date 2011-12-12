@@ -11,6 +11,7 @@
 #include <QFile>
 #include <QTextStream>
 #include <QString>
+#include <QMap>
 
 QString _ws(QStdWString str);
 QString readFile(QString path);
@@ -34,6 +35,7 @@ class Utils
 {
 public:
     static LineIterator readResourceTextFile(QString fileName);
+    static QMap<QString, QString> readAequalBFile(LineIterator &iter);
 };
 
 #endif // UTILS_H
