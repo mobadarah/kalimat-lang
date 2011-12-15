@@ -7,7 +7,7 @@
 
 #include "parser_incl.h"
 #include "../Lexer/kalimatlexer.h"
-#include "kalimatast.h"
+#include "kalimatast/kalimatast_incl.h"
 #include "kalimatparser.h"
 
 #include "../mainwindow.h" // temp todo: remove

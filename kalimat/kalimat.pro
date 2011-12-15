@@ -14,7 +14,6 @@ SOURCES += main.cpp \
     Lexer/kalimatlexer.cpp \ # ../../Qt/2009.04/share/qtcreator/gdbmacros/gdbmacros.cpp \
     Lexer/action.cpp \
     Parser/ast.cpp \
-    Parser/kalimatast.cpp \
     syntaxhighlighter.cpp \
     ../smallvm/vm.cpp \
     ../smallvm/value.cpp \
@@ -58,7 +57,8 @@ SOURCES += main.cpp \
     ../smallvm/utils.cpp \
     Parser/astreifier.cpp \
     Parser/kalimatparser.cpp \
-    ../smallvm/qobjectforeignclass.cpp
+    ../smallvm/qobjectforeignclass.cpp \
+    Parser/KalimatAst/kalimatast.cpp
 HEADERS += mainwindow.h \
     Lexer/token.h \
     Lexer/statemachine.h \
@@ -74,7 +74,6 @@ HEADERS += mainwindow.h \
     Parser/ast.h \
     Parser/kalimatparser.h \
     Parser/parser_incl.h \
-    Parser/kalimatast.h \
     syntaxhighlighter.h \
     savechangedfiles.h \
     Compiler/codeposition.h \
@@ -92,7 +91,16 @@ HEADERS += mainwindow.h \
     ../smallvm/runtime/guieditwidgethandler.h \
     ../smallvm/runtime/guicontrols.h \
     ../smallvm/codedocument.h \
-    Parser/astreifier.h
+    Parser/astreifier.h \
+    Parser/kalimatast/toplevel.h \
+    Parser/kalimatast/statement.h \
+    Parser/kalimatast/typeexpression.h \
+    Parser/kalimatast/expression.h \
+    Parser/kalimatast/declaration.h \
+    Parser/kalimatast/pattern.h \
+    Parser/kalimatast/formatmaker.h \
+    Parser/KalimatAst/kalimatast.h \
+    Parser/kalimatast/kalimatast_incl.h
 
 FORMS += mainwindow.ui \
     savechangedfiles.ui \
@@ -111,6 +119,30 @@ RC_FILE = kalimat.rc
 win32:LIBS += -L"$$_PRO_FILE_PWD_/../smallvm/libffi/" -llibffi
 
 unix:LIBS += -lffi
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

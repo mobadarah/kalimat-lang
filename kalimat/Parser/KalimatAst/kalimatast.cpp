@@ -5,8 +5,8 @@
 **   as described in the included license.txt file
 **************************************************************************/
 
-#include "kalimatast.h"
-#include "../../smallvm/utils.h"
+#include "kalimatast_incl.h"
+#include "../../../smallvm/utils.h"
 using namespace std;
 
 CompilationUnit::CompilationUnit(Token pos) : _astImpl(pos)
@@ -47,6 +47,11 @@ Module::Module(Token pos, Identifier *name, QVector<Declaration *>module, QVecto
         _usedModules.append(QSharedPointer<StrLiteral>(usedModules[i]));
 }
 
+Module::~Module()
+{
+
+}
+
 QString Module::toString()
 {
     QStringList ret;
@@ -72,6 +77,7 @@ Expression::Expression(Token pos) : _astImpl(pos)
 {
 
 }
+
 AssignableExpression::AssignableExpression(Token pos) : Expression(pos)
 {
 
@@ -81,6 +87,7 @@ Declaration::Declaration(Token pos, bool isPublic) : TopLevel(pos)
 {
     _isPublic = isPublic;
 }
+
 bool Declaration::isPublic()
 {
     return _isPublic;
@@ -1977,3 +1984,24 @@ QVector<FormatMaker *> mapRead(QVector<QSharedPointer<AssignableExpression> > va
         ret.append(new ReadFmt(variables[i].data(), readNumberFlags[i]));
     return ret;
 }
+
+InvokationStmt::~InvokationStmt()
+{
+
+}
+
+ReceiveStmt::~ReceiveStmt() {}
+SendStmt::~SendStmt() {}
+ZoomStmt::~ZoomStmt() {}
+DrawSpriteStmt::~DrawSpriteStmt() {}
+DrawCircleStmt::~DrawCircleStmt() {}
+DrawRectStmt::~DrawRectStmt() {}
+DrawLineStmt::~DrawLineStmt() {}
+DrawPixelStmt::~DrawPixelStmt() {}
+LaunchStmt::~LaunchStmt() {}
+DelegationStmt::~DelegationStmt() {}
+ReturnStmt::~ReturnStmt() {}
+ForAllStmt::~ForAllStmt() {}
+WhileStmt::~WhileStmt() {}
+IfStmt::~IfStmt() {}
+AssignmentStmt::~AssignmentStmt() {}

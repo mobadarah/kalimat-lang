@@ -8,9 +8,8 @@
 #include "Lexer/lexer_incl.h"
 #include "Lexer/kalimatlexer.h"
 #include "Parser/parser_incl.h"
-#include "Parser/kalimatast.h"
+#include "Parser/kalimatast/kalimatast_incl.h"
 #include "Parser/kalimatparser.h"
-#include "Parser/kalimatast.h"
 #include "syntaxhighlighter.h"
 #include <QMap>
 #include <QTextDocument>

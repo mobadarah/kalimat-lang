@@ -9,7 +9,7 @@
 #include "Lexer/kalimatlexer.h"
 
 #include "Parser/parser_incl.h"
-#include "Parser/kalimatast.h"
+#include "Parser/kalimatast/kalimatast_incl.h"
 #include "Parser/kalimatparser.h"
 #include "../smallvm/codedocument.h"
 #include "Compiler/codegenerator.h"
