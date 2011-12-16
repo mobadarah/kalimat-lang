@@ -27,7 +27,7 @@ class Parser
 protected:
     QVector<Token> tokens;
     Token lookAhead;
-    virtual AST *parseRoot()=0;
+    virtual QSharedPointer<AST> parseRoot()=0;
 public:
     Parser();
     Parser(QString (*tokenFormatter)(int));
@@ -37,8 +37,8 @@ public:
     virtual void init(QString s, Lexer *lxr);
     virtual void init(QString s, Lexer *lxr, void *tag);
     virtual void init(QString s, Lexer *lxr, void *tag, QString fileName);
-    AST *parse();
-    AST *parse(AST *(*root)(Parser *p));
+    QSharedPointer<AST> parse();
+    QSharedPointer<AST> parse(QSharedPointer<AST> (*root)(Parser *p));
 
     ParserState saveState();
     void restoreState(ParserState);

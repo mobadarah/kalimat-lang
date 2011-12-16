@@ -22,7 +22,7 @@ Compiler::Compiler(DocumentContainer *container)
     this->documentContainer = container;
 }
 
-AST *parseModule(Parser *p)
+QSharedPointer<AST> parseModule(Parser *p)
 {
     return ((KalimatParser *) p)->module();
 }
@@ -30,7 +30,7 @@ AST *parseModule(Parser *p)
 Program *Compiler::loadProgram(QString path, CodeDocument *doc)
 {
     parser.init(loadFileContents(path), &lexer, doc, path);
-    Program *p = (Program *) parser.parse();
+    Program *p = (Program *) parser.parse().data();
 
     for(int i=0; i<p->usedModuleCount(); i++)
     {
@@ -57,7 +57,7 @@ Program *Compiler::loadProgram(QString path, CodeDocument *doc)
 Module *Compiler::loadModule(QString path)
 {
     parser.init(loadFileContents(path), &lexer, documentContainer->getDocumentFromPath(path), path);
-    Module *m = (Module *) parser.parse(parseModule);
+    Module *m = (Module *) parser.parse(parseModule).data();
     loadedModules[path] = m;
     pathsOfModules[m] = path;
     for(int i=0; i<m->usedModuleCount(); i++)
@@ -113,7 +113,7 @@ QString Compiler::combinePath(QString parent, QString child)
 QString Compiler::CompileFromCode(QString source, CodeDocument *doc)
 {
     parser.init(source, &lexer, doc);
-    Program *p = (Program *) parser.parse();
+    Program *p = (Program *) parser.parse().data();
 
     if(p->usedModuleCount()!=0)
         throw CompilerException(p, ProgramsCannotUseExternalModulesWithoutSavingThemFirst);

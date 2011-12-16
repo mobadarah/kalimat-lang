@@ -66,7 +66,7 @@ public:
     void init(QString s, Lexer *lxr, void *tag);
     void init(QString s, Lexer *lxr, void *tag, QString fileName);
 
-    AST *parseRoot();
+    QSharedPointer<AST> parseRoot();
 private:
     QVector<LinePP *> parseLines();
     bool is_indentation_starter(LinePP *line, QString &ender);

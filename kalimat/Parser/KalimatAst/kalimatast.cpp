@@ -23,7 +23,7 @@ Program::Program(Token pos, QVector<TopLevel *> elements, QVector<StrLiteral *> 
     for(int i=0; i<usedModules.count(); i++)
         _usedModules.append(QSharedPointer<StrLiteral>(usedModules[i]));
     for(int i=0; i<originalElements.count(); i++)
-        _originalElements.append(QSharedPointer<TopLevel>(originalElements[i]));
+        _originalElements.append(originalElements[i]);
 }
 
 QString Program::toString()
@@ -1150,7 +1150,7 @@ void Program::prettyPrint(CodeFormatter *f)
 {
     for(int i=0; i<_originalElements.count(); i++)
     {
-        TopLevel *el = _originalElements[i].data();
+        TopLevel *el = _originalElements[i];
         // todo: loss of information
         if(el->attachedComments.trimmed() != "")
         {
@@ -2005,3 +2005,4 @@ ForAllStmt::~ForAllStmt() {}
 WhileStmt::~WhileStmt() {}
 IfStmt::~IfStmt() {}
 AssignmentStmt::~AssignmentStmt() {}
+MatchOperation::~MatchOperation() {}

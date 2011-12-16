@@ -120,6 +120,7 @@ public:
     IInvokation *invokation() { return _invokation.data(); }
     QString toString();
     void prettyPrint(CodeFormatter *f);
+    Q_DISABLE_COPY(DelegationStmt)
 };
 
 class LaunchStmt : public Statement
@@ -133,6 +134,7 @@ public:
     IInvokation *invokation() { return _invokation.data(); }
     QString toString();
     void prettyPrint(CodeFormatter *f);
+    Q_DISABLE_COPY(LaunchStmt)
 };
 
 class LabelStmt : public Statement
@@ -210,6 +212,7 @@ public:
     Expression *color() { return _color.data();}
     QString toString();
     void prettyPrint(CodeFormatter *f);
+    Q_DISABLE_COPY(DrawPixelStmt)
 };
 
 class DrawLineStmt : public GraphicsStatement
@@ -228,6 +231,7 @@ public:
     Expression *color() { return _color.data();}
     QString toString();
     void prettyPrint(CodeFormatter *f);
+    Q_DISABLE_COPY(DrawLineStmt)
 };
 
 class DrawRectStmt : public GraphicsStatement
@@ -248,6 +252,7 @@ public:
     Expression *filled() { return _filled.data(); }
     QString toString();
     void prettyPrint(CodeFormatter *f);
+    Q_DISABLE_COPY(DrawRectStmt)
 };
 
 class DrawCircleStmt : public GraphicsStatement
@@ -269,6 +274,7 @@ public:
     Expression *filled() { return _filled.data(); }
     QString toString();
     void prettyPrint(CodeFormatter *f);
+    Q_DISABLE_COPY(DrawCircleStmt)
 };
 
 class DrawSpriteStmt : public GraphicsStatement
@@ -286,6 +292,7 @@ public:
     Expression *sprite() { return _sprite.data();}
     QString toString();
     void prettyPrint(CodeFormatter *f);
+    Q_DISABLE_COPY(DrawSpriteStmt)
 };
 
 class ZoomStmt : public GraphicsStatement
@@ -302,6 +309,7 @@ public:
     Expression *y2() { return _y2.data();}
     QString toString();
     void prettyPrint(CodeFormatter *f);
+     Q_DISABLE_COPY(ZoomStmt)
 };
 
 enum EventType
@@ -347,6 +355,7 @@ public:
     Expression *channel() { return _channel.data(); }
     QString toString();
     void prettyPrint(CodeFormatter *f);
+     Q_DISABLE_COPY(SendStmt)
 };
 
 class ReceiveStmt : public ChannelCommunicationStmt

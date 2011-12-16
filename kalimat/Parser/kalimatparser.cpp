@@ -74,20 +74,20 @@ void KalimatParser::init(QString s, Lexer *lxr, void *tag, QString fileName)
     tokens = tokens2;
 }
 
-AST *KalimatParser::parseRoot()
+QSharedPointer<AST> KalimatParser::parseRoot()
 {
     if(LA(UNIT))
         return module();
     return program();
 }
 
-AST *KalimatParser::program()
+QSharedPointer<AST> KalimatParser::program()
 {
-    QVector<TopLevel *> elements;
-    QVector<Statement *> topLevelStatements;
-    ProceduralDecl *entryPoint;
-    QVector<StrLiteral *> usedModules = usingDirectives();
-    QVector<TopLevel *> originalElements;
+    QVector<QSharedPointer<TopLevel> > elements;
+    QVector<QSharedPointer<Statement> > topLevelStatements;
+    QSharedPointer<ProceduralDecl> entryPoint;
+    QVector<QSharedPointer<StrLiteral >> usedModules = usingDirectives();
+    QVector<QSharedPointer<TopLevel > > originalElements;
     while(!eof())
     {
         // Declaration has to be tested first because of possible
@@ -96,13 +96,13 @@ AST *KalimatParser::program()
         // ID ...    => statement
         if(LA_first_declaration())
         {
-            TopLevel *decl = declaration();
+            QSharedPointer<TopLevel> decl = declaration();
             elements.append(decl);
             originalElements.append(decl);
         }
         else if(LA_first_statement())
         {
-            Statement *stmt = statement();
+            QSharedPointer<Statement> stmt = statement();
             if(!eof())
                 match(NEWLINE);
             topLevelStatements.append(stmt);
@@ -119,16 +119,16 @@ AST *KalimatParser::program()
     return new Program(Token(), elements, usedModules, originalElements);
 }
 
-AST *KalimatParser::module()
+QSharedPointer<AST> KalimatParser::module()
 {
-    QVector<Declaration *> elements;
+    QVector<QSharedPointer<Declaration> > elements;
 
     newLines();
     match(UNIT);
-    Identifier *modName = identifier();
+    QSharedPointer<Identifier> modName = identifier();
     match(NEWLINE);
     newLines();
-    QVector<StrLiteral *> usedModules = usingDirectives();
+    QVector<QSharedPointer<StrLiteral >> usedModules = usingDirectives();
 
     while(!eof())
     {
@@ -158,10 +158,10 @@ bool KalimatParser::LA_first_statement()
             || LA_first_assignment_or_invokation();
 }
 
-Statement *KalimatParser::statement()
+QSharedPointer<Statement> KalimatParser::statement()
 {
     Token firstToken = lookAhead; // Save it in case it has a 'sister' comment
-    Statement *ret = NULL;
+    QSharedPointer<Statement> ret = NULL;
     if(LA_first_assignment_or_invokation())
     {
         ParserState state= this->saveState();
@@ -229,7 +229,7 @@ Statement *KalimatParser::statement()
 
     if(firstToken.sister != NULL)
     {
-        ret->attachedComments = firstToken.sister->Lexeme;
+        ret.data()->attachedComments = firstToken.sister->Lexeme;
      /*   MainWindow::that->outputMsg(QString("Statement: %1; has sister: %2")
                                     .arg(ret->toString()).arg(ret->attachedComments));
                                     */
@@ -244,10 +244,10 @@ bool KalimatParser::LA_first_declaration()
             || LA(LIBRARY);
 }
 
-Declaration *KalimatParser::declaration()
+QSharedPointer<Declaration> KalimatParser::declaration()
 {
     Token firstToken = lookAhead;
-    Declaration *ret = NULL;
+    QSharedPointer<Declaration> ret = NULL;
 
     if(LA(PROCEDURE))
     {
@@ -288,7 +288,7 @@ bool KalimatParser::LA_first_assignment_or_invokation()
 {
     return LA_first_primary_expression();
 }
-Statement *KalimatParser::assignmentStmt_or_Invokation(ParserState s)
+QSharedPointer<Statement> KalimatParser::assignmentStmt_or_Invokation(ParserState s)
 {
     Expression *first = primaryExpression();
     if(LA(EQ))

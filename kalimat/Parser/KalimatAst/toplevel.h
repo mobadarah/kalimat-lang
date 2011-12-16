@@ -34,9 +34,9 @@ public:
 
     // Original layout without collecting top-level statements
     // into a 'main' function. Used for pretty-printing...etc
-    QVector<QSharedPointer<TopLevel > >  _originalElements;
+    QVector<TopLevel *>  _originalElements;
 public:
-    Program(Token pos, QVector<TopLevel *> program, QVector<StrLiteral *> usedModules, QVector<TopLevel* > originalElements);
+    Program(Token pos, QVector<TopLevel*> elements, QVector<StrLiteral *> usedModules, QVector<TopLevel*> originalElements);
     int elementCount() { return _elements.count(); }
     TopLevel *element(int i) { return _elements[i].data();}
     void addElement(TopLevel *element) { _elements.append(QSharedPointer<TopLevel>(element));}
