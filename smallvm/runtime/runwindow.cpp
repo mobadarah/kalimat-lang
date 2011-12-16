@@ -366,7 +366,7 @@ void RunWindow::Run()
             if(visualize
                     // commenting out the following condition makes the debugger work,
                     // but not the wonderful monitor :(    --todo: fix this
-                &&  (oldPos != pos ) && (oldLen != len)
+                &&  (visualize || ((oldPos != pos ) && (oldLen != len)))
                 )
             {
                 QTime dieTime = QTime::currentTime().addMSecs(client->wonderfulMonitorDelay());

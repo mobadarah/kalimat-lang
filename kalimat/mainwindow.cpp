@@ -1178,8 +1178,15 @@ void MainWindow::on_action_step_procedure_triggered()
 void MainWindow::on_actionMake_exe_triggered()
 {
     QFileDialog saveDlg;
-    saveDlg.setFilter("Executable file (.exe)|*.exe");
-    QString targetFile = saveDlg.getSaveFileName();
+    QStringList filters;
+    filters << "Executable file (*.exe)";
+    saveDlg.setNameFilters(filters);
+    saveDlg.setDefaultSuffix("exe");
+    QString selFilter = "Executable file (*.exe)";
+    QString targetFile = saveDlg.getSaveFileName(this,
+                                                 QString::fromStdWString(L"اختر مكان واسم الملف التنفيذي"),
+                                                 "", "Executable file (*.exe)",
+                                                 &selFilter);
 
     CodeDocument *doc = NULL;
 
@@ -1236,15 +1243,16 @@ void MainWindow::on_actionMake_exe_triggered()
             segments.append("'" + baha.left(80)+"'");
             baha = baha.mid(80);
         }
-        //                        {$APPTYPE GUI}\n\
-        //
+        //                        {$APPTYPE GUI}
+
+
         QString pascalProgram = QString(" {$APPTYPE GUI} {$LONGSTRINGS ON} \n\
                                         program RunSmallVM;\n\
         procedure RunSmallVMCodeBase64(A:PChar;B:PChar);stdcall ;external 'smallvm.dll';\n\
         procedure SmallVMAddStringConstant(A:PChar; B:PChar); stdcall; external 'smallvm.dll';\n\
                                         begin\n\
                 %1\n%2\n\
-                RunSmallVMCodeBase64('',%3);\n\
+                RunSmallVMCodeBase64(argv^,%3);\n\
                             end.")
                 .arg(strConstants.join(";\n"))
                 .arg(strConstants.count() >0? ";\n":"")

@@ -350,9 +350,21 @@ void TokPP::prettyPrint(CodeFormatter *cf)
 
 void LinePP::prettyPrint(CodeFormatter *cf)
 {
+    TokPP *tok;
     for(int i=0; i<code.count(); i++)
     {
         code[i]->prettyPrint(cf);
+        if(i+1<code.count())
+        {
+            tok = dynamic_cast<TokPP *>(code[i+1]);
+            if(tok)
+            {
+                if(isKw(tok->token.Type))
+                {
+                    cf->space();
+                }
+            }
+        }
     }
     cf->nl();
 }

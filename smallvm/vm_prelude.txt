@@ -384,4 +384,3 @@ ret
     callex kb_event_channel
     ret
 .endmethod
-

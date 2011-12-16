@@ -78,6 +78,9 @@ private:
     QSharedPointer<Declaration> globalDecl();
     QSharedPointer<Declaration> methodDecl();
     QSharedPointer<Declaration> ffiLibraryDecl();
+    Declaration *rulesDecl();
+    RuleDecl *ruleDecl();
+    PegExpr *pegExpr();
 
     QSharedPointer<FFIProceduralDecl> ffiFunctionDecl();
     QSharedPointer<FFIProceduralDecl> ffiProcDecl();

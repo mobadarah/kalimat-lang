@@ -100,7 +100,8 @@ HEADERS += mainwindow.h \
     Parser/kalimatast/pattern.h \
     Parser/kalimatast/formatmaker.h \
     Parser/KalimatAst/kalimatast.h \
-    Parser/kalimatast/kalimatast_incl.h
+    Parser/kalimatast/kalimatast_incl.h \
+    Parser/kalimatast/rules.h
 
 FORMS += mainwindow.ui \
     savechangedfiles.ui \
@@ -119,32 +120,3 @@ RC_FILE = kalimat.rc
 win32:LIBS += -L"$$_PRO_FILE_PWD_/../smallvm/libffi/" -llibffi
 
 unix:LIBS += -lffi
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

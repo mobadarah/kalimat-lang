@@ -80,6 +80,7 @@ const int SYMBOL = 69;
 const int MARSHALLAS = 70;
 const int POINTER = 71;
 const int ANYOF = 72;
+const int RULES = 73;
 const int KEYWORD_CUTOFF = 72; // As long as the ID of the token is <= KEYWORD_CUTOFF, the
                                // syntax hilighter will consider it a keyword.
 const int NUM_LITERAL = 91;

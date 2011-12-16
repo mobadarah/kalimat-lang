@@ -241,7 +241,7 @@ bool KalimatParser::LA_first_declaration()
 {
     return LA(PROCEDURE) || LA(FUNCTION) || LA(CLASS)
             || LA_first_method_declaration() || LA2(IDENTIFIER, GLOBAL)
-            || LA(LIBRARY);
+            || LA(LIBRARY) || LA(RULES);
 }
 
 QSharedPointer<Declaration> KalimatParser::declaration()
@@ -272,6 +272,10 @@ QSharedPointer<Declaration> KalimatParser::declaration()
     else if(LA(LIBRARY))
     {
         ret = ffiLibraryDecl();
+    }
+    else if(LA(RULES))
+    {
+        ret = rulesDecl();
     }
     if(ret == NULL)
         throw ParserException(getPos(), "Expected a declaration");
@@ -1376,6 +1380,57 @@ Declaration *KalimatParser::ffiLibraryDecl()
     {
         throw ParserException(tok, "Expected string literal");
     }
+}
+
+Declaration *KalimatParser::rulesDecl()
+{
+    match(RULES);
+    Identifier *ruleName = identifier();
+    match(COLON);
+    match(NEWLINE);
+    newLines();
+    while(LA(IDENTIFIER))
+    {
+        RuleDecl *rd = ruleDecl();
+        newLines();
+    }
+    match(END);
+}
+
+RuleDecl *KalimatParser::ruleDecl()
+{
+    QVector<RuleOption *> options;
+    Identifier *name = identifier();
+
+    match(EQ);
+    PegExpr *expr = pegExpr();
+    Expression *resultExpr = NULL;
+    if(LA(ROCKET))
+    {
+        match(ROCKET);
+        resultExpr = expression();
+    }
+    match(NEWLINE);
+    newLines();
+    options.append(new RuleOption(expr, resultExpr));
+    while(LA(OR))
+    {
+        expr = pegExpr();
+        if(LA(ROCKET))
+        {
+            match(ROCKET);
+            resultExpr = expression();
+        }
+        options.append(new RuleOption(expr, resultExpr));
+        match(NEWLINE);
+        newLines();
+    }
+    return new RuleDecl(name->name, options);
+}
+
+PegExpr *KalimatParser::pegExpr()
+{
+    identifier();
 }
 
 FFIProceduralDecl *KalimatParser::ffiFunctionDecl()
