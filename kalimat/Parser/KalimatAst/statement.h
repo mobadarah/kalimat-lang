@@ -29,10 +29,10 @@ class AssignmentStmt : public Statement
 {
     Q_OBJECT
 public:
-    QScopedPointer <AssignableExpression> _variable;
-    QScopedPointer<Expression> _value;
+    QSharedPointer <AssignableExpression> _variable;
+    QSharedPointer<Expression> _value;
 public:
-    AssignmentStmt(Token pos, AssignableExpression *variable, Expression *value);
+    AssignmentStmt(Token pos, QSharedPointer<AssignableExpression> variable, QSharedPointer<Expression> value);
     ~AssignmentStmt();
     AssignableExpression *variable() {return _variable.data();}
     Expression *value() {return _value.data();}
@@ -44,11 +44,14 @@ class IfStmt : public Statement
 {
     Q_OBJECT
 public:
-    QScopedPointer <Expression> _condition;
-    QScopedPointer <Statement> _thenPart;
-    QScopedPointer <Statement> _elsePart;
+    QSharedPointer<Expression> _condition;
+    QSharedPointer<Statement> _thenPart;
+    QSharedPointer<Statement> _elsePart;
 public:
-    IfStmt(Token pos, Expression *_condition, Statement *_thenPart, Statement *_elsePart);
+    IfStmt(Token pos,
+           QSharedPointer<Expression> _condition,
+           QSharedPointer<Statement> _thenPart,
+           QSharedPointer<Statement> _elsePart);
     ~IfStmt();
     Expression *condition() {return _condition.data();}
     Statement *thenPart() { return _thenPart.data();}
@@ -61,11 +64,13 @@ class WhileStmt : public Statement
 {
     Q_OBJECT
 public:
-    QScopedPointer<Expression> _condition;
-    QScopedPointer<Statement> _statement;
+    QSharedPointer<Expression> _condition;
+    QSharedPointer<Statement> _statement;
 
 public:
-    WhileStmt(Token pos, Expression *_condition, Statement *_statement);
+    WhileStmt(Token pos,
+              QSharedPointer<Expression> _condition,
+              QSharedPointer<Statement> _statement);
     ~WhileStmt();
     Expression *condition() {return _condition.data();}
     Statement *statement() { return _statement.data();}
@@ -77,13 +82,17 @@ class ForAllStmt : public Statement
 {
     Q_OBJECT
 public:
-    QScopedPointer<Identifier> _variable;
-    QScopedPointer<Expression> _from;
-    QScopedPointer<Expression> _to;
-    QScopedPointer<Statement> _statement;
+    QSharedPointer<Identifier> _variable;
+    QSharedPointer<Expression> _from;
+    QSharedPointer<Expression> _to;
+    QSharedPointer<Statement> _statement;
 
 public:
-    ForAllStmt(Token pos, Identifier *variable, Expression *from, Expression *to, Statement *statement);
+    ForAllStmt(Token pos,
+               QSharedPointer<Identifier> variable,
+               QSharedPointer<Expression> from,
+               QSharedPointer<Expression> to,
+               QSharedPointer<Statement>  statement);
     ~ForAllStmt();
     Identifier *variable() { return _variable.data(); }
     Expression *from() { return _from.data(); }
@@ -100,9 +109,9 @@ class ReturnStmt : public Statement
 {
     Q_OBJECT
 public:
-    QScopedPointer<Expression> _returnVal;
+    QSharedPointer<Expression> _returnVal;
 public:
-    ReturnStmt(Token pos, Expression *returnVal);
+    ReturnStmt(Token pos, QSharedPointer<Expression> returnVal);
     ~ReturnStmt();
     Expression *returnVal() { return _returnVal.data(); }
     QString toString();
@@ -397,7 +406,7 @@ class BlockStmt : public Statement
 public:
     QVector<QSharedPointer<Statement> > _statements;
 public:
-    BlockStmt(Token pos, QVector<Statement *> statements);
+    BlockStmt(Token pos, QVector<QSharedPointer<Statement> > statements);
     int statementCount() { return _statements.count(); }
     Statement * statement(int i) { return _statements[i].data(); }
     QVector<Statement *> getStatements();
@@ -409,9 +418,9 @@ class InvokationStmt : public Statement
 {
     Q_OBJECT
 public:
-    QScopedPointer<Expression> _expression;
+    QSharedPointer<Expression> _expression;
 public:
-    InvokationStmt(Token pos, Expression *expression);
+    InvokationStmt(Token pos, QSharedPointer<Expression> expression);
     ~InvokationStmt();
     Expression *expression() { return _expression.data(); }
     QString toString();

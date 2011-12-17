@@ -420,7 +420,7 @@ void CodeGenerator::generateFFIProceduralDeclaration(FFIProceduralDecl *decl, QS
     // can be rectified by cleaning up after we popProcedureScope at the end
     // of this function
     pushProcedureScope(new FunctionDecl(decl->getPos(), decl->getPos(),
-                                        new Identifier(decl->getPos(),decl->procName), QVector<Identifier *>(), new BlockStmt(decl->getPos(), QVector<Statement *>()), false)
+                                        new Identifier(decl->getPos(),decl->procName), QVector<Identifier *>(), new BlockStmt(decl->getPos(), QVector<QSharedPointer<Statement > >()), false)
                                           );
     gen(decl, QString(".method %1 %2 %3").
                              arg(decl->procName)
@@ -1608,14 +1608,14 @@ void CodeGenerator::generateIsaOperation(IsaOperation *expr)
 void CodeGenerator::generateMatchOperation(MatchOperation *expr)
 {
 
-    QMap<AssignableExpression *, Identifier *> bindings;
+    QMap<AssignableExpression *, Identifier*> bindings;
     generatePattern(expr->pattern(), expr->expression(), bindings);
 
     // Now use all the bindings we've collected
     QString bind = _asm.uniqueLabel(), nobind = _asm.uniqueLabel(), exit = _asm.uniqueLabel();
     gen(expr, QString("if %1,%2").arg(bind).arg(nobind));
     gen(expr, QString("%1:").arg(bind));
-    for(QMap<AssignableExpression *, Identifier *>::const_iterator i=bindings.begin(); i!=bindings.end();++i)
+    for(QMap<AssignableExpression*, Identifier*>::const_iterator i=bindings.begin(); i!=bindings.end();++i)
     {
         // todo: we want to execute the equivalent of matchedVar = tempVar
         // but tempVar is undefined to the compiler refuses the dummy assignment
@@ -1623,7 +1623,9 @@ void CodeGenerator::generateMatchOperation(MatchOperation *expr)
         // so we should use generateAssignmentToLVal instead
         defineInCurrentScope(i.value()->name);
         // todo: this leaks!!
-        generateAssignmentStmt(new AssignmentStmt(i.key()->getPos(), i.key(), i.value()));
+        generateAssignmentStmt(new AssignmentStmt(i.key()->getPos(),
+                                                  QSharedPointer<AssignableExpression>(i.key()),
+                                                  QSharedPointer<Identifier>(i.value())));
     }
     gen(expr, "pushv true");
     gen(expr, QString("jmp %1").arg(exit));

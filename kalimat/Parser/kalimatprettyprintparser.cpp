@@ -89,7 +89,7 @@ QSharedPointer<AST> KalimatPrettyprintParser::parseRoot()
         ret = levels.top();
     }
 
-    return ret;
+    return QSharedPointer<BlockPP>(ret);
 }
 
 QVector<LinePP *>KalimatPrettyprintParser::parseLines()

@@ -14,9 +14,13 @@ CompilationUnit::CompilationUnit(Token pos) : _astImpl(pos)
 
 }
 
-Program::Program(Token pos, QVector<TopLevel *> elements, QVector<StrLiteral *> usedModules, QVector<TopLevel *> originalElements)
-    : CompilationUnit(pos)
+Program::Program(Token pos, QVector<QSharedPointer<TopLevel> > elements, QVector<QsharedPointer<StrLiteral> > usedModules, QVector<QSharedPointer<TopLevel> > originalElements)
+    : CompilationUnit(pos),
+      _elements(elements),
+      _usedModules(usedModules),
+      _originalElements(originalElements)
 {
+    /*
     for(int i=0; i<elements.count(); i++)
         _elements.append(QSharedPointer<TopLevel>(elements[i]));
 
@@ -24,6 +28,7 @@ Program::Program(Token pos, QVector<TopLevel *> elements, QVector<StrLiteral *> 
         _usedModules.append(QSharedPointer<StrLiteral>(usedModules[i]));
     for(int i=0; i<originalElements.count(); i++)
         _originalElements.append(originalElements[i]);
+        */
 }
 
 QString Program::toString()
@@ -36,15 +41,22 @@ QString Program::toString()
     return _ws(L"برنامج(").append(ret.join(_ws(L"، "))).append(")");
 }
 
-Module::Module(Token pos, Identifier *name, QVector<Declaration *>module, QVector<StrLiteral *>usedModules)
+Module::Module(Token pos,
+               QSharedPointer<Identifier> name,
+               QVector<QSharedPointer<Declaration> > module,
+               QVector<QSharedPointer<StrLiteral> > usedModules)
     :CompilationUnit(pos),
-    _name(name)
+    _name(name),
+      _declarations(module),
+      _usedModules(usedModules)
 {
+    /*
     for(int i=0; i<module.count(); i++)
         _declarations.append(QSharedPointer<Declaration>(module[i]));
 
     for(int i=0; i<usedModules.count(); i++)
         _usedModules.append(QSharedPointer<StrLiteral>(usedModules[i]));
+    //*/
 }
 
 Module::~Module()
@@ -102,7 +114,9 @@ GraphicsStatement::GraphicsStatement(Token pos) : Statement(pos)
 
 }
 
-AssignmentStmt::AssignmentStmt(Token pos ,AssignableExpression *_variable, Expression *_value)
+AssignmentStmt::AssignmentStmt(Token pos,
+                               QSharedPointer<AssignableExpression> _variable,
+                               QSharedPointer<Expression> _value)
     :Statement(pos),
     _variable(_variable),
     _value(_value)
@@ -114,11 +128,14 @@ QString AssignmentStmt::toString()
     return _ws(L"=(%1، %2)").arg(variable()->toString(),value()->toString());
 }
 
-IfStmt::IfStmt(Token pos ,Expression *cond, Statement *_thenStmt, Statement *elseStmt)
+IfStmt::IfStmt(Token pos,
+               QSharedPointer<Expression> _condition,
+               QSharedPointer<Statement> _thenPart,
+               QSharedPointer<Statement> _elsePart)
     :Statement(pos),
-    _condition(cond),
-    _thenPart(_thenStmt),
-    _elsePart(elseStmt)
+    _condition(_condition),
+    _thenPart(_thenPart),
+    _elsePart(_elsePart)
 {
 
 }
@@ -134,7 +151,9 @@ QString IfStmt::toString()
                                       .arg(elsePart()->toString());
 }
 
-WhileStmt::WhileStmt(Token pos ,Expression *condition, Statement *statement)
+WhileStmt::WhileStmt(Token pos,
+                     QSharedPointer<Expression> _condition,
+                     QSharedPointer<Statement> _statement)
     :Statement(pos),
     _condition(condition),
     _statement(statement)
@@ -148,7 +167,11 @@ QString WhileStmt::toString()
                                .arg(statement()->toString());
 }
 
-ForAllStmt::ForAllStmt(Token pos ,Identifier *variable, Expression *from, Expression *to, Statement *statement)
+ForAllStmt::ForAllStmt(Token pos,
+                       QSharedPointer<Identifier> variable,
+                       QSharedPointer<Expression> from,
+                       QSharedPointer<Expression> to,
+                       QSharedPointer<Statement>  statement)
     :Statement(pos),
     _variable(variable),
     _from(from),
@@ -156,6 +179,7 @@ ForAllStmt::ForAllStmt(Token pos ,Identifier *variable, Expression *from, Expres
     _statement(statement)
 {
 }
+
 QVector<Identifier *> ForAllStmt::getIntroducedVariables()
 {
     QVector<Identifier *> ret;
@@ -173,7 +197,7 @@ QString ForAllStmt::toString()
             .arg(statement()->toString());
 }
 
-ReturnStmt::ReturnStmt(Token pos ,Expression *returnVal)
+ReturnStmt::ReturnStmt(Token pos ,QSharedPointer<Expression> returnVal)
     :Statement(pos),
     _returnVal(returnVal)
 {
@@ -454,12 +478,13 @@ QString SelectStmt::toString()
     return _ws(L"تخير({%1})").arg(condact.join(", "));
 }
 
-BlockStmt::BlockStmt(Token pos ,QVector<Statement *> statements)
-        :Statement(pos)
+BlockStmt::BlockStmt(Token pos, QVector<Statement *> statements)
+        :Statement(pos),
+          _statements(statements)
 
 {
-    for(int i=0; i<statements.count(); i++)
-        _statements.append(QSharedPointer<Statement>(statements[i]));
+    //for(int i=0; i<statements.count(); i++)
+    //    _statements.append(QSharedPointer<Statement>(statements[i]));
 }
 QVector<Statement *> BlockStmt::getStatements()
 {
@@ -481,7 +506,7 @@ QString BlockStmt::toString()
     return QString("{ ").append(ret.join(_ws(L"، "))).append(" }");
 }
 
-InvokationStmt::InvokationStmt(Token pos ,Expression *expression)
+InvokationStmt::InvokationStmt(Token pos ,QSharedPointer<Expression> expression)
         :Statement(pos),
         _expression(expression)
 {

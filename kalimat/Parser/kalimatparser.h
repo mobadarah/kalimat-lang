@@ -43,7 +43,7 @@ private:
     QSharedPointer<AST> program();
 
     QSharedPointer<Statement> statement();
-    QSharedPointer<Declaration> *declaration();
+    QSharedPointer<Declaration> declaration();
 
     QSharedPointer<Statement> assignmentStmt_or_Invokation(ParserState);
     QSharedPointer<Statement> ifStmt();
@@ -78,9 +78,9 @@ private:
     QSharedPointer<Declaration> globalDecl();
     QSharedPointer<Declaration> methodDecl();
     QSharedPointer<Declaration> ffiLibraryDecl();
-    Declaration *rulesDecl();
-    RuleDecl *ruleDecl();
-    PegExpr *pegExpr();
+    QSharedPointer<Declaration> rulesDecl();
+    QSharedPointer<RuleDecl> ruleDecl();
+    QSharedPointer<PegExpr> pegExpr();
 
     QSharedPointer<FFIProceduralDecl> ffiFunctionDecl();
     QSharedPointer<FFIProceduralDecl> ffiProcDecl();

@@ -36,7 +36,9 @@ public:
     // into a 'main' function. Used for pretty-printing...etc
     QVector<TopLevel *>  _originalElements;
 public:
-    Program(Token pos, QVector<TopLevel*> elements, QVector<StrLiteral *> usedModules, QVector<TopLevel*> originalElements);
+    Program(Token pos, QVector<QSharedPointer<TopLevel> > elements,
+            QVector<QSharedPointer<StrLiteral> > usedModules,
+            QVector<QSharedPointer<TopLevel> > originalElements);
     int elementCount() { return _elements.count(); }
     TopLevel *element(int i) { return _elements[i].data();}
     void addElement(TopLevel *element) { _elements.append(QSharedPointer<TopLevel>(element));}
@@ -49,9 +51,12 @@ class Module : public CompilationUnit
     Q_OBJECT
 public:
     QVector<QSharedPointer<Declaration > > _declarations;
-    QScopedPointer<Identifier> _name;
+    QSharedPointer<Identifier> _name;
 public:
-    Module(Token pos, Identifier *name, QVector<Declaration *> module, QVector<StrLiteral *> usedModules);
+    Module(Token pos,
+           QSharedPointer<Identifier> name,
+           QVector<QSharedPointer<Declaration> > module,
+           QVector<QSharedPointer<StrLiteral> > usedModules);
     ~Module();
     int declCount() { return _declarations.count(); }
     Declaration *decl(int i) { return _declarations[i].data();}
