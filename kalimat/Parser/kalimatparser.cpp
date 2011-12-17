@@ -807,10 +807,10 @@ QSharedPointer<Statement> KalimatParser::drawCircleStmt()
             filled = expression();
         }
     }
-    return new DrawCircleStmt(tok, cx, cy, radius, color, filled);
+    return QSharedPointer<Statement>(new DrawCircleStmt(tok, cx, cy, radius, color, filled));
 }
 
-Statement *KalimatParser::drawSpriteStmt()
+QSharedPointer<Statement> KalimatParser::drawSpriteStmt()
 {
     Expression *x, *y;
     Expression *number;
@@ -828,6 +828,7 @@ Statement *KalimatParser::drawSpriteStmt()
 
     return new DrawSpriteStmt(tok, x, y, number);
 }
+
 Statement *KalimatParser::zoomStmt()
 {
 
@@ -854,6 +855,7 @@ Statement *KalimatParser::zoomStmt()
 
     return new ZoomStmt(tok, x1, y1, x2, y2);
 }
+
 Statement *KalimatParser::eventHandlerStmt()
 {
     EventType type;

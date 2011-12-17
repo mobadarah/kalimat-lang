@@ -392,11 +392,11 @@ QString DrawRectStmt::toString()
 }
 
 DrawCircleStmt::DrawCircleStmt(Token pos,
-                               Expression *cx,
-                               Expression *cy,
-                               Expression *radius,
-                               Expression *color,
-                               Expression *filled)
+                               QSharedPointer<Expression> cx,
+                               QSharedPointer<Expression> cy,
+                               QSharedPointer<Expression> radius,
+                               QSharedPointer<Expression> color,
+                               QSharedPointer<Expression> filled)
         :GraphicsStatement(pos),
         _cx(cx),
         _cy(cy),

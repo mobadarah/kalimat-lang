@@ -290,13 +290,18 @@ class DrawCircleStmt : public GraphicsStatement
 {
     Q_OBJECT
 public:
-    QScopedPointer<Expression> _cx, _cy;
-    QScopedPointer<Expression> _radius;
-    QScopedPointer<Expression> _color;
+    QSharedPointer<Expression> _cx, _cy;
+    QSharedPointer<Expression> _radius;
+    QSharedPointer<Expression> _color;
 
     QSharedPointer<Expression> _filled;
 public:
-    DrawCircleStmt(Token pos, Expression *cx, Expression *cy, Expression *radius, Expression *color, Expression *filled);
+    DrawCircleStmt(Token pos,
+                   QSharedPointer<Expression> cx,
+                   QSharedPointer<Expression> cy,
+                   QSharedPointer<Expression> radius,
+                   QSharedPointer<Expression> color,
+                   QSharedPointer<Expression> filled);
     ~DrawCircleStmt();
     Expression *cx() { return _cx.data();}
     Expression *cy() { return _cy.data();}
