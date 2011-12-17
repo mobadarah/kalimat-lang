@@ -317,11 +317,14 @@ class DrawSpriteStmt : public GraphicsStatement
 {
     Q_OBJECT
 public:
-    QScopedPointer<Expression> _x, _y;
-    QScopedPointer<Expression> _sprite;
+    QSharedPointer<Expression> _x, _y;
+    QSharedPointer<Expression> _sprite;
 
 public:
-    DrawSpriteStmt(Token pos, Expression *x, Expression *y, Expression *sprite);
+    DrawSpriteStmt(Token pos,
+                   QSharedPointer<Expression> x,
+                   QSharedPointer<Expression> y,
+                   QSharedPointer<Expression> sprite);
     ~DrawSpriteStmt();
     Expression *x() { return _x.data();}
     Expression *y() { return _y.data();}
@@ -335,9 +338,13 @@ class ZoomStmt : public GraphicsStatement
 {
     Q_OBJECT
 public:
-    QScopedPointer<Expression> _x1, _y1, _x2, _y2;
+    QSharedPointer<Expression> _x1, _y1, _x2, _y2;
 public:
-    ZoomStmt(Token pos, Expression *x1, Expression *y1, Expression *x2, Expression *y2);
+    ZoomStmt(Token pos,
+             QSharedPointer<Expression> x1,
+             QSharedPointer<Expression> y1,
+             QSharedPointer<Expression> x2,
+             QSharedPointer<Expression> y2);
     ~ZoomStmt();
     Expression *x1() { return _x1.data();}
     Expression *y1() { return _y1.data();}
@@ -358,13 +365,14 @@ enum EventType
     KalimatMouseMoveEvent,
     KalimatSpriteCollisionEvent
 };
+
 class EventStatement : public Statement
 {
 public:
     EventType type;
-    QScopedPointer<Identifier> _handler;
+    QSharedPointer<Identifier> _handler;
 public:
-    EventStatement(Token pos, EventType type, Identifier *handler);
+    EventStatement(Token pos, EventType type, QSharedPointer<Identifier> handler);
     Identifier *handler() { return _handler.data(); }
     QString toString();
     void prettyPrint(CodeFormatter *f);
@@ -382,10 +390,13 @@ class SendStmt : public ChannelCommunicationStmt
     Q_OBJECT
 public:
     bool signal;
-    QScopedPointer<Expression> _value;
-    QScopedPointer<Expression> _channel;
+    QSharedPointer<Expression> _value;
+    QSharedPointer<Expression> _channel;
 public:
-    SendStmt(Token pos, bool signal, Expression *value, Expression *channel);
+    SendStmt(Token pos,
+             bool signal,
+             QSharedPointer<Expression> value,
+             QSharedPointer<Expression> channel);
     ~SendStmt();
     Expression *value() { return _value.data(); }
     Expression *channel() { return _channel.data(); }
@@ -399,10 +410,13 @@ class ReceiveStmt : public ChannelCommunicationStmt
     Q_OBJECT
 public:
     bool signal;
-    QScopedPointer<AssignableExpression> _value;
-    QScopedPointer<Expression> _channel;
+    QSharedPointer<AssignableExpression> _value;
+    QSharedPointer<Expression> _channel;
 public:
-    ReceiveStmt(Token pos, bool signal, AssignableExpression *value, Expression *channel);
+    ReceiveStmt(Token pos,
+                bool signal,
+                QSharedPointer<AssignableExpression> value,
+                QSharedPointer<Expression> channel);
     ~ReceiveStmt();
     AssignableExpression *value() { return _value.data(); }
     Expression *channel() { return _channel.data(); }
@@ -418,7 +432,9 @@ public:
     QVector<QSharedPointer<ChannelCommunicationStmt> > _conditions;
     QVector<QSharedPointer<Statement> > _actions;
 public:
-    SelectStmt(Token pos, QVector<ChannelCommunicationStmt *> conditions, QVector<Statement *> actions);
+    SelectStmt(Token pos,
+               QVector<QSharedPointer<ChannelCommunicationStmt> > conditions,
+               QVector<QSharedPointer<Statement> > actions);
     int count() { return _conditions.count();}
     ChannelCommunicationStmt *condition(int i) { return _conditions[i].data(); }
     Statement *action(int i) { return _actions[i].data(); }

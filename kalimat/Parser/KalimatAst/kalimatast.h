@@ -48,7 +48,7 @@ class KalimatAst : public QObject, public AST
 
 class IScopeIntroducer
 {
-    virtual QVector<Identifier *> getIntroducedVariables()=0;
+    virtual QVector<QSharedPointer<Identifier> > getIntroducedVariables()=0;
 };
 
 #endif // KALIMATAST_H

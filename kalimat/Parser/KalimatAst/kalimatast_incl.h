@@ -8,7 +8,7 @@
 #include "expression.h"
 #include "pattern.h"
 #include "declaration.h"
-#include "ruledecl.h"
+#include "rules.h"
 #include "formatmaker.h"
 
 #endif // KALIMATAST_INCL_H

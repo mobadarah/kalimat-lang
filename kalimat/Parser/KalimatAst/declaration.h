@@ -15,21 +15,26 @@ public:
 class ProceduralDecl : public Declaration, public IScopeIntroducer
 {
 public:
-    QScopedPointer<Identifier> _procName;
+    QSharedPointer<Identifier> _procName;
     QVector<QSharedPointer<Identifier > > _formals;
     QVector<QSharedPointer<Identifier > > _allReferences;
-    QScopedPointer<BlockStmt> _body;
+    QSharedPointer<BlockStmt> _body;
     Token _endingToken;
 public:
-    ProceduralDecl(Token pos, Token endingToken, Identifier *procName, QVector<Identifier *> formals, BlockStmt *body, bool isPublic);
+    ProceduralDecl(Token pos,
+                   Token endingToken,
+                   QSharedPointer<Identifier> procName,
+                   QVector<QSharedPointer<Identifier> > formals,
+                   QSharedPointer<BlockStmt> body,
+                   bool isPublic);
     Identifier *procName() {return _procName.data();}
     int formalCount() { return _formals.count();}
     Identifier *formal(int i) { return _formals[i].data();}
     Identifier *allReferences(int i) { return _allReferences[i].data();}
     void addReference(Identifier *id) { _allReferences.append(QSharedPointer<Identifier>(id));}
     BlockStmt *body() {return _body.data();}
-    void body(BlockStmt *stmt) { _body.reset(stmt);}
-    virtual QVector<Identifier *> getIntroducedVariables();
+    void body(QSharedPointer<BlockStmt> stmt) { _body = stmt;}
+    virtual QVector<QSharedPointer<Identifier> > getIntroducedVariables();
 };
 
 class IProcedure
@@ -44,14 +49,25 @@ class IFunction
 class ProcedureDecl : public ProceduralDecl, public IProcedure
 {
 public:
-    ProcedureDecl(Token pos, Token endingToken, Identifier *procName, QVector<Identifier *> formals, BlockStmt *body, bool isPublic);
+    ProcedureDecl(Token pos,
+                  Token endingToken,
+                  QSharedPointer<Identifier> procName,
+                  QVector<QSharedPointer<Identifier> > formals,
+                  QSharedPointer<BlockStmt> body,
+                  bool isPublic);
     QString toString();
     void prettyPrint(CodeFormatter *f);
 };
+
 class FunctionDecl : public ProceduralDecl, public IFunction
 {
 public:
-    FunctionDecl(Token pos, Token endingToken, Identifier *procName, QVector<Identifier *> formals, BlockStmt *body, bool isPublic);
+    FunctionDecl(Token pos,
+                 Token endingToken,
+                 QSharedPointer<Identifier> procName,
+                 QVector<QSharedPointer<Identifier> > formals,
+                 QSharedPointer<BlockStmt> body,
+                 bool isPublic);
     QString toString();
     void prettyPrint(CodeFormatter *f);
 };
@@ -65,7 +81,7 @@ public:
 private:
     QVector<QSharedPointer<Declaration> > _decls;
 public:
-    FFILibraryDecl(Token pos, QString libName, QVector<Declaration *> decls, bool isPublic);
+    FFILibraryDecl(Token pos, QString libName, QVector<QSharedPointer<Declaration> > decls, bool isPublic);
     int declCount() { return _decls.count(); }
     Declaration *decl(int index) { return _decls[index].data();}
     void prettyPrint(CodeFormatter *formatter);

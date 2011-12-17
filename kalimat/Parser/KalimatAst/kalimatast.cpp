@@ -417,7 +417,10 @@ QString DrawCircleStmt::toString()
             .arg((filled()?filled()->toString(): _ws(L"خطأ")));
 }
 
-DrawSpriteStmt::DrawSpriteStmt(Token pos ,Expression *x, Expression *y, Expression *sprite)
+DrawSpriteStmt::DrawSpriteStmt(Token pos,
+                               QSharedPointer<Expression> x,
+                               QSharedPointer<Expression> y,
+                               QSharedPointer<Expression> sprite)
         :GraphicsStatement(pos),
         _x(x),
         _y(y),
@@ -425,6 +428,7 @@ DrawSpriteStmt::DrawSpriteStmt(Token pos ,Expression *x, Expression *y, Expressi
 
 {
 }
+
 QString DrawSpriteStmt::toString()
 {
     return _ws(L"رسم.طيف(%، [%2، %3])")
@@ -432,7 +436,12 @@ QString DrawSpriteStmt::toString()
             .arg(x()->toString())
             .arg(y()->toString());
 }
-ZoomStmt::ZoomStmt(Token pos ,Expression *x1, Expression *y1, Expression *x2, Expression *y2)
+
+ZoomStmt::ZoomStmt(Token pos,
+                   QSharedPointer<Expression> x1,
+                   QSharedPointer<Expression> y1,
+                   QSharedPointer<Expression> x2,
+                   QSharedPointer<Expression> y2)
         :GraphicsStatement(pos),
         _x1(x1),
         _y1(y1),
@@ -449,13 +458,14 @@ QString ZoomStmt::toString()
             .arg(y2()->toString());
 }
 
-EventStatement::EventStatement(Token pos ,EventType type, Identifier *handler)
+EventStatement::EventStatement(Token pos ,EventType type, QSharedPointer<Identifier> handler)
         :Statement(pos),
-        _handler(handler)
+         type(type),
+         _handler(handler)
 
 {
-    this->type = type;
 }
+
 QString EventStatement::toString()
 {
     return _ws(L"عند(%1، %2)").arg(type).arg(handler()->toString());
@@ -467,10 +477,12 @@ ChannelCommunicationStmt::ChannelCommunicationStmt(Token pos)
 
 }
 
-SendStmt::SendStmt(Token pos, bool signal, Expression *value, Expression *channel)
-    : ChannelCommunicationStmt(pos), _value(value), _channel(channel)
+SendStmt::SendStmt(Token pos,
+                   bool signal,
+                   QSharedPointer<Expression> value,
+                   QSharedPointer<Expression> channel)
+    : ChannelCommunicationStmt(pos), signal(signal), _value(value), _channel(channel)
 {
-    this->signal = signal;
 }
 
 QString SendStmt::toString()
@@ -478,10 +490,12 @@ QString SendStmt::toString()
     return _ws(L"ارسل(%1، %2)").arg(signal? _ws(L"إشارة") : value()->toString(), channel()->toString());
 }
 
-ReceiveStmt::ReceiveStmt(Token pos, bool signal, AssignableExpression *value, Expression *channel)
-    : ChannelCommunicationStmt(pos), _value(value), _channel(channel)
+ReceiveStmt::ReceiveStmt(Token pos,
+                         bool signal,
+                         QSharedPointer<AssignableExpression> value,
+                         QSharedPointer<Expression> channel)
+    : ChannelCommunicationStmt(pos), signal(signal), _value(value), _channel(channel)
 {
-    this->signal = signal;
 }
 
 QString ReceiveStmt::toString()
@@ -489,13 +503,19 @@ QString ReceiveStmt::toString()
     return _ws(L"تسلم(%1، %2)").arg(signal? _ws(L"إشارة") : value()->toString(), channel()->toString());
 }
 
-SelectStmt::SelectStmt(Token pos, QVector<ChannelCommunicationStmt *> conditions, QVector<Statement *> actions)
-    : Statement(pos)
+SelectStmt::SelectStmt(Token pos,
+                       QVector<QSharedPointer<ChannelCommunicationStmt> > conditions,
+                       QVector<QSharedPointer<Statement > > actions)
+    : Statement(pos),
+      _conditions(conditions),
+      _actions(actions)
 {
+   /*
     for(int i=0; i<conditions.count();i++)
         _conditions.append(QSharedPointer<ChannelCommunicationStmt>(conditions[i]));
     for(int i=0; i<actions.count();i++)
         _actions.append(QSharedPointer<Statement>(actions[i]));
+    */
 }
 
 QString SelectStmt::toString()
@@ -931,25 +951,35 @@ QString ObjectCreation::toString()
     return QString("جديد(%1)").arg(className()->name);
 }
 
-ProceduralDecl::ProceduralDecl(Token pos, Token endingToken ,Identifier *procName, QVector<Identifier *>formals, BlockStmt *body, bool isPublic)
+ProceduralDecl::ProceduralDecl(Token pos,
+                               Token endingToken,
+                               QSharedPointer<Identifier> procName,
+                               QVector<QSharedPointer<Identifier> > formals,
+                               QSharedPointer<BlockStmt> body,
+                               bool isPublic)
     :Declaration(pos, isPublic),
     _procName(procName),
+    _formals(formals),
     _body(body),
     _endingToken(endingToken)
 {
+    /*
     for(int i=0; i<formals.count(); i++)
         _formals.append(QSharedPointer<Identifier>(formals[i]));
+    */
 }
 
-QVector<Identifier *> ProceduralDecl::getIntroducedVariables()
+QVector<QSharedPointer<Identifier> > ProceduralDecl::getIntroducedVariables()
 {
-    QVector<Identifier *> ret;
-    for(int i=0; i<_formals.count(); i++)
-        ret.append(_formals[i].data());
-    return ret;
+    return _formals;
 }
 
-ProcedureDecl::ProcedureDecl(Token pos, Token endingToken, Identifier *procName, QVector<Identifier *>formals, BlockStmt *body, bool isPublic)
+ProcedureDecl::ProcedureDecl(Token pos,
+                             Token endingToken,
+                             QSharedPointer<Identifier> procName,
+                             QVector<QSharedPointer<Identifier> >formals,
+                             QSharedPointer<BlockStmt> body,
+                             bool isPublic)
     :ProceduralDecl(pos, endingToken, procName, formals, body, isPublic)
 {
 
@@ -968,7 +998,12 @@ QString ProcedureDecl::toString()
             .arg(body()->toString());
 }
 
-FunctionDecl::FunctionDecl(Token pos, Token endingToken, Identifier *procName, QVector<Identifier *>formals, BlockStmt *body, bool isPublic)
+FunctionDecl::FunctionDecl(Token pos,
+                           Token endingToken,
+                           QSharedPointer<Identifier> procName,
+                           QVector<QSharedPointer<Identifier> > formals,
+                           QSharedPointer<BlockStmt> body,
+                           bool isPublic)
     :ProceduralDecl(pos, endingToken, procName, formals, body, isPublic)
 {
 
@@ -995,12 +1030,9 @@ MethodInfo::MethodInfo()
     isFunction = false;
 }
 
-FFILibraryDecl::FFILibraryDecl(Token pos, QString libName, QVector<Declaration *> decls, bool isPublic)
-    : Declaration(pos, isPublic)
+FFILibraryDecl::FFILibraryDecl(Token pos, QString libName, QVector<QSharedPointer<Declaration> > decls, bool isPublic)
+    : Declaration(pos, isPublic), libName(libName),_decls(decls)
 {
-    this->libName = libName;
-    for(int i=0; i<decls.count(); i++)
-        _decls.append(QSharedPointer<Declaration    >(decls[i]));
 }
 
 QString FFILibraryDecl::toString()

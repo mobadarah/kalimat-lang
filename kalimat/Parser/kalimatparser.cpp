@@ -114,7 +114,12 @@ QSharedPointer<AST> KalimatParser::program()
         }
         newLines();
     }
-    entryPoint = QSharedPointer<ProceduralDecl>(new ProcedureDecl(Token(), Token(),new Identifier(Token(), "%main"), QVector<Identifier *>(), new BlockStmt(Token(),topLevelStatements), true));
+    entryPoint = QSharedPointer<ProceduralDecl>(new ProcedureDecl(Token(),
+                                                                  Token(),
+                                                                  QSharedPointer<Identifier>(new Identifier(Token(), "%main")),
+                                                                  QVector<QSharedPointer<Identifier> >(),
+                                                                  QSharedPointer<BlockStmt>(new BlockStmt(Token(),topLevelStatements)),
+                                                                  true));
     elements.append(entryPoint);
     return QSharedPointer<AST>(new Program(Token(), elements, usedModules, originalElements));
 }
@@ -812,8 +817,8 @@ QSharedPointer<Statement> KalimatParser::drawCircleStmt()
 
 QSharedPointer<Statement> KalimatParser::drawSpriteStmt()
 {
-    Expression *x, *y;
-    Expression *number;
+    QSharedPointer<Expression> x, y;
+    QSharedPointer<Expression> number;
 
     Token tok  = lookAhead;
     match(DRAW_SPRITE);
@@ -826,14 +831,14 @@ QSharedPointer<Statement> KalimatParser::drawSpriteStmt()
     y = expression();
     match(RPAREN);
 
-    return new DrawSpriteStmt(tok, x, y, number);
+    return QSharedPointer<Statement>(new DrawSpriteStmt(tok, x, y, number));
 }
 
-Statement *KalimatParser::zoomStmt()
+QSharedPointer<Statement> KalimatParser::zoomStmt()
 {
 
-    Expression *x1 = NULL, *y1 = NULL;
-    Expression *x2, *y2;
+    QSharedPointer<Expression> x1, y1;
+    QSharedPointer<Expression> x2, y2;
 
     Token tok  = lookAhead;
     match(ZOOM);
@@ -853,13 +858,13 @@ Statement *KalimatParser::zoomStmt()
     y2 = expression();
     match(RPAREN);
 
-    return new ZoomStmt(tok, x1, y1, x2, y2);
+    return QSharedPointer<Statement>(new ZoomStmt(tok, x1, y1, x2, y2));
 }
 
-Statement *KalimatParser::eventHandlerStmt()
+QSharedPointer<Statement> KalimatParser::eventHandlerStmt()
 {
     EventType type;
-    Identifier *proc = NULL;
+    QSharedPointer<Identifier> proc;
     Token tok  = lookAhead;
     match(WHEN);
     match(EVENT);
@@ -905,14 +910,14 @@ Statement *KalimatParser::eventHandlerStmt()
     }
     match(DO);
     proc = identifier();
-    return new EventStatement(tok, type, proc);
+    return QSharedPointer<Statement>(new EventStatement(tok, type, proc));
 }
 
-SendStmt *KalimatParser::sendStmt()
+QSharedPointer<SendStmt> KalimatParser::sendStmt()
 {
     bool signal = false;
-    Expression *value = NULL;
-    Expression *chan = NULL;
+    QSharedPointer<Expression> value;
+    QSharedPointer<Expression> chan;
     match(SEND);
     if(eof())
         throw ParserException(getPos(), "Expected an expression");
@@ -926,14 +931,14 @@ SendStmt *KalimatParser::sendStmt()
         value = expression();
     match(TO);
     chan = expression();
-    return new SendStmt(tok, signal, value, chan);
+    return QSharedPointer<Statement>(new SendStmt(tok, signal, value, chan));
 }
 
-ReceiveStmt *KalimatParser::receiveStmt()
+QSharedPointer<ReceiveStmt> KalimatParser::receiveStmt()
 {
     bool signal = false;
-    AssignableExpression *value = NULL;
-    Expression *chan = NULL;
+    QSharedPointer<AssignableExpression> value;
+    QSharedPointer<Expression> chan;
     match(RECEIVE);
     if(eof())
         throw ParserException(getPos(), "Expected an expression");
@@ -945,8 +950,8 @@ ReceiveStmt *KalimatParser::receiveStmt()
     }
     else
     {
-        Expression *expr = primaryExpression();
-        value = dynamic_cast<AssignableExpression *>(expr);
+        QSharedPointer<Expression> expr = primaryExpression();
+        value = expr.dynamicCast<AssignableExpression>();
         if(value == NULL)
         {
             throw ParserException(getPos(), "'Receive' must take an assignable expression");
@@ -954,14 +959,14 @@ ReceiveStmt *KalimatParser::receiveStmt()
     }
     match(FROM);
     chan = expression();
-    return new ReceiveStmt(tok, signal, value, chan);
+    return QSharedPointer<Statement>(new ReceiveStmt(tok, signal, value, chan));
 }
 
-Statement *KalimatParser::selectStmt()
+QSharedPointer<Statement> KalimatParser::selectStmt()
 {
     Token tok = lookAhead;
-    QVector<ChannelCommunicationStmt *> conditions;
-    QVector<Statement *> actions;
+    QVector<QSharedPointer<ChannelCommunicationStmt> > conditions;
+    QVector<QSharedPointer<Statement> > actions;
     bool multilineStatement = false;
     match(SELECT);
     match(COLON);
@@ -1012,12 +1017,12 @@ Statement *KalimatParser::selectStmt()
             actions.append(statement());
     }
     match(DONE);
-    return new SelectStmt(tok, conditions, actions);
+    return QSharedPointer<Statement>(new SelectStmt(tok, conditions, actions));
 }
 
-BlockStmt *KalimatParser::block()
+QSharedPointer<BlockStmt> KalimatParser::block()
 {
-    QVector<Statement *> stmts;
+    QVector<QSharedPointer<Statement> > stmts;
     Token tok = lookAhead;
     newLines();
     while(LA_first_statement())
@@ -1027,12 +1032,12 @@ BlockStmt *KalimatParser::block()
             match(NEWLINE);
         newLines();
     }
-    return new BlockStmt(tok, stmts);
+    return QSharedPointer<Statement>(new BlockStmt(tok, stmts));
 }
 
-QVector<Identifier *> KalimatParser::formalParamList()
+QVector<QSharedPointer<Identifier> > KalimatParser::formalParamList()
 {
-    QVector<Identifier *> formals;
+    QVector<QSharedPointer<Identifier> > formals;
 
     match(LPAREN);
     if(LA(IDENTIFIER))
@@ -1048,21 +1053,26 @@ QVector<Identifier *> KalimatParser::formalParamList()
     return formals;
 }
 
-Declaration *KalimatParser::procedureDecl()
+QSharedPointer<Declaration> KalimatParser::procedureDecl()
 {
 
     match(PROCEDURE);
     Token tok  = lookAhead;
-    Identifier *procName = identifier();
-    QVector<Identifier *> formals = formalParamList();
+    QSharedPointer<Identifier> procName = identifier();
+    QVector<QSharedPointer<Identifier> > formals = formalParamList();
 
     match(COLON);
     match(NEWLINE);
 
-    ProcedureDecl *ret = new ProcedureDecl(tok, Token(), procName, formals, NULL, true);
+    QSharedPointer<ProcedureDecl> ret(new ProcedureDecl(tok,
+                                                          Token(),
+                                                          procName,
+                                                          formals,
+                                                          QSharedPointer<BlockStmt>(),
+                                                          true));
 
     varContext.push(ret);
-    BlockStmt *body = block();
+    QSharedPointer<BlockStmt> body = block();
     varContext.pop();
 
     expect(END);
@@ -1073,18 +1083,19 @@ Declaration *KalimatParser::procedureDecl()
     ret->body(body);
     return ret;
 }
-Declaration *KalimatParser::functionDecl()
+
+QSharedPointer<Declaration> KalimatParser::functionDecl()
 {
     match(FUNCTION);
     Token tok  = lookAhead;
-    Identifier *procName = identifier();
-    QVector<Identifier *> formals=formalParamList();
+    QSharedPointer<Identifier> procName = identifier();
+    QVector<QSharedPointer<Identifier> > formals = formalParamList();
     match(COLON);
     match(NEWLINE);
-    FunctionDecl *ret = new FunctionDecl(tok, Token(), procName, formals, NULL, true);
+    QSharedPointer<FunctionDecl> ret(new FunctionDecl(tok, Token(), procName, formals, QSharedPointer<BlockStmt>(), true));
 
     varContext.push(ret);
-    BlockStmt *body = block();
+    QSharedPointer<BlockStmt> body = block();
     varContext.pop();
 
     expect(END);
@@ -1134,7 +1145,7 @@ void KalimatParser::addPropertyGetter(Token pos, Identifier *methodName, QVector
     }
 }
 
-Declaration *KalimatParser::classDecl()
+QSharedPointer<Declaration> KalimatParser::classDecl()
 {
     QVector<Identifier *> fields;
     QMap<QString, MethodInfo> methods;
@@ -1142,8 +1153,8 @@ Declaration *KalimatParser::classDecl()
 
     match(CLASS);
     Token tok  = lookAhead;
-    Identifier *className = identifier();
-    Identifier *ancestorName = NULL;
+    QSharedPointer<Identifier> className = identifier();
+    QSharedPointer<Identifier> ancestorName;
     match(COLON);
     match(NEWLINE);
     newLines();
@@ -1280,20 +1291,22 @@ Declaration *KalimatParser::classDecl()
     return new ClassDecl(tok, ancestorName, className, fields, methods, internalDecls, fieldMarshallAs, true);
 
 }
-Declaration *KalimatParser::globalDecl()
+
+QSharedPointer<Declaration> KalimatParser::globalDecl()
 {
-    Identifier *var = NULL;
+    QSharedPointer<Identifier> var;
     Token tok  = lookAhead;
     var = identifier();
     match(GLOBAL);
-    return new GlobalDecl(tok, var->name, true);
+    return QSharedPointer<Declaration>(new GlobalDecl(tok, var->name, true));
 }
+
 bool KalimatParser::LA_first_method_declaration()
 {
     return LA(RESPONSEOF) || LA(REPLYOF);
 }
 
-Declaration *KalimatParser::methodDecl()
+QSharedPointer<Declaration> KalimatParser::methodDecl()
 {
     bool isFunctionNotProcedure;
     Identifier *className;
@@ -1391,13 +1404,13 @@ Declaration *KalimatParser::ffiLibraryDecl()
 QSharedPointer<Declaration> KalimatParser::rulesDecl()
 {
     match(RULES);
-    Identifier *ruleName = identifier();
+    QSharedPointer<Identifier> ruleName = identifier();
     match(COLON);
     match(NEWLINE);
     newLines();
     while(LA(IDENTIFIER))
     {
-        RuleDecl *rd = ruleDecl();
+        QSharedPointer<RuleDecl> rd = ruleDecl();
         newLines();
     }
     match(END);

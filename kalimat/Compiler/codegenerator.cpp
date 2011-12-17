@@ -419,9 +419,13 @@ void CodeGenerator::generateFFIProceduralDeclaration(FFIProceduralDecl *decl, QS
     // todo: we've called new() 3 times here, this is a memory leak which
     // can be rectified by cleaning up after we popProcedureScope at the end
     // of this function
-    pushProcedureScope(new FunctionDecl(decl->getPos(), decl->getPos(),
-                                        new Identifier(decl->getPos(),decl->procName), QVector<Identifier *>(), new BlockStmt(decl->getPos(), QVector<QSharedPointer<Statement > >()), false)
-                                          );
+    pushProcedureScope(new FunctionDecl(decl->getPos(),
+                                        decl->getPos(),
+                                        QSharedPointer<Identifier>(new Identifier(decl->getPos(),decl->procName)),
+                                        QVector<QSharedPointer<Identifier> >(),
+                                        QSharedPointer<BlockStmt>(new BlockStmt(decl->getPos(), QVector<QSharedPointer<Statement > >())),
+                                        false
+                                        ));
     gen(decl, QString(".method %1 %2 %3").
                              arg(decl->procName)
                             .arg(decl->paramTypeCount())

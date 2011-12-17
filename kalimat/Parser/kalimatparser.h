@@ -27,7 +27,7 @@ public:
     QMap<int, Token> closerFor;
     QMap<int, Token> openerFor;
 private:
-    QStack<ProceduralDecl *> varContext;
+    QStack<QSharedPointer<ProceduralDecl> > varContext;
 private:
 
     bool LA_first_statement();
