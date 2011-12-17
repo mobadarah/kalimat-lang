@@ -122,9 +122,9 @@ class DelegationStmt : public Statement
 {
     Q_OBJECT
 public:
-    QScopedPointer<IInvokation> _invokation;
+    QSharedPointer<IInvokation> _invokation;
 public:
-    DelegationStmt(Token pos, IInvokation *invokation);
+    DelegationStmt(Token pos, QSharedPointer<IInvokation> invokation);
     ~DelegationStmt();
     IInvokation *invokation() { return _invokation.data(); }
     QString toString();
@@ -136,9 +136,9 @@ class LaunchStmt : public Statement
 {
     Q_OBJECT
 public:
-    QScopedPointer<IInvokation> _invokation;
+    QSharedPointer<IInvokation> _invokation;
 public:
-    LaunchStmt(Token pos, IInvokation *invokation);
+    LaunchStmt(Token pos, QSharedPointer<IInvokation> invokation);
     ~LaunchStmt();
     IInvokation *invokation() { return _invokation.data(); }
     QString toString();
@@ -151,7 +151,7 @@ class LabelStmt : public Statement
     Q_OBJECT
     QSharedPointer<Expression> _target;
 public:
-    LabelStmt(Token pos, Expression *target);
+    LabelStmt(Token pos, QSharedPointer<Expression> target);
     Expression *target() { return _target.data(); }
     QString toString();
     void prettyPrint(CodeFormatter *f);
@@ -166,7 +166,7 @@ public:
     QSharedPointer<NumLiteral> _numericTarget;
     QSharedPointer<Identifier> _idTarget;
 public:
-    GotoStmt(Token pos, bool _targetIsNumber, Expression *target);
+    GotoStmt(Token pos, bool _targetIsNumber, QSharedPointer<Expression> target);
     Identifier *idTarget() { return _idTarget.data(); }
     NumLiteral *numericTarget() { return _numericTarget.data(); }
     QString toString();
@@ -182,7 +182,11 @@ public:
     QVector<QSharedPointer<Expression> > _widths;
     bool printOnSameLine;
 public:
-    PrintStmt(Token pos, Expression *fileObject, QVector<Expression *> args, QVector<Expression *> widths, bool printOnSameLine);
+    PrintStmt(Token pos,
+              QSharedPointer<Expression> fileObject,
+              QVector<QSharedPointer<Expression> > args,
+              QVector<QSharedPointer<Expression> > widths,
+              bool printOnSameLine);
     int argCount() { return _args.count(); }
     Expression *arg(int i) { return _args[i].data(); }
     Expression *fileObject() { return _fileObject.data();}
@@ -199,7 +203,11 @@ public:
     QVector<QSharedPointer<AssignableExpression> > _variables;
     QVector<bool> readNumberFlags;
 public:
-    ReadStmt(Token pos, Expression *fileObject, QString prompt, const QVector<AssignableExpression*> &variables, QVector<bool> readNumberFlags);
+    ReadStmt(Token pos,
+             QSharedPointer<Expression> fileObject,
+             QString prompt,
+             const QVector<QSharedPointer<AssignableExpression> > &variables,
+             QVector<bool> readNumberFlags);
     int variableCount() { return _variables.count();}
     AssignableExpression *variable(int i) { return _variables[i].data();}
     Expression *fileObject() { return _fileObject.data();}
@@ -211,10 +219,13 @@ class DrawPixelStmt : public GraphicsStatement
 {
     Q_OBJECT
 public:
-    QScopedPointer<Expression> _x, _y;
-    QScopedPointer<Expression> _color;
+    QSharedPointer<Expression> _x, _y;
+    QSharedPointer<Expression> _color;
 public:
-    DrawPixelStmt(Token pos, Expression *x, Expression *y, Expression *color);
+    DrawPixelStmt(Token pos,
+                  QSharedPointer<Expression> x,
+                  QSharedPointer<Expression> y,
+                  QSharedPointer<Expression> color);
     ~DrawPixelStmt();
     Expression *x() { return _x.data();}
     Expression *y() { return _y.data();}
@@ -228,10 +239,15 @@ class DrawLineStmt : public GraphicsStatement
 {
     Q_OBJECT
 public:
-    QScopedPointer<Expression> _x1, _y1, _x2, _y2;
-    QScopedPointer<Expression> _color;
+    QSharedPointer<Expression> _x1, _y1, _x2, _y2;
+    QSharedPointer<Expression> _color;
 public:
-    DrawLineStmt(Token pos, Expression *x1, Expression *y1, Expression *x2, Expression *y2, Expression *color);
+    DrawLineStmt(Token pos,
+                 QSharedPointer<Expression> x1,
+                 QSharedPointer<Expression> y1,
+                 QSharedPointer<Expression> x2,
+                 QSharedPointer<Expression> y2,
+                 QSharedPointer<Expression> color);
     ~DrawLineStmt();
     Expression *x1() { return _x1.data();}
     Expression *y1() { return _y1.data();}
@@ -247,11 +263,17 @@ class DrawRectStmt : public GraphicsStatement
 {
     Q_OBJECT
 public:
-    QScopedPointer<Expression> _x1, _y1, _x2, _y2;
-    QScopedPointer<Expression> _color;
+    QSharedPointer<Expression> _x1, _y1, _x2, _y2;
+    QSharedPointer<Expression> _color;
     QSharedPointer<Expression> _filled;
 public:
-    DrawRectStmt(Token pos, Expression *x1, Expression *y1, Expression *x2, Expression *y2, Expression *color, Expression *filled);
+    DrawRectStmt(Token pos,
+                 QSharedPointer<Expression> x1,
+                 QSharedPointer<Expression> y1,
+                 QSharedPointer<Expression> x2,
+                 QSharedPointer<Expression> y2,
+                 QSharedPointer<Expression> color,
+                 QSharedPointer<Expression> filled);
     ~DrawRectStmt();
     Expression *x1() { return _x1.data();}
     Expression *y1() { return _y1.data();}

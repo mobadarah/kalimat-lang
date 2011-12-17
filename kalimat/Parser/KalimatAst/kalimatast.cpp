@@ -202,12 +202,13 @@ ReturnStmt::ReturnStmt(Token pos ,QSharedPointer<Expression> returnVal)
     _returnVal(returnVal)
 {
 }
+
 QString ReturnStmt::toString()
 {
     return _ws(L"ارجع(%1)").arg(returnVal()->toString());
 }
 
-DelegationStmt::DelegationStmt(Token pos, IInvokation *invokation)
+DelegationStmt::DelegationStmt(Token pos, QSharedPointer<IInvokation> invokation)
     :Statement(pos),
     _invokation(invokation)
 {
@@ -218,7 +219,7 @@ QString DelegationStmt::toString()
     return _ws(L"وكل إلى(%1)").arg(invokation()->toString());
 }
 
-LaunchStmt::LaunchStmt(Token pos, IInvokation *invokation)
+LaunchStmt::LaunchStmt(Token pos, QSharedPointer<IInvokation> invokation)
     :Statement(pos),
     _invokation(invokation)
 {
@@ -230,7 +231,7 @@ QString LaunchStmt::toString()
 }
 
 
-LabelStmt::LabelStmt(Token pos, Expression *target)
+LabelStmt::LabelStmt(Token pos, QSharedPointer<Expression> target)
     : Statement(pos),
       _target(target)
 {
@@ -241,30 +242,42 @@ QString LabelStmt::toString()
     return _ws(L"علامة(%1)").arg(target()->toString());
 }
 
-GotoStmt::GotoStmt(Token pos, bool _targetIsNumber, Expression *target)
+GotoStmt::GotoStmt(Token pos,
+                   bool _targetIsNumber,
+                   QSharedPointer<Expression> target)
     :Statement(pos)
 {
     targetIsNumber = _targetIsNumber;
     if(targetIsNumber)
-        _numericTarget = QSharedPointer<NumLiteral>((NumLiteral *) target);
+        _numericTarget = target.dynamicCast<NumLiteral>();
     else
-        _idTarget = QSharedPointer<Identifier>((Identifier *) target);
+        _idTarget = target.dynamicCast<Identifier>();
 }
+
 QString GotoStmt::toString()
 {
     return _ws(L"اذهب(%1)").arg(targetIsNumber? _numericTarget.data()->toString(): _idTarget.data()->toString());
 }
 
-PrintStmt::PrintStmt(Token pos, Expression *fileObject, QVector<Expression *>args, QVector<Expression *> widths, bool printOnSameLine)
+PrintStmt::PrintStmt(Token pos,
+                     QSharedPointer<Expression> fileObject,
+                     QVector<QSharedPointer<Expression> > args,
+                     QVector<QSharedPointer<Expression> > widths,
+                     bool printOnSameLine)
     :IOStatement(pos),
-    _fileObject(fileObject)
+     _fileObject(fileObject),
+     _args(args),
+     _widths(widths),
+     printOnSameLine(printOnSameLine)
 {
+    /*
     for(int i= 0; i<args.count();i++)
     {
         this->_args.append(QSharedPointer<Expression>(args[i]));
         this->_widths.append(QSharedPointer<Expression>(widths[i]));
     }
     this->printOnSameLine = printOnSameLine;
+    */
 }
 QString PrintStmt::toString()
 {
@@ -276,15 +289,23 @@ QString PrintStmt::toString()
     return _ws(L"اطبع(").append(ret.join(_ws(L"، "))).append(")");
 }
 
-ReadStmt::ReadStmt(Token pos, Expression *fileObject, QString prompt,
-                   const QVector<AssignableExpression *>&variables, QVector<bool>readNumberFlags)
+ReadStmt::ReadStmt(Token pos,
+                   QSharedPointer<Expression> fileObject,
+                   QString prompt,
+                   const QVector<QSharedPointer<AssignableExpression> >&variables,
+                   QVector<bool> readNumberFlags)
     :IOStatement(pos),
-     _fileObject(fileObject)
+     _fileObject(fileObject),
+      prompt(prompt),
+      _variables(variables),
+      readNumberFlags(readNumberFlags)
 {
+    /*
     this->prompt = prompt;
     for(int i=0; i<variables.count(); i++)
         this->_variables.append(QSharedPointer<AssignableExpression>(variables[i]));
     this->readNumberFlags = readNumberFlags;
+    */
 }
 
 QString ReadStmt::toString()
@@ -296,13 +317,18 @@ QString ReadStmt::toString()
     }
     return _ws(L"اقرأ(\"").append(prompt).append("\"،").append(ret.join(_ws(L"، "))).append("}");
 }
-DrawPixelStmt::DrawPixelStmt(Token pos ,Expression *x, Expression *y, Expression *color)
+
+DrawPixelStmt::DrawPixelStmt(Token pos,
+                             QSharedPointer<Expression>x,
+                             QSharedPointer<Expression> y,
+                             QSharedPointer<Expression> color)
     :GraphicsStatement(pos),
     _x(x),
     _y(y),
     _color(color)
 {
 }
+
 QString DrawPixelStmt::toString()
 {
     return _ws(L"رسم.نقطة(%1، %2، %3)")
@@ -311,7 +337,12 @@ QString DrawPixelStmt::toString()
             .arg(color()? color()->toString(): "default");
 }
 
-DrawLineStmt::DrawLineStmt(Token pos ,Expression *x1, Expression *y1, Expression *x2, Expression *y2, Expression *color)
+DrawLineStmt::DrawLineStmt(Token pos,
+                           QSharedPointer<Expression> x1,
+                           QSharedPointer<Expression> y1,
+                           QSharedPointer<Expression> x2,
+                           QSharedPointer<Expression> y2,
+                           QSharedPointer<Expression> color)
         :GraphicsStatement(pos),
          _x1(x1),
          _y1(y1),
@@ -320,6 +351,7 @@ DrawLineStmt::DrawLineStmt(Token pos ,Expression *x1, Expression *y1, Expression
          _color(color)
 {
 }
+
 QString DrawLineStmt::toString()
 {
     return _ws(L"رسم.خط([%1، %2]، [%3، %4]، %5)")
@@ -330,13 +362,13 @@ QString DrawLineStmt::toString()
             .arg(color()? color()->toString(): "default");
 }
 
-DrawRectStmt::DrawRectStmt(Token pos ,
-                           Expression *x1,
-                           Expression *y1,
-                           Expression *x2,
-                           Expression *y2,
-                           Expression *color,
-                           Expression *filled)
+DrawRectStmt::DrawRectStmt(Token pos,
+                           QSharedPointer<Expression> x1,
+                           QSharedPointer<Expression> y1,
+                           QSharedPointer<Expression> x2,
+                           QSharedPointer<Expression> y2,
+                           QSharedPointer<Expression> color,
+                           QSharedPointer<Expression> filled)
         :GraphicsStatement(pos),
         _x1(x1),
         _y1(y1),

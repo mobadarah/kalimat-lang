@@ -475,16 +475,16 @@ QSharedPointer<Statement> KalimatParser::returnStmt()
     return QSharedPointer<Statement>(new ReturnStmt(returnTok, retVal));
 }
 
-Statement *KalimatParser::delegateStmt()
+QSharedPointer<Statement> KalimatParser::delegateStmt()
 {
     Token returnTok  = lookAhead;
     match(DELEGATE);
     match(TO);
-    Expression *expr = expression();
-    IInvokation *invokation = dynamic_cast<IInvokation *>(expr);
-    if(invokation !=NULL)
+    QSharedPointer<Expression> expr = expression();
+    QSharedPointer<IInvokation> invokation =expr.dynamicCast<IInvokation>();
+    if(invokation != NULL)
     {
-        return new DelegationStmt(returnTok, invokation);
+        return QSharedPointer<Statement>(new DelegationStmt(returnTok, invokation));
     }
     else
     {
@@ -493,15 +493,15 @@ Statement *KalimatParser::delegateStmt()
     }
 }
 
-Statement *KalimatParser::launchStmt()
+QSharedPointer<Statement> KalimatParser::launchStmt()
 {
     Token returnTok  = lookAhead;
     match(LAUNCH);
-    Expression *expr = expression();
-    IInvokation *invokation = dynamic_cast<IInvokation *>(expr);
+    QSharedPointer<Expression> expr = expression();
+    QSharedPointer<IInvokation> invokation = expr.dynamicCast<IInvokation>();
     if(invokation !=NULL)
     {
-        return new LaunchStmt(returnTok, invokation);
+        return QSharedPointer<Statement>(new LaunchStmt(returnTok, invokation));
     }
     else
     {
@@ -510,25 +510,25 @@ Statement *KalimatParser::launchStmt()
     }
 }
 
-Statement *KalimatParser::labelStmt()
+QSharedPointer<Statement> KalimatParser::labelStmt()
 {
     Token pos = lookAhead;
     match(LABEL);
-    Expression *target = expression();
-    return new LabelStmt(pos, target);
+    QSharedPointer<Expression> target = expression();
+    return QSharedPointer<Statement>(new LabelStmt(pos, target));
 }
 
-Statement *KalimatParser::gotoStmt()
+QSharedPointer<Statement> KalimatParser::gotoStmt()
 {
     Token pos = lookAhead;
-    Expression *target = NULL;
+    QSharedPointer<Expression> target;
     match(GO);
     match(TO);
     bool targetIsNum = false;
     if(LA(NUM_LITERAL))
     {
         targetIsNum = true;
-        target = new NumLiteral(lookAhead, lookAhead.Lexeme);
+        target = QSharedPointer<Expression>(new NumLiteral(lookAhead, lookAhead.Lexeme));
         match(NUM_LITERAL);
     }
     else if(LA(IDENTIFIER))
@@ -540,7 +540,7 @@ Statement *KalimatParser::gotoStmt()
     {
         throw ParserException("An identifier or number is expected after 'goto'");
     }
-    return new GotoStmt(pos, targetIsNum, target);
+    return QSharedPointer<Statement>(new GotoStmt(pos, targetIsNum, target));
 }
 
 bool KalimatParser::LA_first_io_statement()
@@ -548,14 +548,14 @@ bool KalimatParser::LA_first_io_statement()
     return LA(PRINT) || LA(READ);
 }
 
-Statement *KalimatParser::ioStmt()
+QSharedPointer<Statement> KalimatParser::ioStmt()
 {
     if(LA(PRINT))
     {
         bool printOnSameLine = false;
-        QVector<Expression *> args;
-        QVector<Expression *> widths;
-        Expression *fileObject = NULL;
+        QVector<QSharedPointer<Expression> > args;
+        QVector<QSharedPointer<Expression> > widths;
+        QSharedPointer<Expression> fileObject;
         Token printTok  = lookAhead;
         match(PRINT);
         if(LA(IN))
@@ -571,7 +571,7 @@ Statement *KalimatParser::ioStmt()
         }
         else
         {
-            widths.append(NULL);
+            widths.append(QSharedPointer<Expression>());
         }
         args.append(expression());
         while(LA(COMMA))
@@ -590,7 +590,7 @@ Statement *KalimatParser::ioStmt()
             }
             else
             {
-                widths.append(NULL);
+                widths.append(QSharedPointer<Expression>());
             }
             args.append(expression());
         }
@@ -600,13 +600,13 @@ Statement *KalimatParser::ioStmt()
             printOnSameLine = true;
         }
         officialEndOfPrintStmt:
-        return new PrintStmt(printTok, fileObject, args, widths, printOnSameLine);
+        return QSharedPointer<Statement>(new PrintStmt(printTok, fileObject, args, widths, printOnSameLine));
     }
     if(LA(READ))
     {
         QString prompt = "";
         Token readTok  = lookAhead;
-        Expression *fileObject = NULL;
+        QSharedPointer<Expression> fileObject;
         match(READ);
         if(LA(FROM))
         {
@@ -620,17 +620,17 @@ Statement *KalimatParser::ioStmt()
             match(STR_LITERAL);
             match(COMMA);
         }
-        QVector<AssignableExpression *> vars;
+        QVector<QSharedPointer<AssignableExpression> > vars;
         QVector<bool> readNums;
         bool readInt = false;
-        AssignableExpression *var = NULL;
+        QSharedPointer<AssignableExpression> var;
         if(LA(HASH))
         {
             match(HASH);
             readInt = true;
         }
-        Expression *lvalue = expression();
-        var = dynamic_cast<AssignableExpression *>(lvalue);
+        QSharedPointer<Expression> lvalue = expression();
+        var = lvalue.dynamicCast<AssignableExpression>();
         if(var == NULL)
         {
             throw ParserException(getPos(), "Item in read statement must be an assignable expression");
@@ -650,7 +650,7 @@ Statement *KalimatParser::ioStmt()
                 readInt = false;
             }
             lvalue = expression();
-            var = dynamic_cast<AssignableExpression *>(lvalue);
+            var = lvalue.dynamicCast<AssignableExpression>();
             if(var == NULL)
             {
                 throw ParserException(getPos(), "Item in read statement must be an assignable expression");
@@ -658,7 +658,7 @@ Statement *KalimatParser::ioStmt()
             vars.append(var);
             readNums.append(readInt);
         }
-        return new ReadStmt(readTok, fileObject, prompt, vars, readNums);
+        return QSharedPointer<Statement>(new ReadStmt(readTok, fileObject, prompt, vars, readNums));
     }
     throw ParserException(getPos(), "Expected PRINT or READ");
 }
@@ -668,7 +668,7 @@ bool KalimatParser::LA_first_grfx_statement()
     return LA(DRAW_PIXEL) || LA(DRAW_LINE) || LA(DRAW_RECT) || LA(DRAW_CIRCLE) || LA(DRAW_SPRITE) || LA(ZOOM);
 }
 
-Statement *KalimatParser::grfxStatement()
+QSharedPointer<Statement> KalimatParser::grfxStatement()
 {
     if(LA(DRAW_PIXEL))
         return drawPixelStmt();
@@ -684,10 +684,10 @@ Statement *KalimatParser::grfxStatement()
         return zoomStmt();
     throw ParserException(getPos(), "Expected a drawing statement");
 }
-Statement *KalimatParser::drawPixelStmt()
+QSharedPointer<Statement> KalimatParser::drawPixelStmt()
 {
-    Expression *x, *y;
-    Expression *color = NULL;
+    QSharedPointer<Expression> x, y;
+    QSharedPointer<Expression> color;
     Token tok  = lookAhead;
     match(DRAW_PIXEL);
     match(LPAREN);
@@ -700,13 +700,14 @@ Statement *KalimatParser::drawPixelStmt()
         match(COMMA);
         color = expression();
     }
-    return new DrawPixelStmt(tok, x,y, color);
+    return QSharedPointer<Statement>(new DrawPixelStmt(tok, x,y, color));
 }
-Statement *KalimatParser::drawLineStmt()
+
+QSharedPointer<Statement> KalimatParser::drawLineStmt()
 {
-    Expression *x1 = NULL, *y1 = NULL;
-    Expression *x2, *y2;
-    Expression *color = NULL;
+    QSharedPointer<Expression> x1, y1;
+    QSharedPointer<Expression> x2, y2;
+    QSharedPointer<Expression> color;
 
     Token tok  = lookAhead;
     match(DRAW_LINE);
@@ -732,14 +733,15 @@ Statement *KalimatParser::drawLineStmt()
         match(COMMA);
         color = expression();
     }
-    return new DrawLineStmt(tok, x1, y1, x2, y2, color);
+    return QSharedPointer<Statement>(new DrawLineStmt(tok, x1, y1, x2, y2, color));
 }
-Statement *KalimatParser::drawRectStmt()
+
+QSharedPointer<Statement> KalimatParser::drawRectStmt()
 {
-    Expression *x1 = NULL, *y1 = NULL;
-    Expression *x2, *y2;
-    Expression *color = NULL;
-    Expression *filled = NULL;
+    QSharedPointer<Expression> x1, y1;
+    QSharedPointer<Expression> x2, y2;
+    QSharedPointer<Expression> color;
+    QSharedPointer<Expression> filled;
 
     Token tok  = lookAhead;
     match(DRAW_RECT);
@@ -772,14 +774,15 @@ Statement *KalimatParser::drawRectStmt()
             filled = expression();
         }
     }
-    return new DrawRectStmt(tok, x1, y1, x2, y2, color, filled);
+    return QSharedPointer<Statement>(new DrawRectStmt(tok, x1, y1, x2, y2, color, filled));
 }
-Statement *KalimatParser::drawCircleStmt()
+
+QSharedPointer<Statement> KalimatParser::drawCircleStmt()
 {
-    Expression *cx, *cy;
-    Expression *radius;
-    Expression *color = NULL;
-    Expression *filled = NULL;
+    QSharedPointer<Expression> cx, cy;
+    QSharedPointer<Expression> radius;
+    QSharedPointer<Expression> color;
+    QSharedPointer<Expression> filled;
 
     Token tok  = lookAhead;
     match(DRAW_CIRCLE);
@@ -806,6 +809,7 @@ Statement *KalimatParser::drawCircleStmt()
     }
     return new DrawCircleStmt(tok, cx, cy, radius, color, filled);
 }
+
 Statement *KalimatParser::drawSpriteStmt()
 {
     Expression *x, *y;
