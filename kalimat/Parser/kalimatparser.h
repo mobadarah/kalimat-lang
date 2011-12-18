@@ -118,9 +118,13 @@ private:
 
     QString prepareStringLiteral(QString str);
     QString getOperation(Token token);
-    void addPropertySetter(Token pos, Identifier *methodName, QVector<Identifier *> formals,
-                                          QMap<QString, PropInfo> &propertyInfo);
-    void addPropertyGetter(Token pos, Identifier *methodName, QVector<Identifier *> formals,
+    void addPropertySetter(Token pos,
+                           QSharedPointer<Identifier> methodName,
+                           QVector<QSharedPointer<Identifier> > formals,
+                           QMap<QString, PropInfo> &propertyInfo);
+    void addPropertyGetter(Token pos,
+                           QSharedPointer<Identifier> methodName,
+                           QVector<QSharedPointer<Identifier> > formals,
                                           QMap<QString, PropInfo> &propertyInfo);
     void newLines();
 };

@@ -95,12 +95,12 @@ public:
     QString procName;
     QString symbol;
 private:
-    QScopedPointer<TypeExpression> _returnType; // NULL -> It's a procedure
+    QSharedPointer<TypeExpression>_returnType; // NULL -> It's a procedure
     QVector<QSharedPointer<TypeExpression> > _paramTypes;
 public:
     FFIProceduralDecl(Token pos, bool isFunctionNotProc,
-        TypeExpression *returnType,
-        QVector<TypeExpression*> paramTypes,
+        QSharedPointer<TypeExpression> returnType,
+        QVector<QSharedPointer<TypeExpression> > paramTypes,
         QString procName,
         QString symbol,
         bool isPublic);
@@ -153,13 +153,14 @@ struct ConcreteResponseInfo : public PrettyPrintable
     QVector<QSharedPointer<Identifier> > params;
     void prettyPrint(CodeFormatter *f);
 
-    ConcreteResponseInfo(Identifier *_name)
+    ConcreteResponseInfo(QSharedPointer<Identifier> _name)
+        :name(_name)
     {
-        name = QSharedPointer<Identifier>(_name);
     }
-    void add(Identifier *param)
+
+    void add(QSharedPointer<Identifier> param)
     {
-        params.append(QSharedPointer<Identifier>(param));
+        params.append(param);
     }
 };
 
@@ -168,9 +169,18 @@ struct Has : public ClassInternalDecl
     QMap<QString, QSharedPointer<TypeExpression> > _fieldMarshallAs;
     QVector<QSharedPointer<Identifier> > fields;
     void prettyPrint(CodeFormatter *f);
-    void add(Identifier *field)
+    void add(QSharedPointer<Identifier> field)
     {
         fields.append(QSharedPointer<Identifier>(field));
+    }
+    int fieldCount() { return fields.count(); }
+    Identifier *field(int i) { return fields[i].data(); }
+    TypeExpression *marshallingTypeOf(QString field)
+    {
+        if(_fieldMarshallAs.contains(field))
+            return _fieldMarshallAs[field].data();
+        else
+            return NULL;
     }
 };
 
@@ -181,10 +191,12 @@ struct RespondsTo : public ClassInternalDecl
 
     RespondsTo(bool _isFunctions) { isFunctions = _isFunctions;}
     void prettyPrint(CodeFormatter *f);
-    void add(ConcreteResponseInfo *mi)
+    void add(QSharedPointer<ConcreteResponseInfo> mi)
     {
-        methods.append(QSharedPointer<ConcreteResponseInfo>(mi));
+        methods.append(mi);
     }
+    ConcreteResponseInfo *method(int i) { return methods[i].data(); }
+    int methodCount() { return methods.count(); }
 };
 
 class ClassDecl : public Declaration
@@ -200,19 +212,19 @@ public:
     QVector<QSharedPointer<ClassInternalDecl> > _internalDecls; // For pretty printing...etc
 public:
     ClassDecl(Token pos,
-              Identifier *name,
-              QVector<Identifier *> fields,
+              QSharedPointer<Identifier> name,
+              QVector<QSharedPointer<Identifier> > fields,
               QMap<QString,MethodInfo> methodPrototypes,
               QVector<QSharedPointer<ClassInternalDecl> > internalDecls,
-              QMap<QString, TypeExpression *> fieldMarshalAs,
+              QMap<QString, QSharedPointer<TypeExpression> > fieldMarshalAs,
               bool isPublic);
     ClassDecl(Token pos,
-              Identifier *ancestorName,
-              Identifier *name,
-              QVector<Identifier *> fields,
+              QSharedPointer<Identifier> ancestorName,
+              QSharedPointer<Identifier> name,
+              QVector<QSharedPointer<Identifier> > fields,
               QMap<QString,MethodInfo> methodPrototypes,
               QVector<QSharedPointer<ClassInternalDecl> > internalDecls,
-              QMap<QString, TypeExpression *> fieldMarshalAs,
+              QMap<QString, QSharedPointer<TypeExpression> > fieldMarshalAs,
               bool isPublic);
     Identifier *name() { return _name.data();}
     int fieldCount() { return _fields.count();}
@@ -247,13 +259,18 @@ public:
 class MethodDecl : public ProceduralDecl
 {
 public:
-    QScopedPointer<Identifier> _className;
-    QScopedPointer<Identifier> _receiverName;
+    QSharedPointer<Identifier> _className;
+    QSharedPointer<Identifier> _receiverName;
     bool isFunctionNotProcedure;
 public:
-    MethodDecl(Token pos, Token endingToken, Identifier *className, Identifier *receiverName,
-               Identifier *methodName, QVector<Identifier *> formals, BlockStmt *body
-               , bool isFunctionNotProcedure);
+    MethodDecl(Token pos,
+               Token endingToken,
+               QSharedPointer<Identifier> className,
+               QSharedPointer<Identifier> receiverName,
+               QSharedPointer<Identifier> methodName,
+               QVector<QSharedPointer<Identifier> > formals,
+               QSharedPointer<BlockStmt> body,
+               bool isFunctionNotProcedure);
     Identifier *className() { return _className.data();}
     Identifier *receiverName() { return _receiverName.data();}
     QString toString();

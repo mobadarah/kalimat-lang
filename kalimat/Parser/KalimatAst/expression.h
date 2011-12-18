@@ -39,9 +39,12 @@ class BinaryOperation : public Expression
     Q_OBJECT
 public:
     QString _operator;
-    QScopedPointer <Expression> _operand1, _operand2;
+    QSharedPointer<Expression> _operand1, _operand2;
 public:
-    BinaryOperation(Token pos, QString op,Expression *op1, Expression *op2);
+    BinaryOperation(Token pos,
+                    QString op,
+                    QSharedPointer<Expression> op1,
+                    QSharedPointer<Expression> op2);
     Expression *operand1() { return _operand1.data();}
     Expression *operand2() { return _operand2.data();}
     QString toString();
@@ -52,10 +55,10 @@ class IsaOperation : public Expression
 {
     Q_OBJECT
 public:
-    QScopedPointer<Expression> _expression;
-    QScopedPointer<Identifier> _type;
+    QSharedPointer<Expression> _expression;
+    QSharedPointer<Identifier> _type;
 public:
-    IsaOperation(Token pos, Expression *expression, Identifier *type);
+    IsaOperation(Token pos, QSharedPointer<Expression> expression, QSharedPointer<Identifier> type);
     Expression *expression() { return _expression.data(); }
     Identifier *type() { return _type.data(); }
     QString toString();
@@ -66,10 +69,12 @@ class MatchOperation : public Expression
 {
     Q_OBJECT
 public:
-    QScopedPointer<Expression> _expression;
-    QScopedPointer<Pattern> _pattern;
+    QSharedPointer<Expression> _expression;
+    QSharedPointer<Pattern> _pattern;
 public:
-    MatchOperation(Token pos, Expression *expression, Pattern *pattern);
+    MatchOperation(Token pos,
+                   QSharedPointer<Expression> expression,
+                   QSharedPointer<Pattern> pattern);
     ~MatchOperation();
     Expression *expression() { return _expression.data(); }
     Pattern *pattern() { return _pattern.data(); }
@@ -82,9 +87,9 @@ class UnaryOperation : public Expression
     Q_OBJECT
 public:
     QString _operator;
-    QScopedPointer <Expression> _operand;
+    QSharedPointer<Expression> _operand;
 public:
-    UnaryOperation(Token pos, QString operation,Expression *operand);
+    UnaryOperation(Token pos, QString operation,QSharedPointer<Expression> operand);
     Expression *operand() { return _operand.data();}
     QString toString();
     void prettyPrint(CodeFormatter *f);

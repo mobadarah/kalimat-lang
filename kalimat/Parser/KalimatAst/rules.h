@@ -12,7 +12,7 @@ class RuleOption
     QSharedPointer<PegExpr> expression;
     QSharedPointer<Expression> resultExpr;
 public:
-    RuleOption(PegExpr *_expression, Expression *_resultExpr)
+    RuleOption(QSharedPointer<PegExpr> _expression, QSharedPointer<Expression> _resultExpr)
         : expression(_expression), resultExpr(_resultExpr)
     {
 
@@ -24,7 +24,7 @@ struct RuleDecl
 {
     QString ruleName;
     QVector<QSharedPointer<RuleOption> > options;
-    RuleDecl(QString ruleName, QVector<RuleOption *> options);
+    RuleDecl(QString ruleName, QVector<QSharedPointer<RuleOption> > options);
 };
 
 class RulesDecl : public Declaration

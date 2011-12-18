@@ -694,7 +694,10 @@ QString MapPattern::toString()
             .arg(pairs.join(", "));
 }
 
-BinaryOperation::BinaryOperation(Token pos ,QString op, Expression *op1, Expression *op2)
+BinaryOperation::BinaryOperation(Token pos,
+                                 QString op,
+                                 QSharedPointer<Expression> op1,
+                                 QSharedPointer<Expression> op2)
     : Expression(pos),
     _operator(op),
     _operand1(op1),
@@ -711,7 +714,7 @@ QString BinaryOperation::toString()
             .arg(operand2()->toString());
 }
 
-IsaOperation::IsaOperation(Token pos, Expression *expression, Identifier *type)
+IsaOperation::IsaOperation(Token pos, QSharedPointer<Expression> expression, QSharedPointer<Identifier> type)
     : Expression(pos),
       _expression(expression),
       _type(type)
@@ -725,8 +728,8 @@ QString IsaOperation::toString()
 }
 
 MatchOperation::MatchOperation(Token pos,
-                               Expression *expression,
-                               Pattern *pattern)
+                               QSharedPointer<Expression> expression,
+                               QSharedPointer<Pattern> pattern)
     : Expression(pos),
       _expression(expression),
       _pattern(pattern)
@@ -739,7 +742,7 @@ QString MatchOperation::toString()
     return _ws(L"%1 ~ %2").arg(expression()->toString()).arg(pattern()->toString());
 }
 
-UnaryOperation::UnaryOperation(Token pos ,QString __operator, Expression *operand)
+UnaryOperation::UnaryOperation(Token pos ,QString __operator, QSharedPointer<Expression> operand)
     : Expression(pos),
     _operator(__operator),
     _operand(operand)
@@ -1045,18 +1048,18 @@ QString FFILibraryDecl::toString()
 
 FFIProceduralDecl::FFIProceduralDecl(Token pos,
                                      bool isFunctionNotProc,
-                                     TypeExpression *theReturnType,
-                                     QVector<TypeExpression *> paramTypes,
+                                     QSharedPointer<TypeExpression> theReturnType,
+                                     QVector<QSharedPointer<TypeExpression> > paramTypes,
                                      QString procName,
                                      QString symbol,
                                      bool isPublic)
-    : Declaration(pos, isPublic), _returnType(theReturnType)
+    : Declaration(pos, isPublic),
+      isFunctionNotProc(isFunctionNotProc),
+      procName(procName),
+      symbol(symbol),
+      _returnType(theReturnType),
+      _paramTypes(paramTypes)
 {
-    this->isFunctionNotProc = isFunctionNotProc;
-    this->procName = procName;
-    this->symbol = symbol;
-    for(int i=0; i<paramTypes.count(); i++)
-        _paramTypes.append(QSharedPointer<TypeExpression>(paramTypes[i]));
 }
 
 QString FFIProceduralDecl::toString()
@@ -1095,50 +1098,40 @@ QString FFIStructDecl::toString()
 }
 
 ClassDecl::ClassDecl(Token pos,
-                     Identifier *name,
-                     QVector<Identifier*>fields,
+                     QSharedPointer<Identifier> name,
+                     QVector<QSharedPointer<Identifier >>fields,
                      QMap<QString, MethodInfo> methodPrototypes,
                      QVector<QSharedPointer<ClassInternalDecl> > internalDecls,
-                     QMap<QString, TypeExpression *> fieldMarshalAs,
+                     QMap<QString, QSharedPointer<TypeExpression> > fieldMarshalAs,
                      bool isPublic)
         :Declaration(pos, isPublic),
         _name(name),
+        _fields(fields),
+        _fieldMarshallAs(fieldMarshalAs),
         _methodPrototypes(methodPrototypes),
         _internalDecls(internalDecls),
         _ancestorName(NULL),
         _ancestorClass(NULL)
 {
-    for(int i=0; i<fields.count(); i++)
-    {
-        _fields.append(QSharedPointer<Identifier>(fields[i]));
-    }
-    for(QMap<QString, TypeExpression *>::const_iterator i= fieldMarshalAs.begin(); i != fieldMarshalAs.end(); ++i)
-    {
-        _fieldMarshallAs[i.key()] = QSharedPointer<TypeExpression>(i.value());
-    }
 }
 
 ClassDecl::ClassDecl(Token pos,
-                     Identifier *ancestorName,
-                     Identifier *name,
-                     QVector<Identifier*>fields,
+                     QSharedPointer<Identifier> ancestorName,
+                     QSharedPointer<Identifier> name,
+                     QVector<QSharedPointer<Identifier> >fields,
                      QMap<QString, MethodInfo> methodPrototypes,
                      QVector<QSharedPointer<ClassInternalDecl> > internalDecls,
-                     QMap<QString, TypeExpression *> fieldMarshalAs,
+                     QMap<QString, QSharedPointer<TypeExpression> > fieldMarshalAs,
                      bool isPublic)
         :Declaration(pos, isPublic),
         _name(name),
+          _fields(fields),
+          _fieldMarshallAs(fieldMarshalAs),
         _methodPrototypes(methodPrototypes),
         _internalDecls(internalDecls),
         _ancestorName(ancestorName),
         _ancestorClass(NULL)
 {
-    for(int i=0; i<fields.count(); i++)
-        _fields.append(QSharedPointer<Identifier>(fields[i]));
-    for(QMap<QString, TypeExpression *>::const_iterator i= fieldMarshalAs.begin(); i != fieldMarshalAs.end(); ++i)
-    {
-        _fieldMarshallAs[i.key()] = QSharedPointer<TypeExpression>(i.value());
-    }
 }
 
 QString ClassDecl::toString()
@@ -1213,15 +1206,21 @@ QString GlobalDecl::toString()
     return _ws(L"مشترك(%1)").arg(varName);
 }
 
-MethodDecl::MethodDecl(Token pos, Token endingToken, Identifier *className, Identifier *receiverName, Identifier *methodName
-                       , QVector<Identifier *>formals, BlockStmt *body, bool isFunctionNotProcedure)
+MethodDecl::MethodDecl(Token pos,
+                       Token endingToken,
+                       QSharedPointer<Identifier> className,
+                       QSharedPointer<Identifier> receiverName,
+                       QSharedPointer<Identifier> methodName,
+                       QVector<QSharedPointer<Identifier> > formals,
+                       QSharedPointer<BlockStmt> body,
+                       bool isFunctionNotProcedure)
 
        :ProceduralDecl(pos, endingToken, methodName, formals, body, true),
        _className(className),
-       _receiverName(receiverName)
+       _receiverName(receiverName),
+       isFunctionNotProcedure(isFunctionNotProcedure)
 {
-    this->isFunctionNotProcedure = isFunctionNotProcedure;
-    this->_formals.prepend(QSharedPointer<Identifier>(receiverName));
+    this->_formals.prepend(receiverName);
 }
 
 QString MethodDecl::toString()
