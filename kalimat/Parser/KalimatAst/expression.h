@@ -192,10 +192,12 @@ class Invokation : public IInvokation
 {
     Q_OBJECT
 public:
-    QScopedPointer<Expression> _functor;
+    QSharedPointer<Expression> _functor;
     QVector<QSharedPointer<Expression > > _arguments;
 public:
-    Invokation(Token pos, Expression *functor, QVector<Expression *> arguments);
+    Invokation(Token pos,
+               QSharedPointer<Expression> functor,
+               QVector<QSharedPointer<Expression> > arguments);
     Expression *functor() { return _functor.data();}
     int argumentCount() {return _arguments.count();}
     Expression *argument(int i) { return _arguments[i].data(); }
@@ -207,11 +209,14 @@ class MethodInvokation : public IInvokation
 {
     Q_OBJECT
 public:
-    QScopedPointer<Expression> _receiver;
-    QScopedPointer<Identifier> _methodSelector;
+    QSharedPointer<Expression> _receiver;
+    QSharedPointer<Identifier> _methodSelector;
     QVector<QSharedPointer<Expression > > _arguments;
 public:
-    MethodInvokation(Token pos, Expression *receiver, Identifier *methodSelector, QVector<Expression *> arguments);
+    MethodInvokation(Token pos,
+                     QSharedPointer<Expression> receiver,
+                     QSharedPointer<Identifier> methodSelector,
+                     QVector<QSharedPointer<Expression> > arguments);
     Expression *receiver() {return _receiver.data();}
     Identifier *methodSelector() { return _methodSelector.data();}
     int argumentCount() { return _arguments.count();}
@@ -238,10 +243,10 @@ class ArrayIndex : public AssignableExpression
 {
     Q_OBJECT
 public:
-    QScopedPointer<Expression> _array;
-    QScopedPointer<Expression> _index;
+    QSharedPointer<Expression> _array;
+    QSharedPointer<Expression> _index;
 public:
-    ArrayIndex(Token pos, Expression *array, Expression *index);
+    ArrayIndex(Token pos, QSharedPointer<Expression> array, QSharedPointer<Expression> index);
     Expression *array() {return _array.data();}
     Expression *index() {return _index.data();}
     QString toString();
@@ -252,10 +257,12 @@ class MultiDimensionalArrayIndex : public AssignableExpression
 {
     Q_OBJECT
 public:
-    QScopedPointer<Expression> _array;
+    QSharedPointer<Expression> _array;
     QVector<QSharedPointer<Expression> > _indexes;
 public:
-    MultiDimensionalArrayIndex(Token pos, Expression *array, QVector<Expression *> indexes);
+    MultiDimensionalArrayIndex(Token pos,
+                               QSharedPointer<Expression> array,
+                               QVector<QSharedPointer<Expression> > indexes);
     Expression *array() {return _array.data();}
     int indexCount() { return _indexes.count();}
     Expression *index(int i) {return _indexes[i].data();}

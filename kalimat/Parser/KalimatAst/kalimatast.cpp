@@ -623,13 +623,10 @@ QString VarPattern::toString()
     return id()->toString();
 }
 
-ArrayPattern::ArrayPattern(Token pos, QVector<Pattern *> elements)
-    : Pattern(pos)
+ArrayPattern::ArrayPattern(Token pos, QVector<QSharedPointer<Pattern> > elements)
+    : Pattern(pos),
+      _elements(elements)
 {
-    for(QVector<Pattern *>::const_iterator i=elements.begin(); i != elements.end(); ++i)
-    {
-        _elements.append(QSharedPointer<Pattern>(*i));
-    }
 }
 
 QString ArrayPattern::toString()
@@ -641,20 +638,14 @@ QString ArrayPattern::toString()
 }
 
 ObjPattern::ObjPattern(Token pos,
-                       Identifier *classId,
-                       QVector<Identifier *> fieldNames,
-                       QVector<Pattern *> fieldPatterns)
-    : Pattern(pos), _classId(classId)
+                       QSharedPointer<Identifier> classId,
+                       QVector<QSharedPointer<Identifier> > fieldNames,
+                       QVector<QSharedPointer<Pattern> > fieldPatterns)
+    : Pattern(pos),
+      _classId(classId),
+      _fieldNames(fieldNames),
+      _fieldPatterns(fieldPatterns)
 {
-    for(QVector<Identifier *>::const_iterator i=fieldNames.begin(); i != fieldNames.end(); ++i)
-    {
-        _fieldNames.append(QSharedPointer<Identifier>(*i));
-    }
-
-    for(QVector<Pattern *>::const_iterator i=fieldPatterns.begin(); i != fieldPatterns.end(); ++i)
-    {
-        _fieldPatterns.append(QSharedPointer<Pattern>(*i));
-    }
 }
 
 QString ObjPattern::toString()
@@ -668,19 +659,12 @@ QString ObjPattern::toString()
 }
 
 MapPattern::MapPattern(Token pos,
-                       QVector<Expression *> keys,
-                       QVector<Pattern *> values)
-    : Pattern(pos)
+                       QVector<QSharedPointer<Expression> > keys,
+                       QVector<QSharedPointer<Pattern> > values)
+    : Pattern(pos),
+      _keys(keys),
+      _values(values)
 {
-    for(QVector<Expression*>::const_iterator i=keys.begin(); i != keys.end(); ++i)
-    {
-        _keys.append(QSharedPointer<Expression>(*i));
-    }
-
-    for(QVector<Pattern *>::const_iterator i=values.begin(); i != values.end(); ++i)
-    {
-        _values.append(QSharedPointer<Pattern>(*i));
-    }
 }
 
 QString MapPattern::toString()
@@ -876,12 +860,13 @@ IInvokation::IInvokation(Token pos)
 
 }
 
-Invokation::Invokation(Token pos ,Expression *functor, QVector<Expression *>arguments)
+Invokation::Invokation(Token pos,
+                       QSharedPointer<Expression> functor,
+                       QVector<QSharedPointer<Expression> >arguments)
     : IInvokation(pos),
-    _functor(functor)
+    _functor(functor),
+    _arguments(arguments)
 {
-    for(int i=0; i<arguments.count(); i++)
-        _arguments.append(QSharedPointer<Expression>(arguments[i]));
 }
 
 QString Invokation::toString()
@@ -889,13 +874,15 @@ QString Invokation::toString()
     return _ws(L"نداء(%1، %2)").arg(functor()->toString()).arg(vector_toString(_arguments));
 }
 
-MethodInvokation::MethodInvokation(Token pos ,Expression *receiver, Identifier *methodSelector, QVector<Expression *>arguments)
+MethodInvokation::MethodInvokation(Token pos,
+                                   QSharedPointer<Expression> receiver,
+                                   QSharedPointer<Identifier> methodSelector,
+                                   QVector<QSharedPointer<Expression> >arguments)
     :IInvokation(pos),
     _receiver(receiver),
-    _methodSelector(methodSelector)
+    _methodSelector(methodSelector),
+    _arguments(arguments)
 {
-    for(int i=0; i<arguments.count(); i++)
-        _arguments.append(QSharedPointer<Expression>(arguments[i]));
 }
 
 QString MethodInvokation::toString()
@@ -918,7 +905,9 @@ QString Idafa::toString()
     return _ws(L"اضافة(%1، %2").arg(modaf()->toString(), modaf_elaih()->toString());
 }
 
-ArrayIndex::ArrayIndex(Token pos ,Expression *array, Expression *index)
+ArrayIndex::ArrayIndex(Token pos,
+                       QSharedPointer<Expression> array,
+                       QSharedPointer<Expression> index)
     :AssignableExpression(pos),
     _array(array),
     _index(index)
@@ -930,12 +919,13 @@ QString ArrayIndex::toString()
     return QString("%1[%2]").arg(array()->toString(), index()->toString());
 }
 
-MultiDimensionalArrayIndex::MultiDimensionalArrayIndex(Token pos, Expression *array, QVector<Expression *> indexes)
+MultiDimensionalArrayIndex::MultiDimensionalArrayIndex(Token pos,
+                                                       QSharedPointer<Expression> array,
+                                                       QVector<QSharedPointer<Expression> > indexes)
     :AssignableExpression(pos),
-    _array(array)
+    _array(array),
+    _indexes(indexes)
 {
-    for(int i=0; i<indexes.count(); i++)
-        _indexes.append(QSharedPointer<Expression>(indexes[i]));
 }
 
 QString MultiDimensionalArrayIndex::toString()

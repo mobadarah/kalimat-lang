@@ -1644,30 +1644,30 @@ QSharedPointer<Pattern> KalimatParser::pattern()
         return mapPattern();
 }
 
-Pattern *KalimatParser::simpleLiteralPattern()
+QSharedPointer<Pattern> KalimatParser::simpleLiteralPattern()
 {
-    SimpleLiteral *sl = simpleLiteral();
-    return new SimpleLiteralPattern(sl->getPos(), sl);
+    QSharedPointer<SimpleLiteral> sl = simpleLiteral();
+    return QSharedPointer<Pattern>(new SimpleLiteralPattern(sl->getPos(), sl));
 }
 
-Pattern *KalimatParser::assignedVarPattern()
+QSharedPointer<Pattern> KalimatParser::assignedVarPattern()
 {
     match(QUESTION);
-    Expression *expr = expression();
+    QSharedPointer<Expression> expr = expression();
 
-    AssignableExpression *id = dynamic_cast<AssignableExpression *>(expr);
+    QSharedPointer<AssignableExpression> id = expr.dynamicCast<AssignableExpression>();
     if(id == NULL)
     {
         throw ParserException(getPos(), "After ? must be an assignable expression");
     }
-    return new AssignedVarPattern(id->getPos(), id);
+    return QSharedPointer<Pattern>(new AssignedVarPattern(id->getPos(), id));
 }
 
-Pattern *KalimatParser::varOrObjPattern()
+QSharedPointer<Pattern> KalimatParser::varOrObjPattern()
 {
     bool mustBeObj = false;
-    QVector<Identifier *> fnames;
-    QVector<Pattern *> fpatterns;
+    QVector<QSharedPointer<Identifier> > fnames;
+    QVector<QSharedPointer<Pattern> > fpatterns;
 
     if(LA(ANYOF))
     {
@@ -1675,7 +1675,7 @@ Pattern *KalimatParser::varOrObjPattern()
         mustBeObj = true;
     }
 
-    Identifier *id = identifier();
+    QSharedPointer<Identifier> id = identifier();
     if(LA(HAS))
     {
         mustBeObj = true;
@@ -1695,18 +1695,18 @@ Pattern *KalimatParser::varOrObjPattern()
     }
     if(mustBeObj)
     {
-        return new ObjPattern(id->getPos(), id, fnames, fpatterns);
+        return QSharedPointer<Pattern>(new ObjPattern(id->getPos(), id, fnames, fpatterns));
     }
     else
     {
-        return new VarPattern(id->getPos(), id);
+        return QSharedPointer<Pattern>(new VarPattern(id->getPos(), id));
     }
 }
 
-Pattern *KalimatParser::arrayPattern()
+QSharedPointer<Pattern> KalimatParser::arrayPattern()
 {
     bool fixedLen = true;
-    QVector<Pattern *> patterns;
+    QVector<QSharedPointer<Pattern> > patterns;
     Token pos = lookAhead;
     match(LBRACKET);
     if(LA_first_pattern())
@@ -1729,13 +1729,13 @@ Pattern *KalimatParser::arrayPattern()
         }
     }
     match(RBRACKET);
-    return new ArrayPattern(pos, patterns);
+    return QSharedPointer<Pattern>(new ArrayPattern(pos, patterns));
 }
 
-Pattern *KalimatParser::mapPattern()
+QSharedPointer<Pattern> KalimatParser::mapPattern()
 {
-    QVector<Expression *> keys;
-    QVector<Pattern *> patterns;
+    QVector<QSharedPointer<Expression> > keys;
+    QVector<QSharedPointer<Pattern> > patterns;
     Token pos = lookAhead;
     match(LBRACE);
     if(LA_first_expression())
@@ -1753,39 +1753,39 @@ Pattern *KalimatParser::mapPattern()
         }
     }
     match(RBRACE);
-    return new MapPattern(pos, keys, patterns);
+    return QSharedPointer<Pattern>(new MapPattern(pos, keys, patterns));
 }
 
-Expression *KalimatParser::arithmeticExpression()
+QSharedPointer<Expression> KalimatParser::arithmeticExpression()
 {
-    Expression *t = multiplicativeExpression();
+    QSharedPointer<Expression> t = multiplicativeExpression();
 
     while(LA(ADD_OP) || LA(SUB_OP))
     {
         Token tok  = lookAhead;
         QString operation = getOperation(lookAhead);
         match(lookAhead.Type);
-        Expression * t2 = multiplicativeExpression();
-        t = new BinaryOperation(tok, operation, t, t2);
+        QSharedPointer<Expression> t2 = multiplicativeExpression();
+        t = QSharedPointer<Expression>(new BinaryOperation(tok, operation, t, t2));
     }
     return t;
 }
 
-Expression *KalimatParser::multiplicativeExpression()
+QSharedPointer<Expression> KalimatParser::multiplicativeExpression()
 {
-    Expression *t = positiveOrNegativeExpression();
+    QSharedPointer<Expression> t = positiveOrNegativeExpression();
     while(LA(MUL_OP) || LA(DIV_OP))
     {
         Token tok  = lookAhead;
         QString operation = getOperation(lookAhead);
         match(lookAhead.Type);
-        Expression * t2 = positiveOrNegativeExpression();
-        t = new BinaryOperation(tok, operation, t, t2);
+        QSharedPointer<Expression> t2 = positiveOrNegativeExpression();
+        t = QSharedPointer<Expression>(new BinaryOperation(tok, operation, t, t2));
     }
     return t;
 }
 
-Expression *KalimatParser::positiveOrNegativeExpression()
+QSharedPointer<Expression> KalimatParser::positiveOrNegativeExpression()
 {
     bool pos = false;
     bool neg = false;
@@ -1801,24 +1801,24 @@ Expression *KalimatParser::positiveOrNegativeExpression()
         neg = true;
     }
 
-    Expression *t = primaryExpression();
+    QSharedPointer<Expression> t = primaryExpression();
     if(pos)
-        t = new UnaryOperation(tok, "pos", t);
+        t = QSharedPointer<Expression>(new UnaryOperation(tok, "pos", t));
     else if(neg)
-        t = new UnaryOperation(tok, "neg", t);
+        t = QSharedPointer<Expression>(new UnaryOperation(tok, "neg", t));
 
     return t;
 }
 
-Expression *KalimatParser::primaryExpression()
+QSharedPointer<Expression> KalimatParser::primaryExpression()
 {
-    Expression *ret = primaryExpressionNonInvokation();
+    QSharedPointer<Expression> ret = primaryExpressionNonInvokation();
     Token tok;
     while(LA(LPAREN) || LA(COLON) || LA(LBRACKET))
     {
         if(LA(LPAREN))
         {
-            QVector<Expression *> args;
+            QVector<QSharedPointer<Expression> > args;
             tok = lookAhead;
             match(LPAREN);
             if(!LA(RPAREN))
@@ -1831,7 +1831,7 @@ Expression *KalimatParser::primaryExpression()
                 }
             }
             match(RPAREN);
-            ret = new Invokation(tok, ret, args);
+            ret = QSharedPointer<Expression>(new Invokation(tok, ret, args));
         }
         if(LA(COLON))
         {
@@ -1840,8 +1840,8 @@ Expression *KalimatParser::primaryExpression()
             {
                 match(COLON);
                 tok = lookAhead;
-                Identifier *methodName = identifier();
-                QVector<Expression *> args;
+                QSharedPointer<Identifier> methodName = identifier();
+                QVector<QSharedPointer<Expression> > args;
                 match(LPAREN);
                 if(!LA(RPAREN))
                 {
@@ -1853,7 +1853,7 @@ Expression *KalimatParser::primaryExpression()
                     }
                 }
                 match(RPAREN);
-                ret = new MethodInvokation(tok, ret, methodName, args);
+                ret = QSharedPointer<Expression>(new MethodInvokation(tok, ret, methodName, args));
             }
             catch(ParserException ex)
             {
@@ -1866,11 +1866,11 @@ Expression *KalimatParser::primaryExpression()
             bool multiDim = false;
             tok = lookAhead;
             match(LBRACKET);
-            Expression *index = expression();
+            QSharedPointer<Expression> index = expression();
             if(LA(COMMA))
             {
                 multiDim = true;
-                QVector<Expression *> indexes;
+                QVector<QSharedPointer<Expression> > indexes;
                 indexes.append(index);
 
                 match(COMMA);
@@ -1881,13 +1881,13 @@ Expression *KalimatParser::primaryExpression()
                     match(COMMA);
                     indexes.append(expression());
                 }
-                ret = new MultiDimensionalArrayIndex(tok, ret, indexes);
+                ret = QSharedPointer<Expression>(new MultiDimensionalArrayIndex(tok, ret, indexes));
 
             }
             match(RBRACKET);
             if(!multiDim)
             {
-                ret = new ArrayIndex(tok, ret, index);
+                ret = QSharedPointer<Exprrssion>(new ArrayIndex(tok, ret, index));
             }
         }
     }
@@ -1914,32 +1914,32 @@ bool KalimatParser::LA_first_primary_expression()
                 //||  LA(FIELD);
 }
 
-SimpleLiteral *KalimatParser::simpleLiteral()
+QSharedPointer<SimpleLiteral> KalimatParser::simpleLiteral()
 {
-    SimpleLiteral *ret = NULL;
+    QSharedPointer<SimpleLiteral> ret;
     if(LA(NUM_LITERAL))
     {
-        ret = new NumLiteral(lookAhead, lookAhead.Lexeme);
+        ret = QSharedPointer<SimpleLiteral>(new NumLiteral(lookAhead, lookAhead.Lexeme));
         match(NUM_LITERAL); // will throw if wrong lookAhead
     }
     else if(LA(STR_LITERAL))
     {
-        ret = new StrLiteral(lookAhead, prepareStringLiteral(lookAhead.Lexeme));
+        ret = QSharedPointer<SimpleLiteral>(new StrLiteral(lookAhead, prepareStringLiteral(lookAhead.Lexeme)));
         match(STR_LITERAL); // will throw if wrong lookAhead
     }
     else if(LA(NOTHING))
     {
-        ret = new NullLiteral(lookAhead);
+        ret = QSharedPointer<SimpleLiteral>(new NullLiteral(lookAhead));
         match(NOTHING);
     }
     else if(LA(C_TRUE))
     {
-        ret = new BoolLiteral(lookAhead, true);
+        ret = QSharedPointer<SimpleLiteral>(new BoolLiteral(lookAhead, true));
         match(lookAhead.Type);
     }
     else if(LA(C_FALSE))
     {
-        ret = new BoolLiteral(lookAhead, false);
+        ret = QSharedPointer<SimpleLiteral>(new BoolLiteral(lookAhead, false));
         match(lookAhead.Type);
     }
     else
@@ -1949,7 +1949,7 @@ SimpleLiteral *KalimatParser::simpleLiteral()
     return ret;
 }
 
-Expression *KalimatParser::primaryExpressionNonInvokation()
+QSharedPointer<Expression> KalimatParser::primaryExpressionNonInvokation()
 {
     Expression *ret = NULL;
     if(LA_first_simple_literal())

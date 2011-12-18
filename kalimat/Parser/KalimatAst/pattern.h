@@ -1,9 +1,11 @@
 #ifndef PATTERN_H
 #define PATTERN_H
 
-class Pattern : public AST
-{
+#include "kalimatast.h"
 
+class Pattern : public KalimatAst
+{
+    Q_OBJECT
     ASTImpl _astImpl;
 public:
     Pattern(Token pos);
@@ -12,10 +14,10 @@ public:
 
 class SimpleLiteralPattern : public Pattern
 {
-
-    QScopedPointer<SimpleLiteral> _value;
+    Q_OBJECT
+    QSharedPointer<SimpleLiteral> _value;
 public:
-    SimpleLiteralPattern(Token pos, SimpleLiteral *value)
+    SimpleLiteralPattern(Token pos, QSharedPointer<SimpleLiteral> value)
         : Pattern(pos),_value(value) {}
     SimpleLiteral *value() { return _value.data(); }
     QString toString() { return value()->toString(); }
@@ -27,10 +29,10 @@ public:
 
 class VarPattern : public Pattern
 {
-
-    QScopedPointer<Identifier> _id;
+    Q_OBJECT
+    QSharedPointer<Identifier> _id;
 public:
-    VarPattern(Token pos, Identifier *id) : Pattern(pos),_id(id) {}
+    VarPattern(Token pos, QSharedPointer<Identifier> id) : Pattern(pos),_id(id) {}
     Identifier *id() { return _id.data(); }
     QString toString();
     void prettyPrint(CodeFormatter *formatter);
@@ -38,10 +40,10 @@ public:
 
 class AssignedVarPattern : public Pattern
 {
-
-    QScopedPointer<AssignableExpression> _lv;
+    Q_OBJECT
+    QSharedPointer<AssignableExpression> _lv;
 public:
-    AssignedVarPattern(Token pos, AssignableExpression *lv)
+    AssignedVarPattern(Token pos, QSharedPointer<AssignableExpression> lv)
         : Pattern(pos),_lv(lv)
     {
     }
@@ -56,12 +58,12 @@ public:
 
 class ArrayPattern : public Pattern
 {
-
+    Q_OBJECT
     QVector<QSharedPointer<Pattern> > _elements;
 public:
     bool fixedLength;
 public:
-    ArrayPattern(Token pos, QVector<Pattern *> elements);
+    ArrayPattern(Token pos, QVector<QSharedPointer<Pattern> > elements);
     int elementCount() { return _elements.count(); }
     Pattern *element(int i) { return _elements[i].data(); }
     QString toString();
@@ -70,13 +72,14 @@ public:
 
 class ObjPattern : public Pattern
 {
-    QScopedPointer<Identifier> _classId;
+    QSharedPointer<Identifier> _classId;
     QVector<QSharedPointer<Identifier> > _fieldNames;
     QVector<QSharedPointer<Pattern> > _fieldPatterns;
 public:
-    ObjPattern(Token pos, Identifier *classId,
-               QVector<Identifier *> fieldNames,
-               QVector<Pattern *> fieldPatterns);
+    ObjPattern(Token pos,
+               QSharedPointer<Identifier> classId,
+               QVector<QSharedPointer<Identifier> > fieldNames,
+               QVector<QSharedPointer<Pattern> > fieldPatterns);
     Identifier *classId() { return _classId.data(); }
     int fieldCount() { return _fieldNames.count(); }
     Identifier *fieldName(int i) { return _fieldNames[i].data(); }
@@ -90,7 +93,7 @@ class MapPattern : public Pattern
     QVector<QSharedPointer<Expression> > _keys;
     QVector<QSharedPointer<Pattern> > _values;
 public:
-    MapPattern(Token pos, QVector<Expression *> keys, QVector<Pattern *> values);
+    MapPattern(Token pos, QVector<QSharedPointer<Expression> > keys, QVector<QSharedPointer<Pattern> > values);
     int pairCount() { return _keys.count(); }
     Expression *key(int i) { return _keys[i].data(); }
     Pattern *value(int i) { return _values[i].data(); }

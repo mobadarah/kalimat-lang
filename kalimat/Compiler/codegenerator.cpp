@@ -1716,7 +1716,7 @@ void CodeGenerator::generateArrayPattern(ArrayPattern *pattern,
     // about defineInCurrentScope() in generateMatchOperation()
     defineInCurrentScope(arrVar);
     // todo: this leaks
-    Identifier *arrVarExpr = new Identifier(pattern->getPos(), arrVar);
+    QSharedPointer<Identifier> arrVarExpr(new Identifier(pattern->getPos(), arrVar));
     QString exit = _asm.uniqueLabel();
     QString dummy = _asm.uniqueVariable();
     QString ok, no, goon;
@@ -1765,8 +1765,8 @@ void CodeGenerator::generateArrayPattern(ArrayPattern *pattern,
         gen(pattern, QString("popl ") + dummy);
 
         // todo: this leaks also
-        NumLiteral *idx = new NumLiteral(pattern->element(i)->getPos(), QString("%1").arg(i+1));
-        Expression *expr = new ArrayIndex(pattern->element(i)->getPos(), arrVarExpr, idx);
+        QSharedPointer<NumLiteral> idx(new NumLiteral(pattern->element(i)->getPos(), QString("%1").arg(i+1)));
+        QSharedPointer<Expression> expr(new ArrayIndex(pattern->element(i)->getPos(), arrVarExpr, idx));
         generatePattern(pattern->element(i), expr, bindings);
 
         ok = _asm.uniqueLabel();
