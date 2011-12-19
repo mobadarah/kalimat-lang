@@ -21,13 +21,13 @@ public:
     void init(QString s, Lexer *lxr, void *tag);
     void init(QString s, Lexer *lxr, void *tag, QString fileName);
 
-    QSharedPointer<AST> parseRoot();
-    QSharedPointer<AST> module();
+    shared_ptr<AST> parseRoot();
+    shared_ptr<AST> module();
 
     QMap<int, Token> closerFor;
     QMap<int, Token> openerFor;
 private:
-    QStack<QSharedPointer<ProceduralDecl> > varContext;
+    QStack<shared_ptr<ProceduralDecl> > varContext;
 private:
 
     bool LA_first_statement();
@@ -40,91 +40,91 @@ private:
     bool LA_first_assignment_or_invokation();
     bool LA_first_typeExpression();
 
-    QSharedPointer<AST> program();
+    shared_ptr<AST> program();
 
-    QSharedPointer<Statement> statement();
-    QSharedPointer<Declaration> declaration();
+    shared_ptr<Statement> statement();
+    shared_ptr<Declaration> declaration();
 
-    QSharedPointer<Statement> assignmentStmt_or_Invokation(ParserState);
-    QSharedPointer<Statement> ifStmt();
-    QSharedPointer<Statement> forEachStmt();
-    QSharedPointer<Statement> whileStmt();
-    QSharedPointer<Statement> returnStmt();
-    QSharedPointer<Statement> delegateStmt();
-    QSharedPointer<Statement> launchStmt();
-    QSharedPointer<Statement> labelStmt();
-    QSharedPointer<Statement> gotoStmt();
+    shared_ptr<Statement> assignmentStmt_or_Invokation(ParserState);
+    shared_ptr<Statement> ifStmt();
+    shared_ptr<Statement> forEachStmt();
+    shared_ptr<Statement> whileStmt();
+    shared_ptr<Statement> returnStmt();
+    shared_ptr<Statement> delegateStmt();
+    shared_ptr<Statement> launchStmt();
+    shared_ptr<Statement> labelStmt();
+    shared_ptr<Statement> gotoStmt();
 
-    QSharedPointer<Statement> ioStmt();
-    QSharedPointer<Statement> grfxStatement();
+    shared_ptr<Statement> ioStmt();
+    shared_ptr<Statement> grfxStatement();
 
-    QSharedPointer<Statement> drawPixelStmt();
-    QSharedPointer<Statement> drawLineStmt();
-    QSharedPointer<Statement> drawRectStmt();
-    QSharedPointer<Statement> drawCircleStmt();
-    QSharedPointer<Statement> drawSpriteStmt();
+    shared_ptr<Statement> drawPixelStmt();
+    shared_ptr<Statement> drawLineStmt();
+    shared_ptr<Statement> drawRectStmt();
+    shared_ptr<Statement> drawCircleStmt();
+    shared_ptr<Statement> drawSpriteStmt();
 
-    QSharedPointer<Statement> zoomStmt();
-    QSharedPointer<Statement> eventHandlerStmt();
+    shared_ptr<Statement> zoomStmt();
+    shared_ptr<Statement> eventHandlerStmt();
 
-    QSharedPointer<SendStmt> sendStmt();
-    QSharedPointer<ReceiveStmt> receiveStmt();
-    QSharedPointer<Statement> selectStmt();
+    shared_ptr<SendStmt> sendStmt();
+    shared_ptr<ReceiveStmt> receiveStmt();
+    shared_ptr<Statement> selectStmt();
 
-    QVector<QSharedPointer<Identifier> > formalParamList();
-    QSharedPointer<Declaration> procedureDecl();
-    QSharedPointer<Declaration> functionDecl();
-    QSharedPointer<Declaration> classDecl();
-    QSharedPointer<Declaration> globalDecl();
-    QSharedPointer<Declaration> methodDecl();
-    QSharedPointer<Declaration> ffiLibraryDecl();
-    QSharedPointer<Declaration> rulesDecl();
-    QSharedPointer<RuleDecl> ruleDecl();
-    QSharedPointer<PegExpr> pegExpr();
+    QVector<shared_ptr<Identifier> > formalParamList();
+    shared_ptr<Declaration> procedureDecl();
+    shared_ptr<Declaration> functionDecl();
+    shared_ptr<Declaration> classDecl();
+    shared_ptr<Declaration> globalDecl();
+    shared_ptr<Declaration> methodDecl();
+    shared_ptr<Declaration> ffiLibraryDecl();
+    shared_ptr<Declaration> rulesDecl();
+    shared_ptr<RuleDecl> ruleDecl();
+    shared_ptr<PegExpr> pegExpr();
 
-    QSharedPointer<FFIProceduralDecl> ffiFunctionDecl();
-    QSharedPointer<FFIProceduralDecl> ffiProcDecl();
+    shared_ptr<FFIProceduralDecl> ffiFunctionDecl();
+    shared_ptr<FFIProceduralDecl> ffiProcDecl();
 
-    QSharedPointer<BlockStmt> block();
+    shared_ptr<BlockStmt> block();
 
     bool LA_first_expression();
-    QSharedPointer<Expression> expression();
+    shared_ptr<Expression> expression();
 
-    QSharedPointer<Expression> andOrExpression();
-    QSharedPointer<Expression> notExpression();
-    QSharedPointer<Expression> comparisonExpression();
+    shared_ptr<Expression> andOrExpression();
+    shared_ptr<Expression> notExpression();
+    shared_ptr<Expression> comparisonExpression();
 
     bool LA_first_pattern();
-    QSharedPointer<Pattern> pattern();
-    QSharedPointer<Pattern> simpleLiteralPattern();
-    QSharedPointer<Pattern> varOrObjPattern();
-    QSharedPointer<Pattern> assignedVarPattern();
-    QSharedPointer<Pattern> arrayPattern();
-    QSharedPointer<Pattern> mapPattern();
+    shared_ptr<Pattern> pattern();
+    shared_ptr<Pattern> simpleLiteralPattern();
+    shared_ptr<Pattern> varOrObjPattern();
+    shared_ptr<Pattern> assignedVarPattern();
+    shared_ptr<Pattern> arrayPattern();
+    shared_ptr<Pattern> mapPattern();
 
-    QSharedPointer<Expression> arithmeticExpression();
-    QSharedPointer<Expression> multiplicativeExpression();
-    QSharedPointer<Expression> positiveOrNegativeExpression();
-    QSharedPointer<Expression> primaryExpression();
-    QSharedPointer<Expression> primaryExpressionNonInvokation();
-    QSharedPointer<SimpleLiteral> simpleLiteral();
-    QSharedPointer<Identifier> identifier();
+    shared_ptr<Expression> arithmeticExpression();
+    shared_ptr<Expression> multiplicativeExpression();
+    shared_ptr<Expression> positiveOrNegativeExpression();
+    shared_ptr<Expression> primaryExpression();
+    shared_ptr<Expression> primaryExpressionNonInvokation();
+    shared_ptr<SimpleLiteral> simpleLiteral();
+    shared_ptr<Identifier> identifier();
 
-    QSharedPointer<TypeExpression> typeExpression();
+    shared_ptr<TypeExpression> typeExpression();
 
-    QVector<QSharedPointer<Expression> > comma_separated_expressions();
-    QSharedPointer<QVector<Expression> > comma_separated_pairs();
-    QVector<QSharedPointer<StrLiteral> > usingDirectives();
+    QVector<shared_ptr<Expression> > comma_separated_expressions();
+    QVector<shared_ptr<Expression> > comma_separated_pairs();
+    QVector<shared_ptr<StrLiteral> > usingDirectives();
 
     QString prepareStringLiteral(QString str);
     QString getOperation(Token token);
     void addPropertySetter(Token pos,
-                           QSharedPointer<Identifier> methodName,
-                           QVector<QSharedPointer<Identifier> > formals,
+                           shared_ptr<Identifier> methodName,
+                           QVector<shared_ptr<Identifier> > formals,
                            QMap<QString, PropInfo> &propertyInfo);
     void addPropertyGetter(Token pos,
-                           QSharedPointer<Identifier> methodName,
-                           QVector<QSharedPointer<Identifier> > formals,
+                           shared_ptr<Identifier> methodName,
+                           QVector<shared_ptr<Identifier> > formals,
                                           QMap<QString, PropInfo> &propertyInfo);
     void newLines();
 };

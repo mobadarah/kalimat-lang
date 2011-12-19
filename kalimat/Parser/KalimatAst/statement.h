@@ -29,13 +29,13 @@ class AssignmentStmt : public Statement
 {
     Q_OBJECT
 public:
-    QSharedPointer <AssignableExpression> _variable;
-    QSharedPointer<Expression> _value;
+    shared_ptr <AssignableExpression> _variable;
+    shared_ptr<Expression> _value;
 public:
-    AssignmentStmt(Token pos, QSharedPointer<AssignableExpression> variable, QSharedPointer<Expression> value);
+    AssignmentStmt(Token pos, shared_ptr<AssignableExpression> variable, shared_ptr<Expression> value);
     ~AssignmentStmt();
-    AssignableExpression *variable() {return _variable.data();}
-    Expression *value() {return _value.data();}
+    AssignableExpression *variable() {return _variable.get();}
+    Expression *value() {return _value.get();}
     QString toString();
     void prettyPrint(CodeFormatter *f);
 };
@@ -44,18 +44,18 @@ class IfStmt : public Statement
 {
     Q_OBJECT
 public:
-    QSharedPointer<Expression> _condition;
-    QSharedPointer<Statement> _thenPart;
-    QSharedPointer<Statement> _elsePart;
+    shared_ptr<Expression> _condition;
+    shared_ptr<Statement> _thenPart;
+    shared_ptr<Statement> _elsePart;
 public:
     IfStmt(Token pos,
-           QSharedPointer<Expression> _condition,
-           QSharedPointer<Statement> _thenPart,
-           QSharedPointer<Statement> _elsePart);
+           shared_ptr<Expression> _condition,
+           shared_ptr<Statement> _thenPart,
+           shared_ptr<Statement> _elsePart);
     ~IfStmt();
-    Expression *condition() {return _condition.data();}
-    Statement *thenPart() { return _thenPart.data();}
-    Statement *elsePart() {return _elsePart.data();}
+    Expression *condition() {return _condition.get();}
+    Statement *thenPart() { return _thenPart.get();}
+    Statement *elsePart() {return _elsePart.get();}
     QString toString();
     void prettyPrint(CodeFormatter *f);
 };
@@ -64,16 +64,16 @@ class WhileStmt : public Statement
 {
     Q_OBJECT
 public:
-    QSharedPointer<Expression> _condition;
-    QSharedPointer<Statement> _statement;
+    shared_ptr<Expression> _condition;
+    shared_ptr<Statement> _statement;
 
 public:
     WhileStmt(Token pos,
-              QSharedPointer<Expression> _condition,
-              QSharedPointer<Statement> _statement);
+              shared_ptr<Expression> _condition,
+              shared_ptr<Statement> _statement);
     ~WhileStmt();
-    Expression *condition() {return _condition.data();}
-    Statement *statement() { return _statement.data();}
+    Expression *condition() {return _condition.get();}
+    Statement *statement() { return _statement.get();}
     QString toString();
     void prettyPrint(CodeFormatter *f);
 };
@@ -82,22 +82,22 @@ class ForAllStmt : public Statement
 {
     Q_OBJECT
 public:
-    QSharedPointer<Identifier> _variable;
-    QSharedPointer<Expression> _from;
-    QSharedPointer<Expression> _to;
-    QSharedPointer<Statement> _statement;
+    shared_ptr<Identifier> _variable;
+    shared_ptr<Expression> _from;
+    shared_ptr<Expression> _to;
+    shared_ptr<Statement> _statement;
 
 public:
     ForAllStmt(Token pos,
-               QSharedPointer<Identifier> variable,
-               QSharedPointer<Expression> from,
-               QSharedPointer<Expression> to,
-               QSharedPointer<Statement>  statement);
+               shared_ptr<Identifier> variable,
+               shared_ptr<Expression> from,
+               shared_ptr<Expression> to,
+               shared_ptr<Statement>  statement);
     ~ForAllStmt();
-    Identifier *variable() { return _variable.data(); }
-    Expression *from() { return _from.data(); }
-    Expression *to() { return _to.data(); }
-    Statement *statement() { return _statement.data();}
+    Identifier *variable() { return _variable.get(); }
+    Expression *from() { return _from.get(); }
+    Expression *to() { return _to.get(); }
+    Statement *statement() { return _statement.get();}
     QString toString();
     void prettyPrint(CodeFormatter *f);
 
@@ -109,11 +109,11 @@ class ReturnStmt : public Statement
 {
     Q_OBJECT
 public:
-    QSharedPointer<Expression> _returnVal;
+    shared_ptr<Expression> _returnVal;
 public:
-    ReturnStmt(Token pos, QSharedPointer<Expression> returnVal);
+    ReturnStmt(Token pos, shared_ptr<Expression> returnVal);
     ~ReturnStmt();
-    Expression *returnVal() { return _returnVal.data(); }
+    Expression *returnVal() { return _returnVal.get(); }
     QString toString();
     void prettyPrint(CodeFormatter *f);
 };
@@ -122,11 +122,11 @@ class DelegationStmt : public Statement
 {
     Q_OBJECT
 public:
-    QSharedPointer<IInvokation> _invokation;
+    shared_ptr<IInvokation> _invokation;
 public:
-    DelegationStmt(Token pos, QSharedPointer<IInvokation> invokation);
+    DelegationStmt(Token pos, shared_ptr<IInvokation> invokation);
     ~DelegationStmt();
-    IInvokation *invokation() { return _invokation.data(); }
+    IInvokation *invokation() { return _invokation.get(); }
     QString toString();
     void prettyPrint(CodeFormatter *f);
     Q_DISABLE_COPY(DelegationStmt)
@@ -136,11 +136,11 @@ class LaunchStmt : public Statement
 {
     Q_OBJECT
 public:
-    QSharedPointer<IInvokation> _invokation;
+    shared_ptr<IInvokation> _invokation;
 public:
-    LaunchStmt(Token pos, QSharedPointer<IInvokation> invokation);
+    LaunchStmt(Token pos, shared_ptr<IInvokation> invokation);
     ~LaunchStmt();
-    IInvokation *invokation() { return _invokation.data(); }
+    IInvokation *invokation() { return _invokation.get(); }
     QString toString();
     void prettyPrint(CodeFormatter *f);
     Q_DISABLE_COPY(LaunchStmt)
@@ -149,10 +149,10 @@ public:
 class LabelStmt : public Statement
 {
     Q_OBJECT
-    QSharedPointer<Expression> _target;
+    shared_ptr<Expression> _target;
 public:
-    LabelStmt(Token pos, QSharedPointer<Expression> target);
-    Expression *target() { return _target.data(); }
+    LabelStmt(Token pos, shared_ptr<Expression> target);
+    Expression *target() { return _target.get(); }
     QString toString();
     void prettyPrint(CodeFormatter *f);
 };
@@ -163,12 +163,12 @@ class GotoStmt : public Statement
     Q_OBJECT
 public:
     bool targetIsNumber;
-    QSharedPointer<NumLiteral> _numericTarget;
-    QSharedPointer<Identifier> _idTarget;
+    shared_ptr<NumLiteral> _numericTarget;
+    shared_ptr<Identifier> _idTarget;
 public:
-    GotoStmt(Token pos, bool _targetIsNumber, QSharedPointer<Expression> target);
-    Identifier *idTarget() { return _idTarget.data(); }
-    NumLiteral *numericTarget() { return _numericTarget.data(); }
+    GotoStmt(Token pos, bool _targetIsNumber, shared_ptr<Expression> target);
+    Identifier *idTarget() { return _idTarget.get(); }
+    NumLiteral *numericTarget() { return _numericTarget.get(); }
     QString toString();
     void prettyPrint(CodeFormatter *f);
 };
@@ -177,19 +177,19 @@ class PrintStmt : public IOStatement
 {
     Q_OBJECT
 public:
-    QSharedPointer<Expression> _fileObject;
-    QVector<QSharedPointer<Expression > > _args;
-    QVector<QSharedPointer<Expression> > _widths;
+    shared_ptr<Expression> _fileObject;
+    QVector<shared_ptr<Expression > > _args;
+    QVector<shared_ptr<Expression> > _widths;
     bool printOnSameLine;
 public:
     PrintStmt(Token pos,
-              QSharedPointer<Expression> fileObject,
-              QVector<QSharedPointer<Expression> > args,
-              QVector<QSharedPointer<Expression> > widths,
+              shared_ptr<Expression> fileObject,
+              QVector<shared_ptr<Expression> > args,
+              QVector<shared_ptr<Expression> > widths,
               bool printOnSameLine);
     int argCount() { return _args.count(); }
-    Expression *arg(int i) { return _args[i].data(); }
-    Expression *fileObject() { return _fileObject.data();}
+    Expression *arg(int i) { return _args[i].get(); }
+    Expression *fileObject() { return _fileObject.get();}
     QString toString();
     void prettyPrint(CodeFormatter *f);
 };
@@ -198,19 +198,19 @@ class ReadStmt : public IOStatement
 {
     Q_OBJECT
 public:
+    shared_ptr<Expression> _fileObject;
     QString prompt;
-    QSharedPointer<Expression> _fileObject;
-    QVector<QSharedPointer<AssignableExpression> > _variables;
+    QVector<shared_ptr<AssignableExpression> > _variables;
     QVector<bool> readNumberFlags;
 public:
     ReadStmt(Token pos,
-             QSharedPointer<Expression> fileObject,
+             shared_ptr<Expression> fileObject,
              QString prompt,
-             const QVector<QSharedPointer<AssignableExpression> > &variables,
+             const QVector<shared_ptr<AssignableExpression> > &variables,
              QVector<bool> readNumberFlags);
     int variableCount() { return _variables.count();}
-    AssignableExpression *variable(int i) { return _variables[i].data();}
-    Expression *fileObject() { return _fileObject.data();}
+    AssignableExpression *variable(int i) { return _variables[i].get();}
+    Expression *fileObject() { return _fileObject.get();}
     QString toString();
     void prettyPrint(CodeFormatter *f);
 };
@@ -219,17 +219,17 @@ class DrawPixelStmt : public GraphicsStatement
 {
     Q_OBJECT
 public:
-    QSharedPointer<Expression> _x, _y;
-    QSharedPointer<Expression> _color;
+    shared_ptr<Expression> _x, _y;
+    shared_ptr<Expression> _color;
 public:
     DrawPixelStmt(Token pos,
-                  QSharedPointer<Expression> x,
-                  QSharedPointer<Expression> y,
-                  QSharedPointer<Expression> color);
+                  shared_ptr<Expression> x,
+                  shared_ptr<Expression> y,
+                  shared_ptr<Expression> color);
     ~DrawPixelStmt();
-    Expression *x() { return _x.data();}
-    Expression *y() { return _y.data();}
-    Expression *color() { return _color.data();}
+    Expression *x() { return _x.get();}
+    Expression *y() { return _y.get();}
+    Expression *color() { return _color.get();}
     QString toString();
     void prettyPrint(CodeFormatter *f);
     Q_DISABLE_COPY(DrawPixelStmt)
@@ -239,21 +239,21 @@ class DrawLineStmt : public GraphicsStatement
 {
     Q_OBJECT
 public:
-    QSharedPointer<Expression> _x1, _y1, _x2, _y2;
-    QSharedPointer<Expression> _color;
+    shared_ptr<Expression> _x1, _y1, _x2, _y2;
+    shared_ptr<Expression> _color;
 public:
     DrawLineStmt(Token pos,
-                 QSharedPointer<Expression> x1,
-                 QSharedPointer<Expression> y1,
-                 QSharedPointer<Expression> x2,
-                 QSharedPointer<Expression> y2,
-                 QSharedPointer<Expression> color);
+                 shared_ptr<Expression> x1,
+                 shared_ptr<Expression> y1,
+                 shared_ptr<Expression> x2,
+                 shared_ptr<Expression> y2,
+                 shared_ptr<Expression> color);
     ~DrawLineStmt();
-    Expression *x1() { return _x1.data();}
-    Expression *y1() { return _y1.data();}
-    Expression *x2() { return _x2.data();}
-    Expression *y2() { return _y2.data();}
-    Expression *color() { return _color.data();}
+    Expression *x1() { return _x1.get();}
+    Expression *y1() { return _y1.get();}
+    Expression *x2() { return _x2.get();}
+    Expression *y2() { return _y2.get();}
+    Expression *color() { return _color.get();}
     QString toString();
     void prettyPrint(CodeFormatter *f);
     Q_DISABLE_COPY(DrawLineStmt)
@@ -263,24 +263,24 @@ class DrawRectStmt : public GraphicsStatement
 {
     Q_OBJECT
 public:
-    QSharedPointer<Expression> _x1, _y1, _x2, _y2;
-    QSharedPointer<Expression> _color;
-    QSharedPointer<Expression> _filled;
+    shared_ptr<Expression> _x1, _y1, _x2, _y2;
+    shared_ptr<Expression> _color;
+    shared_ptr<Expression> _filled;
 public:
     DrawRectStmt(Token pos,
-                 QSharedPointer<Expression> x1,
-                 QSharedPointer<Expression> y1,
-                 QSharedPointer<Expression> x2,
-                 QSharedPointer<Expression> y2,
-                 QSharedPointer<Expression> color,
-                 QSharedPointer<Expression> filled);
+                 shared_ptr<Expression> x1,
+                 shared_ptr<Expression> y1,
+                 shared_ptr<Expression> x2,
+                 shared_ptr<Expression> y2,
+                 shared_ptr<Expression> color,
+                 shared_ptr<Expression> filled);
     ~DrawRectStmt();
-    Expression *x1() { return _x1.data();}
-    Expression *y1() { return _y1.data();}
-    Expression *x2() { return _x2.data();}
-    Expression *y2() { return _y2.data();}
-    Expression *color() { return _color.data();}
-    Expression *filled() { return _filled.data(); }
+    Expression *x1() { return _x1.get();}
+    Expression *y1() { return _y1.get();}
+    Expression *x2() { return _x2.get();}
+    Expression *y2() { return _y2.get();}
+    Expression *color() { return _color.get();}
+    Expression *filled() { return _filled.get(); }
     QString toString();
     void prettyPrint(CodeFormatter *f);
     Q_DISABLE_COPY(DrawRectStmt)
@@ -290,24 +290,24 @@ class DrawCircleStmt : public GraphicsStatement
 {
     Q_OBJECT
 public:
-    QSharedPointer<Expression> _cx, _cy;
-    QSharedPointer<Expression> _radius;
-    QSharedPointer<Expression> _color;
+    shared_ptr<Expression> _cx, _cy;
+    shared_ptr<Expression> _radius;
+    shared_ptr<Expression> _color;
 
-    QSharedPointer<Expression> _filled;
+    shared_ptr<Expression> _filled;
 public:
     DrawCircleStmt(Token pos,
-                   QSharedPointer<Expression> cx,
-                   QSharedPointer<Expression> cy,
-                   QSharedPointer<Expression> radius,
-                   QSharedPointer<Expression> color,
-                   QSharedPointer<Expression> filled);
+                   shared_ptr<Expression> cx,
+                   shared_ptr<Expression> cy,
+                   shared_ptr<Expression> radius,
+                   shared_ptr<Expression> color,
+                   shared_ptr<Expression> filled);
     ~DrawCircleStmt();
-    Expression *cx() { return _cx.data();}
-    Expression *cy() { return _cy.data();}
-    Expression *radius() { return _radius.data();}
-    Expression *color() { return _color.data();}
-    Expression *filled() { return _filled.data(); }
+    Expression *cx() { return _cx.get();}
+    Expression *cy() { return _cy.get();}
+    Expression *radius() { return _radius.get();}
+    Expression *color() { return _color.get();}
+    Expression *filled() { return _filled.get(); }
     QString toString();
     void prettyPrint(CodeFormatter *f);
     Q_DISABLE_COPY(DrawCircleStmt)
@@ -317,18 +317,18 @@ class DrawSpriteStmt : public GraphicsStatement
 {
     Q_OBJECT
 public:
-    QSharedPointer<Expression> _x, _y;
-    QSharedPointer<Expression> _sprite;
+    shared_ptr<Expression> _x, _y;
+    shared_ptr<Expression> _sprite;
 
 public:
     DrawSpriteStmt(Token pos,
-                   QSharedPointer<Expression> x,
-                   QSharedPointer<Expression> y,
-                   QSharedPointer<Expression> sprite);
+                   shared_ptr<Expression> x,
+                   shared_ptr<Expression> y,
+                   shared_ptr<Expression> sprite);
     ~DrawSpriteStmt();
-    Expression *x() { return _x.data();}
-    Expression *y() { return _y.data();}
-    Expression *sprite() { return _sprite.data();}
+    Expression *x() { return _x.get();}
+    Expression *y() { return _y.get();}
+    Expression *sprite() { return _sprite.get();}
     QString toString();
     void prettyPrint(CodeFormatter *f);
     Q_DISABLE_COPY(DrawSpriteStmt)
@@ -338,18 +338,18 @@ class ZoomStmt : public GraphicsStatement
 {
     Q_OBJECT
 public:
-    QSharedPointer<Expression> _x1, _y1, _x2, _y2;
+    shared_ptr<Expression> _x1, _y1, _x2, _y2;
 public:
     ZoomStmt(Token pos,
-             QSharedPointer<Expression> x1,
-             QSharedPointer<Expression> y1,
-             QSharedPointer<Expression> x2,
-             QSharedPointer<Expression> y2);
+             shared_ptr<Expression> x1,
+             shared_ptr<Expression> y1,
+             shared_ptr<Expression> x2,
+             shared_ptr<Expression> y2);
     ~ZoomStmt();
-    Expression *x1() { return _x1.data();}
-    Expression *y1() { return _y1.data();}
-    Expression *x2() { return _x2.data();}
-    Expression *y2() { return _y2.data();}
+    Expression *x1() { return _x1.get();}
+    Expression *y1() { return _y1.get();}
+    Expression *x2() { return _x2.get();}
+    Expression *y2() { return _y2.get();}
     QString toString();
     void prettyPrint(CodeFormatter *f);
      Q_DISABLE_COPY(ZoomStmt)
@@ -368,12 +368,13 @@ enum EventType
 
 class EventStatement : public Statement
 {
+    Q_OBJECT
 public:
     EventType type;
-    QSharedPointer<Identifier> _handler;
+    shared_ptr<Identifier> _handler;
 public:
-    EventStatement(Token pos, EventType type, QSharedPointer<Identifier> handler);
-    Identifier *handler() { return _handler.data(); }
+    EventStatement(Token pos, EventType type, shared_ptr<Identifier> handler);
+    Identifier *handler() { return _handler.get(); }
     QString toString();
     void prettyPrint(CodeFormatter *f);
 };
@@ -390,16 +391,16 @@ class SendStmt : public ChannelCommunicationStmt
     Q_OBJECT
 public:
     bool signal;
-    QSharedPointer<Expression> _value;
-    QSharedPointer<Expression> _channel;
+    shared_ptr<Expression> _value;
+    shared_ptr<Expression> _channel;
 public:
     SendStmt(Token pos,
              bool signal,
-             QSharedPointer<Expression> value,
-             QSharedPointer<Expression> channel);
+             shared_ptr<Expression> value,
+             shared_ptr<Expression> channel);
     ~SendStmt();
-    Expression *value() { return _value.data(); }
-    Expression *channel() { return _channel.data(); }
+    Expression *value() { return _value.get(); }
+    Expression *channel() { return _channel.get(); }
     QString toString();
     void prettyPrint(CodeFormatter *f);
      Q_DISABLE_COPY(SendStmt)
@@ -410,16 +411,16 @@ class ReceiveStmt : public ChannelCommunicationStmt
     Q_OBJECT
 public:
     bool signal;
-    QSharedPointer<AssignableExpression> _value;
-    QSharedPointer<Expression> _channel;
+    shared_ptr<AssignableExpression> _value;
+    shared_ptr<Expression> _channel;
 public:
     ReceiveStmt(Token pos,
                 bool signal,
-                QSharedPointer<AssignableExpression> value,
-                QSharedPointer<Expression> channel);
+                shared_ptr<AssignableExpression> value,
+                shared_ptr<Expression> channel);
     ~ReceiveStmt();
-    AssignableExpression *value() { return _value.data(); }
-    Expression *channel() { return _channel.data(); }
+    AssignableExpression *value() { return _value.get(); }
+    Expression *channel() { return _channel.get(); }
     QString toString();
     void prettyPrint(CodeFormatter *f);
     Q_DISABLE_COPY(ReceiveStmt)
@@ -429,15 +430,15 @@ class SelectStmt : public Statement
 {
     Q_OBJECT
 public:
-    QVector<QSharedPointer<ChannelCommunicationStmt> > _conditions;
-    QVector<QSharedPointer<Statement> > _actions;
+    QVector<shared_ptr<ChannelCommunicationStmt> > _conditions;
+    QVector<shared_ptr<Statement> > _actions;
 public:
     SelectStmt(Token pos,
-               QVector<QSharedPointer<ChannelCommunicationStmt> > conditions,
-               QVector<QSharedPointer<Statement> > actions);
+               QVector<shared_ptr<ChannelCommunicationStmt> > conditions,
+               QVector<shared_ptr<Statement> > actions);
     int count() { return _conditions.count();}
-    ChannelCommunicationStmt *condition(int i) { return _conditions[i].data(); }
-    Statement *action(int i) { return _actions[i].data(); }
+    ChannelCommunicationStmt *condition(int i) { return _conditions[i].get(); }
+    Statement *action(int i) { return _actions[i].get(); }
 
     QString toString();
     void prettyPrint(CodeFormatter *f);
@@ -447,11 +448,11 @@ class BlockStmt : public Statement
 {
     Q_OBJECT
 public:
-    QVector<QSharedPointer<Statement> > _statements;
+    QVector<shared_ptr<Statement> > _statements;
 public:
-    BlockStmt(Token pos, QVector<QSharedPointer<Statement> > statements);
+    BlockStmt(Token pos, QVector<shared_ptr<Statement> > statements);
     int statementCount() { return _statements.count(); }
-    Statement * statement(int i) { return _statements[i].data(); }
+    Statement * statement(int i) { return _statements[i].get(); }
     QVector<Statement *> getStatements();
     QString toString();
     void prettyPrint(CodeFormatter *f);
@@ -461,11 +462,11 @@ class InvokationStmt : public Statement
 {
     Q_OBJECT
 public:
-    QSharedPointer<Expression> _expression;
+    shared_ptr<Expression> _expression;
 public:
-    InvokationStmt(Token pos, QSharedPointer<Expression> expression);
+    InvokationStmt(Token pos, shared_ptr<Expression> expression);
     ~InvokationStmt();
-    Expression *expression() { return _expression.data(); }
+    Expression *expression() { return _expression.get(); }
     QString toString();
     void prettyPrint(CodeFormatter *f);
     Q_DISABLE_COPY(InvokationStmt)

@@ -3,6 +3,8 @@
 # -------------------------------------------------
 TARGET = kalimat
 TEMPLATE = app
+QMAKE_CXXFLAGS += -std=gnu++0x
+
 SOURCES += main.cpp \
     mainwindow.cpp \
     Lexer/token.cpp \
@@ -101,8 +103,7 @@ HEADERS += mainwindow.h \
     Parser/kalimatast/formatmaker.h \
     Parser/KalimatAst/kalimatast.h \
     Parser/kalimatast/kalimatast_incl.h \
-    Parser/kalimatast/rules.h \
-    Parser/kalimatast/ruledecl.h
+    Parser/kalimatast/rules.h
 
 FORMS += mainwindow.ui \
     savechangedfiles.ui \

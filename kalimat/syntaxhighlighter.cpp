@@ -216,7 +216,7 @@ void SyntaxHighlighter::highlightLiterateHtml(QString program, QStringList &outp
     try
     {
         parser.init(program, &lxr, NULL);
-        QSharedPointer<AST> tree = parser.parse();
+        shared_ptr<AST> tree = parser.parse();
         tree->prettyPrint(&fmt);
         output.append(fmt.getOutput());
     }

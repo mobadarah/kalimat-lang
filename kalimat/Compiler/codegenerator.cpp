@@ -203,7 +203,7 @@ void CodeGenerator::secondPass(Declaration * decl)
                                             .arg(ancestorName).arg(cd->name()->name);
             }
             ClassDecl *ancestor = allClasses[ancestorName];
-            cd->setAncestorClass(QSharedPointer<ClassDecl>(ancestor));
+            cd->setAncestorClass(shared_ptr<ClassDecl>(ancestor));
         }
     }
 }
@@ -232,7 +232,7 @@ void CodeGenerator::thirdPass(Declaration * decl)
                 throw CompilerException(decl, MethodXwasDeclaredAfunctionButImplementedAsProcedureInClassY).arg(name).arg(className);
             if(!theClass->methodPrototype(name).isFunction && md->isFunctionNotProcedure)
                 throw CompilerException(decl, MethodXwasDeclaredAprocedureButImplementedAsFunctionInClassY).arg(name).arg(className);
-            allClasses[className]->insertMethod(name, QSharedPointer<MethodDecl>(md));
+            allClasses[className]->insertMethod(name, shared_ptr<MethodDecl>(md));
         }
         return;
     }
@@ -421,9 +421,9 @@ void CodeGenerator::generateFFIProceduralDeclaration(FFIProceduralDecl *decl, QS
     // of this function
     pushProcedureScope(new FunctionDecl(decl->getPos(),
                                         decl->getPos(),
-                                        QSharedPointer<Identifier>(new Identifier(decl->getPos(),decl->procName)),
-                                        QVector<QSharedPointer<Identifier> >(),
-                                        QSharedPointer<BlockStmt>(new BlockStmt(decl->getPos(), QVector<QSharedPointer<Statement > >())),
+                                        shared_ptr<Identifier>(new Identifier(decl->getPos(),decl->procName)),
+                                        QVector<shared_ptr<Identifier> >(),
+                                        shared_ptr<BlockStmt>(new BlockStmt(decl->getPos(), QVector<shared_ptr<Statement > >())),
                                         false
                                         ));
     gen(decl, QString(".method %1 %2 %3").
@@ -702,7 +702,7 @@ void CodeGenerator::generatePrintStmt(PrintStmt *stmt)
     int n = stmt->argCount();
     for(int i=0; i<n; i++)
     {
-        if(stmt->_widths[i].isNull())
+        if(!stmt->_widths[i])
         {
             generateExpression(stmt->arg(i));
             if(fileVar != "")
@@ -717,7 +717,7 @@ void CodeGenerator::generatePrintStmt(PrintStmt *stmt)
         }
         else
         {
-            generateExpression(stmt->_widths[i].data());
+            generateExpression(stmt->_widths[i].get());
             generateExpression(stmt->arg(i));
             if(fileVar != "")
             {
@@ -1628,8 +1628,8 @@ void CodeGenerator::generateMatchOperation(MatchOperation *expr)
         defineInCurrentScope(i.value()->name);
         // todo: this leaks!!
         generateAssignmentStmt(new AssignmentStmt(i.key()->getPos(),
-                                                  QSharedPointer<AssignableExpression>(i.key()),
-                                                  QSharedPointer<Identifier>(i.value())));
+                                                  shared_ptr<AssignableExpression>(i.key()),
+                                                  shared_ptr<Identifier>(i.value())));
     }
     gen(expr, "pushv true");
     gen(expr, QString("jmp %1").arg(exit));
@@ -1716,7 +1716,7 @@ void CodeGenerator::generateArrayPattern(ArrayPattern *pattern,
     // about defineInCurrentScope() in generateMatchOperation()
     defineInCurrentScope(arrVar);
     // todo: this leaks
-    QSharedPointer<Identifier> arrVarExpr(new Identifier(pattern->getPos(), arrVar));
+    shared_ptr<Identifier> arrVarExpr(new Identifier(pattern->getPos(), arrVar));
     QString exit = _asm.uniqueLabel();
     QString dummy = _asm.uniqueVariable();
     QString ok, no, goon;
@@ -1765,9 +1765,9 @@ void CodeGenerator::generateArrayPattern(ArrayPattern *pattern,
         gen(pattern, QString("popl ") + dummy);
 
         // todo: this leaks also
-        QSharedPointer<NumLiteral> idx(new NumLiteral(pattern->element(i)->getPos(), QString("%1").arg(i+1)));
-        QSharedPointer<Expression> expr(new ArrayIndex(pattern->element(i)->getPos(), arrVarExpr, idx));
-        generatePattern(pattern->element(i), expr, bindings);
+        shared_ptr<NumLiteral> idx(new NumLiteral(pattern->element(i)->getPos(), QString("%1").arg(i+1)));
+        shared_ptr<Expression> expr(new ArrayIndex(pattern->element(i)->getPos(), arrVarExpr, idx));
+        generatePattern(pattern->element(i), expr.get(), bindings);
 
         ok = _asm.uniqueLabel();
         no = _asm.uniqueLabel();
@@ -1793,7 +1793,7 @@ void CodeGenerator::generateObjPattern(ObjPattern *pattern,
     // about defineInCurrentScope() in generateMatchOperation()
     defineInCurrentScope(objVar);
     // todo: this leaks
-    Identifier *objVarExpr = new Identifier(pattern->getPos(), objVar);
+    shared_ptr<Expression> objVarExpr(new Identifier(pattern->getPos(), objVar));
     QString exit = _asm.uniqueLabel();
     QString dummy = _asm.uniqueVariable();
     QString ok, no, goon;
@@ -1821,8 +1821,10 @@ void CodeGenerator::generateObjPattern(ObjPattern *pattern,
         gen(pattern, QString("popl ") + dummy);
 
         // todo: this leaks also
-        Expression *expr = new Idafa(pattern->fieldName(i)->getPos(), pattern->fieldName(i), objVarExpr);
-        generatePattern(pattern->fieldPattern(i), expr, bindings);
+        shared_ptr<Expression> expr(new Idafa(pattern->fieldName(i)->getPos(),
+                                                  pattern->fieldNamePtr(i),
+                                                    objVarExpr));
+        generatePattern(pattern->fieldPattern(i), expr.get(), bindings);
 
         ok = _asm.uniqueLabel();
         no = _asm.uniqueLabel();
@@ -1848,7 +1850,7 @@ void CodeGenerator::generateMapPattern(MapPattern *pattern,
     // about defineInCurrentScope() in generateMatchOperation()
     defineInCurrentScope(mapVar);
     // todo: this leaks
-    Identifier *mapVarExpr = new Identifier(pattern->getPos(), mapVar);
+    shared_ptr<Identifier> mapVarExpr(new Identifier(pattern->getPos(), mapVar));
     QString exit = _asm.uniqueLabel();
     QString dummy = _asm.uniqueVariable();
     QString ok, no, goon;
@@ -1910,9 +1912,9 @@ void CodeGenerator::generateMapPattern(MapPattern *pattern,
         gen(pattern, QString("popl ") + dummy);
 
         // todo: this leaks also
-        Expression *idx = new Identifier(pattern->key(i)->getPos(), evaluatedKeys[i]);
-        Expression *expr = new ArrayIndex(pattern->key(i)->getPos(), mapVarExpr, idx);
-        generatePattern(pattern->value(i), expr, bindings);
+        shared_ptr<Expression> idx(new Identifier(pattern->key(i)->getPos(), evaluatedKeys[i]));
+        shared_ptr<Expression> expr(new ArrayIndex(pattern->key(i)->getPos(), mapVarExpr, idx));
+        generatePattern(pattern->value(i), expr.get(), bindings);
 
         ok = _asm.uniqueLabel();
         no = _asm.uniqueLabel();
@@ -2069,7 +2071,7 @@ void CodeGenerator::generateMultiDimensionalArrayIndex(MultiDimensionalArrayInde
     gen(expr, "getmdarr");
 }
 
-QString CodeGenerator::generateArrayFromValues(AST *src, QVector<QSharedPointer<Expression> >values)
+QString CodeGenerator::generateArrayFromValues(AST *src, QVector<shared_ptr<Expression> >values)
 {
     QString newVar = _asm.uniqueVariable();
     gen(src, "pushv ", values.count());
@@ -2078,7 +2080,7 @@ QString CodeGenerator::generateArrayFromValues(AST *src, QVector<QSharedPointer<
     // Notice that Kalimat arrays are one-based, not zero-based
     for(int i=1; i<=values.count(); i++)
     {
-       Expression *value = values[i-1].data();
+       Expression *value = values[i-1].get();
        gen(value, "pushl "+ newVar);
        gen(value, "pushv ", i);
        generateExpression(value);

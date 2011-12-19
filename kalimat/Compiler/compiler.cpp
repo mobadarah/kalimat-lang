@@ -22,7 +22,7 @@ Compiler::Compiler(DocumentContainer *container)
     this->documentContainer = container;
 }
 
-QSharedPointer<AST> parseModule(Parser *p)
+shared_ptr<AST> parseModule(Parser *p)
 {
     return ((KalimatParser *) p)->module();
 }
@@ -30,7 +30,7 @@ QSharedPointer<AST> parseModule(Parser *p)
 Program *Compiler::loadProgram(QString path, CodeDocument *doc)
 {
     parser.init(loadFileContents(path), &lexer, doc, path);
-    Program *p = (Program *) parser.parse().data();
+    Program *p = (Program *) parser.parse().get();
 
     for(int i=0; i<p->usedModuleCount(); i++)
     {
@@ -57,7 +57,7 @@ Program *Compiler::loadProgram(QString path, CodeDocument *doc)
 Module *Compiler::loadModule(QString path)
 {
     parser.init(loadFileContents(path), &lexer, documentContainer->getDocumentFromPath(path), path);
-    Module *m = (Module *) parser.parse(parseModule).data();
+    Module *m = (Module *) parser.parse(parseModule).get();
     loadedModules[path] = m;
     pathsOfModules[m] = path;
     for(int i=0; i<m->usedModuleCount(); i++)
@@ -113,12 +113,12 @@ QString Compiler::combinePath(QString parent, QString child)
 QString Compiler::CompileFromCode(QString source, CodeDocument *doc)
 {
     parser.init(source, &lexer, doc);
-    Program *p = (Program *) parser.parse().data();
+    shared_ptr<Program> p = dynamic_pointer_cast<Program>(parser.parse());
 
     if(p->usedModuleCount()!=0)
-        throw CompilerException(p, ProgramsCannotUseExternalModulesWithoutSavingThemFirst);
+        throw CompilerException(p.get(), ProgramsCannotUseExternalModulesWithoutSavingThemFirst);
 
-    generator.generate(p, doc);
+    generator.generate(p.get(), doc);
     return generator.getOutput();
 }
 

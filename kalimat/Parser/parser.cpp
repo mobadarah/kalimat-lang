@@ -153,10 +153,10 @@ Token Parser::getPos()
     }
 }
 
-QSharedPointer<AST> Parser::parse()
+shared_ptr<AST> Parser::parse()
 {
     initLookAhead();
-    QSharedPointer<AST> ret = parseRoot();
+    shared_ptr<AST> ret = parseRoot();
     if(!eof())
     {
         throw ParserException
@@ -166,10 +166,10 @@ QSharedPointer<AST> Parser::parse()
     }
     return ret;
 }
-QSharedPointer<AST> Parser::parse(QSharedPointer<AST> (*root)(Parser *p))
+shared_ptr<AST> Parser::parse(shared_ptr<AST> (*root)(Parser *p))
 {
     initLookAhead();
-    QSharedPointer<AST> ret = root(this);
+    shared_ptr<AST> ret = root(this);
     if(!eof())
     {
         throw ParserException

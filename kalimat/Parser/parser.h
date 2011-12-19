@@ -8,6 +8,8 @@
 #ifndef PARSER_H
 #define PARSER_H
 
+#include <memory>
+using namespace std;
 struct ParserState
                            {
     int curToken;
@@ -27,7 +29,7 @@ class Parser
 protected:
     QVector<Token> tokens;
     Token lookAhead;
-    virtual QSharedPointer<AST> parseRoot()=0;
+    virtual shared_ptr<AST> parseRoot()=0;
 public:
     Parser();
     Parser(QString (*tokenFormatter)(int));
@@ -37,8 +39,8 @@ public:
     virtual void init(QString s, Lexer *lxr);
     virtual void init(QString s, Lexer *lxr, void *tag);
     virtual void init(QString s, Lexer *lxr, void *tag, QString fileName);
-    QSharedPointer<AST> parse();
-    QSharedPointer<AST> parse(QSharedPointer<AST> (*root)(Parser *p));
+    shared_ptr<AST> parse();
+    shared_ptr<AST> parse(shared_ptr<AST> (*root)(Parser *p));
 
     ParserState saveState();
     void restoreState(ParserState);

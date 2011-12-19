@@ -74,20 +74,20 @@ void KalimatParser::init(QString s, Lexer *lxr, void *tag, QString fileName)
     tokens = tokens2;
 }
 
-QSharedPointer<AST> KalimatParser::parseRoot()
+shared_ptr<AST> KalimatParser::parseRoot()
 {
     if(LA(UNIT))
         return module();
     return program();
 }
 
-QSharedPointer<AST> KalimatParser::program()
+shared_ptr<AST> KalimatParser::program()
 {
-    QVector<QSharedPointer<TopLevel> > elements;
-    QVector<QSharedPointer<Statement> > topLevelStatements;
-    QSharedPointer<ProceduralDecl> entryPoint;
-    QVector<QSharedPointer<StrLiteral > > usedModules = usingDirectives();
-    QVector<QSharedPointer<TopLevel > > originalElements;
+    QVector<shared_ptr<TopLevel> > elements;
+    QVector<shared_ptr<Statement> > topLevelStatements;
+    shared_ptr<ProceduralDecl> entryPoint;
+    QVector<shared_ptr<StrLiteral > > usedModules = usingDirectives();
+    QVector<shared_ptr<TopLevel > > originalElements;
     while(!eof())
     {
         // Declaration has to be tested first because of possible
@@ -96,13 +96,13 @@ QSharedPointer<AST> KalimatParser::program()
         // ID ...    => statement
         if(LA_first_declaration())
         {
-            QSharedPointer<TopLevel> decl = declaration();
+            shared_ptr<TopLevel> decl = declaration();
             elements.append(decl);
             originalElements.append(decl);
         }
         else if(LA_first_statement())
         {
-            QSharedPointer<Statement> stmt = statement();
+            shared_ptr<Statement> stmt = statement();
             if(!eof())
                 match(NEWLINE);
             topLevelStatements.append(stmt);
@@ -114,26 +114,26 @@ QSharedPointer<AST> KalimatParser::program()
         }
         newLines();
     }
-    entryPoint = QSharedPointer<ProceduralDecl>(new ProcedureDecl(Token(),
+    entryPoint = shared_ptr<ProceduralDecl>(new ProcedureDecl(Token(),
                                                                   Token(),
-                                                                  QSharedPointer<Identifier>(new Identifier(Token(), "%main")),
-                                                                  QVector<QSharedPointer<Identifier> >(),
-                                                                  QSharedPointer<BlockStmt>(new BlockStmt(Token(),topLevelStatements)),
+                                                                  shared_ptr<Identifier>(new Identifier(Token(), "%main")),
+                                                                  QVector<shared_ptr<Identifier> >(),
+                                                                  shared_ptr<BlockStmt>(new BlockStmt(Token(),topLevelStatements)),
                                                                   true));
     elements.append(entryPoint);
-    return QSharedPointer<AST>(new Program(Token(), elements, usedModules, originalElements));
+    return shared_ptr<AST>(new Program(Token(), elements, usedModules, originalElements));
 }
 
-QSharedPointer<AST> KalimatParser::module()
+shared_ptr<AST> KalimatParser::module()
 {
-    QVector<QSharedPointer<Declaration> > elements;
+    QVector<shared_ptr<Declaration> > elements;
 
     newLines();
     match(UNIT);
-    QSharedPointer<Identifier> modName = identifier();
+    shared_ptr<Identifier> modName = identifier();
     match(NEWLINE);
     newLines();
-    QVector<QSharedPointer<StrLiteral > > usedModules = usingDirectives();
+    QVector<shared_ptr<StrLiteral > > usedModules = usingDirectives();
 
     while(!eof())
     {
@@ -151,7 +151,7 @@ QSharedPointer<AST> KalimatParser::module()
         }
         newLines();
     }
-    return QSharedPointer<AST>(new Module(Token(), modName, elements, usedModules));
+    return shared_ptr<AST>(new Module(Token(), modName, elements, usedModules));
 }
 
 bool KalimatParser::LA_first_statement()
@@ -163,10 +163,10 @@ bool KalimatParser::LA_first_statement()
             || LA_first_assignment_or_invokation();
 }
 
-QSharedPointer<Statement> KalimatParser::statement()
+shared_ptr<Statement> KalimatParser::statement()
 {
     Token firstToken = lookAhead; // Save it in case it has a 'sister' comment
-    QSharedPointer<Statement> ret;
+    shared_ptr<Statement> ret;
     if(LA_first_assignment_or_invokation())
     {
         ParserState state= this->saveState();
@@ -234,7 +234,7 @@ QSharedPointer<Statement> KalimatParser::statement()
 
     if(firstToken.sister != NULL)
     {
-        ret.data()->attachedComments = firstToken.sister->Lexeme;
+        ret.get()->attachedComments = firstToken.sister->Lexeme;
      /*   MainWindow::that->outputMsg(QString("Statement: %1; has sister: %2")
                                     .arg(ret->toString()).arg(ret->attachedComments));
                                     */
@@ -249,10 +249,10 @@ bool KalimatParser::LA_first_declaration()
             || LA(LIBRARY) || LA(RULES);
 }
 
-QSharedPointer<Declaration> KalimatParser::declaration()
+shared_ptr<Declaration> KalimatParser::declaration()
 {
     Token firstToken = lookAhead;
-    QSharedPointer<Declaration> ret;
+    shared_ptr<Declaration> ret;
 
     if(LA(PROCEDURE))
     {
@@ -297,27 +297,28 @@ bool KalimatParser::LA_first_assignment_or_invokation()
 {
     return LA_first_primary_expression();
 }
-QSharedPointer<Statement> KalimatParser::assignmentStmt_or_Invokation(ParserState s)
+shared_ptr<Statement> KalimatParser::assignmentStmt_or_Invokation(ParserState s)
 {
-    QSharedPointer<Expression> first = primaryExpression();
+    shared_ptr<Expression> first = primaryExpression();
     if(LA(EQ))
     {
-        QSharedPointer<AssignableExpression> id = first.dynamicCast<AssignableExpression>();
+
+        shared_ptr<AssignableExpression> id = dynamic_pointer_cast<AssignableExpression>(first);
         if(id == NULL)
         {
             throw ParserException(getPos(), "Left of = must be an assignable expression");
         }
         Token eqToken = lookAhead;
         match(EQ);
-        QSharedPointer<Expression> value = expression();
-        return QSharedPointer<Statement>(new AssignmentStmt(eqToken, id, value));
+        shared_ptr<Expression> value = expression();
+        return shared_ptr<Statement>(new AssignmentStmt(eqToken, id, value));
     }
     else
     {
-        QSharedPointer<IInvokation> invokation = first.dynamicCast<IInvokation>();
+        shared_ptr<IInvokation> invokation = dynamic_pointer_cast<IInvokation>(first);
         if(invokation != NULL)
         {
-            return QSharedPointer<Statement>(new InvokationStmt(invokation->getPos(), invokation));
+            return shared_ptr<Statement>(new InvokationStmt(invokation->getPos(), invokation));
         }
     }
     /*else if(LA(LPAREN))
@@ -335,16 +336,16 @@ QSharedPointer<Statement> KalimatParser::assignmentStmt_or_Invokation(ParserStat
     throw ParserException(getPos(), "Expected IDENTIFIER");
 }
 
-QSharedPointer<Statement> KalimatParser::ifStmt()
+shared_ptr<Statement> KalimatParser::ifStmt()
 {
-    QSharedPointer<Statement> thenPart;
-    QSharedPointer<Statement> elsePart;
+    shared_ptr<Statement> thenPart;
+    shared_ptr<Statement> elsePart;
     if(LA(IF))
     {
         bool newLine = false;
         Token ifTok = lookAhead;
         match(IF);
-        QSharedPointer<Expression> cond = expression();
+        shared_ptr<Expression> cond = expression();
         match(COLON);
         if(LA(NEWLINE))
         {
@@ -361,8 +362,8 @@ QSharedPointer<Statement> KalimatParser::ifStmt()
             thenPart = statement();
 
         QVector<Token> positions;
-        QVector<QSharedPointer<Expression> > conditions;
-        QVector<QSharedPointer<Statement> > statements;
+        QVector<shared_ptr<Expression> > conditions;
+        QVector<shared_ptr<Statement> > statements;
 
         while(LA2(ELSE, IF))
         {
@@ -370,10 +371,10 @@ QSharedPointer<Statement> KalimatParser::ifStmt()
             Token p2 = lookAhead;
             positions.append(p2);
             match(IF);
-            QSharedPointer<Expression> cond2 = expression();
+            shared_ptr<Expression> cond2 = expression();
             conditions.append(cond2);
             match(COLON);
-            QSharedPointer<Statement> otherPart;
+            shared_ptr<Statement> otherPart;
             if(newLine)
             {
                 match(NEWLINE);
@@ -412,23 +413,23 @@ QSharedPointer<Statement> KalimatParser::ifStmt()
         }
         for(int i=positions.count()-1; i>=0; i--)
         {
-            elsePart  = QSharedPointer<Statement>(new IfStmt(positions[i], conditions[i], statements[i], elsePart));
+            elsePart  = shared_ptr<Statement>(new IfStmt(positions[i], conditions[i], statements[i], elsePart));
         }
-        return QSharedPointer<Statement>(new IfStmt(ifTok, cond, thenPart, elsePart));
+        return shared_ptr<Statement>(new IfStmt(ifTok, cond, thenPart, elsePart));
     }
     throw ParserException(getPos(), "Expected IF");
 }
-QSharedPointer<Statement> KalimatParser::forEachStmt()
+shared_ptr<Statement> KalimatParser::forEachStmt()
 {
     bool multiLineStmt = false;
-    QSharedPointer<Statement> theStmt;
+    shared_ptr<Statement> theStmt;
     Token forAllTok = lookAhead;
     match(FORALL);
-    QSharedPointer<Identifier> id = identifier();
+    shared_ptr<Identifier> id = identifier();
     match(FROM);
-    QSharedPointer<Expression> from = expression();
+    shared_ptr<Expression> from = expression();
     match(TO);
-    QSharedPointer<Expression> to = expression();
+    shared_ptr<Expression> to = expression();
     match(COLON);
     if(LA(NEWLINE))
     {
@@ -444,16 +445,16 @@ QSharedPointer<Statement> KalimatParser::forEachStmt()
         theStmt = statement();
     }
     match(CONTINUE);
-    return QSharedPointer<Statement>(new ForAllStmt(forAllTok, id, from, to, theStmt));
+    return shared_ptr<Statement>(new ForAllStmt(forAllTok, id, from, to, theStmt));
 }
 
-QSharedPointer<Statement> KalimatParser::whileStmt()
+shared_ptr<Statement> KalimatParser::whileStmt()
 {
     bool multiLineStmt = false;
-    QSharedPointer<Statement> theStmt;
+    shared_ptr<Statement> theStmt;
     Token whileTok = lookAhead;
     match(WHILE);
-    QSharedPointer<Expression> cond = expression();
+    shared_ptr<Expression> cond = expression();
     match(COLON);
     if(LA(NEWLINE))
     {
@@ -469,71 +470,71 @@ QSharedPointer<Statement> KalimatParser::whileStmt()
         theStmt = statement();
     }
     match(CONTINUE);
-    return QSharedPointer<Statement>(new WhileStmt(whileTok, cond, theStmt));
+    return shared_ptr<Statement>(new WhileStmt(whileTok, cond, theStmt));
 }
 
-QSharedPointer<Statement> KalimatParser::returnStmt()
+shared_ptr<Statement> KalimatParser::returnStmt()
 {
     Token returnTok  = lookAhead;
     match(RETURN_WITH);
-    QSharedPointer<Expression> retVal = expression();
-    return QSharedPointer<Statement>(new ReturnStmt(returnTok, retVal));
+    shared_ptr<Expression> retVal = expression();
+    return shared_ptr<Statement>(new ReturnStmt(returnTok, retVal));
 }
 
-QSharedPointer<Statement> KalimatParser::delegateStmt()
+shared_ptr<Statement> KalimatParser::delegateStmt()
 {
     Token returnTok  = lookAhead;
     match(DELEGATE);
     match(TO);
-    QSharedPointer<Expression> expr = expression();
-    QSharedPointer<IInvokation> invokation =expr.dynamicCast<IInvokation>();
+    shared_ptr<Expression> expr = expression();
+    shared_ptr<IInvokation> invokation = dynamic_pointer_cast<IInvokation>(expr);
     if(invokation != NULL)
     {
-        return QSharedPointer<Statement>(new DelegationStmt(returnTok, invokation));
+        return shared_ptr<Statement>(new DelegationStmt(returnTok, invokation));
     }
     else
     {
-        throw new ParserException(expr->getPos(),
+        throw ParserException(expr->getPos(),
             QString::fromStdWString(L"لا يمكن التوكيل لغير استدعاء إجراء أو دالة") );
     }
 }
 
-QSharedPointer<Statement> KalimatParser::launchStmt()
+shared_ptr<Statement> KalimatParser::launchStmt()
 {
     Token returnTok  = lookAhead;
     match(LAUNCH);
-    QSharedPointer<Expression> expr = expression();
-    QSharedPointer<IInvokation> invokation = expr.dynamicCast<IInvokation>();
+    shared_ptr<Expression> expr = expression();
+    shared_ptr<IInvokation> invokation = dynamic_pointer_cast<IInvokation>(expr);
     if(invokation !=NULL)
     {
-        return QSharedPointer<Statement>(new LaunchStmt(returnTok, invokation));
+        return shared_ptr<Statement>(new LaunchStmt(returnTok, invokation));
     }
     else
     {
-        throw new ParserException(expr->getPos(),
+        throw ParserException(expr->getPos(),
             QString::fromStdWString(L"لا يمكن تشغيل ما ليس باستدعاء إجراء") );
     }
 }
 
-QSharedPointer<Statement> KalimatParser::labelStmt()
+shared_ptr<Statement> KalimatParser::labelStmt()
 {
     Token pos = lookAhead;
     match(LABEL);
-    QSharedPointer<Expression> target = expression();
-    return QSharedPointer<Statement>(new LabelStmt(pos, target));
+    shared_ptr<Expression> target = expression();
+    return shared_ptr<Statement>(new LabelStmt(pos, target));
 }
 
-QSharedPointer<Statement> KalimatParser::gotoStmt()
+shared_ptr<Statement> KalimatParser::gotoStmt()
 {
     Token pos = lookAhead;
-    QSharedPointer<Expression> target;
+    shared_ptr<Expression> target;
     match(GO);
     match(TO);
     bool targetIsNum = false;
     if(LA(NUM_LITERAL))
     {
         targetIsNum = true;
-        target = QSharedPointer<Expression>(new NumLiteral(lookAhead, lookAhead.Lexeme));
+        target = shared_ptr<Expression>(new NumLiteral(lookAhead, lookAhead.Lexeme));
         match(NUM_LITERAL);
     }
     else if(LA(IDENTIFIER))
@@ -545,7 +546,7 @@ QSharedPointer<Statement> KalimatParser::gotoStmt()
     {
         throw ParserException("An identifier or number is expected after 'goto'");
     }
-    return QSharedPointer<Statement>(new GotoStmt(pos, targetIsNum, target));
+    return shared_ptr<Statement>(new GotoStmt(pos, targetIsNum, target));
 }
 
 bool KalimatParser::LA_first_io_statement()
@@ -553,14 +554,14 @@ bool KalimatParser::LA_first_io_statement()
     return LA(PRINT) || LA(READ);
 }
 
-QSharedPointer<Statement> KalimatParser::ioStmt()
+shared_ptr<Statement> KalimatParser::ioStmt()
 {
     if(LA(PRINT))
     {
         bool printOnSameLine = false;
-        QVector<QSharedPointer<Expression> > args;
-        QVector<QSharedPointer<Expression> > widths;
-        QSharedPointer<Expression> fileObject;
+        QVector<shared_ptr<Expression> > args;
+        QVector<shared_ptr<Expression> > widths;
+        shared_ptr<Expression> fileObject;
         Token printTok  = lookAhead;
         match(PRINT);
         if(LA(IN))
@@ -576,7 +577,7 @@ QSharedPointer<Statement> KalimatParser::ioStmt()
         }
         else
         {
-            widths.append(QSharedPointer<Expression>());
+            widths.append(shared_ptr<Expression>());
         }
         args.append(expression());
         while(LA(COMMA))
@@ -595,7 +596,7 @@ QSharedPointer<Statement> KalimatParser::ioStmt()
             }
             else
             {
-                widths.append(QSharedPointer<Expression>());
+                widths.append(shared_ptr<Expression>());
             }
             args.append(expression());
         }
@@ -605,13 +606,13 @@ QSharedPointer<Statement> KalimatParser::ioStmt()
             printOnSameLine = true;
         }
         officialEndOfPrintStmt:
-        return QSharedPointer<Statement>(new PrintStmt(printTok, fileObject, args, widths, printOnSameLine));
+        return shared_ptr<Statement>(new PrintStmt(printTok, fileObject, args, widths, printOnSameLine));
     }
     if(LA(READ))
     {
         QString prompt = "";
         Token readTok  = lookAhead;
-        QSharedPointer<Expression> fileObject;
+        shared_ptr<Expression> fileObject;
         match(READ);
         if(LA(FROM))
         {
@@ -625,17 +626,17 @@ QSharedPointer<Statement> KalimatParser::ioStmt()
             match(STR_LITERAL);
             match(COMMA);
         }
-        QVector<QSharedPointer<AssignableExpression> > vars;
+        QVector<shared_ptr<AssignableExpression> > vars;
         QVector<bool> readNums;
         bool readInt = false;
-        QSharedPointer<AssignableExpression> var;
+        shared_ptr<AssignableExpression> var;
         if(LA(HASH))
         {
             match(HASH);
             readInt = true;
         }
-        QSharedPointer<Expression> lvalue = expression();
-        var = lvalue.dynamicCast<AssignableExpression>();
+        shared_ptr<Expression> lvalue = expression();
+        var = dynamic_pointer_cast<AssignableExpression>(lvalue);
         if(var == NULL)
         {
             throw ParserException(getPos(), "Item in read statement must be an assignable expression");
@@ -655,7 +656,7 @@ QSharedPointer<Statement> KalimatParser::ioStmt()
                 readInt = false;
             }
             lvalue = expression();
-            var = lvalue.dynamicCast<AssignableExpression>();
+            var = dynamic_pointer_cast<AssignableExpression>(lvalue);
             if(var == NULL)
             {
                 throw ParserException(getPos(), "Item in read statement must be an assignable expression");
@@ -663,7 +664,7 @@ QSharedPointer<Statement> KalimatParser::ioStmt()
             vars.append(var);
             readNums.append(readInt);
         }
-        return QSharedPointer<Statement>(new ReadStmt(readTok, fileObject, prompt, vars, readNums));
+        return shared_ptr<Statement>(new ReadStmt(readTok, fileObject, prompt, vars, readNums));
     }
     throw ParserException(getPos(), "Expected PRINT or READ");
 }
@@ -673,7 +674,7 @@ bool KalimatParser::LA_first_grfx_statement()
     return LA(DRAW_PIXEL) || LA(DRAW_LINE) || LA(DRAW_RECT) || LA(DRAW_CIRCLE) || LA(DRAW_SPRITE) || LA(ZOOM);
 }
 
-QSharedPointer<Statement> KalimatParser::grfxStatement()
+shared_ptr<Statement> KalimatParser::grfxStatement()
 {
     if(LA(DRAW_PIXEL))
         return drawPixelStmt();
@@ -689,10 +690,10 @@ QSharedPointer<Statement> KalimatParser::grfxStatement()
         return zoomStmt();
     throw ParserException(getPos(), "Expected a drawing statement");
 }
-QSharedPointer<Statement> KalimatParser::drawPixelStmt()
+shared_ptr<Statement> KalimatParser::drawPixelStmt()
 {
-    QSharedPointer<Expression> x, y;
-    QSharedPointer<Expression> color;
+    shared_ptr<Expression> x, y;
+    shared_ptr<Expression> color;
     Token tok  = lookAhead;
     match(DRAW_PIXEL);
     match(LPAREN);
@@ -705,14 +706,14 @@ QSharedPointer<Statement> KalimatParser::drawPixelStmt()
         match(COMMA);
         color = expression();
     }
-    return QSharedPointer<Statement>(new DrawPixelStmt(tok, x,y, color));
+    return shared_ptr<Statement>(new DrawPixelStmt(tok, x,y, color));
 }
 
-QSharedPointer<Statement> KalimatParser::drawLineStmt()
+shared_ptr<Statement> KalimatParser::drawLineStmt()
 {
-    QSharedPointer<Expression> x1, y1;
-    QSharedPointer<Expression> x2, y2;
-    QSharedPointer<Expression> color;
+    shared_ptr<Expression> x1, y1;
+    shared_ptr<Expression> x2, y2;
+    shared_ptr<Expression> color;
 
     Token tok  = lookAhead;
     match(DRAW_LINE);
@@ -738,15 +739,15 @@ QSharedPointer<Statement> KalimatParser::drawLineStmt()
         match(COMMA);
         color = expression();
     }
-    return QSharedPointer<Statement>(new DrawLineStmt(tok, x1, y1, x2, y2, color));
+    return shared_ptr<Statement>(new DrawLineStmt(tok, x1, y1, x2, y2, color));
 }
 
-QSharedPointer<Statement> KalimatParser::drawRectStmt()
+shared_ptr<Statement> KalimatParser::drawRectStmt()
 {
-    QSharedPointer<Expression> x1, y1;
-    QSharedPointer<Expression> x2, y2;
-    QSharedPointer<Expression> color;
-    QSharedPointer<Expression> filled;
+    shared_ptr<Expression> x1, y1;
+    shared_ptr<Expression> x2, y2;
+    shared_ptr<Expression> color;
+    shared_ptr<Expression> filled;
 
     Token tok  = lookAhead;
     match(DRAW_RECT);
@@ -779,15 +780,15 @@ QSharedPointer<Statement> KalimatParser::drawRectStmt()
             filled = expression();
         }
     }
-    return QSharedPointer<Statement>(new DrawRectStmt(tok, x1, y1, x2, y2, color, filled));
+    return shared_ptr<Statement>(new DrawRectStmt(tok, x1, y1, x2, y2, color, filled));
 }
 
-QSharedPointer<Statement> KalimatParser::drawCircleStmt()
+shared_ptr<Statement> KalimatParser::drawCircleStmt()
 {
-    QSharedPointer<Expression> cx, cy;
-    QSharedPointer<Expression> radius;
-    QSharedPointer<Expression> color;
-    QSharedPointer<Expression> filled;
+    shared_ptr<Expression> cx, cy;
+    shared_ptr<Expression> radius;
+    shared_ptr<Expression> color;
+    shared_ptr<Expression> filled;
 
     Token tok  = lookAhead;
     match(DRAW_CIRCLE);
@@ -812,13 +813,13 @@ QSharedPointer<Statement> KalimatParser::drawCircleStmt()
             filled = expression();
         }
     }
-    return QSharedPointer<Statement>(new DrawCircleStmt(tok, cx, cy, radius, color, filled));
+    return shared_ptr<Statement>(new DrawCircleStmt(tok, cx, cy, radius, color, filled));
 }
 
-QSharedPointer<Statement> KalimatParser::drawSpriteStmt()
+shared_ptr<Statement> KalimatParser::drawSpriteStmt()
 {
-    QSharedPointer<Expression> x, y;
-    QSharedPointer<Expression> number;
+    shared_ptr<Expression> x, y;
+    shared_ptr<Expression> number;
 
     Token tok  = lookAhead;
     match(DRAW_SPRITE);
@@ -831,14 +832,14 @@ QSharedPointer<Statement> KalimatParser::drawSpriteStmt()
     y = expression();
     match(RPAREN);
 
-    return QSharedPointer<Statement>(new DrawSpriteStmt(tok, x, y, number));
+    return shared_ptr<Statement>(new DrawSpriteStmt(tok, x, y, number));
 }
 
-QSharedPointer<Statement> KalimatParser::zoomStmt()
+shared_ptr<Statement> KalimatParser::zoomStmt()
 {
 
-    QSharedPointer<Expression> x1, y1;
-    QSharedPointer<Expression> x2, y2;
+    shared_ptr<Expression> x1, y1;
+    shared_ptr<Expression> x2, y2;
 
     Token tok  = lookAhead;
     match(ZOOM);
@@ -858,13 +859,13 @@ QSharedPointer<Statement> KalimatParser::zoomStmt()
     y2 = expression();
     match(RPAREN);
 
-    return QSharedPointer<Statement>(new ZoomStmt(tok, x1, y1, x2, y2));
+    return shared_ptr<Statement>(new ZoomStmt(tok, x1, y1, x2, y2));
 }
 
-QSharedPointer<Statement> KalimatParser::eventHandlerStmt()
+shared_ptr<Statement> KalimatParser::eventHandlerStmt()
 {
     EventType type;
-    QSharedPointer<Identifier> proc;
+    shared_ptr<Identifier> proc;
     Token tok  = lookAhead;
     match(WHEN);
     match(EVENT);
@@ -910,14 +911,14 @@ QSharedPointer<Statement> KalimatParser::eventHandlerStmt()
     }
     match(DO);
     proc = identifier();
-    return QSharedPointer<Statement>(new EventStatement(tok, type, proc));
+    return shared_ptr<Statement>(new EventStatement(tok, type, proc));
 }
 
-QSharedPointer<SendStmt> KalimatParser::sendStmt()
+shared_ptr<SendStmt> KalimatParser::sendStmt()
 {
     bool signal = false;
-    QSharedPointer<Expression> value;
-    QSharedPointer<Expression> chan;
+    shared_ptr<Expression> value;
+    shared_ptr<Expression> chan;
     match(SEND);
     if(eof())
         throw ParserException(getPos(), "Expected an expression");
@@ -931,14 +932,14 @@ QSharedPointer<SendStmt> KalimatParser::sendStmt()
         value = expression();
     match(TO);
     chan = expression();
-    return QSharedPointer<Statement>(new SendStmt(tok, signal, value, chan));
+    return shared_ptr<SendStmt>(new SendStmt(tok, signal, value, chan));
 }
 
-QSharedPointer<ReceiveStmt> KalimatParser::receiveStmt()
+shared_ptr<ReceiveStmt> KalimatParser::receiveStmt()
 {
     bool signal = false;
-    QSharedPointer<AssignableExpression> value;
-    QSharedPointer<Expression> chan;
+    shared_ptr<AssignableExpression> value;
+    shared_ptr<Expression> chan;
     match(RECEIVE);
     if(eof())
         throw ParserException(getPos(), "Expected an expression");
@@ -950,8 +951,8 @@ QSharedPointer<ReceiveStmt> KalimatParser::receiveStmt()
     }
     else
     {
-        QSharedPointer<Expression> expr = primaryExpression();
-        value = expr.dynamicCast<AssignableExpression>();
+        shared_ptr<Expression> expr = primaryExpression();
+        value = dynamic_pointer_cast<AssignableExpression>(expr);
         if(value == NULL)
         {
             throw ParserException(getPos(), "'Receive' must take an assignable expression");
@@ -959,14 +960,14 @@ QSharedPointer<ReceiveStmt> KalimatParser::receiveStmt()
     }
     match(FROM);
     chan = expression();
-    return QSharedPointer<Statement>(new ReceiveStmt(tok, signal, value, chan));
+    return shared_ptr<ReceiveStmt>(new ReceiveStmt(tok, signal, value, chan));
 }
 
-QSharedPointer<Statement> KalimatParser::selectStmt()
+shared_ptr<Statement> KalimatParser::selectStmt()
 {
     Token tok = lookAhead;
-    QVector<QSharedPointer<ChannelCommunicationStmt> > conditions;
-    QVector<QSharedPointer<Statement> > actions;
+    QVector<shared_ptr<ChannelCommunicationStmt> > conditions;
+    QVector<shared_ptr<Statement> > actions;
     bool multilineStatement = false;
     match(SELECT);
     match(COLON);
@@ -1017,12 +1018,12 @@ QSharedPointer<Statement> KalimatParser::selectStmt()
             actions.append(statement());
     }
     match(DONE);
-    return QSharedPointer<Statement>(new SelectStmt(tok, conditions, actions));
+    return shared_ptr<Statement>(new SelectStmt(tok, conditions, actions));
 }
 
-QSharedPointer<BlockStmt> KalimatParser::block()
+shared_ptr<BlockStmt> KalimatParser::block()
 {
-    QVector<QSharedPointer<Statement> > stmts;
+    QVector<shared_ptr<Statement> > stmts;
     Token tok = lookAhead;
     newLines();
     while(LA_first_statement())
@@ -1032,12 +1033,12 @@ QSharedPointer<BlockStmt> KalimatParser::block()
             match(NEWLINE);
         newLines();
     }
-    return QSharedPointer<Statement>(new BlockStmt(tok, stmts));
+    return shared_ptr<BlockStmt>(new BlockStmt(tok, stmts));
 }
 
-QVector<QSharedPointer<Identifier> > KalimatParser::formalParamList()
+QVector<shared_ptr<Identifier> > KalimatParser::formalParamList()
 {
-    QVector<QSharedPointer<Identifier> > formals;
+    QVector<shared_ptr<Identifier> > formals;
 
     match(LPAREN);
     if(LA(IDENTIFIER))
@@ -1053,26 +1054,25 @@ QVector<QSharedPointer<Identifier> > KalimatParser::formalParamList()
     return formals;
 }
 
-QSharedPointer<Declaration> KalimatParser::procedureDecl()
+shared_ptr<Declaration> KalimatParser::procedureDecl()
 {
-
     match(PROCEDURE);
     Token tok  = lookAhead;
-    QSharedPointer<Identifier> procName = identifier();
-    QVector<QSharedPointer<Identifier> > formals = formalParamList();
+    shared_ptr<Identifier> procName = identifier();
+    QVector<shared_ptr<Identifier> > formals = formalParamList();
 
     match(COLON);
     match(NEWLINE);
 
-    QSharedPointer<ProcedureDecl> ret(new ProcedureDecl(tok,
+    shared_ptr<ProcedureDecl> ret(new ProcedureDecl(tok,
                                                           Token(),
                                                           procName,
                                                           formals,
-                                                          QSharedPointer<BlockStmt>(),
+                                                          shared_ptr<BlockStmt>(),
                                                           true));
 
     varContext.push(ret);
-    QSharedPointer<BlockStmt> body = block();
+    shared_ptr<BlockStmt> body = block();
     varContext.pop();
 
     expect(END);
@@ -1084,18 +1084,18 @@ QSharedPointer<Declaration> KalimatParser::procedureDecl()
     return ret;
 }
 
-QSharedPointer<Declaration> KalimatParser::functionDecl()
+shared_ptr<Declaration> KalimatParser::functionDecl()
 {
     match(FUNCTION);
     Token tok  = lookAhead;
-    QSharedPointer<Identifier> procName = identifier();
-    QVector<QSharedPointer<Identifier> > formals = formalParamList();
+    shared_ptr<Identifier> procName = identifier();
+    QVector<shared_ptr<Identifier> > formals = formalParamList();
     match(COLON);
     match(NEWLINE);
-    QSharedPointer<FunctionDecl> ret(new FunctionDecl(tok, Token(), procName, formals, QSharedPointer<BlockStmt>(), true));
+    shared_ptr<FunctionDecl> ret(new FunctionDecl(tok, Token(), procName, formals, shared_ptr<BlockStmt>(), true));
 
     varContext.push(ret);
-    QSharedPointer<BlockStmt> body = block();
+    shared_ptr<BlockStmt> body = block();
     varContext.pop();
 
     expect(END);
@@ -1108,8 +1108,8 @@ QSharedPointer<Declaration> KalimatParser::functionDecl()
 }
 
 void KalimatParser::addPropertySetter(Token pos,
-                                       QSharedPointer<Identifier> methodName,
-                                       QVector<QSharedPointer<Identifier> > formals,
+                                       shared_ptr<Identifier> methodName,
+                                       QVector<shared_ptr<Identifier> > formals,
                                        QMap<QString, PropInfo> &propertyInfo)
 {
     // Since this is 'responds', the property has to be a setter
@@ -1131,8 +1131,8 @@ void KalimatParser::addPropertySetter(Token pos,
 }
 
 void KalimatParser::addPropertyGetter(Token pos,
-                                      QSharedPointer<Identifier> methodName,
-                                      QVector<QSharedPointer<Identifier> > formals,
+                                      shared_ptr<Identifier> methodName,
+                                      QVector<shared_ptr<Identifier> > formals,
                                                      QMap<QString, PropInfo> &propertyInfo)
 {
     // Since this is 'replies', the property has to be a getter
@@ -1149,35 +1149,35 @@ void KalimatParser::addPropertyGetter(Token pos,
     }
 }
 
-QSharedPointer<Declaration> KalimatParser::classDecl()
+shared_ptr<Declaration> KalimatParser::classDecl()
 {
-    QVector<QSharedPointer<Identifier> > fields;
+    QVector<shared_ptr<Identifier> > fields;
     QMap<QString, MethodInfo> methods;
-    QMap<QString, QSharedPointer<TypeExpression> > fieldMarshallAs;
+    QMap<QString, shared_ptr<TypeExpression> > fieldMarshallAs;
 
     match(CLASS);
     Token tok  = lookAhead;
-    QSharedPointer<Identifier> className = identifier();
-    QSharedPointer<Identifier> ancestorName;
+    shared_ptr<Identifier> className = identifier();
+    shared_ptr<Identifier> ancestorName;
     match(COLON);
     match(NEWLINE);
     newLines();
-    QVector<QSharedPointer<ClassInternalDecl> > internalDecls;
+    QVector<shared_ptr<ClassInternalDecl> > internalDecls;
     QMap<QString, PropInfo> propertyInfo;
 
     while(LA(HAS)|| LA(RESPONDS) || LA(REPLIES) || LA(BUILT))
     {
         if(LA(HAS))
         {
-            QSharedPointer<Has> h(new Has());
+            shared_ptr<Has> h(new Has());
             match(HAS);
-            QSharedPointer<Identifier> fname = identifier();
-            h.data()->add(fname);
+            shared_ptr<Identifier> fname = identifier();
+            h.get()->add(fname);
             fields.append(fname);
             if(LA(MARSHALLAS))
             {
                 match(MARSHALLAS);
-                QSharedPointer<TypeExpression> te = typeExpression();
+                shared_ptr<TypeExpression> te = typeExpression();
                 fieldMarshallAs[fname->name] = te;
             }
             while(LA(COMMA))
@@ -1189,24 +1189,24 @@ QSharedPointer<Declaration> KalimatParser::classDecl()
                 if(LA(MARSHALLAS))
                 {
                     match(MARSHALLAS);
-                    QSharedPointer<TypeExpression> te = typeExpression();
+                    shared_ptr<TypeExpression> te = typeExpression();
                     fieldMarshallAs[fname->name] = te;
                 }
             }
             match(NEWLINE);
-            internalDecls.append(QSharedPointer<ClassInternalDecl>(h));
+            internalDecls.append(shared_ptr<ClassInternalDecl>(h));
         }
         if(LA(RESPONDS))
         {
             match(RESPONDS);
             match(UPON);
 
-            QSharedPointer<Identifier> methodName = identifier();
-            QVector<QSharedPointer<Identifier> > formals = formalParamList();
-            QSharedPointer<RespondsTo> rt(new RespondsTo(false));
+            shared_ptr<Identifier> methodName = identifier();
+            QVector<shared_ptr<Identifier> > formals = formalParamList();
+            shared_ptr<RespondsTo> rt(new RespondsTo(false));
 
-            QSharedPointer<ConcreteResponseInfo> ri(new ConcreteResponseInfo(methodName));
-            for(QVector<QSharedPointer<Identifier> >::const_iterator i=formals.begin(); i!= formals.end(); ++i)
+            shared_ptr<ConcreteResponseInfo> ri(new ConcreteResponseInfo(methodName));
+            for(QVector<shared_ptr<Identifier> >::const_iterator i=formals.begin(); i!= formals.end(); ++i)
                 ri->add(*i);
 
             rt->add(ri);
@@ -1221,10 +1221,10 @@ QSharedPointer<Declaration> KalimatParser::classDecl()
             while(LA(COMMA))
             {
                 match(COMMA);
-                QSharedPointer<Identifier> methodName = identifier();
-                QVector<QSharedPointer<Identifier> > formals= formalParamList();
-                QSharedPointer<ConcreteResponseInfo> ri(new ConcreteResponseInfo(methodName));
-                for(QVector<QSharedPointer<Identifier> >::const_iterator i=formals.begin(); i!= formals.end(); ++i)
+                shared_ptr<Identifier> methodName = identifier();
+                QVector<shared_ptr<Identifier> > formals= formalParamList();
+                shared_ptr<ConcreteResponseInfo> ri(new ConcreteResponseInfo(methodName));
+                for(QVector<shared_ptr<Identifier> >::const_iterator i=formals.begin(); i!= formals.end(); ++i)
                     ri->add(*i);
                 rt->add(ri);
                 if(LA(PROPERTY))
@@ -1235,7 +1235,7 @@ QSharedPointer<Declaration> KalimatParser::classDecl()
                 }
                 methods[methodName->name] = MethodInfo(formals.count(), false);
             }
-            internalDecls.append(QSharedPointer<ClassInternalDecl>(rt));
+            internalDecls.append(shared_ptr<ClassInternalDecl>(rt));
             match(NEWLINE);
         }
         if(LA(REPLIES))
@@ -1243,11 +1243,11 @@ QSharedPointer<Declaration> KalimatParser::classDecl()
             match(REPLIES);
             match(ON);
 
-            QSharedPointer<Identifier> methodName = identifier();
-            QVector<QSharedPointer<Identifier> > formals = formalParamList();
-            QSharedPointer<RespondsTo> rt(new RespondsTo(true));
-            QSharedPointer<ConcreteResponseInfo> ri(new ConcreteResponseInfo(methodName));
-            for(QVector<QSharedPointer<Identifier> >::const_iterator i=formals.begin(); i!= formals.end(); ++i)
+            shared_ptr<Identifier> methodName = identifier();
+            QVector<shared_ptr<Identifier> > formals = formalParamList();
+            shared_ptr<RespondsTo> rt(new RespondsTo(true));
+            shared_ptr<ConcreteResponseInfo> ri(new ConcreteResponseInfo(methodName));
+            for(QVector<shared_ptr<Identifier> >::const_iterator i=formals.begin(); i!= formals.end(); ++i)
                 ri->add(*i);
             rt->add(ri);
             if(LA(PROPERTY))
@@ -1261,10 +1261,10 @@ QSharedPointer<Declaration> KalimatParser::classDecl()
             while(LA(COMMA))
             {
                 match(COMMA);
-                QSharedPointer<Identifier> methodName = identifier();
-                QVector<QSharedPointer<Identifier> > formals= formalParamList();
-                QSharedPointer<ConcreteResponseInfo> ri(new ConcreteResponseInfo(methodName));
-                for(QVector<QSharedPointer<Identifier> >::const_iterator i=formals.begin(); i!= formals.end(); ++i)
+                shared_ptr<Identifier> methodName = identifier();
+                QVector<shared_ptr<Identifier> > formals= formalParamList();
+                shared_ptr<ConcreteResponseInfo> ri(new ConcreteResponseInfo(methodName));
+                for(QVector<shared_ptr<Identifier> >::const_iterator i=formals.begin(); i!= formals.end(); ++i)
                     ri->add(*i);
                 rt->add(ri);
                 if(LA(PROPERTY))
@@ -1275,7 +1275,7 @@ QSharedPointer<Declaration> KalimatParser::classDecl()
                 }
                 methods[methodName->name] = MethodInfo(formals.count(), true);
             }
-            internalDecls.append(QSharedPointer<ClassInternalDecl>(rt));
+            internalDecls.append(shared_ptr<ClassInternalDecl>(rt));
             match(NEWLINE);
         }
         if(LA(BUILT))
@@ -1290,16 +1290,16 @@ QSharedPointer<Declaration> KalimatParser::classDecl()
         newLines();
     }
     match(END);
-    return QSharedPointer<Declaration>(new ClassDecl(tok, ancestorName, className, fields, methods, internalDecls, fieldMarshallAs, true));
+    return shared_ptr<Declaration>(new ClassDecl(tok, ancestorName, className, fields, methods, internalDecls, fieldMarshallAs, true));
 }
 
-QSharedPointer<Declaration> KalimatParser::globalDecl()
+shared_ptr<Declaration> KalimatParser::globalDecl()
 {
-    QSharedPointer<Identifier> var;
+    shared_ptr<Identifier> var;
     Token tok  = lookAhead;
     var = identifier();
     match(GLOBAL);
-    return QSharedPointer<Declaration>(new GlobalDecl(tok, var->name, true));
+    return shared_ptr<Declaration>(new GlobalDecl(tok, var->name, true));
 }
 
 bool KalimatParser::LA_first_method_declaration()
@@ -1307,14 +1307,14 @@ bool KalimatParser::LA_first_method_declaration()
     return LA(RESPONSEOF) || LA(REPLYOF);
 }
 
-QSharedPointer<Declaration> KalimatParser::methodDecl()
+shared_ptr<Declaration> KalimatParser::methodDecl()
 {
     bool isFunctionNotProcedure;
-    QSharedPointer<Identifier> className;
-    QSharedPointer<Identifier> receiverName;
-    QSharedPointer<Identifier> methodName;
+    shared_ptr<Identifier> className;
+    shared_ptr<Identifier> receiverName;
+    shared_ptr<Identifier> methodName;
 
-    QVector<QSharedPointer<Identifier> > formals;
+    QVector<shared_ptr<Identifier> > formals;
     if(LA(RESPONSEOF))
     {
         isFunctionNotProcedure = false;
@@ -1340,7 +1340,7 @@ QSharedPointer<Declaration> KalimatParser::methodDecl()
     {
         match(MESSAGE);
         match(OTHER);
-        methodName = QSharedPointer<Identifier>(new Identifier(tok, "%nosuchmethod"));
+        methodName = shared_ptr<Identifier>(new Identifier(tok, "%nosuchmethod"));
     }
     else
     {
@@ -1356,12 +1356,12 @@ QSharedPointer<Declaration> KalimatParser::methodDecl()
         throw ParserException(tok, QString::fromStdWString(L"الرد على رسالة أخرى لابد أن يأخذ عاملين"));
     }
 
-    QSharedPointer<MethodDecl> ret(new MethodDecl(tok, Token(), className, receiverName,
-                                     methodName, formals, QSharedPointer<BlockStmt>(),
+    shared_ptr<MethodDecl> ret(new MethodDecl(tok, Token(), className, receiverName,
+                                     methodName, formals, shared_ptr<BlockStmt>(),
                                      isFunctionNotProcedure));
 
     varContext.push(ret);
-    QSharedPointer<BlockStmt> body = block();
+    shared_ptr<BlockStmt> body = block();
     varContext.pop();
     ret->body(body);
 
@@ -1373,15 +1373,15 @@ QSharedPointer<Declaration> KalimatParser::methodDecl()
 
 }
 
-QSharedPointer<Declaration> KalimatParser::ffiLibraryDecl()
+shared_ptr<Declaration> KalimatParser::ffiLibraryDecl()
 {
     Token tok = lookAhead;
     match(LIBRARY);
-    QSharedPointer<FFILibraryDecl> ffiLib;
-    QVector<QSharedPointer<Declaration> > decls;
+    shared_ptr<FFILibraryDecl> ffiLib;
+    QVector<shared_ptr<Declaration> > decls;
     if(LA(STR_LITERAL))
     {
-        QSharedPointer<StrLiteral>  libName(new StrLiteral(lookAhead, prepareStringLiteral(lookAhead.Lexeme)));
+        shared_ptr<StrLiteral>  libName(new StrLiteral(lookAhead, prepareStringLiteral(lookAhead.Lexeme)));
         match(STR_LITERAL);
         match(COLON);
         match(NEWLINE);
@@ -1395,7 +1395,7 @@ QSharedPointer<Declaration> KalimatParser::ffiLibraryDecl()
             newLines();
         }
         match(END);
-        ffiLib = QSharedPointer<FFILibraryDecl>(new FFILibraryDecl(tok, libName->value, decls, true));
+        ffiLib = shared_ptr<FFILibraryDecl>(new FFILibraryDecl(tok, libName->value, decls, true));
         return ffiLib;
     }
     else
@@ -1404,29 +1404,29 @@ QSharedPointer<Declaration> KalimatParser::ffiLibraryDecl()
     }
 }
 
-QSharedPointer<Declaration> KalimatParser::rulesDecl()
+shared_ptr<Declaration> KalimatParser::rulesDecl()
 {
     match(RULES);
-    QSharedPointer<Identifier> ruleName = identifier();
+    shared_ptr<Identifier> ruleName = identifier();
     match(COLON);
     match(NEWLINE);
     newLines();
     while(LA(IDENTIFIER))
     {
-        QSharedPointer<RuleDecl> rd = ruleDecl();
+        shared_ptr<RuleDecl> rd = ruleDecl();
         newLines();
     }
     match(END);
 }
 
-QSharedPointer<RuleDecl> KalimatParser::ruleDecl()
+shared_ptr<RuleDecl> KalimatParser::ruleDecl()
 {
-    QVector<QSharedPointer<RuleOption> > options;
-    QSharedPointer<Identifier> name = identifier();
+    QVector<shared_ptr<RuleOption> > options;
+    shared_ptr<Identifier> name = identifier();
 
     match(EQ);
-    QSharedPointer<PegExpr> expr = pegExpr();
-    QSharedPointer<Expression> resultExpr;
+    shared_ptr<PegExpr> expr = pegExpr();
+    shared_ptr<Expression> resultExpr;
     if(LA(ROCKET))
     {
         match(ROCKET);
@@ -1434,7 +1434,7 @@ QSharedPointer<RuleDecl> KalimatParser::ruleDecl()
     }
     match(NEWLINE);
     newLines();
-    options.append(QSharedPointer<RuleOption>(new RuleOption(expr, resultExpr)));
+    options.append(shared_ptr<RuleOption>(new RuleOption(expr, resultExpr)));
     while(LA(OR))
     {
         expr = pegExpr();
@@ -1443,34 +1443,34 @@ QSharedPointer<RuleDecl> KalimatParser::ruleDecl()
             match(ROCKET);
             resultExpr = expression();
         }
-        options.append(QSharedPointer<RuleOption>(new RuleOption(expr, resultExpr)));
+        options.append(shared_ptr<RuleOption>(new RuleOption(expr, resultExpr)));
         match(NEWLINE);
         newLines();
     }
-    return QSharedPointer<RuleDecl>(new RuleDecl(name->name, options));
+    return shared_ptr<RuleDecl>(new RuleDecl(name->name, options));
 }
 
-QSharedPointer<PegExpr> KalimatParser::pegExpr()
+shared_ptr<PegExpr> KalimatParser::pegExpr()
 {
     identifier();
 }
 
-QSharedPointer<FFIProceduralDecl> KalimatParser::ffiFunctionDecl()
+shared_ptr<FFIProceduralDecl> KalimatParser::ffiFunctionDecl()
 {
-    QVector<QSharedPointer<TypeExpression> > argTypes;
-    QSharedPointer<TypeExpression> retType;
+    QVector<shared_ptr<TypeExpression> > argTypes;
+    shared_ptr<TypeExpression> retType;
     QString symbol;
     Token pos = lookAhead;
     match(FUNCTION);
 
-    QSharedPointer<Identifier> fname = identifier();
+    shared_ptr<Identifier> fname = identifier();
     symbol = fname->name;
     if(LA(SYMBOL))
     {
         match(SYMBOL);
         if(LA(STR_LITERAL))
         {
-            QSharedPointer<StrLiteral> s(new StrLiteral(lookAhead, prepareStringLiteral(lookAhead.Lexeme)));
+            shared_ptr<StrLiteral> s(new StrLiteral(lookAhead, prepareStringLiteral(lookAhead.Lexeme)));
             symbol = s->value;
             match(STR_LITERAL);
         }
@@ -1492,25 +1492,25 @@ QSharedPointer<FFIProceduralDecl> KalimatParser::ffiFunctionDecl()
     }
     match(RPAREN);
     retType = typeExpression();
-    return QSharedPointer<FFIProceduralDecl>(new FFIProceduralDecl(pos, true, retType, argTypes, fname->name, symbol, true));
+    return shared_ptr<FFIProceduralDecl>(new FFIProceduralDecl(pos, true, retType, argTypes, fname->name, symbol, true));
 }
 
-QSharedPointer<FFIProceduralDecl> KalimatParser::ffiProcDecl()
+shared_ptr<FFIProceduralDecl> KalimatParser::ffiProcDecl()
 {
-    QVector<QSharedPointer<TypeExpression> > argTypes;
-    QSharedPointer<TypeExpression> retType;
+    QVector<shared_ptr<TypeExpression> > argTypes;
+    shared_ptr<TypeExpression> retType;
     QString symbol;
     Token pos = lookAhead;
     match(PROCEDURE);
 
-    QSharedPointer<Identifier> fname = identifier();
+    shared_ptr<Identifier> fname = identifier();
     symbol = fname->name;
     if(LA(SYMBOL))
     {
         match(SYMBOL);
         if(LA(STR_LITERAL))
         {
-            QSharedPointer<StrLiteral> s(new StrLiteral(lookAhead, lookAhead.Lexeme));
+            shared_ptr<StrLiteral> s(new StrLiteral(lookAhead, lookAhead.Lexeme));
             symbol = s->value;
             match(STR_LITERAL);
         }
@@ -1531,7 +1531,7 @@ QSharedPointer<FFIProceduralDecl> KalimatParser::ffiProcDecl()
         }
     }
     match(RPAREN);
-    return QSharedPointer<FFIProceduralDecl>(new FFIProceduralDecl(pos, false, retType, argTypes, fname->name, symbol, true));
+    return shared_ptr<FFIProceduralDecl>(new FFIProceduralDecl(pos, false, retType, argTypes, fname->name, symbol, true));
 }
 
 bool KalimatParser::LA_first_expression()
@@ -1540,26 +1540,26 @@ bool KalimatParser::LA_first_expression()
             || LA(NOT) || LA(ADD_OP) || LA(SUB_OP);
 }
 
-QSharedPointer<Expression> KalimatParser::expression()
+shared_ptr<Expression> KalimatParser::expression()
 {
     return andOrExpression();
 }
 
-QSharedPointer<Expression> KalimatParser::andOrExpression()
+shared_ptr<Expression> KalimatParser::andOrExpression()
 {
-    QSharedPointer<Expression> t = notExpression();
+    shared_ptr<Expression> t = notExpression();
     while(LA(AND) || LA(OR))
     {
         QString operation = getOperation(lookAhead);
         Token tok  = lookAhead;
         match(lookAhead.Type);
-        QSharedPointer<Expression> t2 = notExpression();
-        t = QSharedPointer<Expression>(new BinaryOperation(tok, operation, t, t2));
+        shared_ptr<Expression> t2 = notExpression();
+        t = shared_ptr<Expression>(new BinaryOperation(tok, operation, t, t2));
     }
     return t;
 }
 
-QSharedPointer<Expression> KalimatParser::notExpression()
+shared_ptr<Expression> KalimatParser::notExpression()
 {
     bool _not = false;
     Token tok  = lookAhead;
@@ -1568,27 +1568,27 @@ QSharedPointer<Expression> KalimatParser::notExpression()
         match(NOT);
         _not = true;
     }
-    QSharedPointer<Expression> t = comparisonExpression();
+    shared_ptr<Expression> t = comparisonExpression();
     if(_not)
     {
-        t = QSharedPointer<Expression>(new UnaryOperation(tok, "not", t));
+        t = shared_ptr<Expression>(new UnaryOperation(tok, "not", t));
         while(LA(ANDNOT))
         {
             tok = lookAhead;
             match(ANDNOT);
-            QSharedPointer<Expression> t2 = comparisonExpression();
-            t = QSharedPointer<Expression>(new BinaryOperation(tok,
+            shared_ptr<Expression> t2 = comparisonExpression();
+            t = shared_ptr<Expression>(new BinaryOperation(tok,
                                                                "and",
                                                                t,
-                                                               QSharedPointer<Expression>(new UnaryOperation(tok, "not", t2))));
+                                                               shared_ptr<Expression>(new UnaryOperation(tok, "not", t2))));
         }
     }
     return t;
 }
 
-QSharedPointer<Expression> KalimatParser::comparisonExpression()
+shared_ptr<Expression> KalimatParser::comparisonExpression()
 {
-    QSharedPointer<Expression> t = arithmeticExpression();
+    shared_ptr<Expression> t = arithmeticExpression();
 
     while(true)
     {
@@ -1597,22 +1597,22 @@ QSharedPointer<Expression> KalimatParser::comparisonExpression()
             Token tok  = lookAhead;
             QString operation = getOperation(lookAhead);
             match(lookAhead.Type);
-            QSharedPointer<Expression> t2 = arithmeticExpression();
-            t = QSharedPointer<Expression>(new BinaryOperation(tok, operation, t, t2));
+            shared_ptr<Expression> t2 = arithmeticExpression();
+            t = shared_ptr<Expression>(new BinaryOperation(tok, operation, t, t2));
         }
         else if(LA(IS))
         {
             Token tok  = lookAhead;
             match(lookAhead.Type);
-            QSharedPointer<Identifier> t2 = identifier();
-            t = QSharedPointer<Expression>(new IsaOperation(tok, t, t2));
+            shared_ptr<Identifier> t2 = identifier();
+            t = shared_ptr<Expression>(new IsaOperation(tok, t, t2));
         }
         else if(LA(MATCHES))
         {
             Token tok  = lookAhead;
             match(lookAhead.Type);
-            QSharedPointer<Pattern> t2 = pattern();
-            t = QSharedPointer<Expression>(new MatchOperation(tok, t, t2));
+            shared_ptr<Pattern> t2 = pattern();
+            t = shared_ptr<Expression>(new MatchOperation(tok, t, t2));
         }
         else
         {
@@ -1628,7 +1628,7 @@ bool KalimatParser::LA_first_pattern()
             || LA(LBRACE) || LA_first_simple_literal();
 }
 
-QSharedPointer<Pattern> KalimatParser::pattern()
+shared_ptr<Pattern> KalimatParser::pattern()
 {
     if(LA_first_simple_literal())
         return simpleLiteralPattern();
@@ -1644,30 +1644,30 @@ QSharedPointer<Pattern> KalimatParser::pattern()
         return mapPattern();
 }
 
-QSharedPointer<Pattern> KalimatParser::simpleLiteralPattern()
+shared_ptr<Pattern> KalimatParser::simpleLiteralPattern()
 {
-    QSharedPointer<SimpleLiteral> sl = simpleLiteral();
-    return QSharedPointer<Pattern>(new SimpleLiteralPattern(sl->getPos(), sl));
+    shared_ptr<SimpleLiteral> sl = simpleLiteral();
+    return shared_ptr<Pattern>(new SimpleLiteralPattern(sl->getPos(), sl));
 }
 
-QSharedPointer<Pattern> KalimatParser::assignedVarPattern()
+shared_ptr<Pattern> KalimatParser::assignedVarPattern()
 {
     match(QUESTION);
-    QSharedPointer<Expression> expr = expression();
+    shared_ptr<Expression> expr = expression();
 
-    QSharedPointer<AssignableExpression> id = expr.dynamicCast<AssignableExpression>();
+    shared_ptr<AssignableExpression> id = dynamic_pointer_cast<AssignableExpression>(expr);
     if(id == NULL)
     {
         throw ParserException(getPos(), "After ? must be an assignable expression");
     }
-    return QSharedPointer<Pattern>(new AssignedVarPattern(id->getPos(), id));
+    return shared_ptr<Pattern>(new AssignedVarPattern(id->getPos(), id));
 }
 
-QSharedPointer<Pattern> KalimatParser::varOrObjPattern()
+shared_ptr<Pattern> KalimatParser::varOrObjPattern()
 {
     bool mustBeObj = false;
-    QVector<QSharedPointer<Identifier> > fnames;
-    QVector<QSharedPointer<Pattern> > fpatterns;
+    QVector<shared_ptr<Identifier> > fnames;
+    QVector<shared_ptr<Pattern> > fpatterns;
 
     if(LA(ANYOF))
     {
@@ -1675,7 +1675,7 @@ QSharedPointer<Pattern> KalimatParser::varOrObjPattern()
         mustBeObj = true;
     }
 
-    QSharedPointer<Identifier> id = identifier();
+    shared_ptr<Identifier> id = identifier();
     if(LA(HAS))
     {
         mustBeObj = true;
@@ -1695,18 +1695,18 @@ QSharedPointer<Pattern> KalimatParser::varOrObjPattern()
     }
     if(mustBeObj)
     {
-        return QSharedPointer<Pattern>(new ObjPattern(id->getPos(), id, fnames, fpatterns));
+        return shared_ptr<Pattern>(new ObjPattern(id->getPos(), id, fnames, fpatterns));
     }
     else
     {
-        return QSharedPointer<Pattern>(new VarPattern(id->getPos(), id));
+        return shared_ptr<Pattern>(new VarPattern(id->getPos(), id));
     }
 }
 
-QSharedPointer<Pattern> KalimatParser::arrayPattern()
+shared_ptr<Pattern> KalimatParser::arrayPattern()
 {
     bool fixedLen = true;
-    QVector<QSharedPointer<Pattern> > patterns;
+    QVector<shared_ptr<Pattern> > patterns;
     Token pos = lookAhead;
     match(LBRACKET);
     if(LA_first_pattern())
@@ -1729,13 +1729,13 @@ QSharedPointer<Pattern> KalimatParser::arrayPattern()
         }
     }
     match(RBRACKET);
-    return QSharedPointer<Pattern>(new ArrayPattern(pos, patterns));
+    return shared_ptr<Pattern>(new ArrayPattern(pos, patterns));
 }
 
-QSharedPointer<Pattern> KalimatParser::mapPattern()
+shared_ptr<Pattern> KalimatParser::mapPattern()
 {
-    QVector<QSharedPointer<Expression> > keys;
-    QVector<QSharedPointer<Pattern> > patterns;
+    QVector<shared_ptr<Expression> > keys;
+    QVector<shared_ptr<Pattern> > patterns;
     Token pos = lookAhead;
     match(LBRACE);
     if(LA_first_expression())
@@ -1753,39 +1753,39 @@ QSharedPointer<Pattern> KalimatParser::mapPattern()
         }
     }
     match(RBRACE);
-    return QSharedPointer<Pattern>(new MapPattern(pos, keys, patterns));
+    return shared_ptr<Pattern>(new MapPattern(pos, keys, patterns));
 }
 
-QSharedPointer<Expression> KalimatParser::arithmeticExpression()
+shared_ptr<Expression> KalimatParser::arithmeticExpression()
 {
-    QSharedPointer<Expression> t = multiplicativeExpression();
+    shared_ptr<Expression> t = multiplicativeExpression();
 
     while(LA(ADD_OP) || LA(SUB_OP))
     {
         Token tok  = lookAhead;
         QString operation = getOperation(lookAhead);
         match(lookAhead.Type);
-        QSharedPointer<Expression> t2 = multiplicativeExpression();
-        t = QSharedPointer<Expression>(new BinaryOperation(tok, operation, t, t2));
+        shared_ptr<Expression> t2 = multiplicativeExpression();
+        t = shared_ptr<Expression>(new BinaryOperation(tok, operation, t, t2));
     }
     return t;
 }
 
-QSharedPointer<Expression> KalimatParser::multiplicativeExpression()
+shared_ptr<Expression> KalimatParser::multiplicativeExpression()
 {
-    QSharedPointer<Expression> t = positiveOrNegativeExpression();
+    shared_ptr<Expression> t = positiveOrNegativeExpression();
     while(LA(MUL_OP) || LA(DIV_OP))
     {
         Token tok  = lookAhead;
         QString operation = getOperation(lookAhead);
         match(lookAhead.Type);
-        QSharedPointer<Expression> t2 = positiveOrNegativeExpression();
-        t = QSharedPointer<Expression>(new BinaryOperation(tok, operation, t, t2));
+        shared_ptr<Expression> t2 = positiveOrNegativeExpression();
+        t = shared_ptr<Expression>(new BinaryOperation(tok, operation, t, t2));
     }
     return t;
 }
 
-QSharedPointer<Expression> KalimatParser::positiveOrNegativeExpression()
+shared_ptr<Expression> KalimatParser::positiveOrNegativeExpression()
 {
     bool pos = false;
     bool neg = false;
@@ -1801,24 +1801,24 @@ QSharedPointer<Expression> KalimatParser::positiveOrNegativeExpression()
         neg = true;
     }
 
-    QSharedPointer<Expression> t = primaryExpression();
+    shared_ptr<Expression> t = primaryExpression();
     if(pos)
-        t = QSharedPointer<Expression>(new UnaryOperation(tok, "pos", t));
+        t = shared_ptr<Expression>(new UnaryOperation(tok, "pos", t));
     else if(neg)
-        t = QSharedPointer<Expression>(new UnaryOperation(tok, "neg", t));
+        t = shared_ptr<Expression>(new UnaryOperation(tok, "neg", t));
 
     return t;
 }
 
-QSharedPointer<Expression> KalimatParser::primaryExpression()
+shared_ptr<Expression> KalimatParser::primaryExpression()
 {
-    QSharedPointer<Expression> ret = primaryExpressionNonInvokation();
+    shared_ptr<Expression> ret = primaryExpressionNonInvokation();
     Token tok;
     while(LA(LPAREN) || LA(COLON) || LA(LBRACKET))
     {
         if(LA(LPAREN))
         {
-            QVector<QSharedPointer<Expression> > args;
+            QVector<shared_ptr<Expression> > args;
             tok = lookAhead;
             match(LPAREN);
             if(!LA(RPAREN))
@@ -1831,7 +1831,7 @@ QSharedPointer<Expression> KalimatParser::primaryExpression()
                 }
             }
             match(RPAREN);
-            ret = QSharedPointer<Expression>(new Invokation(tok, ret, args));
+            ret = shared_ptr<Expression>(new Invokation(tok, ret, args));
         }
         if(LA(COLON))
         {
@@ -1840,8 +1840,8 @@ QSharedPointer<Expression> KalimatParser::primaryExpression()
             {
                 match(COLON);
                 tok = lookAhead;
-                QSharedPointer<Identifier> methodName = identifier();
-                QVector<QSharedPointer<Expression> > args;
+                shared_ptr<Identifier> methodName = identifier();
+                QVector<shared_ptr<Expression> > args;
                 match(LPAREN);
                 if(!LA(RPAREN))
                 {
@@ -1853,7 +1853,7 @@ QSharedPointer<Expression> KalimatParser::primaryExpression()
                     }
                 }
                 match(RPAREN);
-                ret = QSharedPointer<Expression>(new MethodInvokation(tok, ret, methodName, args));
+                ret = shared_ptr<Expression>(new MethodInvokation(tok, ret, methodName, args));
             }
             catch(ParserException ex)
             {
@@ -1866,11 +1866,11 @@ QSharedPointer<Expression> KalimatParser::primaryExpression()
             bool multiDim = false;
             tok = lookAhead;
             match(LBRACKET);
-            QSharedPointer<Expression> index = expression();
+            shared_ptr<Expression> index = expression();
             if(LA(COMMA))
             {
                 multiDim = true;
-                QVector<QSharedPointer<Expression> > indexes;
+                QVector<shared_ptr<Expression> > indexes;
                 indexes.append(index);
 
                 match(COMMA);
@@ -1881,13 +1881,13 @@ QSharedPointer<Expression> KalimatParser::primaryExpression()
                     match(COMMA);
                     indexes.append(expression());
                 }
-                ret = QSharedPointer<Expression>(new MultiDimensionalArrayIndex(tok, ret, indexes));
+                ret = shared_ptr<Expression>(new MultiDimensionalArrayIndex(tok, ret, indexes));
 
             }
             match(RBRACKET);
             if(!multiDim)
             {
-                ret = QSharedPointer<Exprrssion>(new ArrayIndex(tok, ret, index));
+                ret = shared_ptr<Expression>(new ArrayIndex(tok, ret, index));
             }
         }
     }
@@ -1914,32 +1914,32 @@ bool KalimatParser::LA_first_primary_expression()
                 //||  LA(FIELD);
 }
 
-QSharedPointer<SimpleLiteral> KalimatParser::simpleLiteral()
+shared_ptr<SimpleLiteral> KalimatParser::simpleLiteral()
 {
-    QSharedPointer<SimpleLiteral> ret;
+    shared_ptr<SimpleLiteral> ret;
     if(LA(NUM_LITERAL))
     {
-        ret = QSharedPointer<SimpleLiteral>(new NumLiteral(lookAhead, lookAhead.Lexeme));
+        ret = shared_ptr<SimpleLiteral>(new NumLiteral(lookAhead, lookAhead.Lexeme));
         match(NUM_LITERAL); // will throw if wrong lookAhead
     }
     else if(LA(STR_LITERAL))
     {
-        ret = QSharedPointer<SimpleLiteral>(new StrLiteral(lookAhead, prepareStringLiteral(lookAhead.Lexeme)));
+        ret = shared_ptr<SimpleLiteral>(new StrLiteral(lookAhead, prepareStringLiteral(lookAhead.Lexeme)));
         match(STR_LITERAL); // will throw if wrong lookAhead
     }
     else if(LA(NOTHING))
     {
-        ret = QSharedPointer<SimpleLiteral>(new NullLiteral(lookAhead));
+        ret = shared_ptr<SimpleLiteral>(new NullLiteral(lookAhead));
         match(NOTHING);
     }
     else if(LA(C_TRUE))
     {
-        ret = QSharedPointer<SimpleLiteral>(new BoolLiteral(lookAhead, true));
+        ret = shared_ptr<SimpleLiteral>(new BoolLiteral(lookAhead, true));
         match(lookAhead.Type);
     }
     else if(LA(C_FALSE))
     {
-        ret = QSharedPointer<SimpleLiteral>(new BoolLiteral(lookAhead, false));
+        ret = shared_ptr<SimpleLiteral>(new BoolLiteral(lookAhead, false));
         match(lookAhead.Type);
     }
     else
@@ -1949,9 +1949,9 @@ QSharedPointer<SimpleLiteral> KalimatParser::simpleLiteral()
     return ret;
 }
 
-QSharedPointer<Expression> KalimatParser::primaryExpressionNonInvokation()
+shared_ptr<Expression> KalimatParser::primaryExpressionNonInvokation()
 {
-    Expression *ret = NULL;
+    shared_ptr<Expression> ret;
     if(LA_first_simple_literal())
     {
         return simpleLiteral();
@@ -1960,40 +1960,40 @@ QSharedPointer<Expression> KalimatParser::primaryExpressionNonInvokation()
     {
         Token lbPos = lookAhead;
         match(LBRACKET);
-        QVector<Expression *> data = comma_separated_expressions();
+        QVector<shared_ptr<Expression> > data = comma_separated_expressions();
         match(RBRACKET);
-        ret = new ArrayLiteral(lbPos, data);
+        ret = shared_ptr<Expression>(new ArrayLiteral(lbPos, data));
     }
     else if(LA(LBRACE))
     {
         Token lbPos = lookAhead;
         match(LBRACE);
-        QVector<Expression *> data = comma_separated_pairs();
+        QVector<shared_ptr<Expression> > data = comma_separated_pairs();
         match(RBRACE);
-        ret = new MapLiteral(lbPos, data);
+        ret = shared_ptr<Expression>(new MapLiteral(lbPos, data));
     }
     else if(LA(IDENTIFIER))
     {
         Token tok = lookAhead;
-        Identifier *id = identifier();
+        shared_ptr<Identifier> id = identifier();
         ret = id;
         if(LA(NEW))
         {
             Token newTok = lookAhead;
             match(NEW);
-            ret = new ObjectCreation(newTok, id);
+            ret = shared_ptr<Expression>(new ObjectCreation(newTok, id));
         }
         else if(LA(DOLLAR))
         {
             match(DOLLAR);
-            Expression *modaf_elaih = primaryExpression();
-            ret = new Idafa(id->getPos(), id, modaf_elaih);
+            shared_ptr<Expression> modaf_elaih = primaryExpression();
+            ret = shared_ptr<Expression>(new Idafa(id->getPos(), id, modaf_elaih));
         }
         else if(LA_first_primary_expression() && !LA(LPAREN) && !LA(LBRACKET))
         {
             ParserState s = saveState();
-            Expression *modaf_elaih = primaryExpression();
-            ret = new Idafa(id->getPos(), id, modaf_elaih);
+            shared_ptr<Expression> modaf_elaih = primaryExpression();
+            ret = shared_ptr<Expression>(new Idafa(id->getPos(), id, modaf_elaih));
         }
 
     }
@@ -2023,12 +2023,12 @@ QSharedPointer<Expression> KalimatParser::primaryExpressionNonInvokation()
     return ret;
 }
 
-Identifier *KalimatParser::identifier()
+shared_ptr<Identifier> KalimatParser::identifier()
 {
-    Identifier *ret = NULL;
+    shared_ptr<Identifier> ret;
     if(LA(IDENTIFIER))
     {
-        ret = new Identifier(lookAhead, lookAhead.Lexeme);
+        ret = shared_ptr<Identifier>(new Identifier(lookAhead, lookAhead.Lexeme));
         match(IDENTIFIER);
         if(!varContext.empty())
             varContext.top()->addReference(ret);
@@ -2042,7 +2042,7 @@ bool KalimatParser::LA_first_typeExpression()
     return LA(IDENTIFIER) || LA(POINTER) || LA(PROCEDURE) || LA(FUNCTION);
 }
 
-TypeExpression *KalimatParser::typeExpression()
+shared_ptr<TypeExpression> KalimatParser::typeExpression()
 {
     if(LA(POINTER))
     {
@@ -2050,20 +2050,19 @@ TypeExpression *KalimatParser::typeExpression()
 
         match(POINTER);
         match(LPAREN);
-        TypeExpression *pointee = typeExpression();
+        shared_ptr<TypeExpression> pointee = typeExpression();
         match(RPAREN);
-        return new PointerTypeExpression(tok, pointee);
+        return shared_ptr<TypeExpression>(new PointerTypeExpression(tok, pointee));
     }
     else if(LA(IDENTIFIER))
     {
-        TypeIdentifier *ret = NULL;
-        ret = new TypeIdentifier(lookAhead, lookAhead.Lexeme);
+        shared_ptr<TypeIdentifier> ret(new TypeIdentifier(lookAhead, lookAhead.Lexeme));
         match(IDENTIFIER);
         return ret;
     }
     else if(LA(PROCEDURE))
     {
-        QVector<TypeExpression *> argTypes;
+        QVector<shared_ptr<TypeExpression> > argTypes;
         Token tok = lookAhead;
         match(PROCEDURE);
         match(LPAREN);
@@ -2077,11 +2076,13 @@ TypeExpression *KalimatParser::typeExpression()
             }
         }
         match(RPAREN);
-        return new FunctionTypeExpression(tok, NULL, argTypes);
+        return shared_ptr<TypeExpression>(new FunctionTypeExpression(tok,
+                                                                         shared_ptr<TypeExpression>(),
+                                                                         argTypes));
     }
     else if(LA(FUNCTION))
     {
-        QVector<TypeExpression *> argTypes;
+        QVector<shared_ptr<TypeExpression> > argTypes;
         Token tok = lookAhead;
         match(FUNCTION);
         match(LPAREN);
@@ -2095,16 +2096,16 @@ TypeExpression *KalimatParser::typeExpression()
             }
         }
         match(RPAREN);
-        TypeExpression *retType = typeExpression();
-        return new FunctionTypeExpression(tok, retType, argTypes);
+        shared_ptr<TypeExpression> retType = typeExpression();
+        return shared_ptr<TypeExpression>(new FunctionTypeExpression(tok, retType, argTypes));
     }
 
     throw ParserException(getPos(), "Expected Type Expression");
 }
 
-QVector<Expression *> KalimatParser::comma_separated_expressions()
+QVector<shared_ptr<Expression> > KalimatParser::comma_separated_expressions()
 {
-    QVector<Expression *> ret;
+    QVector<shared_ptr<Expression> > ret;
     if(LA_first_expression())
     {
         ret.append(expression());
@@ -2118,9 +2119,9 @@ QVector<Expression *> KalimatParser::comma_separated_expressions()
     return ret;
 }
 
-QVector<Expression *> KalimatParser::comma_separated_pairs()
+QVector<shared_ptr<Expression> > KalimatParser::comma_separated_pairs()
 {
-    QVector<Expression *> ret;
+    QVector<shared_ptr<Expression> > ret;
     if(LA_first_primary_expression())
     {
         ret.append(expression());
@@ -2138,9 +2139,9 @@ QVector<Expression *> KalimatParser::comma_separated_pairs()
     return ret;
 }
 
-QVector<StrLiteral *> KalimatParser::usingDirectives()
+QVector<shared_ptr<StrLiteral> > KalimatParser::usingDirectives()
 {
-    QVector<StrLiteral *> usedModules;
+    QVector<shared_ptr<StrLiteral> > usedModules;
 
     newLines();
     while(LA(USING))
@@ -2148,7 +2149,7 @@ QVector<StrLiteral *> KalimatParser::usingDirectives()
         match(USING);
         if(LA(STR_LITERAL))
         {
-            StrLiteral *moduleName =  new StrLiteral(lookAhead, prepareStringLiteral(lookAhead.Lexeme));
+            shared_ptr<StrLiteral> moduleName(new StrLiteral(lookAhead, prepareStringLiteral(lookAhead.Lexeme)));
             usedModules.append(moduleName);
             match(STR_LITERAL);
             match(NEWLINE);
@@ -2204,6 +2205,7 @@ QString KalimatParser::prepareStringLiteral(QString str)
 {
     return str.mid(1, str.length()-2).replace("\"\"","\"");
 }
+
 void KalimatParser::newLines()
 {
     while(LA(NEWLINE))

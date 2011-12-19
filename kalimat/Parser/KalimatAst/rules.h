@@ -2,6 +2,8 @@
 #define RULES_H
 
 #include "kalimatast.h"
+#include "declaration.h"
+
 class PegExpr
 {
 
@@ -9,10 +11,10 @@ class PegExpr
 
 class RuleOption
 {
-    QSharedPointer<PegExpr> expression;
-    QSharedPointer<Expression> resultExpr;
+    shared_ptr<PegExpr> expression;
+    shared_ptr<Expression> resultExpr;
 public:
-    RuleOption(QSharedPointer<PegExpr> _expression, QSharedPointer<Expression> _resultExpr)
+    RuleOption(shared_ptr<PegExpr> _expression, shared_ptr<Expression> _resultExpr)
         : expression(_expression), resultExpr(_resultExpr)
     {
 
@@ -23,19 +25,28 @@ public:
 struct RuleDecl
 {
     QString ruleName;
-    QVector<QSharedPointer<RuleOption> > options;
-    RuleDecl(QString ruleName, QVector<QSharedPointer<RuleOption> > options);
+    QVector<shared_ptr<RuleOption> > options;
+    RuleDecl(QString ruleName, QVector<shared_ptr<RuleOption> > options)
+        :ruleName(ruleName),
+          options(options)
+    {
+
+    }
 };
 
 class RulesDecl : public Declaration
 {
-    QVector<QSharedPointer<RuleDecl> > _subRules;
-    QScopedPointer<Identifier> _ruleName;
+    Q_OBJECT
+    QVector<shared_ptr<RuleDecl> > _subRules;
+    shared_ptr<Identifier> _ruleName;
 public:
-    RulesDecl(Token pos, Identifier *name, QVector<RulesDecl *> subRules, bool isPublic);
+    RulesDecl(Token pos,
+              Identifier *name,
+              QVector<shared_ptr<RulesDecl> > subRules,
+              bool isPublic);
     int subRuleCount() { return _subRules.count(); }
-    RuleDecl *subRule(int i) { return _subRules[i].data(); }
-    Identifier *name() { return _ruleName.data(); }
+    RuleDecl *subRule(int i) { return _subRules[i].get(); }
+    Identifier *name() { return _ruleName.get(); }
 
 };
 

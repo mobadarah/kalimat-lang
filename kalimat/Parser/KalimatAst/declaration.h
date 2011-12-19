@@ -2,10 +2,12 @@
 #define DECLARATION_H
 
 #include "kalimatast.h"
+#include "toplevel.h"
+#include "statement.h"
 
 class Declaration: public TopLevel
 {
-
+    Q_OBJECT
     bool _isPublic;
 public:
     Declaration(Token pos, bool isPublic);
@@ -14,33 +16,35 @@ public:
 
 class ProceduralDecl : public Declaration, public IScopeIntroducer
 {
+    Q_OBJECT
 public:
-    QSharedPointer<Identifier> _procName;
-    QVector<QSharedPointer<Identifier > > _formals;
-    QVector<QSharedPointer<Identifier > > _allReferences;
-    QSharedPointer<BlockStmt> _body;
+    shared_ptr<Identifier> _procName;
+    QVector<shared_ptr<Identifier > > _formals;
+    QVector<shared_ptr<Identifier > > _allReferences;
+    shared_ptr<BlockStmt> _body;
     Token _endingToken;
 public:
     ProceduralDecl(Token pos,
                    Token endingToken,
-                   QSharedPointer<Identifier> procName,
-                   QVector<QSharedPointer<Identifier> > formals,
-                   QSharedPointer<BlockStmt> body,
+                   shared_ptr<Identifier> procName,
+                   QVector<shared_ptr<Identifier> > formals,
+                   shared_ptr<BlockStmt> body,
                    bool isPublic);
-    Identifier *procName() {return _procName.data();}
+    Identifier *procName() {return _procName.get();}
     int formalCount() { return _formals.count();}
-    Identifier *formal(int i) { return _formals[i].data();}
-    Identifier *allReferences(int i) { return _allReferences[i].data();}
-    void addReference(Identifier *id) { _allReferences.append(QSharedPointer<Identifier>(id));}
-    BlockStmt *body() {return _body.data();}
-    void body(QSharedPointer<BlockStmt> stmt) { _body = stmt;}
-    virtual QVector<QSharedPointer<Identifier> > getIntroducedVariables();
+    Identifier *formal(int i) { return _formals[i].get();}
+    Identifier *allReferences(int i) { return _allReferences[i].get();}
+    void addReference(shared_ptr<Identifier> id) { _allReferences.append(id);}
+    BlockStmt *body() {return _body.get();}
+    void body(shared_ptr<BlockStmt> stmt) { _body = stmt;}
+    virtual QVector<shared_ptr<Identifier> > getIntroducedVariables();
 };
 
 class IProcedure
 {
 
 };
+
 class IFunction
 {
 
@@ -48,12 +52,13 @@ class IFunction
 
 class ProcedureDecl : public ProceduralDecl, public IProcedure
 {
+    Q_OBJECT
 public:
     ProcedureDecl(Token pos,
                   Token endingToken,
-                  QSharedPointer<Identifier> procName,
-                  QVector<QSharedPointer<Identifier> > formals,
-                  QSharedPointer<BlockStmt> body,
+                  shared_ptr<Identifier> procName,
+                  QVector<shared_ptr<Identifier> > formals,
+                  shared_ptr<BlockStmt> body,
                   bool isPublic);
     QString toString();
     void prettyPrint(CodeFormatter *f);
@@ -61,12 +66,13 @@ public:
 
 class FunctionDecl : public ProceduralDecl, public IFunction
 {
+    Q_OBJECT
 public:
     FunctionDecl(Token pos,
                  Token endingToken,
-                 QSharedPointer<Identifier> procName,
-                 QVector<QSharedPointer<Identifier> > formals,
-                 QSharedPointer<BlockStmt> body,
+                 shared_ptr<Identifier> procName,
+                 QVector<shared_ptr<Identifier> > formals,
+                 shared_ptr<BlockStmt> body,
                  bool isPublic);
     QString toString();
     void prettyPrint(CodeFormatter *f);
@@ -76,60 +82,63 @@ class FFIProceduralDecl;
 
 class FFILibraryDecl : public Declaration
 {
+    Q_OBJECT
 public:
     QString libName;
 private:
-    QVector<QSharedPointer<Declaration> > _decls;
+    QVector<shared_ptr<Declaration> > _decls;
 public:
-    FFILibraryDecl(Token pos, QString libName, QVector<QSharedPointer<Declaration> > decls, bool isPublic);
+    FFILibraryDecl(Token pos, QString libName, QVector<shared_ptr<Declaration> > decls, bool isPublic);
     int declCount() { return _decls.count(); }
-    Declaration *decl(int index) { return _decls[index].data();}
+    Declaration *decl(int index) { return _decls[index].get();}
     void prettyPrint(CodeFormatter *formatter);
     QString toString();
 };
 
 class FFIProceduralDecl : public Declaration
 {
+    Q_OBJECT
 public:
     bool isFunctionNotProc;
     QString procName;
     QString symbol;
 private:
-    QSharedPointer<TypeExpression>_returnType; // NULL -> It's a procedure
-    QVector<QSharedPointer<TypeExpression> > _paramTypes;
+    shared_ptr<TypeExpression>_returnType; // NULL -> It's a procedure
+    QVector<shared_ptr<TypeExpression> > _paramTypes;
 public:
     FFIProceduralDecl(Token pos, bool isFunctionNotProc,
-        QSharedPointer<TypeExpression> returnType,
-        QVector<QSharedPointer<TypeExpression> > paramTypes,
+        shared_ptr<TypeExpression> returnType,
+        QVector<shared_ptr<TypeExpression> > paramTypes,
         QString procName,
         QString symbol,
         bool isPublic);
-    TypeExpression *returnType() { return _returnType.data(); }
+    TypeExpression *returnType() { return _returnType.get(); }
     int paramTypeCount() { return _paramTypes.count(); }
-    TypeExpression *paramType(int index) { return _paramTypes.at(index).data(); }
+    TypeExpression *paramType(int index) { return _paramTypes.at(index).get(); }
     void prettyPrint(CodeFormatter *formatter);
     QString toString();
 };
 
 class FFIStructDecl : public Declaration
 {
+    Q_OBJECT
+private:
+    shared_ptr<Identifier> _name;
+    QVector<shared_ptr<Identifier> > _fieldNames;
+    QVector<shared_ptr<TypeExpression> > _fieldTypes;
 public:
     QVector<int> fieldBatches; // For grouping HAS a, b, c; HAS d,e declarations for pretty printing
-private:
-    QScopedPointer<Identifier> _name;
-    QVector<QSharedPointer<Identifier> > _fieldNames;
-    QVector<QSharedPointer<TypeExpression> > _fieldTypes;
 public:
     FFIStructDecl(Token pos,
-                  Identifier *name,
-                  QVector<Identifier*> fieldNames,
-                  QVector<TypeExpression*> fieldTypes,
+                  shared_ptr<Identifier> name,
+                  QVector<shared_ptr<Identifier> > fieldNames,
+                  QVector<shared_ptr<TypeExpression> > fieldTypes,
                   QVector<int> fieldBatches,
                   bool isPublic);
     int fieldCount() { return _fieldNames.count();}
-    Identifier *name() { return _name.data(); }
-    Identifier *fieldName(int index) { return _fieldNames[index].data();}
-    TypeExpression *fieldType(int index) { return _fieldTypes[index].data();}
+    Identifier *name() { return _name.get(); }
+    Identifier *fieldName(int index) { return _fieldNames[index].get();}
+    TypeExpression *fieldType(int index) { return _fieldTypes[index].get();}
     void prettyPrint(CodeFormatter *formatter);
     QString toString();
 };
@@ -149,16 +158,16 @@ struct MethodInfo
 
 struct ConcreteResponseInfo : public PrettyPrintable
 {
-    QSharedPointer<Identifier> name;
-    QVector<QSharedPointer<Identifier> > params;
+    shared_ptr<Identifier> name;
+    QVector<shared_ptr<Identifier> > params;
     void prettyPrint(CodeFormatter *f);
 
-    ConcreteResponseInfo(QSharedPointer<Identifier> _name)
+    ConcreteResponseInfo(shared_ptr<Identifier> _name)
         :name(_name)
     {
     }
 
-    void add(QSharedPointer<Identifier> param)
+    void add(shared_ptr<Identifier> param)
     {
         params.append(param);
     }
@@ -166,19 +175,19 @@ struct ConcreteResponseInfo : public PrettyPrintable
 
 struct Has : public ClassInternalDecl
 {
-    QMap<QString, QSharedPointer<TypeExpression> > _fieldMarshallAs;
-    QVector<QSharedPointer<Identifier> > fields;
+    QMap<QString, shared_ptr<TypeExpression> > _fieldMarshallAs;
+    QVector<shared_ptr<Identifier> > fields;
     void prettyPrint(CodeFormatter *f);
-    void add(QSharedPointer<Identifier> field)
+    void add(shared_ptr<Identifier> field)
     {
-        fields.append(QSharedPointer<Identifier>(field));
+        fields.append(shared_ptr<Identifier>(field));
     }
     int fieldCount() { return fields.count(); }
-    Identifier *field(int i) { return fields[i].data(); }
+    Identifier *field(int i) { return fields[i].get(); }
     TypeExpression *marshallingTypeOf(QString field)
     {
         if(_fieldMarshallAs.contains(field))
-            return _fieldMarshallAs[field].data();
+            return _fieldMarshallAs[field].get();
         else
             return NULL;
     }
@@ -187,67 +196,70 @@ struct Has : public ClassInternalDecl
 struct RespondsTo : public ClassInternalDecl
 {
     bool isFunctions;
-    QVector<QSharedPointer<ConcreteResponseInfo> > methods;
+    QVector<shared_ptr<ConcreteResponseInfo> > methods;
 
     RespondsTo(bool _isFunctions) { isFunctions = _isFunctions;}
     void prettyPrint(CodeFormatter *f);
-    void add(QSharedPointer<ConcreteResponseInfo> mi)
+    void add(shared_ptr<ConcreteResponseInfo> mi)
     {
         methods.append(mi);
     }
-    ConcreteResponseInfo *method(int i) { return methods[i].data(); }
+    ConcreteResponseInfo *method(int i) { return methods[i].get(); }
     int methodCount() { return methods.count(); }
 };
 
 class ClassDecl : public Declaration
 {
+    Q_OBJECT
 public:
-    QScopedPointer<Identifier> _name;
-    QVector<QSharedPointer<Identifier > > _fields;
-    QMap<QString, QSharedPointer<TypeExpression> > _fieldMarshallAs;
+    shared_ptr<Identifier> _ancestorName;
+    shared_ptr<Identifier> _name;
+    QVector<shared_ptr<Identifier > > _fields;
     QMap<QString, MethodInfo>  _methodPrototypes;
-    QMap<QString, QSharedPointer<MethodDecl> > _methods;
-    QScopedPointer<Identifier> _ancestorName;
-    QSharedPointer<ClassDecl> _ancestorClass;
-    QVector<QSharedPointer<ClassInternalDecl> > _internalDecls; // For pretty printing...etc
+    QVector<shared_ptr<ClassInternalDecl> > _internalDecls; // For pretty printing...etc
+    QMap<QString, shared_ptr<TypeExpression> > _fieldMarshallAs;
+    QMap<QString, shared_ptr<MethodDecl> > _methods;
+    shared_ptr<ClassDecl> _ancestorClass;
+
 public:
     ClassDecl(Token pos,
-              QSharedPointer<Identifier> name,
-              QVector<QSharedPointer<Identifier> > fields,
+              shared_ptr<Identifier> name,
+              QVector<shared_ptr<Identifier> > fields,
               QMap<QString,MethodInfo> methodPrototypes,
-              QVector<QSharedPointer<ClassInternalDecl> > internalDecls,
-              QMap<QString, QSharedPointer<TypeExpression> > fieldMarshalAs,
+              QVector<shared_ptr<ClassInternalDecl> > internalDecls,
+              QMap<QString, shared_ptr<TypeExpression> > fieldMarshalAs,
               bool isPublic);
     ClassDecl(Token pos,
-              QSharedPointer<Identifier> ancestorName,
-              QSharedPointer<Identifier> name,
-              QVector<QSharedPointer<Identifier> > fields,
+              shared_ptr<Identifier> ancestorName,
+              shared_ptr<Identifier> name,
+              QVector<shared_ptr<Identifier> > fields,
               QMap<QString,MethodInfo> methodPrototypes,
-              QVector<QSharedPointer<ClassInternalDecl> > internalDecls,
-              QMap<QString, QSharedPointer<TypeExpression> > fieldMarshalAs,
+              QVector<shared_ptr<ClassInternalDecl> > internalDecls,
+              QMap<QString, shared_ptr<TypeExpression> > fieldMarshalAs,
               bool isPublic);
-    Identifier *name() { return _name.data();}
+    Identifier *name() { return _name.get();}
     int fieldCount() { return _fields.count();}
-    Identifier *field(int i) { return _fields[i].data();}
+    Identifier *field(int i) { return _fields[i].get();}
     bool containsMethod(QString name);
     bool containsPrototype(QString name);
     int methodCount() { return _methods.count();}
     MethodDecl *method(QString name);
-    MethodDecl *method(int i) { return _methods.values().at(i).data();}
+    MethodDecl *method(int i) { return _methods.values().at(i).get();}
     MethodInfo methodPrototype(QString name);
     int prototypeCount() { return _methodPrototypes.count();}
-    Identifier *ancestor() { return _ancestorName.data();}
+    Identifier *ancestor() { return _ancestorName.get();}
     bool fieldHasMarshalType(QString fieldName) { return _fieldMarshallAs.contains(fieldName); }
-    TypeExpression *marshalTypeOf(QString fieldName) { return _fieldMarshallAs[fieldName].data(); }
+    TypeExpression *marshalTypeOf(QString fieldName) { return _fieldMarshallAs[fieldName].get(); }
 
-    void setAncestorClass(QSharedPointer<ClassDecl> cd);
-    void insertMethod(QString name, QSharedPointer<MethodDecl> m);
+    void setAncestorClass(shared_ptr<ClassDecl> cd);
+    void insertMethod(QString name, shared_ptr<MethodDecl> m);
     QString toString();
     void prettyPrint(CodeFormatter *f);
 };
 
 class GlobalDecl : public Declaration
 {
+    Q_OBJECT
 public:
     QString varName;
 public:
@@ -258,21 +270,22 @@ public:
 
 class MethodDecl : public ProceduralDecl
 {
+    Q_OBJECT
 public:
-    QSharedPointer<Identifier> _className;
-    QSharedPointer<Identifier> _receiverName;
+    shared_ptr<Identifier> _className;
+    shared_ptr<Identifier> _receiverName;
     bool isFunctionNotProcedure;
 public:
     MethodDecl(Token pos,
                Token endingToken,
-               QSharedPointer<Identifier> className,
-               QSharedPointer<Identifier> receiverName,
-               QSharedPointer<Identifier> methodName,
-               QVector<QSharedPointer<Identifier> > formals,
-               QSharedPointer<BlockStmt> body,
+               shared_ptr<Identifier> className,
+               shared_ptr<Identifier> receiverName,
+               shared_ptr<Identifier> methodName,
+               QVector<shared_ptr<Identifier> > formals,
+               shared_ptr<BlockStmt> body,
                bool isFunctionNotProcedure);
-    Identifier *className() { return _className.data();}
-    Identifier *receiverName() { return _receiverName.data();}
+    Identifier *className() { return _className.get();}
+    Identifier *receiverName() { return _receiverName.get();}
     QString toString();
     void prettyPrint(CodeFormatter *f);
 };

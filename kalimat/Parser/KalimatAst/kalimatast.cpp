@@ -14,21 +14,15 @@ CompilationUnit::CompilationUnit(Token pos) : _astImpl(pos)
 
 }
 
-Program::Program(Token pos, QVector<QSharedPointer<TopLevel> > elements, QVector<QsharedPointer<StrLiteral> > usedModules, QVector<QSharedPointer<TopLevel> > originalElements)
+Program::Program(Token pos,
+                 QVector<shared_ptr<TopLevel> > elements,
+                 QVector<shared_ptr<StrLiteral> > usedModules,
+                 QVector<shared_ptr<TopLevel> > originalElements)
     : CompilationUnit(pos),
       _elements(elements),
-      _usedModules(usedModules),
       _originalElements(originalElements)
 {
-    /*
-    for(int i=0; i<elements.count(); i++)
-        _elements.append(QSharedPointer<TopLevel>(elements[i]));
-
-    for(int i=0; i<usedModules.count(); i++)
-        _usedModules.append(QSharedPointer<StrLiteral>(usedModules[i]));
-    for(int i=0; i<originalElements.count(); i++)
-        _originalElements.append(originalElements[i]);
-        */
+    _usedModules = usedModules;
 }
 
 QString Program::toString()
@@ -42,20 +36,20 @@ QString Program::toString()
 }
 
 Module::Module(Token pos,
-               QSharedPointer<Identifier> name,
-               QVector<QSharedPointer<Declaration> > module,
-               QVector<QSharedPointer<StrLiteral> > usedModules)
+               shared_ptr<Identifier> name,
+               QVector<shared_ptr<Declaration> > module,
+               QVector<shared_ptr<StrLiteral> > usedModules)
     :CompilationUnit(pos),
-    _name(name),
-      _declarations(module),
-      _usedModules(usedModules)
+      _name(name),
+      _declarations(module)
 {
+    _usedModules = usedModules;
     /*
     for(int i=0; i<module.count(); i++)
-        _declarations.append(QSharedPointer<Declaration>(module[i]));
+        _declarations.append(shared_ptr<Declaration>(module[i]));
 
     for(int i=0; i<usedModules.count(); i++)
-        _usedModules.append(QSharedPointer<StrLiteral>(usedModules[i]));
+        _usedModules.append(shared_ptr<StrLiteral>(usedModules[i]));
     //*/
 }
 
@@ -115,8 +109,8 @@ GraphicsStatement::GraphicsStatement(Token pos) : Statement(pos)
 }
 
 AssignmentStmt::AssignmentStmt(Token pos,
-                               QSharedPointer<AssignableExpression> _variable,
-                               QSharedPointer<Expression> _value)
+                               shared_ptr<AssignableExpression> _variable,
+                               shared_ptr<Expression> _value)
     :Statement(pos),
     _variable(_variable),
     _value(_value)
@@ -129,9 +123,9 @@ QString AssignmentStmt::toString()
 }
 
 IfStmt::IfStmt(Token pos,
-               QSharedPointer<Expression> _condition,
-               QSharedPointer<Statement> _thenPart,
-               QSharedPointer<Statement> _elsePart)
+               shared_ptr<Expression> _condition,
+               shared_ptr<Statement> _thenPart,
+               shared_ptr<Statement> _elsePart)
     :Statement(pos),
     _condition(_condition),
     _thenPart(_thenPart),
@@ -152,11 +146,11 @@ QString IfStmt::toString()
 }
 
 WhileStmt::WhileStmt(Token pos,
-                     QSharedPointer<Expression> _condition,
-                     QSharedPointer<Statement> _statement)
+                     shared_ptr<Expression> _condition,
+                     shared_ptr<Statement> _statement)
     :Statement(pos),
-    _condition(condition),
-    _statement(statement)
+    _condition(_condition),
+    _statement(_statement)
 {
 }
 
@@ -168,10 +162,10 @@ QString WhileStmt::toString()
 }
 
 ForAllStmt::ForAllStmt(Token pos,
-                       QSharedPointer<Identifier> variable,
-                       QSharedPointer<Expression> from,
-                       QSharedPointer<Expression> to,
-                       QSharedPointer<Statement>  statement)
+                       shared_ptr<Identifier> variable,
+                       shared_ptr<Expression> from,
+                       shared_ptr<Expression> to,
+                       shared_ptr<Statement>  statement)
     :Statement(pos),
     _variable(variable),
     _from(from),
@@ -197,7 +191,7 @@ QString ForAllStmt::toString()
             .arg(statement()->toString());
 }
 
-ReturnStmt::ReturnStmt(Token pos ,QSharedPointer<Expression> returnVal)
+ReturnStmt::ReturnStmt(Token pos ,shared_ptr<Expression> returnVal)
     :Statement(pos),
     _returnVal(returnVal)
 {
@@ -208,7 +202,7 @@ QString ReturnStmt::toString()
     return _ws(L"ارجع(%1)").arg(returnVal()->toString());
 }
 
-DelegationStmt::DelegationStmt(Token pos, QSharedPointer<IInvokation> invokation)
+DelegationStmt::DelegationStmt(Token pos, shared_ptr<IInvokation> invokation)
     :Statement(pos),
     _invokation(invokation)
 {
@@ -219,7 +213,7 @@ QString DelegationStmt::toString()
     return _ws(L"وكل إلى(%1)").arg(invokation()->toString());
 }
 
-LaunchStmt::LaunchStmt(Token pos, QSharedPointer<IInvokation> invokation)
+LaunchStmt::LaunchStmt(Token pos, shared_ptr<IInvokation> invokation)
     :Statement(pos),
     _invokation(invokation)
 {
@@ -231,7 +225,7 @@ QString LaunchStmt::toString()
 }
 
 
-LabelStmt::LabelStmt(Token pos, QSharedPointer<Expression> target)
+LabelStmt::LabelStmt(Token pos, shared_ptr<Expression> target)
     : Statement(pos),
       _target(target)
 {
@@ -244,25 +238,25 @@ QString LabelStmt::toString()
 
 GotoStmt::GotoStmt(Token pos,
                    bool _targetIsNumber,
-                   QSharedPointer<Expression> target)
+                   shared_ptr<Expression> target)
     :Statement(pos)
 {
     targetIsNumber = _targetIsNumber;
     if(targetIsNumber)
-        _numericTarget = target.dynamicCast<NumLiteral>();
+        _numericTarget = dynamic_pointer_cast<NumLiteral>(target);
     else
-        _idTarget = target.dynamicCast<Identifier>();
+        _idTarget = dynamic_pointer_cast<Identifier>(target);
 }
 
 QString GotoStmt::toString()
 {
-    return _ws(L"اذهب(%1)").arg(targetIsNumber? _numericTarget.data()->toString(): _idTarget.data()->toString());
+    return _ws(L"اذهب(%1)").arg(targetIsNumber? _numericTarget.get()->toString(): _idTarget.get()->toString());
 }
 
 PrintStmt::PrintStmt(Token pos,
-                     QSharedPointer<Expression> fileObject,
-                     QVector<QSharedPointer<Expression> > args,
-                     QVector<QSharedPointer<Expression> > widths,
+                     shared_ptr<Expression> fileObject,
+                     QVector<shared_ptr<Expression> > args,
+                     QVector<shared_ptr<Expression> > widths,
                      bool printOnSameLine)
     :IOStatement(pos),
      _fileObject(fileObject),
@@ -273,8 +267,8 @@ PrintStmt::PrintStmt(Token pos,
     /*
     for(int i= 0; i<args.count();i++)
     {
-        this->_args.append(QSharedPointer<Expression>(args[i]));
-        this->_widths.append(QSharedPointer<Expression>(widths[i]));
+        this->_args.append(shared_ptr<Expression>(args[i]));
+        this->_widths.append(shared_ptr<Expression>(widths[i]));
     }
     this->printOnSameLine = printOnSameLine;
     */
@@ -290,9 +284,9 @@ QString PrintStmt::toString()
 }
 
 ReadStmt::ReadStmt(Token pos,
-                   QSharedPointer<Expression> fileObject,
+                   shared_ptr<Expression> fileObject,
                    QString prompt,
-                   const QVector<QSharedPointer<AssignableExpression> >&variables,
+                   const QVector<shared_ptr<AssignableExpression> >&variables,
                    QVector<bool> readNumberFlags)
     :IOStatement(pos),
      _fileObject(fileObject),
@@ -303,7 +297,7 @@ ReadStmt::ReadStmt(Token pos,
     /*
     this->prompt = prompt;
     for(int i=0; i<variables.count(); i++)
-        this->_variables.append(QSharedPointer<AssignableExpression>(variables[i]));
+        this->_variables.append(shared_ptr<AssignableExpression>(variables[i]));
     this->readNumberFlags = readNumberFlags;
     */
 }
@@ -319,9 +313,9 @@ QString ReadStmt::toString()
 }
 
 DrawPixelStmt::DrawPixelStmt(Token pos,
-                             QSharedPointer<Expression>x,
-                             QSharedPointer<Expression> y,
-                             QSharedPointer<Expression> color)
+                             shared_ptr<Expression>x,
+                             shared_ptr<Expression> y,
+                             shared_ptr<Expression> color)
     :GraphicsStatement(pos),
     _x(x),
     _y(y),
@@ -338,11 +332,11 @@ QString DrawPixelStmt::toString()
 }
 
 DrawLineStmt::DrawLineStmt(Token pos,
-                           QSharedPointer<Expression> x1,
-                           QSharedPointer<Expression> y1,
-                           QSharedPointer<Expression> x2,
-                           QSharedPointer<Expression> y2,
-                           QSharedPointer<Expression> color)
+                           shared_ptr<Expression> x1,
+                           shared_ptr<Expression> y1,
+                           shared_ptr<Expression> x2,
+                           shared_ptr<Expression> y2,
+                           shared_ptr<Expression> color)
         :GraphicsStatement(pos),
          _x1(x1),
          _y1(y1),
@@ -363,12 +357,12 @@ QString DrawLineStmt::toString()
 }
 
 DrawRectStmt::DrawRectStmt(Token pos,
-                           QSharedPointer<Expression> x1,
-                           QSharedPointer<Expression> y1,
-                           QSharedPointer<Expression> x2,
-                           QSharedPointer<Expression> y2,
-                           QSharedPointer<Expression> color,
-                           QSharedPointer<Expression> filled)
+                           shared_ptr<Expression> x1,
+                           shared_ptr<Expression> y1,
+                           shared_ptr<Expression> x2,
+                           shared_ptr<Expression> y2,
+                           shared_ptr<Expression> color,
+                           shared_ptr<Expression> filled)
         :GraphicsStatement(pos),
         _x1(x1),
         _y1(y1),
@@ -392,11 +386,11 @@ QString DrawRectStmt::toString()
 }
 
 DrawCircleStmt::DrawCircleStmt(Token pos,
-                               QSharedPointer<Expression> cx,
-                               QSharedPointer<Expression> cy,
-                               QSharedPointer<Expression> radius,
-                               QSharedPointer<Expression> color,
-                               QSharedPointer<Expression> filled)
+                               shared_ptr<Expression> cx,
+                               shared_ptr<Expression> cy,
+                               shared_ptr<Expression> radius,
+                               shared_ptr<Expression> color,
+                               shared_ptr<Expression> filled)
         :GraphicsStatement(pos),
         _cx(cx),
         _cy(cy),
@@ -418,9 +412,9 @@ QString DrawCircleStmt::toString()
 }
 
 DrawSpriteStmt::DrawSpriteStmt(Token pos,
-                               QSharedPointer<Expression> x,
-                               QSharedPointer<Expression> y,
-                               QSharedPointer<Expression> sprite)
+                               shared_ptr<Expression> x,
+                               shared_ptr<Expression> y,
+                               shared_ptr<Expression> sprite)
         :GraphicsStatement(pos),
         _x(x),
         _y(y),
@@ -438,10 +432,10 @@ QString DrawSpriteStmt::toString()
 }
 
 ZoomStmt::ZoomStmt(Token pos,
-                   QSharedPointer<Expression> x1,
-                   QSharedPointer<Expression> y1,
-                   QSharedPointer<Expression> x2,
-                   QSharedPointer<Expression> y2)
+                   shared_ptr<Expression> x1,
+                   shared_ptr<Expression> y1,
+                   shared_ptr<Expression> x2,
+                   shared_ptr<Expression> y2)
         :GraphicsStatement(pos),
         _x1(x1),
         _y1(y1),
@@ -458,7 +452,7 @@ QString ZoomStmt::toString()
             .arg(y2()->toString());
 }
 
-EventStatement::EventStatement(Token pos ,EventType type, QSharedPointer<Identifier> handler)
+EventStatement::EventStatement(Token pos ,EventType type, shared_ptr<Identifier> handler)
         :Statement(pos),
          type(type),
          _handler(handler)
@@ -479,8 +473,8 @@ ChannelCommunicationStmt::ChannelCommunicationStmt(Token pos)
 
 SendStmt::SendStmt(Token pos,
                    bool signal,
-                   QSharedPointer<Expression> value,
-                   QSharedPointer<Expression> channel)
+                   shared_ptr<Expression> value,
+                   shared_ptr<Expression> channel)
     : ChannelCommunicationStmt(pos), signal(signal), _value(value), _channel(channel)
 {
 }
@@ -492,8 +486,8 @@ QString SendStmt::toString()
 
 ReceiveStmt::ReceiveStmt(Token pos,
                          bool signal,
-                         QSharedPointer<AssignableExpression> value,
-                         QSharedPointer<Expression> channel)
+                         shared_ptr<AssignableExpression> value,
+                         shared_ptr<Expression> channel)
     : ChannelCommunicationStmt(pos), signal(signal), _value(value), _channel(channel)
 {
 }
@@ -504,17 +498,17 @@ QString ReceiveStmt::toString()
 }
 
 SelectStmt::SelectStmt(Token pos,
-                       QVector<QSharedPointer<ChannelCommunicationStmt> > conditions,
-                       QVector<QSharedPointer<Statement > > actions)
+                       QVector<shared_ptr<ChannelCommunicationStmt> > conditions,
+                       QVector<shared_ptr<Statement > > actions)
     : Statement(pos),
       _conditions(conditions),
       _actions(actions)
 {
    /*
     for(int i=0; i<conditions.count();i++)
-        _conditions.append(QSharedPointer<ChannelCommunicationStmt>(conditions[i]));
+        _conditions.append(shared_ptr<ChannelCommunicationStmt>(conditions[i]));
     for(int i=0; i<actions.count();i++)
-        _actions.append(QSharedPointer<Statement>(actions[i]));
+        _actions.append(shared_ptr<Statement>(actions[i]));
     */
 }
 
@@ -530,14 +524,15 @@ QString SelectStmt::toString()
     return _ws(L"تخير({%1})").arg(condact.join(", "));
 }
 
-BlockStmt::BlockStmt(Token pos, QVector<Statement *> statements)
+BlockStmt::BlockStmt(Token pos, QVector<shared_ptr<Statement> > statements)
         :Statement(pos),
           _statements(statements)
 
 {
     //for(int i=0; i<statements.count(); i++)
-    //    _statements.append(QSharedPointer<Statement>(statements[i]));
+    //    _statements.append(shared_ptr<Statement>(statements[i]));
 }
+
 QVector<Statement *> BlockStmt::getStatements()
 {
     QVector<Statement *> ret;
@@ -558,7 +553,7 @@ QString BlockStmt::toString()
     return QString("{ ").append(ret.join(_ws(L"، "))).append(" }");
 }
 
-InvokationStmt::InvokationStmt(Token pos ,QSharedPointer<Expression> expression)
+InvokationStmt::InvokationStmt(Token pos ,shared_ptr<Expression> expression)
         :Statement(pos),
         _expression(expression)
 {
@@ -588,7 +583,7 @@ QString TypeIdentifier::toString()
     return name;
 }
 
-PointerTypeExpression::PointerTypeExpression(Token pos, TypeExpression *pointeeType)
+PointerTypeExpression::PointerTypeExpression(Token pos, shared_ptr<TypeExpression> pointeeType)
     :TypeExpression(pos), _pointeeType(pointeeType)
 {
 }
@@ -598,12 +593,15 @@ QString PointerTypeExpression::toString()
     return QString("pointer(%1)").arg(pointeeType()->toString());
 }
 
-FunctionTypeExpression::FunctionTypeExpression(Token pos, TypeExpression *retType, QVector<TypeExpression *> argTypes)
-    :TypeExpression(pos), _retType(retType)
+FunctionTypeExpression::FunctionTypeExpression(Token pos,
+                                               shared_ptr<TypeExpression> retType,
+                                               QVector<shared_ptr<TypeExpression> > argTypes)
+    :TypeExpression(pos),
+      _retType(retType),
+      _argTypes(argTypes)
 {
-    for(int i=0; i<argTypes.count(); i++)
-        _argTypes.append(QSharedPointer<TypeExpression>(argTypes[i]));
 }
+
 QString FunctionTypeExpression::toString()
 {
     QStringList strs;
@@ -623,7 +621,7 @@ QString VarPattern::toString()
     return id()->toString();
 }
 
-ArrayPattern::ArrayPattern(Token pos, QVector<QSharedPointer<Pattern> > elements)
+ArrayPattern::ArrayPattern(Token pos, QVector<shared_ptr<Pattern> > elements)
     : Pattern(pos),
       _elements(elements)
 {
@@ -638,9 +636,9 @@ QString ArrayPattern::toString()
 }
 
 ObjPattern::ObjPattern(Token pos,
-                       QSharedPointer<Identifier> classId,
-                       QVector<QSharedPointer<Identifier> > fieldNames,
-                       QVector<QSharedPointer<Pattern> > fieldPatterns)
+                       shared_ptr<Identifier> classId,
+                       QVector<shared_ptr<Identifier> > fieldNames,
+                       QVector<shared_ptr<Pattern> > fieldPatterns)
     : Pattern(pos),
       _classId(classId),
       _fieldNames(fieldNames),
@@ -659,8 +657,8 @@ QString ObjPattern::toString()
 }
 
 MapPattern::MapPattern(Token pos,
-                       QVector<QSharedPointer<Expression> > keys,
-                       QVector<QSharedPointer<Pattern> > values)
+                       QVector<shared_ptr<Expression> > keys,
+                       QVector<shared_ptr<Pattern> > values)
     : Pattern(pos),
       _keys(keys),
       _values(values)
@@ -680,8 +678,8 @@ QString MapPattern::toString()
 
 BinaryOperation::BinaryOperation(Token pos,
                                  QString op,
-                                 QSharedPointer<Expression> op1,
-                                 QSharedPointer<Expression> op2)
+                                 shared_ptr<Expression> op1,
+                                 shared_ptr<Expression> op2)
     : Expression(pos),
     _operator(op),
     _operand1(op1),
@@ -698,7 +696,7 @@ QString BinaryOperation::toString()
             .arg(operand2()->toString());
 }
 
-IsaOperation::IsaOperation(Token pos, QSharedPointer<Expression> expression, QSharedPointer<Identifier> type)
+IsaOperation::IsaOperation(Token pos, shared_ptr<Expression> expression, shared_ptr<Identifier> type)
     : Expression(pos),
       _expression(expression),
       _type(type)
@@ -712,8 +710,8 @@ QString IsaOperation::toString()
 }
 
 MatchOperation::MatchOperation(Token pos,
-                               QSharedPointer<Expression> expression,
-                               QSharedPointer<Pattern> pattern)
+                               shared_ptr<Expression> expression,
+                               shared_ptr<Pattern> pattern)
     : Expression(pos),
       _expression(expression),
       _pattern(pattern)
@@ -726,7 +724,7 @@ QString MatchOperation::toString()
     return _ws(L"%1 ~ %2").arg(expression()->toString()).arg(pattern()->toString());
 }
 
-UnaryOperation::UnaryOperation(Token pos ,QString __operator, QSharedPointer<Expression> operand)
+UnaryOperation::UnaryOperation(Token pos ,QString __operator, shared_ptr<Expression> operand)
     : Expression(pos),
     _operator(__operator),
     _operand(operand)
@@ -830,11 +828,9 @@ QString BoolLiteral::repr()
     return value? QString::fromWCharArray(L"صحيح") : QString::fromWCharArray(L"خطأ");
 }
 
-ArrayLiteral::ArrayLiteral(Token pos, QVector<Expression *>data)
-    : Literal(pos)
+ArrayLiteral::ArrayLiteral(Token pos, QVector<shared_ptr<Expression> >data)
+    : Literal(pos), _data(data)
 {
-    for(int i=0; i<data.count(); i++)
-        _data.append(QSharedPointer<Expression>(data[i]));
 }
 
 QString ArrayLiteral::toString()
@@ -842,11 +838,9 @@ QString ArrayLiteral::toString()
     return _ws(L"مصفوفة(%1)").arg(vector_toString(_data));
 }
 
-MapLiteral::MapLiteral(Token pos, QVector<Expression *>data)
-    : Literal(pos)
+MapLiteral::MapLiteral(Token pos, QVector<shared_ptr<Expression> >data)
+    : Literal(pos), _data(data)
 {
-    for(int i=0; i<data.count(); i++)
-        _data.append(QSharedPointer<Expression>(data[i]));
 }
 
 QString MapLiteral::toString()
@@ -861,8 +855,8 @@ IInvokation::IInvokation(Token pos)
 }
 
 Invokation::Invokation(Token pos,
-                       QSharedPointer<Expression> functor,
-                       QVector<QSharedPointer<Expression> >arguments)
+                       shared_ptr<Expression> functor,
+                       QVector<shared_ptr<Expression> >arguments)
     : IInvokation(pos),
     _functor(functor),
     _arguments(arguments)
@@ -875,9 +869,9 @@ QString Invokation::toString()
 }
 
 MethodInvokation::MethodInvokation(Token pos,
-                                   QSharedPointer<Expression> receiver,
-                                   QSharedPointer<Identifier> methodSelector,
-                                   QVector<QSharedPointer<Expression> >arguments)
+                                   shared_ptr<Expression> receiver,
+                                   shared_ptr<Identifier> methodSelector,
+                                   QVector<shared_ptr<Expression> >arguments)
     :IInvokation(pos),
     _receiver(receiver),
     _methodSelector(methodSelector),
@@ -893,7 +887,7 @@ QString MethodInvokation::toString()
             .arg(vector_toString(_arguments));
 }
 
-Idafa::Idafa(Token pos ,Identifier *modaf, Expression *modaf_elaih)
+Idafa::Idafa(Token pos ,shared_ptr<Identifier> modaf, shared_ptr<Expression> modaf_elaih)
     :AssignableExpression(pos),
     _modaf(modaf),
     _modaf_elaih(modaf_elaih)
@@ -906,8 +900,8 @@ QString Idafa::toString()
 }
 
 ArrayIndex::ArrayIndex(Token pos,
-                       QSharedPointer<Expression> array,
-                       QSharedPointer<Expression> index)
+                       shared_ptr<Expression> array,
+                       shared_ptr<Expression> index)
     :AssignableExpression(pos),
     _array(array),
     _index(index)
@@ -920,8 +914,8 @@ QString ArrayIndex::toString()
 }
 
 MultiDimensionalArrayIndex::MultiDimensionalArrayIndex(Token pos,
-                                                       QSharedPointer<Expression> array,
-                                                       QVector<QSharedPointer<Expression> > indexes)
+                                                       shared_ptr<Expression> array,
+                                                       QVector<shared_ptr<Expression> > indexes)
     :AssignableExpression(pos),
     _array(array),
     _indexes(indexes)
@@ -933,7 +927,7 @@ QString MultiDimensionalArrayIndex::toString()
     return QString("%1[%2]").arg(array()->toString(), vector_toString(_indexes));
 }
 
-ObjectCreation::ObjectCreation(Token pos ,Identifier *className)
+ObjectCreation::ObjectCreation(Token pos ,shared_ptr<Identifier> className)
     :Expression(pos),
     _className(className)
 {
@@ -946,9 +940,9 @@ QString ObjectCreation::toString()
 
 ProceduralDecl::ProceduralDecl(Token pos,
                                Token endingToken,
-                               QSharedPointer<Identifier> procName,
-                               QVector<QSharedPointer<Identifier> > formals,
-                               QSharedPointer<BlockStmt> body,
+                               shared_ptr<Identifier> procName,
+                               QVector<shared_ptr<Identifier> > formals,
+                               shared_ptr<BlockStmt> body,
                                bool isPublic)
     :Declaration(pos, isPublic),
     _procName(procName),
@@ -958,20 +952,20 @@ ProceduralDecl::ProceduralDecl(Token pos,
 {
     /*
     for(int i=0; i<formals.count(); i++)
-        _formals.append(QSharedPointer<Identifier>(formals[i]));
+        _formals.append(shared_ptr<Identifier>(formals[i]));
     */
 }
 
-QVector<QSharedPointer<Identifier> > ProceduralDecl::getIntroducedVariables()
+QVector<shared_ptr<Identifier> > ProceduralDecl::getIntroducedVariables()
 {
     return _formals;
 }
 
 ProcedureDecl::ProcedureDecl(Token pos,
                              Token endingToken,
-                             QSharedPointer<Identifier> procName,
-                             QVector<QSharedPointer<Identifier> >formals,
-                             QSharedPointer<BlockStmt> body,
+                             shared_ptr<Identifier> procName,
+                             QVector<shared_ptr<Identifier> >formals,
+                             shared_ptr<BlockStmt> body,
                              bool isPublic)
     :ProceduralDecl(pos, endingToken, procName, formals, body, isPublic)
 {
@@ -993,9 +987,9 @@ QString ProcedureDecl::toString()
 
 FunctionDecl::FunctionDecl(Token pos,
                            Token endingToken,
-                           QSharedPointer<Identifier> procName,
-                           QVector<QSharedPointer<Identifier> > formals,
-                           QSharedPointer<BlockStmt> body,
+                           shared_ptr<Identifier> procName,
+                           QVector<shared_ptr<Identifier> > formals,
+                           shared_ptr<BlockStmt> body,
                            bool isPublic)
     :ProceduralDecl(pos, endingToken, procName, formals, body, isPublic)
 {
@@ -1023,7 +1017,7 @@ MethodInfo::MethodInfo()
     isFunction = false;
 }
 
-FFILibraryDecl::FFILibraryDecl(Token pos, QString libName, QVector<QSharedPointer<Declaration> > decls, bool isPublic)
+FFILibraryDecl::FFILibraryDecl(Token pos, QString libName, QVector<shared_ptr<Declaration> > decls, bool isPublic)
     : Declaration(pos, isPublic), libName(libName),_decls(decls)
 {
 }
@@ -1038,8 +1032,8 @@ QString FFILibraryDecl::toString()
 
 FFIProceduralDecl::FFIProceduralDecl(Token pos,
                                      bool isFunctionNotProc,
-                                     QSharedPointer<TypeExpression> theReturnType,
-                                     QVector<QSharedPointer<TypeExpression> > paramTypes,
+                                     shared_ptr<TypeExpression> theReturnType,
+                                     QVector<shared_ptr<TypeExpression> > paramTypes,
                                      QString procName,
                                      QString symbol,
                                      bool isPublic)
@@ -1062,19 +1056,17 @@ QString FFIProceduralDecl::toString()
 }
 
 FFIStructDecl::FFIStructDecl(Token pos,
-                             Identifier *name,
-                             QVector<Identifier *> fieldNames,
-                             QVector<TypeExpression *> fieldTypes,
+                             shared_ptr<Identifier> name,
+                             QVector<shared_ptr<Identifier> > fieldNames,
+                             QVector<shared_ptr<TypeExpression> > fieldTypes,
                              QVector<int> fieldBatches,
                              bool isPublic)
-    : Declaration(pos, isPublic), _name(name)
+    : Declaration(pos, isPublic),
+      _name(name),
+      _fieldNames(fieldNames),
+      _fieldTypes(fieldTypes),
+      fieldBatches(fieldBatches)
 {
-    for(int i=0; i<fieldNames.count(); i++)
-    {
-        _fieldNames.append(QSharedPointer<Identifier>(fieldNames[i]));
-        _fieldTypes.append(QSharedPointer<TypeExpression>(fieldTypes[i]));
-    }
-    this->fieldBatches = fieldBatches;
 }
 
 QString FFIStructDecl::toString()
@@ -1088,39 +1080,37 @@ QString FFIStructDecl::toString()
 }
 
 ClassDecl::ClassDecl(Token pos,
-                     QSharedPointer<Identifier> name,
-                     QVector<QSharedPointer<Identifier >>fields,
+                     shared_ptr<Identifier> name,
+                     QVector<shared_ptr<Identifier > >fields,
                      QMap<QString, MethodInfo> methodPrototypes,
-                     QVector<QSharedPointer<ClassInternalDecl> > internalDecls,
-                     QMap<QString, QSharedPointer<TypeExpression> > fieldMarshalAs,
+                     QVector<shared_ptr<ClassInternalDecl> > internalDecls,
+                     QMap<QString, shared_ptr<TypeExpression> > fieldMarshalAs,
                      bool isPublic)
         :Declaration(pos, isPublic),
         _name(name),
         _fields(fields),
-        _fieldMarshallAs(fieldMarshalAs),
         _methodPrototypes(methodPrototypes),
         _internalDecls(internalDecls),
-        _ancestorName(NULL),
-        _ancestorClass(NULL)
+        _fieldMarshallAs(fieldMarshalAs)
 {
 }
 
 ClassDecl::ClassDecl(Token pos,
-                     QSharedPointer<Identifier> ancestorName,
-                     QSharedPointer<Identifier> name,
-                     QVector<QSharedPointer<Identifier> >fields,
+                     shared_ptr<Identifier> ancestorName,
+                     shared_ptr<Identifier> name,
+                     QVector<shared_ptr<Identifier> >fields,
                      QMap<QString, MethodInfo> methodPrototypes,
-                     QVector<QSharedPointer<ClassInternalDecl> > internalDecls,
-                     QMap<QString, QSharedPointer<TypeExpression> > fieldMarshalAs,
+                     QVector<shared_ptr<ClassInternalDecl> > internalDecls,
+                     QMap<QString, shared_ptr<TypeExpression> > fieldMarshalAs,
                      bool isPublic)
         :Declaration(pos, isPublic),
-        _name(name),
-          _fields(fields),
-          _fieldMarshallAs(fieldMarshalAs),
-        _methodPrototypes(methodPrototypes),
-        _internalDecls(internalDecls),
         _ancestorName(ancestorName),
-        _ancestorClass(NULL)
+        _name(name),
+        _fields(fields),
+        _methodPrototypes(methodPrototypes),
+        _fieldMarshallAs(fieldMarshalAs),
+        _internalDecls(internalDecls),
+        _ancestorClass()
 {
 }
 
@@ -1142,7 +1132,7 @@ QString ClassDecl::toString()
 
 }
 
-void ClassDecl::insertMethod(QString name, QSharedPointer<MethodDecl>m)
+void ClassDecl::insertMethod(QString name, shared_ptr<MethodDecl>m)
 {
     _methods[name] = m;
 }
@@ -1151,7 +1141,7 @@ bool ClassDecl::containsMethod(QString name)
 {
     if(_methods.contains(name))
         return true;
-    if(!_ancestorClass.isNull() && _ancestorClass.data()->containsMethod(name))
+    if(_ancestorClass && _ancestorClass.get()->containsMethod(name))
         return true;
     return false;
 }
@@ -1159,9 +1149,9 @@ bool ClassDecl::containsMethod(QString name)
 MethodDecl *ClassDecl::method(QString name)
 {
     if(_methods.contains(name))
-        return _methods[name].data();
-    if(!_ancestorClass.isNull())
-        return _ancestorClass.data()->method(name);
+        return _methods[name].get();
+    if(_ancestorClass)
+        return _ancestorClass.get()->method(name);
     return NULL;
 }
 
@@ -1169,7 +1159,7 @@ bool ClassDecl::containsPrototype(QString name)
 {
     if(_methodPrototypes.contains(name))
         return true;
-    if(!_ancestorClass.isNull() && _ancestorClass.data()->containsPrototype(name))
+    if(_ancestorClass && _ancestorClass.get()->containsPrototype(name))
         return true;
     return false;
 }
@@ -1178,10 +1168,10 @@ MethodInfo ClassDecl::methodPrototype(QString name)
 {
     if(_methodPrototypes.contains(name))
         return _methodPrototypes[name];
-    return _ancestorClass.data()->methodPrototype(name);
+    return _ancestorClass.get()->methodPrototype(name);
 }
 
-void ClassDecl::setAncestorClass(QSharedPointer<ClassDecl> cd)
+void ClassDecl::setAncestorClass(shared_ptr<ClassDecl> cd)
 {
     _ancestorClass = cd;
 }
@@ -1198,11 +1188,11 @@ QString GlobalDecl::toString()
 
 MethodDecl::MethodDecl(Token pos,
                        Token endingToken,
-                       QSharedPointer<Identifier> className,
-                       QSharedPointer<Identifier> receiverName,
-                       QSharedPointer<Identifier> methodName,
-                       QVector<QSharedPointer<Identifier> > formals,
-                       QSharedPointer<BlockStmt> body,
+                       shared_ptr<Identifier> className,
+                       shared_ptr<Identifier> receiverName,
+                       shared_ptr<Identifier> methodName,
+                       QVector<shared_ptr<Identifier> > formals,
+                       shared_ptr<BlockStmt> body,
                        bool isFunctionNotProcedure)
 
        :ProceduralDecl(pos, endingToken, methodName, formals, body, true),
@@ -1228,14 +1218,14 @@ void Program::prettyPrint(CodeFormatter *f)
 {
     for(int i=0; i<_originalElements.count(); i++)
     {
-        TopLevel *el = _originalElements[i];
+        shared_ptr<TopLevel> el = _originalElements[i];
         // todo: loss of information
-        if(el->attachedComments.trimmed() != "")
+        if(el.get()->attachedComments.trimmed() != "")
         {
             //f->print("--");
             f->print(el->attachedComments);
         }
-        el->prettyPrint(f);
+        el.get()->prettyPrint(f);
         f->nl();
     }
 }
@@ -1983,7 +1973,7 @@ void RespondsTo::prettyPrint(CodeFormatter *f)
 
 void ConcreteResponseInfo::prettyPrint(CodeFormatter *f)
 {
-    this->name.data()->prettyPrint(f);
+    this->name.get()->prettyPrint(f);
     f->space();
     parens(&commaSep(mapFmt(params))).run(f);
 }
@@ -2003,7 +1993,7 @@ void ClassDecl::prettyPrint(CodeFormatter *f)
     }
     for(int i=0; i<_internalDecls.count(); i++)
     {
-        ClassInternalDecl *id = _internalDecls[i].data();
+        ClassInternalDecl *id = _internalDecls[i].get();
         id->prettyPrint(f);
         f->nl();
     }
@@ -2047,19 +2037,19 @@ void MethodDecl::prettyPrint(CodeFormatter *f)
     f->nl(); // for extra neatness, add an empty line after definitions
 }
 
-QVector<FormatMaker *> mapPrint(QVector<QSharedPointer<Expression > > args, QVector<QSharedPointer<Expression > > widths)
+QVector<FormatMaker *> mapPrint(QVector<shared_ptr<Expression > > args, QVector<shared_ptr<Expression > > widths)
 {
     QVector<FormatMaker *> ret;
     for(int i=0; i<args.count(); i++)
-        ret.append(new PrintFmt(args[i].data(), widths[i].data()));
+        ret.append(new PrintFmt(args[i].get(), widths[i].get()));
     return ret;
 }
 
-QVector<FormatMaker *> mapRead(QVector<QSharedPointer<AssignableExpression> > variables, QVector<bool> readNumberFlags)
+QVector<FormatMaker *> mapRead(QVector<shared_ptr<AssignableExpression> > variables, QVector<bool> readNumberFlags)
 {
     QVector<FormatMaker *> ret;
     for(int i=0; i<variables.count(); i++)
-        ret.append(new ReadFmt(variables[i].data(), readNumberFlags[i]));
+        ret.append(new ReadFmt(variables[i].get(), readNumberFlags[i]));
     return ret;
 }
 

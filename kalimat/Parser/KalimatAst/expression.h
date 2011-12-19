@@ -39,14 +39,14 @@ class BinaryOperation : public Expression
     Q_OBJECT
 public:
     QString _operator;
-    QSharedPointer<Expression> _operand1, _operand2;
+    shared_ptr<Expression> _operand1, _operand2;
 public:
     BinaryOperation(Token pos,
                     QString op,
-                    QSharedPointer<Expression> op1,
-                    QSharedPointer<Expression> op2);
-    Expression *operand1() { return _operand1.data();}
-    Expression *operand2() { return _operand2.data();}
+                    shared_ptr<Expression> op1,
+                    shared_ptr<Expression> op2);
+    Expression *operand1() { return _operand1.get();}
+    Expression *operand2() { return _operand2.get();}
     QString toString();
     void prettyPrint(CodeFormatter *f);
 };
@@ -55,12 +55,12 @@ class IsaOperation : public Expression
 {
     Q_OBJECT
 public:
-    QSharedPointer<Expression> _expression;
-    QSharedPointer<Identifier> _type;
+    shared_ptr<Expression> _expression;
+    shared_ptr<Identifier> _type;
 public:
-    IsaOperation(Token pos, QSharedPointer<Expression> expression, QSharedPointer<Identifier> type);
-    Expression *expression() { return _expression.data(); }
-    Identifier *type() { return _type.data(); }
+    IsaOperation(Token pos, shared_ptr<Expression> expression, shared_ptr<Identifier> type);
+    Expression *expression() { return _expression.get(); }
+    Identifier *type() { return _type.get(); }
     QString toString();
     void prettyPrint(CodeFormatter *f);
 };
@@ -69,15 +69,15 @@ class MatchOperation : public Expression
 {
     Q_OBJECT
 public:
-    QSharedPointer<Expression> _expression;
-    QSharedPointer<Pattern> _pattern;
+    shared_ptr<Expression> _expression;
+    shared_ptr<Pattern> _pattern;
 public:
     MatchOperation(Token pos,
-                   QSharedPointer<Expression> expression,
-                   QSharedPointer<Pattern> pattern);
+                   shared_ptr<Expression> expression,
+                   shared_ptr<Pattern> pattern);
     ~MatchOperation();
-    Expression *expression() { return _expression.data(); }
-    Pattern *pattern() { return _pattern.data(); }
+    Expression *expression() { return _expression.get(); }
+    Pattern *pattern() { return _pattern.get(); }
     QString toString();
     void prettyPrint(CodeFormatter *f);
 };
@@ -87,10 +87,10 @@ class UnaryOperation : public Expression
     Q_OBJECT
 public:
     QString _operator;
-    QSharedPointer<Expression> _operand;
+    shared_ptr<Expression> _operand;
 public:
-    UnaryOperation(Token pos, QString operation,QSharedPointer<Expression> operand);
-    Expression *operand() { return _operand.data();}
+    UnaryOperation(Token pos, QString operation,shared_ptr<Expression> operand);
+    Expression *operand() { return _operand.get();}
     QString toString();
     void prettyPrint(CodeFormatter *f);
 };
@@ -157,12 +157,12 @@ class ArrayLiteral : public Literal
 {
     Q_OBJECT
 public:
-    QVector<QSharedPointer<Expression > > _data;
+    QVector<shared_ptr<Expression > > _data;
 public:
-    ArrayLiteral(Token pos, QVector<Expression *> data);
+    ArrayLiteral(Token pos, QVector<shared_ptr<Expression> > data);
     int dataCount() {return _data.count();}
-    Expression *data(int i) { return _data[i].data(); }
-    QVector<QSharedPointer<Expression> > dataVector() { return _data;}
+    Expression *data(int i) { return _data[i].get(); }
+    QVector<shared_ptr<Expression> > dataVector() { return _data;}
     QString toString();
     void prettyPrint(CodeFormatter *f);
 };
@@ -171,12 +171,12 @@ class MapLiteral : public Literal
 {
     Q_OBJECT
 public:
-    QVector<QSharedPointer<Expression > > _data;
+    QVector<shared_ptr<Expression > > _data;
 public:
-    MapLiteral(Token pos, QVector<Expression *> data);
+    MapLiteral(Token pos, QVector<shared_ptr<Expression> > data);
     int dataCount() {return _data.count();}
-    Expression *data(int i) { return _data[i].data(); }
-    QVector<QSharedPointer<Expression> > dataVector() { return _data;}
+    Expression *data(int i) { return _data[i].get(); }
+    QVector<shared_ptr<Expression> > dataVector() { return _data;}
     QString toString();
     void prettyPrint(CodeFormatter *f);
 };
@@ -192,15 +192,15 @@ class Invokation : public IInvokation
 {
     Q_OBJECT
 public:
-    QSharedPointer<Expression> _functor;
-    QVector<QSharedPointer<Expression > > _arguments;
+    shared_ptr<Expression> _functor;
+    QVector<shared_ptr<Expression > > _arguments;
 public:
     Invokation(Token pos,
-               QSharedPointer<Expression> functor,
-               QVector<QSharedPointer<Expression> > arguments);
-    Expression *functor() { return _functor.data();}
+               shared_ptr<Expression> functor,
+               QVector<shared_ptr<Expression> > arguments);
+    Expression *functor() { return _functor.get();}
     int argumentCount() {return _arguments.count();}
-    Expression *argument(int i) { return _arguments[i].data(); }
+    Expression *argument(int i) { return _arguments[i].get(); }
     virtual QString toString();
     virtual void prettyPrint(CodeFormatter *f);
 };
@@ -209,18 +209,18 @@ class MethodInvokation : public IInvokation
 {
     Q_OBJECT
 public:
-    QSharedPointer<Expression> _receiver;
-    QSharedPointer<Identifier> _methodSelector;
-    QVector<QSharedPointer<Expression > > _arguments;
+    shared_ptr<Expression> _receiver;
+    shared_ptr<Identifier> _methodSelector;
+    QVector<shared_ptr<Expression > > _arguments;
 public:
     MethodInvokation(Token pos,
-                     QSharedPointer<Expression> receiver,
-                     QSharedPointer<Identifier> methodSelector,
-                     QVector<QSharedPointer<Expression> > arguments);
-    Expression *receiver() {return _receiver.data();}
-    Identifier *methodSelector() { return _methodSelector.data();}
+                     shared_ptr<Expression> receiver,
+                     shared_ptr<Identifier> methodSelector,
+                     QVector<shared_ptr<Expression> > arguments);
+    Expression *receiver() {return _receiver.get();}
+    Identifier *methodSelector() { return _methodSelector.get();}
     int argumentCount() { return _arguments.count();}
-    Expression *argument(int i) {return _arguments[i].data();}
+    Expression *argument(int i) {return _arguments[i].get();}
     QString toString();
     void prettyPrint(CodeFormatter *f);
 };
@@ -229,12 +229,12 @@ class Idafa : public AssignableExpression
 {
     Q_OBJECT
 public:
-    QScopedPointer<Identifier> _modaf;
-    QScopedPointer<Expression> _modaf_elaih;
+    shared_ptr<Identifier> _modaf;
+    shared_ptr<Expression> _modaf_elaih;
 public:
-    Idafa(Token pos, Identifier *modaf, Expression *modaf_elaih);
-    Identifier *modaf() {return _modaf.data();}
-    Expression *modaf_elaih() {return _modaf_elaih.data();}
+    Idafa(Token pos, shared_ptr<Identifier> modaf, shared_ptr<Expression> modaf_elaih);
+    Identifier *modaf() {return _modaf.get();}
+    Expression *modaf_elaih() {return _modaf_elaih.get();}
     QString toString();
     void prettyPrint(CodeFormatter *f);
 };
@@ -243,12 +243,12 @@ class ArrayIndex : public AssignableExpression
 {
     Q_OBJECT
 public:
-    QSharedPointer<Expression> _array;
-    QSharedPointer<Expression> _index;
+    shared_ptr<Expression> _array;
+    shared_ptr<Expression> _index;
 public:
-    ArrayIndex(Token pos, QSharedPointer<Expression> array, QSharedPointer<Expression> index);
-    Expression *array() {return _array.data();}
-    Expression *index() {return _index.data();}
+    ArrayIndex(Token pos, shared_ptr<Expression> array, shared_ptr<Expression> index);
+    Expression *array() {return _array.get();}
+    Expression *index() {return _index.get();}
     QString toString();
     void prettyPrint(CodeFormatter *f);
 };
@@ -257,16 +257,16 @@ class MultiDimensionalArrayIndex : public AssignableExpression
 {
     Q_OBJECT
 public:
-    QSharedPointer<Expression> _array;
-    QVector<QSharedPointer<Expression> > _indexes;
+    shared_ptr<Expression> _array;
+    QVector<shared_ptr<Expression> > _indexes;
 public:
     MultiDimensionalArrayIndex(Token pos,
-                               QSharedPointer<Expression> array,
-                               QVector<QSharedPointer<Expression> > indexes);
-    Expression *array() {return _array.data();}
+                               shared_ptr<Expression> array,
+                               QVector<shared_ptr<Expression> > indexes);
+    Expression *array() {return _array.get();}
     int indexCount() { return _indexes.count();}
-    Expression *index(int i) {return _indexes[i].data();}
-    QVector<QSharedPointer<Expression> > indexes() {return _indexes;}
+    Expression *index(int i) {return _indexes[i].get();}
+    QVector<shared_ptr<Expression> > indexes() {return _indexes;}
     QString toString();
     void prettyPrint(CodeFormatter *f);
 };
@@ -275,10 +275,10 @@ class ObjectCreation : public Expression
 {
     Q_OBJECT
 public:
-    QScopedPointer<Identifier> _className;
+    shared_ptr<Identifier> _className;
 public:
-    ObjectCreation(Token pos, Identifier *className);
-    Identifier *className() { return _className.data();}
+    ObjectCreation(Token pos, shared_ptr<Identifier> className);
+    Identifier *className() { return _className.get();}
     QString toString();
     void prettyPrint(CodeFormatter *f);
 };

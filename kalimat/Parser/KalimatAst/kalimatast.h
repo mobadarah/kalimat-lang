@@ -7,12 +7,13 @@
 
 #ifndef KALIMATAST_H
 #define KALIMATAST_H
-
+#define QT_SHAREDPOINTER_TRACK_POINTERS
 #include <QString>
 #include <QLocale>
 #include <QStringList>
 #include <QVector>
 #include <QMap>
+#include <memory>
 
 #ifndef TOKEN_H
     #include "../../Lexer/token.h"
@@ -34,7 +35,7 @@ class Declaration;
 class MethodDecl;
 class NumLiteral;
 class StrLiteral;
-
+class SimpleLiteral;
 class IInvokation;
 
 using namespace std;
@@ -48,7 +49,7 @@ class KalimatAst : public QObject, public AST
 
 class IScopeIntroducer
 {
-    virtual QVector<QSharedPointer<Identifier> > getIntroducedVariables()=0;
+    virtual QVector<shared_ptr<Identifier> > getIntroducedVariables()=0;
 };
 
 #endif // KALIMATAST_H

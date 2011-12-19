@@ -6,7 +6,7 @@ template<typename V> QString vector_toString(V vector)
     QStringList lst;
     for(int i=0; i<vector.count(); i++)
     {
-        AST *ast = vector[i].data();
+        AST *ast = vector[i].get();
         lst.append(ast->toString());
     }
     return lst.join(", ");
@@ -189,11 +189,11 @@ public:
 
 // TODO: This leaks!
 template<typename V>
-QVector<FormatMaker *> mapFmt(QVector<QSharedPointer<V> >v, int from=0)
+QVector<FormatMaker *> mapFmt(QVector<shared_ptr<V> >v, int from=0)
 {
     QVector<FormatMaker *> ret;
     for(int i=from; i<v.count(); i++)
-        ret.append(new ast(v[i].data()));
+        ret.append(new ast(v[i].get()));
     return ret;
 }
 
@@ -208,9 +208,9 @@ QVector<FormatMaker *> mapFmt(QVector<V> v, int from=0)
 }
 
 //todo: This leaks
-QVector<FormatMaker *> mapPrint(QVector<QSharedPointer<Expression > > args, QVector<QSharedPointer<Expression > > widths);
+QVector<FormatMaker *> mapPrint(QVector<shared_ptr<Expression > > args, QVector<shared_ptr<Expression > > widths);
 
 //todo: This leaks
-QVector<FormatMaker *> mapRead(QVector<QSharedPointer<AssignableExpression> > _variables, QVector<bool> readNumberFlags);
+QVector<FormatMaker *> mapRead(QVector<shared_ptr<AssignableExpression> > _variables, QVector<bool> readNumberFlags);
 
 #endif // FORMATMAKER_H

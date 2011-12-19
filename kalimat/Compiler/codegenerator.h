@@ -135,7 +135,7 @@ private:
     void generateObjectCreation(ObjectCreation* expr);
 
     QString typeExpressionToAssemblyTypeId(TypeExpression *expr);
-    QString generateArrayFromValues(AST *src, QVector<QSharedPointer<Expression> > values);
+    QString generateArrayFromValues(AST *src, QVector<shared_ptr<Expression> > values);
     void generateAssignmentToLvalue(AST *src, AssignableExpression *lval,
                                         Thunk &);
     void generateReference(AssignableExpression *lval);

@@ -20,9 +20,9 @@ class CompilationUnit: public KalimatAst
     ASTImpl _astImpl;
 public:
     CompilationUnit(Token pos);
-    QVector<QSharedPointer<StrLiteral> > _usedModules;
+    QVector<shared_ptr<StrLiteral> > _usedModules;
     int usedModuleCount() { return _usedModules.count();}
-    StrLiteral *usedModule(int i ) { return _usedModules[i].data();}
+    StrLiteral *usedModule(int i ) { return _usedModules[i].get();}
     Token getPos() { return _astImpl.getPos(); }
 };
 
@@ -30,18 +30,18 @@ class Program : public CompilationUnit
 {
     Q_OBJECT
 public:
-    QVector<QSharedPointer<TopLevel > > _elements;
+    QVector<shared_ptr<TopLevel > > _elements;
 
     // Original layout without collecting top-level statements
     // into a 'main' function. Used for pretty-printing...etc
-    QVector<TopLevel *>  _originalElements;
+    QVector<shared_ptr<TopLevel> >  _originalElements;
 public:
-    Program(Token pos, QVector<QSharedPointer<TopLevel> > elements,
-            QVector<QSharedPointer<StrLiteral> > usedModules,
-            QVector<QSharedPointer<TopLevel> > originalElements);
+    Program(Token pos, QVector<shared_ptr<TopLevel> > elements,
+            QVector<shared_ptr<StrLiteral> > usedModules,
+            QVector<shared_ptr<TopLevel> > originalElements);
     int elementCount() { return _elements.count(); }
-    TopLevel *element(int i) { return _elements[i].data();}
-    void addElement(TopLevel *element) { _elements.append(QSharedPointer<TopLevel>(element));}
+    TopLevel *element(int i) { return _elements[i].get();}
+    void addElement(TopLevel *element) { _elements.append(shared_ptr<TopLevel>(element));}
     QString toString();
     void prettyPrint(CodeFormatter *f);
 };
@@ -50,18 +50,18 @@ class Module : public CompilationUnit
 {
     Q_OBJECT
 public:
-    QVector<QSharedPointer<Declaration > > _declarations;
-    QSharedPointer<Identifier> _name;
+    shared_ptr<Identifier> _name;
+    QVector<shared_ptr<Declaration > > _declarations;
 public:
     Module(Token pos,
-           QSharedPointer<Identifier> name,
-           QVector<QSharedPointer<Declaration> > module,
-           QVector<QSharedPointer<StrLiteral> > usedModules);
+           shared_ptr<Identifier> name,
+           QVector<shared_ptr<Declaration> > module,
+           QVector<shared_ptr<StrLiteral> > usedModules);
     ~Module();
     int declCount() { return _declarations.count(); }
-    Declaration *decl(int i) { return _declarations[i].data();}
-    void addDecl(Declaration *decl) { _declarations.append(QSharedPointer<Declaration>(decl));}
-    Identifier *name() { return _name.data();}
+    Declaration *decl(int i) { return _declarations[i].get();}
+    void addDecl(Declaration *decl) { _declarations.append(shared_ptr<Declaration>(decl));}
+    Identifier *name() { return _name.get();}
 
     QString toString();
     void prettyPrint(CodeFormatter *f);

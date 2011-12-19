@@ -216,7 +216,7 @@ void MainWindow::on_actionParse_triggered()
     {
         ui->tabWidget->setCurrentWidget(ui->outputView);
         parser.init(currentEditor()->document()->toPlainText(), &lxr, NULL);
-        QSharedPointer<AST> tree = parser.parse();
+        shared_ptr<AST> tree = parser.parse();
         //ui->outputView->clear();
         ui->outputView->append(tree->toString());
     }
@@ -956,7 +956,7 @@ void MainWindow::on_action_autoFormat_triggered()
         try
         {
             parser.init(program, &lxr, NULL);
-            QSharedPointer<AST> tree = parser.parse();
+            shared_ptr<AST> tree = parser.parse();
                 tree->prettyPrint(&fmt);
             editor->setText(fmt.getOutput());
         }

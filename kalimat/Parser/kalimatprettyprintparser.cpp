@@ -22,7 +22,7 @@ void KalimatPrettyprintParser::init(QString s, Lexer *lxr, void *tag, QString fi
     Parser::init(s, lxr, tag, fileName);
 }
 
-QSharedPointer<AST> KalimatPrettyprintParser::parseRoot()
+shared_ptr<AST> KalimatPrettyprintParser::parseRoot()
 {
     BlockPP *ret = new BlockPP();
     QStack<BlockPP *> levels;
@@ -89,7 +89,7 @@ QSharedPointer<AST> KalimatPrettyprintParser::parseRoot()
         ret = levels.top();
     }
 
-    return QSharedPointer<BlockPP>(ret);
+    return shared_ptr<BlockPP>(ret);
 }
 
 QVector<LinePP *>KalimatPrettyprintParser::parseLines()
