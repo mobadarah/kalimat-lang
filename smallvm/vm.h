@@ -56,7 +56,9 @@ class VM
     QMap<QString, QString> registeredEventHandlers;
 private:
     QStack<Frame> &stack();
+public: // todo:temp
     Frame *currentFrame();
+private:
     Frame &globalFrame();
 private:
     // Map Method name -> offset -> instruction

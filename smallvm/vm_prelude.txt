@@ -384,3 +384,8 @@ ret
     callex kb_event_channel
     ret
 .endmethod
+
+.method شجرة.الإعراب.الحالية 0 1
+callex current_parse_tree
+ret
+.endmethod

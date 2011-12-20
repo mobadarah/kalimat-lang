@@ -40,7 +40,7 @@ public:
             QVector<shared_ptr<StrLiteral> > usedModules,
             QVector<shared_ptr<TopLevel> > originalElements);
     int elementCount() { return _elements.count(); }
-    TopLevel *element(int i) { return _elements[i].get();}
+    shared_ptr<TopLevel> element(int i) { return _elements[i];}
     void addElement(TopLevel *element) { _elements.append(shared_ptr<TopLevel>(element));}
     QString toString();
     void prettyPrint(CodeFormatter *f);
@@ -60,6 +60,7 @@ public:
     ~Module();
     int declCount() { return _declarations.count(); }
     Declaration *decl(int i) { return _declarations[i].get();}
+    shared_ptr<Declaration> declPtr(int i) { return _declarations[i];}
     void addDecl(Declaration *decl) { _declarations.append(shared_ptr<Declaration>(decl));}
     Identifier *name() { return _name.get();}
 

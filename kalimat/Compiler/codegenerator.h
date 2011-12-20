@@ -46,9 +46,9 @@ class CodeGenerator
     SmallVMCodeGenerator _asm;
     QSet<QString> declaredGlobalVariables; // these are declared by the programmer
     QSet<Identifier *> freeVariables; // and those are references to global variables from within functions
-    QMap<QString, ClassDecl *> allClasses;
-    QMap<QString, ProcedureDecl *> allProcedures;
-    QMap<QString, FunctionDecl *> allFunctions;
+    QMap<QString, shared_ptr<ClassDecl> > allClasses;
+    QMap<QString, shared_ptr<ProcedureDecl> > allProcedures;
+    QMap<QString, shared_ptr<FunctionDecl> > allFunctions;
     QSet<QString> loadedModules;
     QStack<Context> scopeStack;
     QString currentModuleName;
@@ -79,7 +79,7 @@ private:
     void generateFFIProceduralDeclaration(FFIProceduralDecl *decl, QString libName);
     void generateFFIStructDeclaration(FFIStructDecl *decl);
     void generateClassDeclaration(ClassDecl * decl);
-    void generateGlobalDeclaration(GlobalDecl * decl);
+    void generateGlobalDeclaration(shared_ptr<GlobalDecl> decl);
     void generateMethodDeclaration(MethodDecl * decl);
 
     void generateIOStatement(IOStatement *stmt);
@@ -140,9 +140,9 @@ private:
                                         Thunk &);
     void generateReference(AssignableExpression *lval);
 
-    void firstPass(Declaration * decl);
-    void secondPass(Declaration * decl);
-    void thirdPass(Declaration * decl);
+    void firstPass(shared_ptr<Declaration> decl);
+    void secondPass(shared_ptr<Declaration> decl);
+    void thirdPass(shared_ptr<Declaration> decl);
     void checkInheritanceCycles();
     void generateStringConstant(AST *src, QString str);
     void defineInCurrentScope(QString);

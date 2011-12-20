@@ -10,6 +10,8 @@
 
 #include <QMainWindow>
 #include <QTimer>
+#include <memory>
+using namespace std;
 
 #ifndef VM_H
     #include "../smallvm/vm_incl.h"
@@ -94,6 +96,7 @@ protected:
 private:
     RunWindowState state;
 public:
+    shared_ptr<QObject> parseTree;
     Value *readChannel;
     TextLayer textLayer;
     SpriteLayer spriteLayer;

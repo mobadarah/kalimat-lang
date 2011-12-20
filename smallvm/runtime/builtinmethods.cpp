@@ -1139,6 +1139,13 @@ void InvokeForeignProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
         stack.push(vm->GetAllocator().null());
 }
 
+void CurrentParseTreeProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
+{
+    vm->DoPushGlobal("%parseTree");
+    Value *v = vm->currentFrame()->OperandStack.pop();
+    stack.push(v);
+}
+
 void setupChildren(QGridLayout *layout,Value *v, Reference *ref, QString label, int row, VM *vm)
 {
     QCheckBox *cb;

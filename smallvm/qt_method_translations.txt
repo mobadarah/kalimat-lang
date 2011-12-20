@@ -7,3 +7,4 @@ y=ص
 visible=مرئي
 windowTitle=عنوانه
 text=نصه
+toString=كنص

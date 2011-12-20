@@ -193,6 +193,8 @@ void RunWindow::Init(QString program, QMap<QString, QString> stringConstants, QS
         vm->Register("addressof", new WindowProxyMethod(this, vm, AddressOfProc));
         vm->Register("callforeign", new WindowProxyMethod(this, vm, InvokeForeignProc));
 
+        vm->Register("current_parse_tree", new WindowProxyMethod(this, vm, CurrentParseTreeProc));
+
 
         for(int i=0; i<stringConstants.keys().count(); i++)
         {
@@ -260,9 +262,14 @@ void RunWindow::Init(QString program, QMap<QString, QString> stringConstants, QS
             setBreakpoint(*i, debugInfo);
         }
         vm->Init();
-
         vm->setDebugger(client);
-
+        Value *pt = vm->wrapQObject(parseTree.get(),
+                                    "ParseTree",
+                                    this->qtMethodTranslations,
+                                    false
+                                    );
+        vm->DoPushVal(pt);
+        vm->DoPopGlobal("%parseTree");
         Run();
     }
     catch(VMError err)
@@ -366,7 +373,7 @@ void RunWindow::Run()
             if(visualize
                     // commenting out the following condition makes the debugger work,
                     // but not the wonderful monitor :(    --todo: fix this
-                &&  (visualize || ((oldPos != pos ) && (oldLen != len)))
+                &&  ((oldPos != pos ) && (oldLen != len))
                 )
             {
                 QTime dieTime = QTime::currentTime().addMSecs(client->wonderfulMonitorDelay());
@@ -629,7 +636,7 @@ void RunWindow::keyPressEvent(QKeyEvent *ev)
                 readChannel->unboxChan()->send(v, NULL);
                 textLayer.nl();
                 update();
-                Run();
+                //Run();
             }
         }
         else if(ev->key() == Qt::Key_Backspace)

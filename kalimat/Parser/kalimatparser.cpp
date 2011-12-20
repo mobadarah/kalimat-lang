@@ -1172,7 +1172,7 @@ shared_ptr<Declaration> KalimatParser::classDecl()
             shared_ptr<Has> h(new Has());
             match(HAS);
             shared_ptr<Identifier> fname = identifier();
-            h.get()->add(fname);
+            h->add(fname);
             fields.append(fname);
             if(LA(MARSHALLAS))
             {
@@ -1194,7 +1194,7 @@ shared_ptr<Declaration> KalimatParser::classDecl()
                 }
             }
             match(NEWLINE);
-            internalDecls.append(shared_ptr<ClassInternalDecl>(h));
+            internalDecls.append(h);
         }
         if(LA(RESPONDS))
         {
@@ -1235,7 +1235,7 @@ shared_ptr<Declaration> KalimatParser::classDecl()
                 }
                 methods[methodName->name] = MethodInfo(formals.count(), false);
             }
-            internalDecls.append(shared_ptr<ClassInternalDecl>(rt));
+            internalDecls.append(rt);
             match(NEWLINE);
         }
         if(LA(REPLIES))
@@ -1275,7 +1275,7 @@ shared_ptr<Declaration> KalimatParser::classDecl()
                 }
                 methods[methodName->name] = MethodInfo(formals.count(), true);
             }
-            internalDecls.append(shared_ptr<ClassInternalDecl>(rt));
+            internalDecls.append(rt);
             match(NEWLINE);
         }
         if(LA(BUILT))
@@ -1370,7 +1370,6 @@ shared_ptr<Declaration> KalimatParser::methodDecl()
     match(END);
     ret->_endingToken = endingToken;
     return ret;
-
 }
 
 shared_ptr<Declaration> KalimatParser::ffiLibraryDecl()

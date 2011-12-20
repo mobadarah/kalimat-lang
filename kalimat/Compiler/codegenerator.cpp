@@ -85,7 +85,7 @@ bool CodeGenerator::currentScopeFuncNotProc()
 
 void CodeGenerator::generate(Program *program, CodeDocument *curDoc)
 {
-    QVector<Declaration *> declarations;
+    QVector<shared_ptr<Declaration> > declarations;
     QVector<Statement *> statements;
     currentCodeDoc = curDoc;
 /*
@@ -96,13 +96,13 @@ void CodeGenerator::generate(Program *program, CodeDocument *curDoc)
     */
     for(int i=0; i<program->elementCount(); i++)
     {
-        TopLevel *tl = program->element(i);
-        if(isa<Declaration>(tl))
-            declarations.append(dynamic_cast<Declaration *>(tl));
-        else if(isa<Statement>(tl))
-            statements.append(dynamic_cast<Statement *>(tl));
+        shared_ptr<TopLevel> tl = program->element(i);
+        if(isa<Declaration>(tl.get()))
+            declarations.append(dynamic_pointer_cast<Declaration>(tl));
+        else if(isa<Statement>(tl.get()))
+            statements.append(dynamic_cast<Statement *>(tl.get()));
         else
-            throw CompilerException(tl, ASTMustBeStatementOrDeclaration).arg(tl->toString());
+            throw CompilerException(tl.get(), ASTMustBeStatementOrDeclaration).arg(tl->toString());
     }
 
     for(int i=0; i<declarations.count(); i++)
@@ -120,7 +120,7 @@ void CodeGenerator::generate(Program *program, CodeDocument *curDoc)
     checkInheritanceCycles();
     for(int i=0; i<declarations.count(); i++)
     {
-        generateDeclaration(declarations[i]);
+        generateDeclaration(declarations[i].get());
     }
 }
 
@@ -128,7 +128,7 @@ void CodeGenerator::compileModule(Module *module, CodeDocument *curDoc)
 {
     // Copy-pasted from generate(Program *)
     currentCodeDoc = curDoc;
-    QVector<Declaration *> declarations;
+    QVector<shared_ptr<Declaration> > declarations;
 
  /*   for(int i=0; i<module->usedModuleCount(); i++)
     {
@@ -137,8 +137,8 @@ void CodeGenerator::compileModule(Module *module, CodeDocument *curDoc)
     */
     for(int i=0; i<module->declCount(); i++)
     {
-        Declaration *decl = module->decl(i);
-        declarations.append(dynamic_cast<Declaration *>(decl));
+        shared_ptr<Declaration> decl = module->declPtr(i);
+        declarations.append(decl);
     }
 
     for(int i=0; i<declarations.count(); i++)
@@ -156,83 +156,85 @@ void CodeGenerator::compileModule(Module *module, CodeDocument *curDoc)
     checkInheritanceCycles();
     for(int i=0; i<declarations.count(); i++)
     {
-        generateDeclaration(declarations[i]);
+        generateDeclaration(declarations[i].get());
     }
 }
 
-void CodeGenerator::firstPass(Declaration * decl)
+void CodeGenerator::firstPass(shared_ptr<Declaration> decl)
 {
-    if(isa<ClassDecl>(decl))
+    if(isa<ClassDecl>(decl.get()))
     {
-        ClassDecl *cd = (ClassDecl *) decl;
+        shared_ptr<ClassDecl> cd = dynamic_pointer_cast<ClassDecl>(decl);
         QString name = cd->name()->name;
         if(allClasses.contains(name))
-            throw CompilerException(decl, ClassAlreadyExists).arg(name);
+            throw CompilerException(decl.get(), ClassAlreadyExists).arg(name);
         else
             allClasses[name] = cd;
         return;
     }
 
-    if(isa<ProcedureDecl>(decl))
+    if(isa<ProcedureDecl>(decl.get()))
     {
-        ProcedureDecl *proc = (ProcedureDecl *) decl;
+        shared_ptr<ProcedureDecl> proc =
+                dynamic_pointer_cast<ProcedureDecl>(decl);
         allProcedures[proc->procName()->name] = proc;
     }
-    if(isa<FunctionDecl>(decl))
+    if(isa<FunctionDecl>(decl.get()))
     {
-        FunctionDecl *func = (FunctionDecl *) decl;
+        shared_ptr<FunctionDecl> func = dynamic_pointer_cast<FunctionDecl>(decl);
         allFunctions[func->procName()->name] = func;
     }
-    if(isa<GlobalDecl>(decl))
+    if(isa<GlobalDecl>(decl.get()))
     {
-        generateGlobalDeclaration(dynamic_cast<GlobalDecl *>(decl));
+        generateGlobalDeclaration(dynamic_pointer_cast<GlobalDecl>(decl));
     }
 
 }
-void CodeGenerator::secondPass(Declaration * decl)
+void CodeGenerator::secondPass(shared_ptr<Declaration>  decl)
 {
-    if(isa<ClassDecl>(decl))
+    if(isa<ClassDecl>(decl.get()))
     {
-        ClassDecl *cd = (ClassDecl *) decl;
-        if(cd->ancestor() !=NULL)
+        shared_ptr<ClassDecl> cd =
+                dynamic_pointer_cast<ClassDecl>(decl);
+        if(cd->ancestor() != NULL)
         {
             QString ancestorName = cd->ancestor()->name;
             if(!allClasses.contains(ancestorName))
             {
-                throw CompilerException(decl, AncestorClassXforClassYdoesntExist)
+                throw CompilerException(decl.get(), AncestorClassXforClassYdoesntExist)
                                             .arg(ancestorName).arg(cd->name()->name);
             }
-            ClassDecl *ancestor = allClasses[ancestorName];
-            cd->setAncestorClass(shared_ptr<ClassDecl>(ancestor));
+            shared_ptr<ClassDecl> ancestor = allClasses[ancestorName];
+            cd->setAncestorClass(ancestor);
         }
     }
 }
 
-void CodeGenerator::thirdPass(Declaration * decl)
+void CodeGenerator::thirdPass(shared_ptr<Declaration> decl)
 {
-    if(isa<MethodDecl>(decl))
+    if(isa<MethodDecl>(decl.get()))
     {
-        MethodDecl *md = (MethodDecl *) decl;
+        shared_ptr<MethodDecl> md = dynamic_pointer_cast<MethodDecl>(decl);
         QString name = md->procName()->name;
         QString className = md->className()->name;
         if(!allClasses.contains(className))
-            throw CompilerException(decl, MethodDefinedForNotYetExistingClass).arg(className);
+            throw CompilerException(decl.get(), MethodDefinedForNotYetExistingClass).arg(className);
         else
         {
-            ClassDecl *theClass = allClasses[className];
+            shared_ptr<ClassDecl> theClass = allClasses[className];
             if(theClass->containsMethod(name))
-                throw CompilerException(decl, MethodCalledXwasAlreadyDefinedForClassY).arg(name).arg(className);
+                throw CompilerException(decl.get(), MethodCalledXwasAlreadyDefinedForClassY).arg(name).arg(className);
             if(!theClass->containsPrototype(name))
-                throw CompilerException(decl, MethodXwasNotDeclaredInClassY).arg(name).arg(className);
+                throw CompilerException(decl.get(), MethodXwasNotDeclaredInClassY).arg(name).arg(className);
 
             // We subtract the 1 to account for the extra 'this' parameter in md
             if(theClass->methodPrototype(name).arity != md->formalCount()-1)
-                throw CompilerException(decl, MethodXwasDeclaredWithDifferentArityInClassY).arg(name).arg(className);
+                throw CompilerException(decl.get(), MethodXwasDeclaredWithDifferentArityInClassY).arg(name).arg(className);
             if(theClass->methodPrototype(name).isFunction && !md->isFunctionNotProcedure)
-                throw CompilerException(decl, MethodXwasDeclaredAfunctionButImplementedAsProcedureInClassY).arg(name).arg(className);
+                throw CompilerException(decl.get(), MethodXwasDeclaredAfunctionButImplementedAsProcedureInClassY).arg(name).arg(className);
             if(!theClass->methodPrototype(name).isFunction && md->isFunctionNotProcedure)
-                throw CompilerException(decl, MethodXwasDeclaredAprocedureButImplementedAsFunctionInClassY).arg(name).arg(className);
-            allClasses[className]->insertMethod(name, shared_ptr<MethodDecl>(md));
+                throw CompilerException(decl.get(), MethodXwasDeclaredAprocedureButImplementedAsFunctionInClassY).arg(name).arg(className);
+            allClasses[className]->insertMethod(name, md);
         }
         return;
     }
@@ -555,7 +557,7 @@ void CodeGenerator::generateClassDeclaration(ClassDecl *decl)
     }
     gen(decl,".endclass");
 }
-void CodeGenerator::generateGlobalDeclaration(GlobalDecl *decl)
+void CodeGenerator::generateGlobalDeclaration(shared_ptr<GlobalDecl> decl)
 {
     this->declaredGlobalVariables.insert(decl->varName);
 }

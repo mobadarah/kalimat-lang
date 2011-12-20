@@ -7,7 +7,7 @@
 
 #ifndef KALIMATAST_H
 #define KALIMATAST_H
-#define QT_SHAREDPOINTER_TRACK_POINTERS
+#include <QObject>
 #include <QString>
 #include <QLocale>
 #include <QStringList>
@@ -45,6 +45,8 @@ QString strLiteralRepr(QString value);
 class KalimatAst : public QObject, public AST
 {
     Q_OBJECT
+public:
+    Q_INVOKABLE virtual QString toString() { return "";}
 };
 
 class IScopeIntroducer

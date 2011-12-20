@@ -2,6 +2,7 @@
 # Project created by QtCreator 2010-03-04T20:06:04
 # -------------------------------------------------
 TARGET = smallvm
+QMAKE_CXXFLAGS += -std=gnu++0x
 TEMPLATE = lib
 CONFIG += dll
 CONFIG -= console

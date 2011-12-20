@@ -440,16 +440,32 @@ void VM::RunStep(bool singleInstruction)
         _isRunning = false;
         return;
     }
+
     if(running.empty())
     {
         return;
     }
+
     Process *runningNow = running.front();
-    while(runningNow->state == SleepingProcess)
+    int all = 0;
+    while(runningNow->state == SleepingProcess
+          && all < running.count())
     {
-        running.pop_front();
-        running.push_back(runningNow);
-        runningNow = running.front();
+        if(timerWaiting.count() > 0 && timerWaiting.front()->timeToWake < qt)
+        {
+            Process *proc = timerWaiting.front();
+            timerWaiting.pop_front();
+            proc->awaken();
+            // This is O(n) , todo:
+            running.push_front(proc);
+        }
+        else
+        {
+            running.pop_front();
+            running.push_back(runningNow);
+            runningNow = running.front();
+            all++;
+        }
     }
 
     while(n--)

@@ -1132,7 +1132,7 @@ QString ClassDecl::toString()
 
 }
 
-void ClassDecl::insertMethod(QString name, shared_ptr<MethodDecl>m)
+void ClassDecl::insertMethod(QString name, shared_ptr<MethodDecl> m)
 {
     _methods[name] = m;
 }
@@ -1141,7 +1141,7 @@ bool ClassDecl::containsMethod(QString name)
 {
     if(_methods.contains(name))
         return true;
-    if(_ancestorClass && _ancestorClass.get()->containsMethod(name))
+    if(_ancestorClass && _ancestorClass->containsMethod(name))
         return true;
     return false;
 }
@@ -1151,7 +1151,7 @@ MethodDecl *ClassDecl::method(QString name)
     if(_methods.contains(name))
         return _methods[name].get();
     if(_ancestorClass)
-        return _ancestorClass.get()->method(name);
+        return _ancestorClass->method(name);
     return NULL;
 }
 

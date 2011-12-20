@@ -399,6 +399,11 @@ void MainWindow::on_mnuProgramRun_triggered()
         atBreak = false;
 
         rw->show();
+
+        KalimatLexer lxr;
+        KalimatParser parser;
+        parser.init(doc->getEditor()->document()->toPlainText(), &lxr, doc);
+        rw->parseTree = dynamic_pointer_cast<KalimatAst>(parser.parse());
         rw->Init(output, compiler.generator.getStringConstants(), breakPoints, debugInfo);
 
     }
