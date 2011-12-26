@@ -533,14 +533,9 @@ BlockStmt::BlockStmt(Token pos, QVector<shared_ptr<Statement> > statements)
     //    _statements.append(shared_ptr<Statement>(statements[i]));
 }
 
-QVector<Statement *> BlockStmt::getStatements()
+QVector<shared_ptr<Statement> > BlockStmt::getStatements()
 {
-    QVector<Statement *> ret;
-    for(int i=0; i<statementCount(); i++)
-    {
-        ret.append(statement(i));
-    }
-    return ret;
+    return _statements;
 }
 
 QString BlockStmt::toString()

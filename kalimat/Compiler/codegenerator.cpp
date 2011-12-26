@@ -11,13 +11,20 @@
 #include <QMap>
 #include <QSet>
 #include <QStack>
-
+#include <memory>
 #include "codegenerator_incl.h"
 #include "../../smallvm/utils.h"
 
+using namespace std;
 template<typename T1, typename T2> bool isa(T2 *value)
 {
     T1 *test = dynamic_cast<T1 *>(value);
+    return test!=NULL;
+}
+
+template<typename T1, typename T2> bool isa(shared_ptr<T2> value)
+{
+    T1 *test = dynamic_cast<T1 *>(value.get());
     return test!=NULL;
 }
 
@@ -66,27 +73,27 @@ void CodeGenerator::defineInCurrentScope(QString var)
 bool CodeGenerator::currentScopeFuncNotProc()
 {
     if(scopeStack.empty())
-        throw CompilerException(NULL, InternalCompilerErrorInFunc).arg("currentScopeFuncNotProc");
-    ProceduralDecl *decl = scopeStack.top().proc;
+        throw CompilerException::no_source(InternalCompilerErrorInFunc).arg("currentScopeFuncNotProc");
+    shared_ptr<ProceduralDecl> decl = scopeStack.top().proc;
     if(isa<ProceduralDecl>(decl))
         return false;
     else if(isa<FunctionDecl>(decl))
         return true;
     else if(isa<MethodDecl>(decl))
     {
-        MethodDecl *md = (MethodDecl *) decl;
+        shared_ptr<MethodDecl> md = dynamic_pointer_cast<MethodDecl>(decl);
         return md->isFunctionNotProcedure;
     }
     else
     {
-        throw CompilerException(NULL, InternalCompilerErrorInFunc).arg("currentScopeFuncNotProc");
+        throw CompilerException::no_source(InternalCompilerErrorInFunc).arg("currentScopeFuncNotProc");
     }
 }
 
-void CodeGenerator::generate(Program *program, CodeDocument *curDoc)
+void CodeGenerator::generate(shared_ptr<Program> program, CodeDocument *curDoc)
 {
     QVector<shared_ptr<Declaration> > declarations;
-    QVector<Statement *> statements;
+    QVector<shared_ptr<Statement> > statements;
     currentCodeDoc = curDoc;
 /*
     for(int i=0; i<program->usedModuleCount(); i++)
@@ -97,12 +104,12 @@ void CodeGenerator::generate(Program *program, CodeDocument *curDoc)
     for(int i=0; i<program->elementCount(); i++)
     {
         shared_ptr<TopLevel> tl = program->element(i);
-        if(isa<Declaration>(tl.get()))
+        if(isa<Declaration>(tl))
             declarations.append(dynamic_pointer_cast<Declaration>(tl));
-        else if(isa<Statement>(tl.get()))
-            statements.append(dynamic_cast<Statement *>(tl.get()));
+        else if(isa<Statement>(tl))
+            statements.append(dynamic_pointer_cast<Statement>(tl));
         else
-            throw CompilerException(tl.get(), ASTMustBeStatementOrDeclaration).arg(tl->toString());
+            throw CompilerException(tl, ASTMustBeStatementOrDeclaration).arg(tl->toString());
     }
 
     for(int i=0; i<declarations.count(); i++)
@@ -120,11 +127,11 @@ void CodeGenerator::generate(Program *program, CodeDocument *curDoc)
     checkInheritanceCycles();
     for(int i=0; i<declarations.count(); i++)
     {
-        generateDeclaration(declarations[i].get());
+        generateDeclaration(declarations[i]);
     }
 }
 
-void CodeGenerator::compileModule(Module *module, CodeDocument *curDoc)
+void CodeGenerator::compileModule(shared_ptr<Module> module, CodeDocument *curDoc)
 {
     // Copy-pasted from generate(Program *)
     currentCodeDoc = curDoc;
@@ -156,43 +163,44 @@ void CodeGenerator::compileModule(Module *module, CodeDocument *curDoc)
     checkInheritanceCycles();
     for(int i=0; i<declarations.count(); i++)
     {
-        generateDeclaration(declarations[i].get());
+        generateDeclaration(declarations[i]);
     }
 }
 
 void CodeGenerator::firstPass(shared_ptr<Declaration> decl)
 {
-    if(isa<ClassDecl>(decl.get()))
+    if(isa<ClassDecl>(decl))
     {
         shared_ptr<ClassDecl> cd = dynamic_pointer_cast<ClassDecl>(decl);
         QString name = cd->name()->name;
         if(allClasses.contains(name))
-            throw CompilerException(decl.get(), ClassAlreadyExists).arg(name);
+            throw CompilerException(decl, ClassAlreadyExists).arg(name);
         else
             allClasses[name] = cd;
         return;
     }
 
-    if(isa<ProcedureDecl>(decl.get()))
+    if(isa<ProcedureDecl>(decl))
     {
         shared_ptr<ProcedureDecl> proc =
                 dynamic_pointer_cast<ProcedureDecl>(decl);
         allProcedures[proc->procName()->name] = proc;
     }
-    if(isa<FunctionDecl>(decl.get()))
+    if(isa<FunctionDecl>(decl))
     {
         shared_ptr<FunctionDecl> func = dynamic_pointer_cast<FunctionDecl>(decl);
         allFunctions[func->procName()->name] = func;
     }
-    if(isa<GlobalDecl>(decl.get()))
+    if(isa<GlobalDecl>(decl))
     {
         generateGlobalDeclaration(dynamic_pointer_cast<GlobalDecl>(decl));
     }
 
 }
+
 void CodeGenerator::secondPass(shared_ptr<Declaration>  decl)
 {
-    if(isa<ClassDecl>(decl.get()))
+    if(isa<ClassDecl>(decl))
     {
         shared_ptr<ClassDecl> cd =
                 dynamic_pointer_cast<ClassDecl>(decl);
@@ -201,7 +209,7 @@ void CodeGenerator::secondPass(shared_ptr<Declaration>  decl)
             QString ancestorName = cd->ancestor()->name;
             if(!allClasses.contains(ancestorName))
             {
-                throw CompilerException(decl.get(), AncestorClassXforClassYdoesntExist)
+                throw CompilerException(decl, AncestorClassXforClassYdoesntExist)
                                             .arg(ancestorName).arg(cd->name()->name);
             }
             shared_ptr<ClassDecl> ancestor = allClasses[ancestorName];
@@ -212,28 +220,28 @@ void CodeGenerator::secondPass(shared_ptr<Declaration>  decl)
 
 void CodeGenerator::thirdPass(shared_ptr<Declaration> decl)
 {
-    if(isa<MethodDecl>(decl.get()))
+    if(isa<MethodDecl>(decl))
     {
         shared_ptr<MethodDecl> md = dynamic_pointer_cast<MethodDecl>(decl);
         QString name = md->procName()->name;
         QString className = md->className()->name;
         if(!allClasses.contains(className))
-            throw CompilerException(decl.get(), MethodDefinedForNotYetExistingClass).arg(className);
+            throw CompilerException(decl, MethodDefinedForNotYetExistingClass).arg(className);
         else
         {
             shared_ptr<ClassDecl> theClass = allClasses[className];
             if(theClass->containsMethod(name))
-                throw CompilerException(decl.get(), MethodCalledXwasAlreadyDefinedForClassY).arg(name).arg(className);
+                throw CompilerException(decl, MethodCalledXwasAlreadyDefinedForClassY).arg(name).arg(className);
             if(!theClass->containsPrototype(name))
-                throw CompilerException(decl.get(), MethodXwasNotDeclaredInClassY).arg(name).arg(className);
+                throw CompilerException(decl, MethodXwasNotDeclaredInClassY).arg(name).arg(className);
 
             // We subtract the 1 to account for the extra 'this' parameter in md
             if(theClass->methodPrototype(name).arity != md->formalCount()-1)
-                throw CompilerException(decl.get(), MethodXwasDeclaredWithDifferentArityInClassY).arg(name).arg(className);
+                throw CompilerException(decl, MethodXwasDeclaredWithDifferentArityInClassY).arg(name).arg(className);
             if(theClass->methodPrototype(name).isFunction && !md->isFunctionNotProcedure)
-                throw CompilerException(decl.get(), MethodXwasDeclaredAfunctionButImplementedAsProcedureInClassY).arg(name).arg(className);
+                throw CompilerException(decl, MethodXwasDeclaredAfunctionButImplementedAsProcedureInClassY).arg(name).arg(className);
             if(!theClass->methodPrototype(name).isFunction && md->isFunctionNotProcedure)
-                throw CompilerException(decl.get(), MethodXwasDeclaredAprocedureButImplementedAsFunctionInClassY).arg(name).arg(className);
+                throw CompilerException(decl, MethodXwasDeclaredAprocedureButImplementedAsFunctionInClassY).arg(name).arg(className);
             allClasses[className]->insertMethod(name, md);
         }
         return;
@@ -245,29 +253,29 @@ void CodeGenerator::checkInheritanceCycles()
     //todo:
 }
 
-void CodeGenerator::generateDeclaration(Declaration * decl)
+void CodeGenerator::generateDeclaration(shared_ptr<Declaration> decl)
 {
     if(isa<ProceduralDecl>(decl))
     {
-        ProceduralDecl *pd = (ProceduralDecl *) decl;
+        shared_ptr<ProceduralDecl> pd = dynamic_pointer_cast<ProceduralDecl>(decl);
         pushProcedureScope(pd);
     }
 
     if(isa<ProcedureDecl>(decl))
     {
-        ProcedureDecl *pd = (ProcedureDecl *) decl;
+        shared_ptr<ProcedureDecl> pd = dynamic_pointer_cast<ProcedureDecl>(decl);
         if(pd->procName()->name == "%main")
             generateEntryPoint(pd->body()->getStatements());
         else
-            generateProcedureDeclaration(dynamic_cast<ProcedureDecl *>(decl));
+            generateProcedureDeclaration(decl);
     }
     else if(isa<FunctionDecl>(decl))
     {
-        generateFunctionDeclaration(dynamic_cast<FunctionDecl *>(decl));
+        generateFunctionDeclaration(dynamic_pointer_cast<FunctionDecl>(decl));
     }
     else if(isa<ClassDecl>(decl))
     {
-        generateClassDeclaration(dynamic_cast<ClassDecl *>(decl));
+        generateClassDeclaration(dynamic_pointer_cast<ClassDecl>(decl));
     }
     else if(isa<MethodDecl>(decl))
     {
@@ -282,7 +290,7 @@ void CodeGenerator::generateDeclaration(Declaration * decl)
     }
     else if(isa<FFILibraryDecl>(decl))
     {
-        generateFFILibraryDeclaration(dynamic_cast<FFILibraryDecl *>(decl));
+        generateFFILibraryDeclaration(dynamic_pointer_cast<FFILibraryDecl>(decl));
     }
     else
     {
@@ -295,7 +303,7 @@ void CodeGenerator::generateDeclaration(Declaration * decl)
     }
 }
 
-void CodeGenerator::pushProcedureScope(ProceduralDecl *pd)
+void CodeGenerator::pushProcedureScope(shared_ptr<ProceduralDecl> pd)
 {
     Context c;
     c.proc = pd;
@@ -309,7 +317,7 @@ void CodeGenerator::popProcedureScope()
     scopeStack.pop();
 }
 
-void CodeGenerator::generateProcedureDeclaration(ProcedureDecl * decl)
+void CodeGenerator::generateProcedureDeclaration(shared_ptr<ProcedureDecl> decl)
 {
     gen(decl, QString(".method %1 %2 0").arg(decl->procName()->name).arg(decl->formalCount()));
     for(int i=0; i<decl->formalCount(); i++)
@@ -323,7 +331,7 @@ void CodeGenerator::generateProcedureDeclaration(ProcedureDecl * decl)
     gen(decl,".endmethod");
 }
 
-void CodeGenerator::generateFunctionDeclaration(FunctionDecl * decl)
+void CodeGenerator::generateFunctionDeclaration(shared_ptr<FunctionDecl> decl)
 {
     gen(decl, QString(".method %1 %2 1").arg(decl->procName()->name).arg(decl->formalCount()));
     for(int i=0; i<decl->formalCount(); i++)
@@ -338,18 +346,18 @@ void CodeGenerator::generateFunctionDeclaration(FunctionDecl * decl)
     gen(decl,".endmethod");
 }
 
-void CodeGenerator::generateFFILibraryDeclaration(FFILibraryDecl *decl)
+void CodeGenerator::generateFFILibraryDeclaration(shared_ptr<FFILibraryDecl> decl)
 {
     for(int i=0; i<decl->declCount(); i++)
     {
-        Declaration *d = decl->decl(i);
+        shared_ptr<Declaration> d = decl->decl(i);
         if(isa<FFIProceduralDecl>(d))
         {
-            generateFFIProceduralDeclaration(dynamic_cast<FFIProceduralDecl *>(d), decl->libName);
+            generateFFIProceduralDeclaration(dynamic_pointer_cast<FFIProceduralDecl>(d), decl->libName);
         }
         else if(isa<FFIStructDecl>(d))
         {
-            generateFFIStructDeclaration(dynamic_cast<FFIStructDecl *>(d));
+            generateFFIStructDeclaration(dynamic_pointer_cast<FFIStructDecl>(d));
         }
         else
         {
@@ -359,7 +367,7 @@ void CodeGenerator::generateFFILibraryDeclaration(FFILibraryDecl *decl)
     }
 }
 
-void CodeGenerator::generateFFIProceduralDeclaration(FFIProceduralDecl *decl, QString libName)
+void CodeGenerator::generateFFIProceduralDeclaration(shared_ptr<FFIProceduralDecl> decl, QString libName)
 {
     /*
       .method رسالة 4 1
@@ -421,13 +429,13 @@ void CodeGenerator::generateFFIProceduralDeclaration(FFIProceduralDecl *decl, QS
     // todo: we've called new() 3 times here, this is a memory leak which
     // can be rectified by cleaning up after we popProcedureScope at the end
     // of this function
-    pushProcedureScope(new FunctionDecl(decl->getPos(),
+    pushProcedureScope(shared_ptr<FunctionDecl>(new FunctionDecl(decl->getPos(),
                                         decl->getPos(),
                                         shared_ptr<Identifier>(new Identifier(decl->getPos(),decl->procName)),
                                         QVector<shared_ptr<Identifier> >(),
                                         shared_ptr<BlockStmt>(new BlockStmt(decl->getPos(), QVector<shared_ptr<Statement > >())),
                                         false
-                                        ));
+                                        )));
     gen(decl, QString(".method %1 %2 %3").
                              arg(decl->procName)
                             .arg(decl->paramTypeCount())
@@ -522,12 +530,12 @@ void CodeGenerator::generateFFIProceduralDeclaration(FFIProceduralDecl *decl, QS
     popProcedureScope();
 }
 
-void CodeGenerator::generateFFIStructDeclaration(FFIStructDecl *decl)
+void CodeGenerator::generateFFIStructDeclaration(shared_ptr<FFIStructDecl> decl)
 {
 
 }
 
-void CodeGenerator::generateClassDeclaration(ClassDecl *decl)
+void CodeGenerator::generateClassDeclaration(shared_ptr<ClassDecl> decl)
 {
     gen(decl, ".class "+decl->name()->name);
     if(decl->ancestor() != NULL)
@@ -550,7 +558,7 @@ void CodeGenerator::generateClassDeclaration(ClassDecl *decl)
     }
     for(int i=0; i<decl->methodCount(); i++)
     {
-        MethodDecl *method = decl->method(i);
+        shared_ptr<MethodDecl> method = decl->method(i);
         pushProcedureScope(method);
         generateMethodDeclaration(method);
         popProcedureScope();
@@ -562,7 +570,7 @@ void CodeGenerator::generateGlobalDeclaration(shared_ptr<GlobalDecl> decl)
     this->declaredGlobalVariables.insert(decl->varName);
 }
 
-void CodeGenerator::generateMethodDeclaration(MethodDecl *decl)
+void CodeGenerator::generateMethodDeclaration(shared_ptr<MethodDecl> decl)
 {
     QString name = decl->procName()->name;
     int numRet = decl->isFunctionNotProcedure? 1: 0;
@@ -578,7 +586,7 @@ void CodeGenerator::generateMethodDeclaration(MethodDecl *decl)
     gen(decl,".endmethod");
 }
 
-void CodeGenerator::generateEntryPoint(QVector<Statement *> statements)
+void CodeGenerator::generateEntryPoint(QVector<shared_ptr<Statement> > statements)
 {
     gen(".method main");
     for(int i=0; i<statements.count(); i++)
@@ -590,7 +598,7 @@ void CodeGenerator::generateEntryPoint(QVector<Statement *> statements)
     gen(".endmethod");
 }
 
-void CodeGenerator::generateStatement(Statement *stmt)
+void CodeGenerator::generateStatement(shared_ptr<Statement> stmt)
 {
     // todo: this is a hack to fix the disparity between names
     // for main: the vm takes a 'main' and the codegen generates a '%main'
@@ -608,91 +616,92 @@ void CodeGenerator::generateStatement(Statement *stmt)
 
     if(isa<IOStatement>(stmt))
     {
-        generateIOStatement(dynamic_cast<IOStatement *>(stmt));
+        generateIOStatement(dynamic_pointer_cast<IOStatement>(stmt));
     }
     else if(isa<GraphicsStatement>(stmt))
     {
-        generateGraphicsStatement(dynamic_cast<GraphicsStatement *>(stmt));
+        generateGraphicsStatement(dynamic_pointer_cast<GraphicsStatement>(stmt));
     }
     else if(isa<AssignmentStmt>(stmt))
     {
-        generateAssignmentStmt(dynamic_cast<AssignmentStmt*>(stmt));
+        generateAssignmentStmt(dynamic_pointer_cast<AssignmentStmt>(stmt));
     }
     else if(isa<IfStmt>(stmt))
     {
-        generateIfStmt(dynamic_cast<IfStmt *>(stmt));
+        generateIfStmt(dynamic_pointer_cast<IfStmt>(stmt));
     }
     else if(isa<WhileStmt>(stmt))
     {
-        generateWhileStmt(dynamic_cast<WhileStmt *>(stmt));
+        generateWhileStmt(dynamic_pointer_cast<WhileStmt>(stmt));
     }
     else if(isa<ForAllStmt>(stmt))
     {
-        generateForAllStmt(dynamic_cast<ForAllStmt *>(stmt));
+        generateForAllStmt(dynamic_pointer_cast<ForAllStmt>(stmt));
     }
     else if(isa<LabelStmt>(stmt))
     {
-        generateLabelStmt(dynamic_cast<LabelStmt*>(stmt));
+        generateLabelStmt(dynamic_pointer_cast<LabelStmt>(stmt));
     }
     else if(isa<GotoStmt>(stmt))
     {
-        generateGotoStmt(dynamic_cast<GotoStmt*>(stmt));
+        generateGotoStmt(dynamic_pointer_cast<GotoStmt>(stmt));
     }
     else if(isa<DelegationStmt>(stmt))
     {
-        generateDelegationStmt(dynamic_cast<DelegationStmt *>(stmt));
+        generateDelegationStmt(dynamic_pointer_cast<DelegationStmt>(stmt));
     }
     else if(isa<LaunchStmt>(stmt))
     {
-        generateLaunchStmt(dynamic_cast<LaunchStmt *>(stmt));
+        generateLaunchStmt(dynamic_pointer_cast<LaunchStmt>(stmt));
     }
     else if(isa<ReturnStmt>(stmt))
     {
-        generateReturnStmt(dynamic_cast<ReturnStmt *>(stmt));
+        generateReturnStmt(dynamic_pointer_cast<ReturnStmt>(stmt));
     }
     else if(isa<BlockStmt>(stmt))
     {
-        generateBlockStmt(dynamic_cast<BlockStmt *>(stmt));
+        generateBlockStmt(dynamic_pointer_cast<BlockStmt>(stmt));
     }
     else if(isa<InvokationStmt>(stmt))
     {
-        generateInvokationStmt(dynamic_cast<InvokationStmt *>(stmt));
+        generateInvokationStmt(dynamic_pointer_cast<InvokationStmt>(stmt));
     }
     else if(isa<EventStatement>(stmt))
     {
-        generateEventStatement(dynamic_cast<EventStatement *>(stmt));
+        generateEventStatement(dynamic_pointer_cast<EventStatement>(stmt));
     }
     else if(isa<SendStmt>(stmt))
     {
-        generateSendStmt(dynamic_cast<SendStmt *>(stmt));
+        generateSendStmt(dynamic_pointer_cast<SendStmt>(stmt));
     }
     else if(isa<ReceiveStmt>(stmt))
     {
-        generateReceiveStmt(dynamic_cast<ReceiveStmt*>(stmt));
+        generateReceiveStmt(dynamic_pointer_cast<ReceiveStmt>(stmt));
     }
     else if(isa<SelectStmt>(stmt))
     {
-        generateSelectStmt(dynamic_cast<SelectStmt*>(stmt));
+        generateSelectStmt(dynamic_pointer_cast<SelectStmt>(stmt));
     }
     else
     {
         throw new CompilerException(stmt, UnimplementedStatementForm);
     }
 }
-void CodeGenerator::generateIOStatement(IOStatement *stmt)
+
+void CodeGenerator::generateIOStatement(shared_ptr<IOStatement> stmt)
 {
     if(isa<PrintStmt>(stmt))
     {
-        generatePrintStmt(dynamic_cast<PrintStmt *>(stmt));
+        generatePrintStmt(dynamic_pointer_cast<PrintStmt>(stmt));
         return;
     }
     if(isa<ReadStmt>(stmt))
     {
-        generateReadStmt(dynamic_cast<ReadStmt *>(stmt));
+        generateReadStmt(dynamic_pointer_cast<ReadStmt>(stmt));
         return;
     }
 }
-void CodeGenerator::generatePrintStmt(PrintStmt *stmt)
+void CodeGenerator::generatePrintStmt(shared_ptr<PrintStmt> stmt)
 {
     QString fileVar = "";
     if(stmt->fileObject() != NULL)
@@ -719,7 +728,7 @@ void CodeGenerator::generatePrintStmt(PrintStmt *stmt)
         }
         else
         {
-            generateExpression(stmt->_widths[i].get());
+            generateExpression(stmt->_widths[i]);
             generateExpression(stmt->arg(i));
             if(fileVar != "")
             {
@@ -748,12 +757,13 @@ void CodeGenerator::generatePrintStmt(PrintStmt *stmt)
         }
     }
 }
-void CodeGenerator::generateReadStmt(ReadStmt *stmt)
+
+void CodeGenerator::generateReadStmt(shared_ptr<ReadStmt> stmt)
 {
     struct GenerateRvalue : public Thunk
     {
-        AST *_src; CodeGenerator *_g; QString _v;
-        GenerateRvalue(AST *src, CodeGenerator *g, QString v):_src(src),_g(g), _v(v){}
+        shared_ptr<AST> _src; CodeGenerator *_g; QString _v;
+        GenerateRvalue(shared_ptr<AST> src, CodeGenerator *g, QString v):_src(src),_g(g), _v(v){}
         void operator()()
         {
             _g->gen(_src, "pushl " + _v);
@@ -766,7 +776,7 @@ void CodeGenerator::generateReadStmt(ReadStmt *stmt)
             throw CompilerException(stmt, ReadFromCannotContainAPrompt);
         if(stmt->variableCount() !=1)
             throw CompilerException(stmt, ReadFromCanReadOnlyOneVariable);
-        AssignableExpression *lvalue = stmt->variable(0);
+        shared_ptr<AssignableExpression> lvalue = stmt->variable(0);
 
         // We first read the data into a temporary variable,
         // then we generate the equivalent of a hidden assignment statement that assigns
@@ -804,7 +814,7 @@ void CodeGenerator::generateReadStmt(ReadStmt *stmt)
 
     for(int i=0; i<stmt->variableCount(); i++)
     {
-        AssignableExpression *lvalue = stmt->variable(i);
+        shared_ptr<AssignableExpression> lvalue = stmt->variable(i);
         QString readVar = _asm.uniqueVariable();
         defineInCurrentScope(readVar);
 
@@ -823,40 +833,40 @@ void CodeGenerator::generateReadStmt(ReadStmt *stmt)
         generateAssignmentToLvalue(lvalue, lvalue, genReadVar);
     }
 }
-void CodeGenerator::generateGraphicsStatement(GraphicsStatement *stmt)
+void CodeGenerator::generateGraphicsStatement(shared_ptr<GraphicsStatement> stmt)
 {
     if(isa<DrawPixelStmt>(stmt))
     {
-        generateDrawPixelStmt(dynamic_cast<DrawPixelStmt *>(stmt));
+        generateDrawPixelStmt(dynamic_pointer_cast<DrawPixelStmt>(stmt));
         return;
     }
     if(isa<DrawLineStmt>(stmt))
     {
-        generateDrawLineStmt(dynamic_cast<DrawLineStmt *>(stmt));
+        generateDrawLineStmt(dynamic_pointer_cast<DrawLineStmt>(stmt));
         return;
     }
     if(isa<DrawRectStmt>(stmt))
     {
-        generateDrawRectStmt(dynamic_cast<DrawRectStmt *>(stmt));
+        generateDrawRectStmt(dynamic_pointer_cast<DrawRectStmt>(stmt));
         return;
     }
     if(isa<DrawCircleStmt>(stmt))
     {
-        generateDrawCircleStmt(dynamic_cast<DrawCircleStmt *>(stmt));
+        generateDrawCircleStmt(dynamic_pointer_cast<DrawCircleStmt>(stmt));
         return;
     }
     if(isa<DrawSpriteStmt>(stmt))
     {
-        generateDrawSpriteStmt(dynamic_cast<DrawSpriteStmt *>(stmt));
+        generateDrawSpriteStmt(dynamic_pointer_cast<DrawSpriteStmt>(stmt));
         return;
     }
     if(isa<ZoomStmt>(stmt))
     {
-        generateZoomStmt(dynamic_cast<ZoomStmt *>(stmt));
+        generateZoomStmt(dynamic_pointer_cast<ZoomStmt>(stmt));
         return;
     }
 }
-void CodeGenerator::generateDrawPixelStmt(DrawPixelStmt *stmt)
+void CodeGenerator::generateDrawPixelStmt(shared_ptr<DrawPixelStmt> stmt)
 {
     if(stmt->color() == NULL)
         gen(stmt, "pushv -1");
@@ -866,7 +876,8 @@ void CodeGenerator::generateDrawPixelStmt(DrawPixelStmt *stmt)
     generateExpression(stmt->x());
     gen(stmt, "callex drawpixel");
 }
-void CodeGenerator::generateDrawLineStmt(DrawLineStmt *stmt)
+
+void CodeGenerator::generateDrawLineStmt(shared_ptr<DrawLineStmt> stmt)
 {
     if(stmt->color() == NULL)
         gen(stmt, "pushv -1");
@@ -879,7 +890,8 @@ void CodeGenerator::generateDrawLineStmt(DrawLineStmt *stmt)
 
     gen(stmt, "callex drawline");
 }
-void CodeGenerator::generateDrawRectStmt(DrawRectStmt *stmt)
+
+void CodeGenerator::generateDrawRectStmt(shared_ptr<DrawRectStmt> stmt)
 {
     if(stmt->filled())
         generateExpression(stmt->filled());
@@ -898,7 +910,7 @@ void CodeGenerator::generateDrawRectStmt(DrawRectStmt *stmt)
     gen(stmt, "callex drawrect");
 }
 
-void CodeGenerator::generateDrawCircleStmt(DrawCircleStmt *stmt)
+void CodeGenerator::generateDrawCircleStmt(shared_ptr<DrawCircleStmt> stmt)
 {
 
     if(stmt->filled())
@@ -918,14 +930,15 @@ void CodeGenerator::generateDrawCircleStmt(DrawCircleStmt *stmt)
     gen(stmt, "callex drawcircle");
 }
 
-void CodeGenerator::generateDrawSpriteStmt(DrawSpriteStmt *stmt)
+void CodeGenerator::generateDrawSpriteStmt(shared_ptr<DrawSpriteStmt> stmt)
 {
     generateExpression(stmt->y());
     generateExpression(stmt->x());
     generateExpression(stmt->sprite());
     gen(stmt, "callex drawsprite");
 }
-void CodeGenerator::generateZoomStmt(ZoomStmt *stmt)
+
+void CodeGenerator::generateZoomStmt(shared_ptr<ZoomStmt> stmt)
 {
     generateExpression(stmt->y2());
     generateExpression(stmt->x2());
@@ -935,7 +948,7 @@ void CodeGenerator::generateZoomStmt(ZoomStmt *stmt)
     gen(stmt, "callex zoom");
 }
 
-void CodeGenerator::generateEventStatement(EventStatement *stmt)
+void CodeGenerator::generateEventStatement(shared_ptr<EventStatement> stmt)
 {
     QString type;
     if(stmt->type == KalimatKeyDownEvent)
@@ -955,27 +968,26 @@ void CodeGenerator::generateEventStatement(EventStatement *stmt)
     gen(stmt, QString("regev %1,%2").arg(type).arg(stmt->handler()->name));
 }
 
-
-void CodeGenerator::generateAssignmentStmt(AssignmentStmt *stmt)
+void CodeGenerator::generateAssignmentStmt(shared_ptr<AssignmentStmt> stmt)
 {
-    AssignableExpression *lval = stmt->variable();
+    shared_ptr<AssignableExpression> lval = stmt->variable();
 
     struct GenerateExpr : public Thunk
     {
-        CodeGenerator *_g; Expression *_e;
-        GenerateExpr(CodeGenerator *g, Expression *e):_g(g),_e(e) {}
+        CodeGenerator *_g; shared_ptr<Expression> _e;
+        GenerateExpr(CodeGenerator *g, shared_ptr<Expression> e):_g(g),_e(e) {}
         void operator() (){ _g->generateExpression(_e); }
     } myGen(this, stmt->value());
 
     generateAssignmentToLvalue(stmt, lval, myGen);
 }
 
-void CodeGenerator::generateAssignmentToLvalue(AST *src, AssignableExpression *lval,
+void CodeGenerator::generateAssignmentToLvalue(shared_ptr<AST> src, shared_ptr<AssignableExpression> lval,
                                                Thunk &genValue)
 {
     if(isa<Identifier>(lval))
     {
-        Identifier *variable = (Identifier *) lval;
+        shared_ptr<Identifier> variable = dynamic_pointer_cast<Identifier>(lval);
         genValue();
         if(declaredGlobalVariables.contains(variable->name))
             gen(src, "popg "+variable->name);
@@ -987,14 +999,14 @@ void CodeGenerator::generateAssignmentToLvalue(AST *src, AssignableExpression *l
     }
     else if(isa<Idafa>(lval))
     {
-        Idafa *fieldAccess = (Idafa *) lval;
+        shared_ptr<Idafa> fieldAccess = dynamic_pointer_cast<Idafa>(lval);
         generateExpression(fieldAccess->modaf_elaih());
         genValue();
         gen(src, "setfld "+ fieldAccess->modaf()->name);
     }
     else if(isa<ArrayIndex>(lval))
     {
-        ArrayIndex *arri= (ArrayIndex *) lval;
+        shared_ptr<ArrayIndex> arri= dynamic_pointer_cast<ArrayIndex>(lval);
         generateExpression(arri->array());
         generateExpression(arri->index());
         genValue();
@@ -1002,7 +1014,8 @@ void CodeGenerator::generateAssignmentToLvalue(AST *src, AssignableExpression *l
     }
     else if(isa<MultiDimensionalArrayIndex>(lval))
     {
-        MultiDimensionalArrayIndex *arri = (MultiDimensionalArrayIndex *) lval;
+        shared_ptr<MultiDimensionalArrayIndex> arri =
+                dynamic_pointer_cast<MultiDimensionalArrayIndex>(lval);
         generateExpression(arri->array());
         generateArrayFromValues(lval, arri->indexes());
         genValue();
@@ -1014,13 +1027,13 @@ void CodeGenerator::generateAssignmentToLvalue(AST *src, AssignableExpression *l
     }
 }
 
-void CodeGenerator::generateReference(AssignableExpression *lval)
+void CodeGenerator::generateReference(shared_ptr<AssignableExpression> lval)
 {
     //todo: generating first-class references from lvalues
     gen(lval, "pushnull");
 }
 
-void CodeGenerator::generateIfStmt(IfStmt *stmt)
+void CodeGenerator::generateIfStmt(shared_ptr<IfStmt> stmt)
 {
     generateExpression(stmt->condition());
     QString trueLabel = _asm.uniqueLabel();
@@ -1042,7 +1055,7 @@ void CodeGenerator::generateIfStmt(IfStmt *stmt)
     gen(stmt, endLabel+":");
 }
 
-void CodeGenerator::generateWhileStmt(WhileStmt *stmt)
+void CodeGenerator::generateWhileStmt(shared_ptr<WhileStmt> stmt)
 {
     /*
       while(cond)
@@ -1069,7 +1082,7 @@ void CodeGenerator::generateWhileStmt(WhileStmt *stmt)
     gen(stmt, endLabel+":");
 }
 
-void CodeGenerator::generateForAllStmt(ForAllStmt *stmt)
+void CodeGenerator::generateForAllStmt(shared_ptr<ForAllStmt> stmt)
 {
     /*
       forall(var, from, to)
@@ -1116,9 +1129,9 @@ void CodeGenerator::generateForAllStmt(ForAllStmt *stmt)
     gen(stmt, endLabel+":");
 }
 
-void CodeGenerator::generateLabelStmt(LabelStmt *stmt)
+void CodeGenerator::generateLabelStmt(shared_ptr<LabelStmt> stmt)
 {
-    Expression *target = stmt->target();
+    shared_ptr<Expression> target = stmt->target();
     QString labelName = target->toString();
     if(scopeStack.top().labels.contains(labelName))
     {
@@ -1140,7 +1153,7 @@ void CodeGenerator::generateLabelStmt(LabelStmt *stmt)
     }
 }
 
-void CodeGenerator::generateGotoStmt(GotoStmt *stmt)
+void CodeGenerator::generateGotoStmt(shared_ptr<GotoStmt> stmt)
 {
     if(stmt->numericTarget())
     {
@@ -1152,14 +1165,15 @@ void CodeGenerator::generateGotoStmt(GotoStmt *stmt)
     }
 }
 
-void CodeGenerator::generateReturnStmt(ReturnStmt *stmt)
+void CodeGenerator::generateReturnStmt(shared_ptr<ReturnStmt> stmt)
 {
     bool notFunc = false;
     if(scopeStack.empty())
         notFunc = true;
     else if(isa<MethodDecl>(scopeStack.top().proc))
     {
-        notFunc = !((MethodDecl *) scopeStack.top().proc)->isFunctionNotProcedure;
+        shared_ptr<MethodDecl> proc = dynamic_pointer_cast<MethodDecl>(scopeStack.top().proc);
+        notFunc = !(proc)->isFunctionNotProcedure;
     }
     else if(!isa<FunctionDecl>(scopeStack.top().proc))
         notFunc = true;
@@ -1169,46 +1183,46 @@ void CodeGenerator::generateReturnStmt(ReturnStmt *stmt)
     gen(stmt,"ret");
 }
 
-void CodeGenerator::generateDelegationStmt(DelegationStmt *stmt)
+void CodeGenerator::generateDelegationStmt(shared_ptr<DelegationStmt> stmt)
 {
-    IInvokation *expr = stmt->invokation();
+    shared_ptr<IInvokation> expr = stmt->invokation();
 
     InvokationContext context = currentScopeFuncNotProc()? FunctionInvokationContext : ProcedureInvokationContext;
 
     if(isa<Invokation>(expr))
     {
-        generateInvokation(dynamic_cast<Invokation *>(expr), context, TailCallStyle);
+        generateInvokation(dynamic_pointer_cast<Invokation>(expr), context, TailCallStyle);
         return;
     }
     if(isa<MethodInvokation>(expr))
     {
-        generateMethodInvokation(dynamic_cast<MethodInvokation *>(expr), context, TailCallStyle);
+        generateMethodInvokation(dynamic_pointer_cast<MethodInvokation>(expr), context, TailCallStyle);
         return;
     }
 
     throw CompilerException(expr, UnimplementedInvokationForm).arg(expr->toString());
 }
 
-void CodeGenerator::generateLaunchStmt(LaunchStmt *stmt)
+void CodeGenerator::generateLaunchStmt(shared_ptr<LaunchStmt> stmt)
 {
-    IInvokation *expr = stmt->invokation();
+    shared_ptr<IInvokation> expr = stmt->invokation();
     if(isa<Invokation>(expr))
     {
-        generateInvokation(dynamic_cast<Invokation *>(expr), ProcedureInvokationContext, LaunchProcessStyle);
+        generateInvokation(dynamic_pointer_cast<Invokation>(expr), ProcedureInvokationContext, LaunchProcessStyle);
         return;
     }
     if(isa<MethodInvokation>(expr))
     {
-        generateMethodInvokation(dynamic_cast<MethodInvokation *>(expr), ProcedureInvokationContext, LaunchProcessStyle);
+        generateMethodInvokation(dynamic_pointer_cast<MethodInvokation>(expr), ProcedureInvokationContext, LaunchProcessStyle);
         return;
     }
 
     throw CompilerException(expr, UnimplementedInvokationForm).arg(expr->toString());
 }
 
-void CodeGenerator::generateBlockStmt(BlockStmt *stmt)
+void CodeGenerator::generateBlockStmt(shared_ptr<BlockStmt> stmt)
 {
-    ProceduralDecl *owningMethod = scopeStack.top().proc;
+    shared_ptr<ProceduralDecl> owningMethod = scopeStack.top().proc;
     bool blockIsMethodBody = owningMethod->body() == stmt;
 
     for(int i=0; i<stmt->statementCount(); i++)
@@ -1222,18 +1236,18 @@ void CodeGenerator::generateBlockStmt(BlockStmt *stmt)
     }
 }
 
-void CodeGenerator::generateInvokationStmt(InvokationStmt *stmt)
+void CodeGenerator::generateInvokationStmt(shared_ptr<InvokationStmt> stmt)
 {
-    Expression *expr = stmt->expression();
+    shared_ptr<Expression> expr = stmt->expression();
 
     if(isa<Invokation>(expr))
     {
-        generateInvokation(dynamic_cast<Invokation *>(expr), ProcedureInvokationContext);
+        generateInvokation(dynamic_pointer_cast<Invokation>(expr), ProcedureInvokationContext);
         return;
     }
     if(isa<MethodInvokation>(expr))
     {
-        generateMethodInvokation(dynamic_cast<MethodInvokation *>(expr), ProcedureInvokationContext);
+        generateMethodInvokation(dynamic_pointer_cast<MethodInvokation>(expr), ProcedureInvokationContext);
         return;
     }
     else
@@ -1242,7 +1256,7 @@ void CodeGenerator::generateInvokationStmt(InvokationStmt *stmt)
     }
 }
 
-void CodeGenerator::generateSendStmt(SendStmt *stmt)
+void CodeGenerator::generateSendStmt(shared_ptr<SendStmt> stmt)
 {
     generateExpression(stmt->channel());
     if(stmt->signal)
@@ -1252,7 +1266,7 @@ void CodeGenerator::generateSendStmt(SendStmt *stmt)
     gen(stmt, "send");
 }
 
-void CodeGenerator::generateReceiveStmt(ReceiveStmt *stmt)
+void CodeGenerator::generateReceiveStmt(shared_ptr<ReceiveStmt> stmt)
 {
     if(stmt->signal)
     {
@@ -1262,12 +1276,12 @@ void CodeGenerator::generateReceiveStmt(ReceiveStmt *stmt)
     }
     else
     {
-        AssignableExpression *lval = stmt->value();
+        shared_ptr<AssignableExpression> lval = stmt->value();
 
         struct GenerateExpr : public Thunk
         {
-            CodeGenerator *_g; ReceiveStmt *_stmt;
-            GenerateExpr(CodeGenerator *g, ReceiveStmt *s):_g(g),_stmt(s) {}
+            CodeGenerator *_g; shared_ptr<ReceiveStmt> _stmt;
+            GenerateExpr(CodeGenerator *g, shared_ptr<ReceiveStmt> s):_g(g),_stmt(s) {}
             void operator() ()
             {
                 _g->generateExpression(_stmt->channel());
@@ -1279,7 +1293,7 @@ void CodeGenerator::generateReceiveStmt(ReceiveStmt *stmt)
     }
 }
 
-void CodeGenerator::generateSelectStmt(SelectStmt *stmt)
+void CodeGenerator::generateSelectStmt(shared_ptr<SelectStmt> stmt)
 {
     /*
       The select instruction works like this:
@@ -1303,8 +1317,8 @@ void CodeGenerator::generateSelectStmt(SelectStmt *stmt)
     // Sift through sends and receives;
     for(int i=0; i<stmt->count(); i++)
     {
-        ChannelCommunicationStmt *ccs = stmt->condition(i);
-        SendStmt *isSend = dynamic_cast<SendStmt *>(ccs);
+        shared_ptr<ChannelCommunicationStmt> ccs = stmt->condition(i);
+        shared_ptr<SendStmt> isSend = dynamic_pointer_cast<SendStmt>(ccs);
         if(isSend)
             sends.append(i);
         else
@@ -1323,7 +1337,7 @@ void CodeGenerator::generateSelectStmt(SelectStmt *stmt)
     // Fill the array
     for(int i=0; i<sendCount; i++)
     {
-        SendStmt *ss = dynamic_cast<SendStmt *>(stmt->condition(sends[i]));
+        shared_ptr<SendStmt> ss = dynamic_pointer_cast<SendStmt>(stmt->condition(sends[i]));
 
         gen(ss, "pushl " + tempArrName);
         gen(ss, "pushv ", current);
@@ -1344,7 +1358,7 @@ void CodeGenerator::generateSelectStmt(SelectStmt *stmt)
 
     for(int i=0; i<receives.count(); i++)
     {
-        ReceiveStmt *rs = dynamic_cast<ReceiveStmt*>(stmt->condition(receives[i]));
+        shared_ptr<ReceiveStmt> rs = dynamic_pointer_cast<ReceiveStmt>(stmt->condition(receives[i]));
 
         gen(rs, "pushl " + tempArrName);
         gen(rs, "pushv ", current);
@@ -1401,8 +1415,8 @@ void CodeGenerator::generateSelectStmt(SelectStmt *stmt)
         QString lbl_a = _asm.uniqueLabel();
         QString lbl_b = _asm.uniqueLabel();
 
-        Statement *action;
-        ChannelCommunicationStmt *cond;
+        shared_ptr<Statement> action;
+        shared_ptr<ChannelCommunicationStmt> cond;
         if(i<sendCount)
         { action = stmt->action(sends[i]); cond = stmt->condition(sends[i]); }
         else
@@ -1414,12 +1428,13 @@ void CodeGenerator::generateSelectStmt(SelectStmt *stmt)
         gen(cond, lbl_a + ":");
         if(i>=sendCount)
         {
-            ReceiveStmt *recv = dynamic_cast<ReceiveStmt *>(stmt->condition(i));
+            shared_ptr<ReceiveStmt> recv =
+                    dynamic_pointer_cast<ReceiveStmt>(stmt->condition(i));
             class AssignRet : public Thunk
             {
-                CodeGenerator *_g; QString _ret; AssignableExpression *_ae;
+                CodeGenerator *_g; QString _ret; shared_ptr<AssignableExpression> _ae;
             public:
-                AssignRet(CodeGenerator *_g, QString _ret, AssignableExpression *_ae)
+                AssignRet(CodeGenerator *_g, QString _ret, shared_ptr<AssignableExpression> _ae)
                  { this->_g = _g; this->_ret = _ret; this->_ae = _ae; }
                  void operator() ()
                  {
@@ -1446,97 +1461,97 @@ void CodeGenerator::generateSelectStmt(SelectStmt *stmt)
     // We are done. If you reached here, take a breath.
 }
 
-void CodeGenerator::generateExpression(Expression *expr)
+void CodeGenerator::generateExpression(shared_ptr<Expression> expr)
 {
     if(isa<BinaryOperation>(expr))
     {
-        generateBinaryOperation(dynamic_cast<BinaryOperation *>(expr));
+        generateBinaryOperation(dynamic_pointer_cast<BinaryOperation>(expr));
         return;
     }
     if(isa<IsaOperation>(expr))
     {
-        generateIsaOperation(dynamic_cast<IsaOperation *>(expr));
+        generateIsaOperation(dynamic_pointer_cast<IsaOperation>(expr));
         return;
     }
     if(isa<MatchOperation>(expr))
     {
-        generateMatchOperation(dynamic_cast<MatchOperation *>(expr));
+        generateMatchOperation(dynamic_pointer_cast<MatchOperation>(expr));
         return;
     }
     if(isa<UnaryOperation>(expr))
     {
-        generateUnaryOperation(dynamic_cast<UnaryOperation *>(expr));
+        generateUnaryOperation(dynamic_pointer_cast<UnaryOperation>(expr));
         return;
     }
     if(isa<Identifier>(expr))
     {
-        generateIdentifier(dynamic_cast<Identifier *>(expr));
+        generateIdentifier(dynamic_pointer_cast<Identifier>(expr));
         return;
     }
     if(isa<NumLiteral>(expr))
     {
-        generateNumLiteral(dynamic_cast<NumLiteral *>(expr));
+        generateNumLiteral(dynamic_pointer_cast<NumLiteral>(expr));
         return;
     }
     if(isa<StrLiteral>(expr))
     {
-        generateStrLiteral(dynamic_cast<StrLiteral *>(expr));
+        generateStrLiteral(dynamic_pointer_cast<StrLiteral>(expr));
         return;
     }
     if(isa<NullLiteral>(expr))
     {
-        generateNullLiteral(dynamic_cast<NullLiteral *>(expr));
+        generateNullLiteral(dynamic_pointer_cast<NullLiteral>(expr));
         return;
     }
     if(isa<BoolLiteral>(expr))
     {
-        generateBoolLiteral(dynamic_cast<BoolLiteral *>(expr));
+        generateBoolLiteral(dynamic_pointer_cast<BoolLiteral>(expr));
         return;
     }
     if(isa<ArrayLiteral>(expr))
     {
-        generateArrayLiteral(dynamic_cast<ArrayLiteral *>(expr));
+        generateArrayLiteral(dynamic_pointer_cast<ArrayLiteral>(expr));
         return;
     }
     if(isa<MapLiteral>(expr))
     {
-        generateMapLiteral(dynamic_cast<MapLiteral *>(expr));
+        generateMapLiteral(dynamic_pointer_cast<MapLiteral>(expr));
         return;
     }
     if(isa<Invokation>(expr))
     {
-        generateInvokation(dynamic_cast<Invokation *>(expr), FunctionInvokationContext);
+        generateInvokation(dynamic_pointer_cast<Invokation>(expr), FunctionInvokationContext);
         return;
     }
     if(isa<MethodInvokation>(expr))
     {
-        generateMethodInvokation(dynamic_cast<MethodInvokation *>(expr), FunctionInvokationContext);
+        generateMethodInvokation(dynamic_pointer_cast<MethodInvokation>(expr), FunctionInvokationContext);
         return;
     }
     if(isa<Idafa>(expr))
     {
-        generateIdafa(dynamic_cast<Idafa *>(expr));
+        generateIdafa(dynamic_pointer_cast<Idafa>(expr));
         return;
     }
     if(isa<ArrayIndex>(expr))
     {
-        generateArrayIndex(dynamic_cast<ArrayIndex *>(expr));
+        generateArrayIndex(dynamic_pointer_cast<ArrayIndex>(expr));
         return;
     }
     if(isa<MultiDimensionalArrayIndex>(expr))
     {
-        generateMultiDimensionalArrayIndex(dynamic_cast<MultiDimensionalArrayIndex *>(expr));
+        generateMultiDimensionalArrayIndex(dynamic_pointer_cast<MultiDimensionalArrayIndex>(expr));
         return;
     }
     if(isa<ObjectCreation>(expr))
     {
-        generateObjectCreation(dynamic_cast<ObjectCreation *>(expr));
+        generateObjectCreation(dynamic_pointer_cast<ObjectCreation>(expr));
         return;
     }
     throw CompilerException(expr, UnimplementedExpressionForm).arg(expr->toString());
 }
 
-void CodeGenerator::generateBinaryOperation(BinaryOperation *expr)
+void CodeGenerator::generateBinaryOperation(shared_ptr<BinaryOperation> expr)
 {
     if(expr->_operator == "and")
     {
@@ -1604,14 +1619,14 @@ void CodeGenerator::generateBinaryOperation(BinaryOperation *expr)
     }
 }
 
-void CodeGenerator::generateIsaOperation(IsaOperation *expr)
+void CodeGenerator::generateIsaOperation(shared_ptr<IsaOperation> expr)
 {
     generateExpression(expr->expression());
     QString typeId = expr->type()->name;
     gen(expr, "isa " + typeId);
 }
 
-void CodeGenerator::generateMatchOperation(MatchOperation *expr)
+void CodeGenerator::generateMatchOperation(shared_ptr<MatchOperation> expr)
 {
 
     QMap<AssignableExpression *, Identifier*> bindings;
@@ -1629,9 +1644,9 @@ void CodeGenerator::generateMatchOperation(MatchOperation *expr)
         // so we should use generateAssignmentToLVal instead
         defineInCurrentScope(i.value()->name);
         // todo: this leaks!!
-        generateAssignmentStmt(new AssignmentStmt(i.key()->getPos(),
+        generateAssignmentStmt(shared_ptr<AssignmentStmt>(new AssignmentStmt(i.key()->getPos(),
                                                   shared_ptr<AssignableExpression>(i.key()),
-                                                  shared_ptr<Identifier>(i.value())));
+                                                  shared_ptr<Identifier>(i.value()))));
     }
     gen(expr, "pushv true");
     gen(expr, QString("jmp %1").arg(exit));
@@ -1641,8 +1656,8 @@ void CodeGenerator::generateMatchOperation(MatchOperation *expr)
     gen(expr, QString("%1:").arg(exit));
 }
 
-void CodeGenerator::generatePattern(Pattern *pattern,
-                                    Expression *expression,
+void CodeGenerator::generatePattern(shared_ptr<Pattern> pattern,
+                                    shared_ptr<Expression> expression,
                                     QMap<AssignableExpression *, Identifier *> &bindings)
 {
     if(isa<SimpleLiteralPattern>(pattern))
@@ -2097,7 +2112,7 @@ void CodeGenerator::generateObjectCreation(ObjectCreation *expr)
     gen(expr, "new "+expr->className()->name);
 }
 
-QString CodeGenerator::typeExpressionToAssemblyTypeId(TypeExpression *expr)
+QString CodeGenerator::typeExpressionToAssemblyTypeId(shared_ptr<TypeExpression> expr)
 {
     if(isa<TypeIdentifier>(expr))
     {
@@ -2142,7 +2157,7 @@ void CodeGenerator::gen(QString str, double d)
     _asm.gen(str, d);
 }
 
-void CodeGenerator::gen(AST *src,QString str)
+void CodeGenerator::gen(shared_ptr<AST> src,QString str)
 {
     CodePosition pos;
     pos.doc = currentCodeDoc;
@@ -2155,12 +2170,12 @@ void CodeGenerator::gen(AST *src,QString str)
     codePosKeyCount++;
 }
 
-void CodeGenerator::gen(AST *src,QString str, int i)
+void CodeGenerator::gen(shared_ptr<AST> src,QString str, int i)
 {
     gen(src, QString(str)+" "+ QString("%1").arg(i));
 }
 
-void CodeGenerator::gen(AST *src,QString str, double d)
+void CodeGenerator::gen(shared_ptr<AST> src,QString str, double d)
 {
     gen(src, QString(str)+" "+ QString("%1").arg(d));
 }
@@ -2177,10 +2192,15 @@ QString CodeGenerator::getCurrentFunctionNameFormatted()
 
 QMap<CompilerError, QString> CompilerException::errorMap;
 
-CompilerException::CompilerException(AST *source, CompilerError error)
+CompilerException::CompilerException(shared_ptr<AST> source, CompilerError error)
 {
     this->source = source;
     this->message = translateErrorMessage(error);
+}
+
+CompilerException CompilerException::no_source(CompilerError error)
+{
+    return CompilerException(shared_ptr<AST>(), error);
 }
 
 QString CompilerException::getMessage()

@@ -14,6 +14,9 @@
     #include "../smallvm/debuginfo.h"
 #endif
 
+#include <memory>
+using namespace std;
+
 enum MethodCallStyle
 {
     NonTailCallStyle,
@@ -23,7 +26,7 @@ enum MethodCallStyle
 
 struct Context
 {
-    ProceduralDecl *proc;
+    shared_ptr<ProceduralDecl>  proc;
     QSet<QString> bindings;
     QSet<QString> labels;
     int instructionCount;
@@ -45,7 +48,7 @@ class CodeGenerator
 
     SmallVMCodeGenerator _asm;
     QSet<QString> declaredGlobalVariables; // these are declared by the programmer
-    QSet<Identifier *> freeVariables; // and those are references to global variables from within functions
+    QSet<shared_ptr<Identifier> > freeVariables; // and those are references to global variables from within functions
     QMap<QString, shared_ptr<ClassDecl> > allClasses;
     QMap<QString, shared_ptr<ProcedureDecl> > allProcedures;
     QMap<QString, shared_ptr<FunctionDecl> > allFunctions;
@@ -63,102 +66,102 @@ public:
 public:
     CodeGenerator();
     void Init();
-    void generate(Program *program, CodeDocument *curDoc);
+    void generate(shared_ptr<Program> program, CodeDocument *curDoc);
     QString getOutput();
-    void compileModule(Module *module, CodeDocument *curDoc);
+    void compileModule(shared_ptr<Module> module, CodeDocument *curDoc);
     QString getStringConstantsAsOpCodes();
 private:
 
-    void generateEntryPoint(QVector<Statement *> statements);
-    void generateDeclaration(Declaration * decl);
-    void generateStatement(Statement *stmt);
-    void generateExpression(Expression *expr);
-    void generateProcedureDeclaration(ProcedureDecl * decl);
-    void generateFunctionDeclaration(FunctionDecl * decl);
-    void generateFFILibraryDeclaration(FFILibraryDecl *decl);
-    void generateFFIProceduralDeclaration(FFIProceduralDecl *decl, QString libName);
-    void generateFFIStructDeclaration(FFIStructDecl *decl);
-    void generateClassDeclaration(ClassDecl * decl);
+    void generateEntryPoint(QVector<shared_ptr<Statement> > statements);
+    void generateDeclaration(shared_ptr<Declaration> decl);
+    void generateStatement(shared_ptr<Statement> stmt);
+    void generateExpression(shared_ptr<Expression> expr);
+    void generateProcedureDeclaration(shared_ptr<ProcedureDecl> decl);
+    void generateFunctionDeclaration(shared_ptr<FunctionDecl> decl);
+    void generateFFILibraryDeclaration(shared_ptr<FFILibraryDecl> decl);
+    void generateFFIProceduralDeclaration(shared_ptr<FFIProceduralDecl> decl, QString libName);
+    void generateFFIStructDeclaration(shared_ptr<FFIStructDecl> decl);
+    void generateClassDeclaration(shared_ptr<ClassDecl> decl);
     void generateGlobalDeclaration(shared_ptr<GlobalDecl> decl);
-    void generateMethodDeclaration(MethodDecl * decl);
+    void generateMethodDeclaration(shared_ptr<MethodDecl> decl);
 
-    void generateIOStatement(IOStatement *stmt);
-    void generateGraphicsStatement(GraphicsStatement *stmt);
-    void generateAssignmentStmt(AssignmentStmt *stmt);
-    void generateIfStmt(IfStmt *stmt);
-    void generateWhileStmt(WhileStmt *stmt);
-    void generateForAllStmt(ForAllStmt *stmt);
-    void generateLabelStmt(LabelStmt *stmt);
-    void generateGotoStmt(GotoStmt *stmt);
-    void generateReturnStmt(ReturnStmt *stmt);
-    void generateDelegationStmt(DelegationStmt *stmt);
-    void generateLaunchStmt(LaunchStmt *stmt);
-    void generateBlockStmt(BlockStmt *stmt);
-    void generateInvokationStmt(InvokationStmt *stmt);
-    void generatePrintStmt(PrintStmt *stmt);
-    void generateReadStmt(ReadStmt *stmt);
-    void generateDrawPixelStmt(DrawPixelStmt *stmt);
-    void generateDrawLineStmt(DrawLineStmt *stmt);
-    void generateDrawRectStmt(DrawRectStmt *stmt);
-    void generateDrawCircleStmt(DrawCircleStmt *stmt);
-    void generateDrawSpriteStmt(DrawSpriteStmt *stmt);
-    void generateZoomStmt(ZoomStmt *stmt);
-    void generateEventStatement(EventStatement *stmt);
-    void generateSendStmt(SendStmt *stmt);
-    void generateReceiveStmt(ReceiveStmt *stmt);
-    void generateSelectStmt(SelectStmt *stmt);
-    void generateBinaryOperation(BinaryOperation *expr);
-    void generateIsaOperation(IsaOperation *expr);
-    void generateMatchOperation(MatchOperation *expr);
-    void generatePattern(Pattern *patterns,
-                                        Expression *expression,
+    void generateIOStatement(shared_ptr<IOStatement> stmt);
+    void generateGraphicsStatement(shared_ptr<GraphicsStatement> stmt);
+    void generateAssignmentStmt(shared_ptr<AssignmentStmt> stmt);
+    void generateIfStmt(shared_ptr<IfStmt> stmt);
+    void generateWhileStmt(shared_ptr<WhileStmt> stmt);
+    void generateForAllStmt(shared_ptr<ForAllStmt> stmt);
+    void generateLabelStmt(shared_ptr<LabelStmt> stmt);
+    void generateGotoStmt(shared_ptr<GotoStmt> stmt);
+    void generateReturnStmt(shared_ptr<ReturnStmt> stmt);
+    void generateDelegationStmt(shared_ptr<DelegationStmt> stmt);
+    void generateLaunchStmt(shared_ptr<LaunchStmt> stmt);
+    void generateBlockStmt(shared_ptr<BlockStmt> stmt);
+    void generateInvokationStmt(shared_ptr<InvokationStmt> stmt);
+    void generatePrintStmt(shared_ptr<PrintStmt> stmt);
+    void generateReadStmt(shared_ptr<ReadStmt> stmt);
+    void generateDrawPixelStmt(shared_ptr<DrawPixelStmt> stmt);
+    void generateDrawLineStmt(shared_ptr<DrawLineStmt> stmt);
+    void generateDrawRectStmt(shared_ptr<DrawRectStmt> stmt);
+    void generateDrawCircleStmt(shared_ptr<DrawCircleStmt> stmt);
+    void generateDrawSpriteStmt(shared_ptr<DrawSpriteStmt> stmt);
+    void generateZoomStmt(shared_ptr<ZoomStmt> stmt);
+    void generateEventStatement(shared_ptr<EventStatement> stmt);
+    void generateSendStmt(shared_ptr<SendStmt> stmt);
+    void generateReceiveStmt(shared_ptr<ReceiveStmt> stmt);
+    void generateSelectStmt(shared_ptr<SelectStmt> stmt);
+    void generateBinaryOperation(shared_ptr<BinaryOperation> expr);
+    void generateIsaOperation(shared_ptr<IsaOperation> expr);
+    void generateMatchOperation(shared_ptr<MatchOperation> expr);
+    void generatePattern(shared_ptr<Pattern> patterns,
+                                        shared_ptr<Expression> expression,
                                         QMap<AssignableExpression *, Identifier *> &bindings);
-    void generateSimpleLiteralPattern(SimpleLiteralPattern *pattern, Expression *matchee, QMap<AssignableExpression *, Identifier *> &bindings);
-    void generateVarPattern(VarPattern *pattern, Expression *matchee, QMap<AssignableExpression *, Identifier *> &bindings);
-    void generateAssignedVarPattern(AssignedVarPattern *pattern, Expression *matchee, QMap<AssignableExpression *, Identifier *> &bindings);
+    void generateSimpleLiteralPattern(shared_ptr<SimpleLiteralPattern> pattern, shared_ptr<Expression> matchee, QMap<AssignableExpression *, Identifier *> &bindings);
+    void generateVarPattern(shared_ptr<VarPattern> pattern, shared_ptr<Expression> matchee, QMap<AssignableExpression *, Identifier *> &bindings);
+    void generateAssignedVarPattern(shared_ptr<AssignedVarPattern> pattern, shared_ptr<Expression> matchee, QMap<AssignableExpression *, Identifier *> &bindings);
     void generateArrayPattern(ArrayPattern *pattern, Expression *matchee, QMap<AssignableExpression *, Identifier *> &bindings);
-    void generateObjPattern(ObjPattern *pattern, Expression *matchee, QMap<AssignableExpression *, Identifier *> &bindings);
-    void generateMapPattern(MapPattern *pattern, Expression *matchee, QMap<AssignableExpression *, Identifier *> &bindings);
-    void generateUnaryOperation(UnaryOperation *expr);
-    void generateIdentifier(Identifier *expr);
-    void generateNumLiteral(NumLiteral *expr);
-    void generateStrLiteral(StrLiteral *expr);
-    void generateNullLiteral(NullLiteral *expr);
-    void generateBoolLiteral(BoolLiteral *expr);
-    void generateArrayLiteral(ArrayLiteral *expr);
-    void generateMapLiteral(MapLiteral *expr);
-    void generateInvokation(Invokation *expr, InvokationContext context, MethodCallStyle style = NonTailCallStyle);
-    void generateMethodInvokation(MethodInvokation *expr, InvokationContext context, MethodCallStyle style = NonTailCallStyle);
-    void generateIdafa(Idafa *expr);
-    void generateArrayIndex(ArrayIndex *expr);
-    void generateMultiDimensionalArrayIndex(MultiDimensionalArrayIndex *expr);
-    void generateObjectCreation(ObjectCreation* expr);
+    void generateObjPattern(shared_ptr<ObjPattern> pattern, shared_ptr<Expression> matchee, QMap<AssignableExpression *, Identifier *> &bindings);
+    void generateMapPattern(shared_ptr<MapPattern> pattern, shared_ptr<Expression> matchee, QMap<AssignableExpression *, Identifier *> &bindings);
+    void generateUnaryOperation(shared_ptr<UnaryOperation> expr);
+    void generateIdentifier(shared_ptr<Identifier> expr);
+    void generateNumLiteral(shared_ptr<NumLiteral> expr);
+    void generateStrLiteral(shared_ptr<StrLiteral> expr);
+    void generateNullLiteral(shared_ptr<NullLiteral> expr);
+    void generateBoolLiteral(shared_ptr<BoolLiteral> expr);
+    void generateArrayLiteral(shared_ptr<ArrayLiteral> expr);
+    void generateMapLiteral(shared_ptr<MapLiteral> expr);
+    void generateInvokation(shared_ptr<Invokation> expr, InvokationContext context, MethodCallStyle style = NonTailCallStyle);
+    void generateMethodInvokation(shared_ptr<MethodInvokation> expr, InvokationContext context, MethodCallStyle style = NonTailCallStyle);
+    void generateIdafa(shared_ptr<Idafa> expr);
+    void generateArrayIndex(shared_ptr<ArrayIndex> expr);
+    void generateMultiDimensionalArrayIndex(shared_ptr<MultiDimensionalArrayIndex> expr);
+    void generateObjectCreation(shared_ptr<ObjectCreation> expr);
 
-    QString typeExpressionToAssemblyTypeId(TypeExpression *expr);
-    QString generateArrayFromValues(AST *src, QVector<shared_ptr<Expression> > values);
-    void generateAssignmentToLvalue(AST *src, AssignableExpression *lval,
+    QString typeExpressionToAssemblyTypeId(shared_ptr<TypeExpression> expr);
+    QString generateArrayFromValues(shared_ptr<AST> src, QVector<shared_ptr<Expression> > values);
+    void generateAssignmentToLvalue(shared_ptr<AST> src, shared_ptr<AssignableExpression> lval,
                                         Thunk &);
-    void generateReference(AssignableExpression *lval);
+    void generateReference(shared_ptr<AssignableExpression> lval);
 
     void firstPass(shared_ptr<Declaration> decl);
     void secondPass(shared_ptr<Declaration> decl);
     void thirdPass(shared_ptr<Declaration> decl);
     void checkInheritanceCycles();
-    void generateStringConstant(AST *src, QString str);
+    void generateStringConstant(shared_ptr<AST> src, QString str);
     void defineInCurrentScope(QString);
     bool isBountInCurrentScope(QString);
     bool currentScopeFuncNotProc();
 
     void popProcedureScope();
-    void pushProcedureScope(ProceduralDecl *pd);
+    void pushProcedureScope(shared_ptr<ProceduralDecl> pd);
 private:
     void gen(QString str);
     void gen(QString str, int i);
     void gen(QString str, double d);
 
-    void gen(AST *src, QString str);
-    void gen(AST *src, QString str, int i);
-    void gen(AST *src, QString str, double d);
+    void gen(shared_ptr<AST> src, QString str);
+    void gen(shared_ptr<AST> src, QString str, int i);
+    void gen(shared_ptr<AST> src, QString str, double d);
 
     QString getCurrentFunctionNameFormatted();
 
@@ -201,9 +204,10 @@ class CompilerException
     static QMap<CompilerError, QString> errorMap;
     QString translateErrorMessage(CompilerError error);
 public:
-    AST *source;
+    shared_ptr<AST> source;
 public:
-    CompilerException(AST *source, CompilerError error);
+    CompilerException(shared_ptr<AST> source, CompilerError error);
+    static CompilerException no_source(CompilerError error);
     CompilerException &arg(QString);
 
     QString getMessage();

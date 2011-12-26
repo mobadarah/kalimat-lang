@@ -30,12 +30,12 @@ public:
                    QVector<shared_ptr<Identifier> > formals,
                    shared_ptr<BlockStmt> body,
                    bool isPublic);
-    Identifier *procName() {return _procName.get();}
+    shared_ptr<Identifier> procName() {return _procName;}
     int formalCount() { return _formals.count();}
-    Identifier *formal(int i) { return _formals[i].get();}
-    Identifier *allReferences(int i) { return _allReferences[i].get();}
+    shared_ptr<Identifier> formal(int i) { return _formals[i];}
+    shared_ptr<Identifier> allReferences(int i) { return _allReferences[i];}
     void addReference(shared_ptr<Identifier> id) { _allReferences.append(id);}
-    BlockStmt *body() {return _body.get();}
+    shared_ptr<BlockStmt> body() {return _body;}
     void body(shared_ptr<BlockStmt> stmt) { _body = stmt;}
     virtual QVector<shared_ptr<Identifier> > getIntroducedVariables();
 };
@@ -90,7 +90,7 @@ private:
 public:
     FFILibraryDecl(Token pos, QString libName, QVector<shared_ptr<Declaration> > decls, bool isPublic);
     int declCount() { return _decls.count(); }
-    Declaration *decl(int index) { return _decls[index].get();}
+    shared_ptr<Declaration> decl(int index) { return _decls[index];}
     void prettyPrint(CodeFormatter *formatter);
     QString toString();
 };
@@ -112,9 +112,9 @@ public:
         QString procName,
         QString symbol,
         bool isPublic);
-    TypeExpression *returnType() { return _returnType.get(); }
+    shared_ptr<TypeExpression> returnType() { return _returnType; }
     int paramTypeCount() { return _paramTypes.count(); }
-    TypeExpression *paramType(int index) { return _paramTypes.at(index).get(); }
+    shared_ptr<TypeExpression> paramType(int index) { return _paramTypes.at(index); }
     void prettyPrint(CodeFormatter *formatter);
     QString toString();
 };
@@ -237,19 +237,19 @@ public:
               QVector<shared_ptr<ClassInternalDecl> > internalDecls,
               QMap<QString, shared_ptr<TypeExpression> > fieldMarshalAs,
               bool isPublic);
-    Identifier *name() { return _name.get();}
+    shared_ptr<Identifier> name() { return _name;}
     int fieldCount() { return _fields.count();}
-    Identifier *field(int i) { return _fields[i].get();}
+    shared_ptr<Identifier> field(int i) { return _fields[i];}
     bool containsMethod(QString name);
     bool containsPrototype(QString name);
     int methodCount() { return _methods.count();}
-    MethodDecl *method(QString name);
-    MethodDecl *method(int i) { return _methods.values().at(i).get();}
+    shared_ptr<MethodDecl> method(QString name);
+    shared_ptr<MethodDecl> method(int i) { return _methods.values().at(i);}
     MethodInfo methodPrototype(QString name);
     int prototypeCount() { return _methodPrototypes.count();}
-    Identifier *ancestor() { return _ancestorName.get();}
+    shared_ptr<Identifier> ancestor() { return _ancestorName;}
     bool fieldHasMarshalType(QString fieldName) { return _fieldMarshallAs.contains(fieldName); }
-    TypeExpression *marshalTypeOf(QString fieldName) { return _fieldMarshallAs[fieldName].get(); }
+    shared_ptr<TypeExpression> marshalTypeOf(QString fieldName) { return _fieldMarshallAs[fieldName]; }
 
     void setAncestorClass(shared_ptr<ClassDecl> cd);
     void insertMethod(QString name, shared_ptr<MethodDecl> m);

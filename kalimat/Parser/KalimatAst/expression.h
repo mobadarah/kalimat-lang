@@ -45,8 +45,8 @@ public:
                     QString op,
                     shared_ptr<Expression> op1,
                     shared_ptr<Expression> op2);
-    Expression *operand1() { return _operand1.get();}
-    Expression *operand2() { return _operand2.get();}
+    shared_ptr<Expression> operand1() { return _operand1;}
+    shared_ptr<Expression> operand2() { return _operand2;}
     QString toString();
     void prettyPrint(CodeFormatter *f);
 };
@@ -59,8 +59,8 @@ public:
     shared_ptr<Identifier> _type;
 public:
     IsaOperation(Token pos, shared_ptr<Expression> expression, shared_ptr<Identifier> type);
-    Expression *expression() { return _expression.get(); }
-    Identifier *type() { return _type.get(); }
+    shared_ptr<Expression> expression() { return _expression; }
+    shared_ptr<Identifier> type() { return _type; }
     QString toString();
     void prettyPrint(CodeFormatter *f);
 };
@@ -76,8 +76,8 @@ public:
                    shared_ptr<Expression> expression,
                    shared_ptr<Pattern> pattern);
     ~MatchOperation();
-    Expression *expression() { return _expression.get(); }
-    Pattern *pattern() { return _pattern.get(); }
+    shared_ptr<Expression> expression() { return _expression; }
+    shared_ptr<Pattern> pattern() { return _pattern; }
     QString toString();
     void prettyPrint(CodeFormatter *f);
 };
@@ -90,7 +90,7 @@ public:
     shared_ptr<Expression> _operand;
 public:
     UnaryOperation(Token pos, QString operation,shared_ptr<Expression> operand);
-    Expression *operand() { return _operand.get();}
+    shared_ptr<Expression> operand() { return _operand;}
     QString toString();
     void prettyPrint(CodeFormatter *f);
 };
@@ -132,6 +132,7 @@ public:
     QString repr();
     void prettyPrint(CodeFormatter *f);
 };
+
 class NullLiteral : public SimpleLiteral
 {
     Q_OBJECT
@@ -233,8 +234,8 @@ public:
     shared_ptr<Expression> _modaf_elaih;
 public:
     Idafa(Token pos, shared_ptr<Identifier> modaf, shared_ptr<Expression> modaf_elaih);
-    Identifier *modaf() {return _modaf.get();}
-    Expression *modaf_elaih() {return _modaf_elaih.get();}
+    shared_ptr<Identifier> modaf() {return _modaf;}
+    shared_ptr<Expression> modaf_elaih() {return _modaf_elaih;}
     QString toString();
     void prettyPrint(CodeFormatter *f);
 };
@@ -247,8 +248,8 @@ public:
     shared_ptr<Expression> _index;
 public:
     ArrayIndex(Token pos, shared_ptr<Expression> array, shared_ptr<Expression> index);
-    Expression *array() {return _array.get();}
-    Expression *index() {return _index.get();}
+    shared_ptr<Expression> array() {return _array;}
+    shared_ptr<Expression> index() {return _index;}
     QString toString();
     void prettyPrint(CodeFormatter *f);
 };
@@ -263,9 +264,9 @@ public:
     MultiDimensionalArrayIndex(Token pos,
                                shared_ptr<Expression> array,
                                QVector<shared_ptr<Expression> > indexes);
-    Expression *array() {return _array.get();}
+    shared_ptr<Expression> array() {return _array;}
     int indexCount() { return _indexes.count();}
-    Expression *index(int i) {return _indexes[i].get();}
+    shared_ptr<Expression> index(int i) {return _indexes[i];}
     QVector<shared_ptr<Expression> > indexes() {return _indexes;}
     QString toString();
     void prettyPrint(CodeFormatter *f);
@@ -278,7 +279,7 @@ public:
     shared_ptr<Identifier> _className;
 public:
     ObjectCreation(Token pos, shared_ptr<Identifier> className);
-    Identifier *className() { return _className.get();}
+    shared_ptr<Identifier> className() { return _className;}
     QString toString();
     void prettyPrint(CodeFormatter *f);
 };
