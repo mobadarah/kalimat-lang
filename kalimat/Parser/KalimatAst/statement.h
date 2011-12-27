@@ -101,7 +101,7 @@ public:
     QString toString();
     void prettyPrint(CodeFormatter *f);
 
-    virtual QVector<Identifier *> getIntroducedVariables();
+    virtual QVector<shared_ptr<Identifier> > getIntroducedVariables();
 
 };
 

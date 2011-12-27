@@ -30,7 +30,7 @@ public:
     PointerTypeExpression(Token pos, shared_ptr<TypeExpression> pointeeType);
     QString toString();
     void prettyPrint(CodeFormatter *f);
-    TypeExpression *pointeeType() { return _pointeeType.get();}
+    shared_ptr<TypeExpression> pointeeType() { return _pointeeType;}
 };
 
 class FunctionTypeExpression : public TypeExpression
@@ -44,7 +44,7 @@ public:
                            QVector<shared_ptr<TypeExpression> > argTypes);
     QString toString();
     void prettyPrint(CodeFormatter *formatter);
-    TypeExpression *retType() { return _retType.get(); }
+    shared_ptr<TypeExpression> retType() { return _retType; }
     int argTypeCount() { return _argTypes.count(); }
     TypeExpression *argType(int i) { return _argTypes[i].get(); }
 };

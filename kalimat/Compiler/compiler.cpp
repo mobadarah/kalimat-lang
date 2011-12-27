@@ -89,7 +89,7 @@ void Compiler::generateAllLoadedModules()
     {
         shared_ptr<Module> mod = *i;
         CodeDocument *doc = documentContainer->getDocumentFromPath(pathsOfModules[mod.get()]);
-        generator.compileModule(mod.get(), doc);
+        generator.compileModule(mod, doc);
     }
 }
 
@@ -116,9 +116,9 @@ QString Compiler::CompileFromCode(QString source, CodeDocument *doc)
     shared_ptr<Program> p = dynamic_pointer_cast<Program>(parser.parse());
 
     if(p->usedModuleCount()!=0)
-        throw CompilerException(p.get(), ProgramsCannotUseExternalModulesWithoutSavingThemFirst);
+        throw CompilerException(p, ProgramsCannotUseExternalModulesWithoutSavingThemFirst);
 
-    generator.generate(p.get(), doc);
+    generator.generate(p, doc);
     return generator.getOutput();
 }
 
@@ -126,7 +126,7 @@ QString Compiler::CompileFromFile(QString pathToMainCompilationUnit, CodeDocumen
 {
     shared_ptr<Program> p = loadProgram(pathToMainCompilationUnit, doc);
     generateAllLoadedModules();
-    generator.generate(p.get(), doc);
+    generator.generate(p, doc);
     return generator.getOutput();
 }
 

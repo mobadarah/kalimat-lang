@@ -267,7 +267,7 @@ void CodeGenerator::generateDeclaration(shared_ptr<Declaration> decl)
         if(pd->procName()->name == "%main")
             generateEntryPoint(pd->body()->getStatements());
         else
-            generateProcedureDeclaration(decl);
+            generateProcedureDeclaration(pd);
     }
     else if(isa<FunctionDecl>(decl))
     {
@@ -1629,14 +1629,14 @@ void CodeGenerator::generateIsaOperation(shared_ptr<IsaOperation> expr)
 void CodeGenerator::generateMatchOperation(shared_ptr<MatchOperation> expr)
 {
 
-    QMap<AssignableExpression *, Identifier*> bindings;
+    QMap<AssignableExpression *, shared_ptr<Identifier> > bindings;
     generatePattern(expr->pattern(), expr->expression(), bindings);
 
     // Now use all the bindings we've collected
     QString bind = _asm.uniqueLabel(), nobind = _asm.uniqueLabel(), exit = _asm.uniqueLabel();
     gen(expr, QString("if %1,%2").arg(bind).arg(nobind));
     gen(expr, QString("%1:").arg(bind));
-    for(QMap<AssignableExpression*, Identifier*>::const_iterator i=bindings.begin(); i!=bindings.end();++i)
+    for(QMap<AssignableExpression*, shared_ptr<Identifier> >::const_iterator i=bindings.begin(); i!=bindings.end();++i)
     {
         // todo: we want to execute the equivalent of matchedVar = tempVar
         // but tempVar is undefined to the compiler refuses the dummy assignment
@@ -1658,31 +1658,31 @@ void CodeGenerator::generateMatchOperation(shared_ptr<MatchOperation> expr)
 
 void CodeGenerator::generatePattern(shared_ptr<Pattern> pattern,
                                     shared_ptr<Expression> expression,
-                                    QMap<AssignableExpression *, Identifier *> &bindings)
+                                     QMap<AssignableExpression *, shared_ptr<Identifier> > &bindings)
 {
     if(isa<SimpleLiteralPattern>(pattern))
     {
-        generateSimpleLiteralPattern(dynamic_cast<SimpleLiteralPattern *>(pattern), expression, bindings);
+        generateSimpleLiteralPattern(dynamic_pointer_cast<SimpleLiteralPattern>(pattern), expression, bindings);
     }
     else if(isa<VarPattern>(pattern))
     {
-        generateVarPattern(dynamic_cast<VarPattern *>(pattern), expression, bindings);
+        generateVarPattern(dynamic_pointer_cast<VarPattern>(pattern), expression, bindings);
     }
     else if(isa<AssignedVarPattern>(pattern))
     {
-        generateAssignedVarPattern(dynamic_cast<AssignedVarPattern *>(pattern), expression, bindings);
+        generateAssignedVarPattern(dynamic_pointer_cast<AssignedVarPattern>(pattern), expression, bindings);
     }
     else if(isa<ArrayPattern>(pattern))
     {
-        generateArrayPattern(dynamic_cast<ArrayPattern*>(pattern), expression, bindings);
+        generateArrayPattern(dynamic_pointer_cast<ArrayPattern>(pattern), expression, bindings);
     }
     else if(isa<ObjPattern>(pattern))
     {
-        generateObjPattern(dynamic_cast<ObjPattern *>(pattern), expression, bindings);
+        generateObjPattern(dynamic_pointer_cast<ObjPattern>(pattern), expression, bindings);
     }
     else if(isa<MapPattern>(pattern))
     {
-        generateMapPattern(dynamic_cast<MapPattern *>(pattern), expression, bindings);
+        generateMapPattern(dynamic_pointer_cast<MapPattern>(pattern), expression, bindings);
     }
     else
     {
@@ -1690,27 +1690,27 @@ void CodeGenerator::generatePattern(shared_ptr<Pattern> pattern,
     }
 }
 
-void CodeGenerator::generateSimpleLiteralPattern(SimpleLiteralPattern *pattern,
-                                                 Expression *matchee,
-                                                 QMap<AssignableExpression *, Identifier *> &bindings)
+void CodeGenerator::generateSimpleLiteralPattern(shared_ptr<SimpleLiteralPattern> pattern,
+                                                 shared_ptr<Expression> matchee,
+                                                   QMap<AssignableExpression *, shared_ptr<Identifier> > &bindings)
 {
     generateExpression(pattern->value());
     generateExpression(matchee);
     gen(matchee, "eq");
 }
 
-void CodeGenerator::generateVarPattern(VarPattern *pattern,
-                                       Expression *matchee,
-                                       QMap<AssignableExpression *, Identifier *> &bindings)
+void CodeGenerator::generateVarPattern(shared_ptr<VarPattern> pattern,
+                                       shared_ptr<Expression> matchee,
+                                        QMap<AssignableExpression *, shared_ptr<Identifier> > &bindings)
 {
     generateExpression(pattern->id());
     generateExpression(matchee);
     gen(matchee, "eq");
 }
 
-void CodeGenerator::generateAssignedVarPattern(AssignedVarPattern *pattern,
-                                               Expression *matchee,
-                                               QMap<AssignableExpression *, Identifier *> &bindings)
+void CodeGenerator::generateAssignedVarPattern(shared_ptr<AssignedVarPattern> pattern,
+                                               shared_ptr<Expression> matchee,
+                                                QMap<AssignableExpression *, shared_ptr<Identifier> > &bindings)
 {
     /*
       <matchee>
@@ -1721,12 +1721,12 @@ void CodeGenerator::generateAssignedVarPattern(AssignedVarPattern *pattern,
     generateExpression(matchee);
     gen(matchee, QString("popl ") + tempVar);
     gen(pattern->lv(), "pushv true");
-    bindings.insert(pattern->lv(), new Identifier(matchee->getPos(), tempVar));
+    bindings.insert(pattern->lv().get(), shared_ptr<Identifier>(new Identifier(matchee->getPos(), tempVar)));
 }
 
-void CodeGenerator::generateArrayPattern(ArrayPattern *pattern,
-                                         Expression *matchee,
-                                         QMap<AssignableExpression *, Identifier *> &bindings)
+void CodeGenerator::generateArrayPattern(shared_ptr<ArrayPattern> pattern,
+                                         shared_ptr<Expression> matchee,
+                                          QMap<AssignableExpression *, shared_ptr<Identifier> > &bindings)
 {
     QString arrVar = _asm.uniqueVariable();
     // todo: for why this is ugly please refer to the comment
@@ -1784,7 +1784,7 @@ void CodeGenerator::generateArrayPattern(ArrayPattern *pattern,
         // todo: this leaks also
         shared_ptr<NumLiteral> idx(new NumLiteral(pattern->element(i)->getPos(), QString("%1").arg(i+1)));
         shared_ptr<Expression> expr(new ArrayIndex(pattern->element(i)->getPos(), arrVarExpr, idx));
-        generatePattern(pattern->element(i), expr.get(), bindings);
+        generatePattern(pattern->element(i), expr, bindings);
 
         ok = _asm.uniqueLabel();
         no = _asm.uniqueLabel();
@@ -1801,9 +1801,9 @@ void CodeGenerator::generateArrayPattern(ArrayPattern *pattern,
     gen(pattern, QString("%1:").arg(exit));
 }
 
-void CodeGenerator::generateObjPattern(ObjPattern *pattern,
-                                       Expression *matchee,
-                                       QMap<AssignableExpression *, Identifier *> &bindings)
+void CodeGenerator::generateObjPattern(shared_ptr<ObjPattern> pattern,
+                                       shared_ptr<Expression> matchee,
+                                        QMap<AssignableExpression *, shared_ptr<Identifier> > &bindings)
 {
     QString objVar = _asm.uniqueVariable();
     // todo: for why this is ugly please refer to the comment
@@ -1841,7 +1841,7 @@ void CodeGenerator::generateObjPattern(ObjPattern *pattern,
         shared_ptr<Expression> expr(new Idafa(pattern->fieldName(i)->getPos(),
                                                   pattern->fieldNamePtr(i),
                                                     objVarExpr));
-        generatePattern(pattern->fieldPattern(i), expr.get(), bindings);
+        generatePattern(pattern->fieldPattern(i), expr, bindings);
 
         ok = _asm.uniqueLabel();
         no = _asm.uniqueLabel();
@@ -1858,9 +1858,9 @@ void CodeGenerator::generateObjPattern(ObjPattern *pattern,
     gen(pattern, QString("%1:").arg(exit));
 }
 
-void CodeGenerator::generateMapPattern(MapPattern *pattern,
-                                       Expression *matchee,
-                                       QMap<AssignableExpression *, Identifier *> &bindings)
+void CodeGenerator::generateMapPattern(shared_ptr<MapPattern> pattern,
+                                       shared_ptr<Expression> matchee,
+                                        QMap<AssignableExpression *, shared_ptr<Identifier> > &bindings)
 {
     QString mapVar = _asm.uniqueVariable();
     // todo: for why this is ugly please refer to the comment
@@ -1931,7 +1931,7 @@ void CodeGenerator::generateMapPattern(MapPattern *pattern,
         // todo: this leaks also
         shared_ptr<Expression> idx(new Identifier(pattern->key(i)->getPos(), evaluatedKeys[i]));
         shared_ptr<Expression> expr(new ArrayIndex(pattern->key(i)->getPos(), mapVarExpr, idx));
-        generatePattern(pattern->value(i), expr.get(), bindings);
+        generatePattern(pattern->value(i), expr, bindings);
 
         ok = _asm.uniqueLabel();
         no = _asm.uniqueLabel();
@@ -1948,13 +1948,13 @@ void CodeGenerator::generateMapPattern(MapPattern *pattern,
     gen(pattern, QString("%1:").arg(exit));
 }
 
-void CodeGenerator::generateUnaryOperation(UnaryOperation *expr)
+void CodeGenerator::generateUnaryOperation(shared_ptr<UnaryOperation> expr)
 {
     generateExpression(expr->operand());
     gen(expr, expr->_operator);
 }
 
-void CodeGenerator::generateIdentifier(Identifier *expr)
+void CodeGenerator::generateIdentifier(shared_ptr<Identifier> expr)
 {
     if(!scopeStack.empty() && scopeStack.top().bindings.contains(expr->name))
         gen(expr, "pushl "+expr->name);
@@ -1964,7 +1964,7 @@ void CodeGenerator::generateIdentifier(Identifier *expr)
         throw CompilerException(expr, UndefinedVariable).arg(expr->name);
 }
 
-void CodeGenerator::generateNumLiteral(NumLiteral *expr)
+void CodeGenerator::generateNumLiteral(shared_ptr<NumLiteral> expr)
 {
     if(!expr->valueRecognized)
     {
@@ -1976,17 +1976,17 @@ void CodeGenerator::generateNumLiteral(NumLiteral *expr)
         gen(expr, "pushv "+ QString("%1").arg(expr->dValue));
 }
 
-void CodeGenerator::generateStrLiteral(StrLiteral *expr)
+void CodeGenerator::generateStrLiteral(shared_ptr<StrLiteral> expr)
 {
     generateStringConstant(expr, expr->value);
 }
 
-void CodeGenerator::generateNullLiteral(NullLiteral *expr)
+void CodeGenerator::generateNullLiteral(shared_ptr<NullLiteral> expr)
 {
     gen(expr, "pushnull");
 }
 
-void CodeGenerator::generateBoolLiteral(BoolLiteral *expr)
+void CodeGenerator::generateBoolLiteral(shared_ptr<BoolLiteral> expr)
 {
     if(expr->value)
         gen(expr, "pushv true");
@@ -1994,12 +1994,12 @@ void CodeGenerator::generateBoolLiteral(BoolLiteral *expr)
         gen(expr, "pushv false");
 }
 
-void CodeGenerator::generateArrayLiteral(ArrayLiteral *expr)
+void CodeGenerator::generateArrayLiteral(shared_ptr<ArrayLiteral> expr)
 {
     QString newVar = generateArrayFromValues(expr, expr->dataVector());
 }
 
-void CodeGenerator::generateMapLiteral(MapLiteral *expr)
+void CodeGenerator::generateMapLiteral(shared_ptr<MapLiteral> expr)
 {
     QString newVar = _asm.uniqueVariable();
 
@@ -2008,8 +2008,8 @@ void CodeGenerator::generateMapLiteral(MapLiteral *expr)
 
     for(int i=0; i<expr->dataCount(); i+=2)
     {
-       Expression *key = expr->data(i);
-       Expression *value = expr->data(i+1);
+       shared_ptr<Expression> key = expr->data(i);
+       shared_ptr<Expression> value = expr->data(i+1);
 
        gen(value, "pushl "+ newVar);
        generateExpression(key);
@@ -2020,7 +2020,9 @@ void CodeGenerator::generateMapLiteral(MapLiteral *expr)
 }
 
 
-void CodeGenerator::generateInvokation(Invokation *expr, InvokationContext context, MethodCallStyle style)
+void CodeGenerator::generateInvokation(shared_ptr<Invokation> expr,
+                                       InvokationContext context,
+                                       MethodCallStyle style)
 {
     if(context == FunctionInvokationContext && this->allProcedures.contains(expr->functor()->toString()))
     {
@@ -2043,7 +2045,8 @@ void CodeGenerator::generateInvokation(Invokation *expr, InvokationContext conte
 
 }
 
-void CodeGenerator::generateMethodInvokation(MethodInvokation *expr, InvokationContext context, MethodCallStyle style)
+void CodeGenerator::generateMethodInvokation(shared_ptr<MethodInvokation> expr,
+                                             InvokationContext context, MethodCallStyle style)
 {
     // We cannot statically check if the method is a function or proc
     // So there's really nothing we can do about the context here
@@ -2068,27 +2071,28 @@ void CodeGenerator::generateMethodInvokation(MethodInvokation *expr, InvokationC
     gen(expr->methodSelector(), QString("callm %1,%2").arg(expr->methodSelector()->name).arg(expr->argumentCount()+1));
 }
 
-void CodeGenerator::generateIdafa(Idafa *expr)
+void CodeGenerator::generateIdafa(shared_ptr<Idafa> expr)
 {
     generateExpression(expr->modaf_elaih());
     gen(expr->modaf(), "getfld "+expr->modaf()->name);
 }
 
-void CodeGenerator::generateArrayIndex(ArrayIndex *expr)
+void CodeGenerator::generateArrayIndex(shared_ptr<ArrayIndex> expr)
 {
     generateExpression(expr->array());
     generateExpression(expr->index());
     gen(expr, "getarr");
 }
 
-void CodeGenerator::generateMultiDimensionalArrayIndex(MultiDimensionalArrayIndex *expr)
+void CodeGenerator::generateMultiDimensionalArrayIndex(shared_ptr<MultiDimensionalArrayIndex> expr)
 {
     generateExpression(expr->array());
     generateArrayFromValues(expr, expr->indexes());
     gen(expr, "getmdarr");
 }
 
-QString CodeGenerator::generateArrayFromValues(AST *src, QVector<shared_ptr<Expression> >values)
+QString CodeGenerator::generateArrayFromValues(shared_ptr<AST> src,
+                                               QVector<shared_ptr<Expression> >values)
 {
     QString newVar = _asm.uniqueVariable();
     gen(src, "pushv ", values.count());
@@ -2097,7 +2101,7 @@ QString CodeGenerator::generateArrayFromValues(AST *src, QVector<shared_ptr<Expr
     // Notice that Kalimat arrays are one-based, not zero-based
     for(int i=1; i<=values.count(); i++)
     {
-       Expression *value = values[i-1].get();
+       shared_ptr<Expression> value = values[i-1];
        gen(value, "pushl "+ newVar);
        gen(value, "pushv ", i);
        generateExpression(value);
@@ -2107,7 +2111,7 @@ QString CodeGenerator::generateArrayFromValues(AST *src, QVector<shared_ptr<Expr
     return newVar;
 }
 
-void CodeGenerator::generateObjectCreation(ObjectCreation *expr)
+void CodeGenerator::generateObjectCreation(shared_ptr<ObjectCreation> expr)
 {
     gen(expr, "new "+expr->className()->name);
 }
@@ -2116,11 +2120,12 @@ QString CodeGenerator::typeExpressionToAssemblyTypeId(shared_ptr<TypeExpression>
 {
     if(isa<TypeIdentifier>(expr))
     {
-        return ((TypeIdentifier *) expr)->name;
+        return dynamic_pointer_cast<TypeIdentifier>(expr)->name;
     }
     else if(isa<PointerTypeExpression>(expr))
     {
-        PointerTypeExpression *p = (PointerTypeExpression *) expr;
+        shared_ptr<PointerTypeExpression> p
+                = dynamic_pointer_cast<PointerTypeExpression>(expr);
         return QString("*%1").arg(typeExpressionToAssemblyTypeId(p->pointeeType()));
     }
     else
@@ -2129,7 +2134,7 @@ QString CodeGenerator::typeExpressionToAssemblyTypeId(shared_ptr<TypeExpression>
     }
 }
 
-void CodeGenerator::generateStringConstant(AST *src, QString str)
+void CodeGenerator::generateStringConstant(shared_ptr<AST> src, QString str)
 {
     QString constId = _asm.makeStringConstant(str);
 

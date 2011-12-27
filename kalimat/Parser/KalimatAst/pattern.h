@@ -20,7 +20,7 @@ class SimpleLiteralPattern : public Pattern
 public:
     SimpleLiteralPattern(Token pos, shared_ptr<SimpleLiteral> value)
         : Pattern(pos),_value(value) {}
-    SimpleLiteral *value() { return _value.get(); }
+    shared_ptr<SimpleLiteral> value() { return _value; }
     QString toString() { return value()->toString(); }
     void prettyPrint(CodeFormatter *formatter)
     {
@@ -34,7 +34,7 @@ class VarPattern : public Pattern
     shared_ptr<Identifier> _id;
 public:
     VarPattern(Token pos, shared_ptr<Identifier> id) : Pattern(pos),_id(id) {}
-    Identifier *id() { return _id.get(); }
+    shared_ptr<Identifier> id() { return _id; }
     QString toString();
     void prettyPrint(CodeFormatter *formatter);
 };
@@ -48,7 +48,7 @@ public:
         : Pattern(pos),_lv(lv)
     {
     }
-    AssignableExpression *lv() { return _lv.get(); }
+    shared_ptr<AssignableExpression> lv() { return _lv; }
     QString toString() { return QString("? %1").arg(lv()->toString()); }
     void prettyPrint(CodeFormatter *formatter)
     {
@@ -66,7 +66,7 @@ public:
 public:
     ArrayPattern(Token pos, QVector<shared_ptr<Pattern> > elements);
     int elementCount() { return _elements.count(); }
-    Pattern *element(int i) { return _elements[i].get(); }
+    shared_ptr<Pattern> element(int i) { return _elements[i]; }
     QString toString();
     void prettyPrint(CodeFormatter *formatter);
 };
@@ -82,11 +82,11 @@ public:
                shared_ptr<Identifier> classId,
                QVector<shared_ptr<Identifier> > fieldNames,
                QVector<shared_ptr<Pattern> > fieldPatterns);
-    Identifier *classId() { return _classId.get(); }
+    shared_ptr<Identifier> classId() { return _classId; }
     int fieldCount() { return _fieldNames.count(); }
-    Identifier *fieldName(int i) { return _fieldNames[i].get(); }
+    shared_ptr<Identifier> fieldName(int i) { return _fieldNames[i]; }
     shared_ptr<Identifier> fieldNamePtr(int i) { return _fieldNames[i]; }
-    Pattern *fieldPattern(int i) { return _fieldPatterns[i].get(); }
+    shared_ptr<Pattern> fieldPattern(int i) { return _fieldPatterns[i]; }
     QString toString();
     void prettyPrint(CodeFormatter *formatter);
 };
@@ -99,8 +99,8 @@ class MapPattern : public Pattern
 public:
     MapPattern(Token pos, QVector<shared_ptr<Expression> > keys, QVector<shared_ptr<Pattern> > values);
     int pairCount() { return _keys.count(); }
-    Expression *key(int i) { return _keys[i].get(); }
-    Pattern *value(int i) { return _values[i].get(); }
+    shared_ptr<Expression> key(int i) { return _keys[i]; }
+    shared_ptr<Pattern> value(int i) { return _values[i]; }
     QString toString();
     void prettyPrint(CodeFormatter *formatter);
 };

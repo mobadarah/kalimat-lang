@@ -8,11 +8,13 @@
 #ifndef CODEPOSITION_H
 #define CODEPOSITION_H
 class AST;
+#include <memory>
+using namespace std;
 struct CodePosition
 {
     CodeDocument *doc;
     int pos;
-    AST *ast;
+    shared_ptr<AST> ast;
 };
 
 #endif // CODEPOSITION_H

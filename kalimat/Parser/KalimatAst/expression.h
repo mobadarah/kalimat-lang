@@ -176,7 +176,7 @@ public:
 public:
     MapLiteral(Token pos, QVector<shared_ptr<Expression> > data);
     int dataCount() {return _data.count();}
-    Expression *data(int i) { return _data[i].get(); }
+    shared_ptr<Expression> data(int i) { return _data[i]; }
     QVector<shared_ptr<Expression> > dataVector() { return _data;}
     QString toString();
     void prettyPrint(CodeFormatter *f);
@@ -199,9 +199,9 @@ public:
     Invokation(Token pos,
                shared_ptr<Expression> functor,
                QVector<shared_ptr<Expression> > arguments);
-    Expression *functor() { return _functor.get();}
+    shared_ptr<Expression> functor() { return _functor;}
     int argumentCount() {return _arguments.count();}
-    Expression *argument(int i) { return _arguments[i].get(); }
+    shared_ptr<Expression> argument(int i) { return _arguments[i]; }
     virtual QString toString();
     virtual void prettyPrint(CodeFormatter *f);
 };
@@ -218,10 +218,10 @@ public:
                      shared_ptr<Expression> receiver,
                      shared_ptr<Identifier> methodSelector,
                      QVector<shared_ptr<Expression> > arguments);
-    Expression *receiver() {return _receiver.get();}
-    Identifier *methodSelector() { return _methodSelector.get();}
+    shared_ptr<Expression> receiver() {return _receiver;}
+    shared_ptr<Identifier> methodSelector() { return _methodSelector;}
     int argumentCount() { return _arguments.count();}
-    Expression *argument(int i) {return _arguments[i].get();}
+    shared_ptr<Expression> argument(int i) {return _arguments[i];}
     QString toString();
     void prettyPrint(CodeFormatter *f);
 };

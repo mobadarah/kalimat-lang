@@ -84,9 +84,9 @@ public:
 
 class ast : public FormatMaker
 {
-    PrettyPrintable *a;
+    shared_ptr<PrettyPrintable> a;
 public:
-    ast(PrettyPrintable *_a) { a = _a;}
+    ast(shared_ptr<PrettyPrintable> _a) { a = _a;}
     void run(CodeFormatter *cf)  { a->prettyPrint(cf); }
 };
 
@@ -155,10 +155,10 @@ public:
 
 class PrintFmt : public FormatMaker
 {
-    Expression *width;
-    Expression *expression;
+    shared_ptr<Expression> width;
+    shared_ptr<Expression> expression;
 public:
-    PrintFmt(Expression *_expression, Expression *_width) { expression = _expression; width = _width; }
+    PrintFmt(shared_ptr<Expression> _expression, shared_ptr<Expression> _width) { expression = _expression; width = _width; }
     void run(CodeFormatter *f)
     {
         if(width)
@@ -173,10 +173,10 @@ public:
 
 class ReadFmt : public FormatMaker
 {
-    AssignableExpression *var;
+    shared_ptr<AssignableExpression> var;
     bool readNumber;
 public:
-    ReadFmt(AssignableExpression *_var, bool _readNumber) { var = _var; readNumber = _readNumber; }
+    ReadFmt(shared_ptr<AssignableExpression> _var, bool _readNumber) { var = _var; readNumber = _readNumber; }
     void run(CodeFormatter *f)
     {
         if(readNumber)
@@ -193,7 +193,7 @@ QVector<FormatMaker *> mapFmt(QVector<shared_ptr<V> >v, int from=0)
 {
     QVector<FormatMaker *> ret;
     for(int i=from; i<v.count(); i++)
-        ret.append(new ast(v[i].get()));
+        ret.append(new ast(v[i]));
     return ret;
 }
 

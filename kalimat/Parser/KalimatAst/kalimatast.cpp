@@ -174,9 +174,9 @@ ForAllStmt::ForAllStmt(Token pos,
 {
 }
 
-QVector<Identifier *> ForAllStmt::getIntroducedVariables()
+QVector<shared_ptr<Identifier> > ForAllStmt::getIntroducedVariables()
 {
-    QVector<Identifier *> ret;
+    QVector<shared_ptr<Identifier> > ret;
     ret.append(variable());
     return ret;
 }
@@ -1141,13 +1141,13 @@ bool ClassDecl::containsMethod(QString name)
     return false;
 }
 
-MethodDecl *ClassDecl::method(QString name)
+shared_ptr<MethodDecl> ClassDecl::method(QString name)
 {
     if(_methods.contains(name))
-        return _methods[name].get();
+        return _methods[name];
     if(_ancestorClass)
         return _ancestorClass->method(name);
-    return NULL;
+    return shared_ptr<MethodDecl>();
 }
 
 bool ClassDecl::containsPrototype(QString name)
@@ -1255,14 +1255,14 @@ void IfStmt::prettyPrint(CodeFormatter *f)
     f->space();
     f->colon();
 
-    BlockStmt *thnBlk = dynamic_cast<BlockStmt *>(this->thenPart());
+    shared_ptr<BlockStmt> thnBlk = dynamic_pointer_cast<BlockStmt>(this->thenPart());
     if(thnBlk)
         f->nl();
     this->thenPart()->prettyPrint(f);
 
     if(this->elsePart())
     {
-        BlockStmt *elsBlk = dynamic_cast<BlockStmt *>(this->elsePart());
+        shared_ptr<BlockStmt> elsBlk = dynamic_pointer_cast<BlockStmt>(this->elsePart());
         if(elsBlk)
         {
             f->printKw(L"وإلا");
@@ -1276,7 +1276,7 @@ void IfStmt::prettyPrint(CodeFormatter *f)
         {
             f->space();
             f->printKw(L"وإلا");
-            IfStmt *elseItselfIsAnotherIf = dynamic_cast<IfStmt *>(this->elsePart());
+            shared_ptr<IfStmt> elseItselfIsAnotherIf = dynamic_pointer_cast<IfStmt>(this->elsePart());
             if(!elseItselfIsAnotherIf)
             {
                 f->colon();
@@ -1299,7 +1299,7 @@ void WhileStmt::prettyPrint(CodeFormatter *f)
     //f->space();
     f->colon();
 
-    BlockStmt *actionBlk = dynamic_cast<BlockStmt *>(this->statement());
+    shared_ptr<BlockStmt> actionBlk = dynamic_pointer_cast<BlockStmt>(this->statement());
     if(actionBlk)
         f->nl();
     else
@@ -1326,7 +1326,7 @@ void ForAllStmt::prettyPrint(CodeFormatter *f)
     //f->space();
     f->colon();
 
-    BlockStmt *actionBlk = dynamic_cast<BlockStmt *>(this->statement());
+    shared_ptr<BlockStmt> actionBlk = dynamic_pointer_cast<BlockStmt>(this->statement());
     if(actionBlk)
         f->nl();
     else
@@ -1574,9 +1574,9 @@ void SelectStmt::prettyPrint(CodeFormatter *f)
     f->indent();
     for(int i=0; i<count(); i++)
     {
-        ChannelCommunicationStmt *cond = condition(i);
-        Statement *act = action(i);
-        BlockStmt *actBlk = dynamic_cast<BlockStmt *>(act);
+        shared_ptr<ChannelCommunicationStmt> cond = condition(i);
+        shared_ptr<Statement> act = action(i);
+        shared_ptr<BlockStmt> actBlk = dynamic_pointer_cast<BlockStmt>(act);
 
         if(i>0)
             f->printKw(L"أو");
@@ -1620,7 +1620,7 @@ void VarPattern::prettyPrint(CodeFormatter *f)
 void ArrayPattern::prettyPrint(CodeFormatter *f)
 {
     //todo: ArrayPattern::prettyPrint() by not copying to new vector
-    QVector<PrettyPrintable *> data;
+    QVector<shared_ptr<PrettyPrintable> > data;
     for(int i=0; i<elementCount(); i++)
         data.append(element(i));
 
@@ -1632,7 +1632,7 @@ void ObjPattern::prettyPrint(CodeFormatter *f)
     this->classId()->prettyPrint(f);
     f->space();
     f->printKw(_ws(L"له"));
-    QVector<PrettyPrintable *> data;
+    QVector<shared_ptr<PrettyPrintable> > data;
     //todo: optimize ObjPattern::prettyPrint() by not copying to new vector
     for(int i=0; i<this->fieldCount(); i++)
     {
@@ -1644,7 +1644,7 @@ void ObjPattern::prettyPrint(CodeFormatter *f)
 
 void MapPattern::prettyPrint(CodeFormatter *f)
 {
-    QVector<PrettyPrintable *> data;
+    QVector<shared_ptr<PrettyPrintable> > data;
     //todo: optimize ObjPattern::prettyPrint() by not copying to new vector
     for(int i=0; i<this->pairCount(); i++)
     {
@@ -2036,7 +2036,7 @@ QVector<FormatMaker *> mapPrint(QVector<shared_ptr<Expression > > args, QVector<
 {
     QVector<FormatMaker *> ret;
     for(int i=0; i<args.count(); i++)
-        ret.append(new PrintFmt(args[i].get(), widths[i].get()));
+        ret.append(new PrintFmt(args[i], widths[i]));
     return ret;
 }
 
@@ -2044,7 +2044,7 @@ QVector<FormatMaker *> mapRead(QVector<shared_ptr<AssignableExpression> > variab
 {
     QVector<FormatMaker *> ret;
     for(int i=0; i<variables.count(); i++)
-        ret.append(new ReadFmt(variables[i].get(), readNumberFlags[i]));
+        ret.append(new ReadFmt(variables[i], readNumberFlags[i]));
     return ret;
 }
 
