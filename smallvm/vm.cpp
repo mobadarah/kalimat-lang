@@ -1666,15 +1666,31 @@ void VM::DoSetArr()
     Value *index = currentFrame()->OperandStack.pop();
     Value *arrVal = currentFrame()->OperandStack.pop();
 
-    assert(arrVal->tag == ArrayVal || arrVal->tag == MapVal, SubscribingNonArray);
-    VIndexable *container = arrVal->unboxIndexable();
+    assert(arrVal->tag == ArrayVal
+           || arrVal->tag == MapVal
+           || arrVal->tag == StringVal , SubscribingNonArray);
 
-    VMError err;
-    bool b = container->keyCheck(index, err);
-    if(!b)
-        signalWithStack(err);
+    if(arrVal->tag != StringVal)
+    {
+        VIndexable *container = arrVal->unboxIndexable();
+        VMError err;
+        bool b = container->keyCheck(index, err);
+        if(!b)
+            signalWithStack(err);
 
-    container->set(index, v);
+        container->set(index, v);
+    }
+    else
+    {
+        assert(index->tag == Int, SubscribtMustBeInteger);
+        assert(v->tag == StringVal, TypeError2, BuiltInTypes::StringType, v->type);
+        QString *arr = arrVal->unboxStr();
+        QString *sv = v->unboxStr();
+        assert(sv->length() ==1, ArgumentError,
+               QString::fromStdWString(L"النص المحدد لابد أن يكون طوله رمزا واحدا"));
+        int i = index->unboxInt() -1;
+        (*arr)[i] = (*sv)[0];
+    }
 }
 
 void VM::DoGetArr()
@@ -1698,19 +1714,32 @@ void VM::DoGetArr()
     Value *index = currentFrame()->OperandStack.pop();
     Value *arrVal= currentFrame()->OperandStack.pop();
 
-    assert(arrVal->tag == ArrayVal || arrVal->tag == MapVal, SubscribingNonArray);
+    assert(arrVal->tag == ArrayVal
+           || arrVal->tag == MapVal
+           || arrVal, SubscribingNonArray);
 
-    VMError err;
-    VIndexable *container = arrVal->unboxIndexable();
-    bool b = container->keyCheck(index, err);
-    if(!b)
-        signalWithStack(err);
-    currentFrame()->OperandStack.push(container->get(index));
-
+    if(arrVal->tag != StringVal)
+    {
+        VMError err;
+        VIndexable *container = arrVal->unboxIndexable();
+        bool b = container->keyCheck(index, err);
+        if(!b)
+            signalWithStack(err);
+        currentFrame()->OperandStack.push(container->get(index));
+    }
+    else
+    {
+        assert(index->tag == Int, SubscribtMustBeInteger);
+        QString *arr = arrVal->unboxStr();
+        int i = index->unboxInt() -1;
+        Value *v = allocator.newString(new QString(arr->mid(i,1 )));
+        currentFrame()->OperandStack.push(v);
+    }
 }
 
 void VM::DoGetArrRef()
 {
+    // todo: Sync DoGetArrRef with moving to VIndexable, support strings
     // ...arr index => ...arrref
     Value *index  = currentFrame()->OperandStack.pop();
     Value *arrVal= currentFrame()->OperandStack.pop();
@@ -1720,7 +1749,7 @@ void VM::DoGetArrRef()
     int i = index->unboxInt();
     VArray *arr = arrVal->unboxArray();
 
-    assert(i>=1 && i<=arr->count, SubscriptOutOfRange2, str(i), str(arr->count));
+    assert(i>=1 && i<=arr->count(), SubscriptOutOfRange2, str(i), str(arr->count()));
 
     Value *ref = allocator.newArrayReference(arr, i-1);
     currentFrame()->OperandStack.push(ref);
@@ -1748,11 +1777,22 @@ void VM::DoNewArr()
 void VM::DoArrLength()
 {
     // ... arr => ... length
-    assert(__top()->tag == ArrayVal, TypeError2, BuiltInTypes::ArrayType, __top()->type);
+    assert(__top()->tag == ArrayVal
+           || __top()->tag == MapVal
+           || __top()->tag == StringVal, TypeError2, BuiltInTypes::IndexableType, __top()->type);
+
     Value *arrVal= currentFrame()->OperandStack.pop();
-    VArray *arr = arrVal->unboxArray();
-    Value *len = allocator.newInt(arr->count);
-    currentFrame()->OperandStack.push(len);
+    if(arrVal->tag == StringVal)
+    {
+        Value *len = allocator.newInt(arrVal->unboxStr()->length());
+        currentFrame()->OperandStack.push(len);
+    }
+    else
+    {
+        VIndexable *arr = arrVal->unboxIndexable();
+        Value *len = allocator.newInt(arr->count());
+        currentFrame()->OperandStack.push(len);
+    }
 }
 
 void VM::DoNewMD_Arr()
@@ -1762,7 +1802,7 @@ void VM::DoNewMD_Arr()
     Value *arrVal= currentFrame()->OperandStack.pop();
     VArray *arr = arrVal->unboxArray();
     QVector<int> dimensions;
-    for(int i=0; i<arr->count; i++)
+    for(int i=0; i<arr->count(); i++)
     {
         assert(arr->Elements[i]->tag == Int, TypeError2, BuiltInTypes::IntType, arr->Elements[i]->type);
         int z = arr->Elements[i]->unboxInt();
@@ -1787,9 +1827,9 @@ void VM::Pop_Md_Arr_and_indexes(MultiDimensionalArray<Value *> *&theArray, QVect
 
 
 
-    assert(theArray->dimensions.count()== boxedIndexes->count, MD_IndexingWrongNumberOfDimensions);
+    assert(theArray->dimensions.count()== boxedIndexes->count(), MD_IndexingWrongNumberOfDimensions);
 
-    for(int i=0; i<boxedIndexes->count; i++)
+    for(int i=0; i<boxedIndexes->count(); i++)
     {
         assert(boxedIndexes->Elements[i]->tag == Int, TypeError2, BuiltInTypes::IntType, boxedIndexes->Elements[i]->type);
         int n = boxedIndexes->Elements[i]->unboxInt();
@@ -1909,7 +1949,7 @@ void VM::DoSelect()
 
     QVector<Channel *> allChans;
     QVector<Value *> args;
-    for(int i=0; i<varr->count; i+=2)
+    for(int i=0; i<varr->count(); i+=2)
     {
         allChans.append(varr->Elements[i]->unboxChan());
         args.append(varr->Elements[i+1]);

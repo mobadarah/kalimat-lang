@@ -1118,7 +1118,7 @@ void InvokeForeignProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
     IClass *retType = (IClass *) stack.pop()->unboxObj();
     QVector<Value *> argz;
     QVector<IClass *> kargTypes;
-    for(int i=0; i<args->count; i++)
+    for(int i=0; i<args->count(); i++)
     {
         argz.append(args->Elements[i]);
         if(!guessArgTypes)
@@ -1215,7 +1215,7 @@ void setupChildren(QGridLayout *layout,Value *v, Reference *ref, QString label, 
         layout->addWidget(sa, row, 0, 1, 2);
         arr = v->unboxArray();
         vb->addWidget(new QLabel(label), 0, 0, 1, 2);
-        for(int i=0; i<arr->count; i++)
+        for(int i=0; i<arr->count(); i++)
         {
             setupChildren(vb, arr->Elements[i], new ArrayReference(arr, i),QString("%1").arg(i+1), i+1, vm);
         }

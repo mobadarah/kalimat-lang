@@ -31,7 +31,7 @@ MetaClass  *BuiltInTypes::ClassType = new MetaClass("Class", NULL);
 ValueClass *BuiltInTypes::IndexableType = new ValueClass(QSTR(L"مفهرس"), BuiltInTypes::ObjectType);
 ValueClass *BuiltInTypes::ArrayType = new ValueClass(QSTR(L"مصفوفة.قيم"), BuiltInTypes::IndexableType);
 ValueClass *BuiltInTypes::MapType = new ValueClass(QSTR(L"قاموس.قيم"), BuiltInTypes::IndexableType);
-ValueClass *BuiltInTypes::StringType = new ValueClass(QSTR(L"نص"), BuiltInTypes::ObjectType);
+ValueClass *BuiltInTypes::StringType = new ValueClass(QSTR(L"نص"), BuiltInTypes::IndexableType);
 ValueClass *BuiltInTypes::SpriteType = new ValueClass(QSTR(L"طيف"), BuiltInTypes::ObjectType);
 ValueClass *BuiltInTypes::FileType = NULL;
 ValueClass *BuiltInTypes::RawFileType = new ValueClass("RawFile", BuiltInTypes::ObjectType);
@@ -210,7 +210,7 @@ QObject *Value::unboxQObj() const
 QString ArrayToString(VArray *arr)
 {
     QStringList lst;
-    for(int i=0; i<arr->count; i++)
+    for(int i=0; i<arr->count(); i++)
         lst.append(arr->Elements[i]->toString());
     return QString("[%1]").arg(lst.join(", "));
 }
@@ -297,9 +297,9 @@ bool VArray::keyCheck(Value *key, VMError &err)
         return false;
     }
     int i = key->unboxInt();
-    if(!(i>=1 && i<=this->count))
+    if(!(i>=1 && i<=this->count()))
     {
-        err = VMError(SubscriptOutOfRange2).arg(str(i)).arg(str(this->count));
+        err = VMError(SubscriptOutOfRange2).arg(str(i)).arg(str(this->count()));
         return false;
     }
     return true;
@@ -324,7 +324,7 @@ bool VMap::keyCheck(Value *key, VMError &err)
     if(key->tag == ArrayVal)
     {
         VArray *arr = key->unboxArray();
-        for(int i=0; i<arr->count; i++)
+        for(int i=0; i<arr->count(); i++)
         {
             if(!keyCheck(arr->Elements[i], err))
                 return false;
@@ -473,9 +473,9 @@ QString ForeignClass::toString()
 
 bool LexicographicLessThan(VArray *arr1, VArray *arr2)
 {
-    for(int i=0; i<arr2->count; i++)
+    for(int i=0; i<arr2->count(); i++)
     {
-        if(i== arr1->count)
+        if(i== arr1->count())
             return true; // arr1 is a prefix of arr2
         Value &v1 = *arr1->Elements[i];
         Value &v2 = *arr2->Elements[i];
@@ -519,9 +519,9 @@ inline bool operator<(const Value &v1, const Value &v2)
 
 bool ElementWiseCompare(VArray *arr1, VArray *arr2)
 {
-    if(arr1->count != arr2->count)
+    if(arr1->count() != arr2->count())
         return false;
-    for(int i=0; i<arr1->count; i++)
+    for(int i=0; i<arr1->count(); i++)
     {
         Value &v1 = *arr1->Elements[i];
         Value &v2 = *arr2->Elements[i];

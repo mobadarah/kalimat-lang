@@ -44,15 +44,17 @@ struct VIndexable
     virtual bool keyCheck(Value *key, VMError &err) = 0;
     virtual void set(Value *key, Value *v) = 0;
     virtual Value *get(Value *key) = 0;
+    virtual int count() = 0;
 };
 
 struct VArray : public VIndexable
 {
     Value **Elements;
-    int count;
+    int _count;
     bool keyCheck(Value *key, VMError &err);
     void set(Value *key, Value *v);
     Value *get(Value *key);
+    int count() { return _count; }
 };
 
 struct VMap : public VIndexable
@@ -62,6 +64,7 @@ struct VMap : public VIndexable
     bool keyCheck(Value *key, VMError &err);
     void set(Value *key, Value *v);
     Value *get(Value *key);
+    int count() { return Elements.count(); }
 };
 
 union ValueItem

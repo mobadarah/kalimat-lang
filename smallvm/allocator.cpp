@@ -129,7 +129,7 @@ Value *Allocator::newArray(int size)
     ret->type = BuiltInTypes::ArrayType;
     ret->v.arrayVal = new VArray();
     ret->v.arrayVal->Elements = new Value*[size];
-    ret->v.arrayVal->count = size;
+    ret->v.arrayVal->_count = size;
     for(int i=0; i<size; i++)
         ret->v.arrayVal->Elements[i] = null();
     return ret;
@@ -285,7 +285,7 @@ void Allocator::mark()
         if(v->tag == ArrayVal)
         {
             VArray *elements = v->unboxArray();
-            for(int i=0; i<elements->count; i++)
+            for(int i=0; i<elements->count(); i++)
             {
                 Value *v2 = elements->Elements[i];
                 if(!v2->mark)
