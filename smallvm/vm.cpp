@@ -38,6 +38,13 @@ void VM::Init()
     _globalFrame = new Frame();
     allocator.addOtherFrameAsRoot(_globalFrame);
     launchProcess(method);
+
+    // launchProcess() puts the just created main function
+    // into the newProcesses queue, while the rest of the code
+    // assumes it's in 'running' queue
+    // so we manually move it
+    running.push_front(newProcesses.takeFirst());
+
     _mainProcess = running.front();
     _isRunning = true;
     debugger = NULL;
@@ -48,7 +55,7 @@ Frame *VM::launchProcess(Method *method)
     Process *p = new Process(this);
     p->stack.push(Frame(method, NULL));
     processes.push_back(p);
-    running.push_back(p);
+    newProcesses.push_back(p);
     Frame *ret = &p->stack.top();
     return ret;
 }
@@ -155,13 +162,24 @@ Process *VM::currentProcess()
     return running.front();
 }
 
+
 void VM::makeItSleep(Process *proc, int ms)
 {
     proc->state = TimerWaitingProcess;
 
     proc->timeToWake = clock() + ms * CLOCKS_PER_SEC / 1000;
-    timerWaiting.append(proc);
-    // running.removeOne(proc);
+
+    bool added = false;
+    for(int i=0; i<timerWaiting.count(); i++)
+    {
+        if(timerWaiting[i]->timeToWake > proc->timeToWake)
+        {
+            timerWaiting.insert(i, proc);
+            added = true;
+        }
+    }
+    if(!added)
+        timerWaiting.append(proc);
 }
 
 Frame *VM::currentFrame()
@@ -421,17 +439,21 @@ int getInstructionArity(Instruction &i)
 
 void VM::RunStep(bool singleInstruction)
 {
-    int n = singleInstruction? 1 : rand() % 10;
+    int random = rand();
+    int n = singleInstruction? 1 : random % 20;
     bool pIsRunning = true;
-
+    //bool timerOrNew = (random % 2) == 0;
     clock_t qt = clock();
 
-    if(timerWaiting.count() > 0 && timerWaiting.front()->timeToWake < qt)
+    if(timerOrNew && timerWaiting.count() > 0 && timerWaiting.front()->timeToWake < qt)
     {
-        Process *proc = timerWaiting.front();
-        timerWaiting.pop_front();
+        Process *proc = timerWaiting.takeFirst();
         proc->awaken();
-        // This is O(n) , todo:
+        running.push_front(proc);
+    }
+    else if(newProcesses.count() > 0)
+    {
+        Process *proc = newProcesses.takeFirst();
         running.push_front(proc);
     }
 
@@ -451,12 +473,15 @@ void VM::RunStep(bool singleInstruction)
     while(runningNow->state == SleepingProcess
           && all < running.count())
     {
-        if(timerWaiting.count() > 0 && timerWaiting.front()->timeToWake < qt)
+        if(timerOrNew && timerWaiting.count() > 0 && timerWaiting.front()->timeToWake < qt)
         {
-            Process *proc = timerWaiting.front();
-            timerWaiting.pop_front();
+            Process *proc = timerWaiting.takeFirst();
             proc->awaken();
-            // This is O(n) , todo:
+            running.push_front(proc);
+        }
+        else  if(newProcesses.count() > 0)
+        {
+            Process *proc = newProcesses.takeFirst();
             running.push_front(proc);
         }
         else
@@ -2021,7 +2046,8 @@ void VM::BuiltInAddOp(int (*intFunc)(int,int), double (*doubleFunc)(double,doubl
     }
 
     assert( v1->tag == v2->tag &&
-            (v1->tag == Double || v1->tag == Int || v1->tag == StringVal), BuiltInOperationOnNonBuiltn);
+            (v1->tag == Double || v1->tag == Int || v1->tag == StringVal
+             || v1->tag == ArrayVal), BuiltInOperationOnNonBuiltn);
 
     Value *v3 = NULL;
 
@@ -2031,7 +2057,17 @@ void VM::BuiltInAddOp(int (*intFunc)(int,int), double (*doubleFunc)(double,doubl
         v3 = allocator.newInt(intFunc(v1->unboxInt(), v2->unboxInt()));
     else if(v1->tag == Double )
         v3 = allocator.newDouble(doubleFunc(v1->unboxDouble(), v2->unboxDouble()));
-
+    else if(v1->tag == ArrayVal)
+    {
+        VArray *arr1 = v1->unboxArray();
+        VArray *arr2 = v2->unboxArray();
+        v3 = allocator.newArray(arr1->count() + arr2->count());
+        int c = 0;
+        for(int i=0; i<arr1->count(); i++)
+            v3->v.arrayVal->Elements[c++] = arr1->Elements[i];
+        for(int i=0; i<arr2->count(); i++)
+            v3->v.arrayVal->Elements[c++] = arr2->Elements[i];
+    }
     currentFrame()->OperandStack.push(v3);
 }
 

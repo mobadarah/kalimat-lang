@@ -262,6 +262,7 @@ void DrawCircleProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 void RandomProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 {
     int max = popIntOrCoercable(stack, w, vm);
+    vm->assert(max >0, ArgumentError, QString::fromStdWString(L"دالة عشوائي لابد أن تأخذ قيمة موجبة"));
     int ret = rand()%max;
     stack.push(vm->GetAllocator().newInt(ret));
 }

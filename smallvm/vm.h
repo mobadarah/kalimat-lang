@@ -45,6 +45,7 @@ class VM
     QQueue<Process *> processes;
     QQueue<Process *> running;
     QQueue<Process *> timerWaiting;
+    QQueue<Process *> newProcesses;
 
     // The allocator must be declared after the 'constantPool' and 'stack'
     // members, since it's initialized with them in VMs constructor initializer list!!
