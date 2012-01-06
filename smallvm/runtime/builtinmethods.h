@@ -40,6 +40,8 @@ void GetSpriteTopProc(QStack<Value *> &stack, RunWindow *w, VM *vm);
 void GetSpriteBottomProc(QStack<Value *> &stack, RunWindow *w, VM *vm);
 void GetSpriteWidthProc(QStack<Value *> &stack, RunWindow *w, VM *vm);
 void GetSpriteHeightProc(QStack<Value *> &stack, RunWindow *w, VM *vm);
+void GetSpriteImageProc(QStack<Value *> &stack, RunWindow *w, VM *vm);
+void SetSpriteImageProc(QStack<Value *> &stack, RunWindow *w, VM *vm);
 
 void WaitProc(QStack<Value *> &, RunWindow *, VM *);
 void MouseEventChanProc(QStack<Value *> &stack, RunWindow *w, VM *vm);

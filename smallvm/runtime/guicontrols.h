@@ -38,6 +38,16 @@ const int methodGetButton = 11;
 const int methodSetEditable = 12;
 const int methodAppendText = 13;
 
+class ImageForeignClass : public EasyForeignClass
+{
+    Allocator *allocator;
+    RunWindow *rw;
+public:
+    ImageForeignClass(QString name, RunWindow *rw);
+    IObject *newValue(Allocator *allocator);
+    Value *dispatch(int id, QVector<Value *>args);
+};
+
 class WindowForeignClass : public EasyForeignClass
 {
     RunWindow *rw;

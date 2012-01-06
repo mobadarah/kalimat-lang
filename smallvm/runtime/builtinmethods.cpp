@@ -691,6 +691,41 @@ void GetSpriteHeightProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
     stack.push(vm->GetAllocator().newInt(ret));
 }
 
+void GetSpriteImageProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
+{
+    w->typeCheck(stack.top(), BuiltInTypes::SpriteType);
+    void *rawVal = stack.pop()->unboxRaw();
+    Sprite  *sprite = (Sprite *) rawVal;
+
+    QString clsName = QString::fromStdWString(L"صورة");
+    QImage *img = new QImage(sprite->image.toImage());
+    IClass *imgClass = dynamic_cast<IClass *>
+            (vm->GetType(clsName)->unboxObj());
+    IObject *imgObj = imgClass->newValue(&vm->GetAllocator());
+    imgObj->setSlotValue("handle", vm->GetAllocator().newRaw(img, BuiltInTypes::ObjectType));
+
+    stack.push(vm->GetAllocator().newObject(imgObj, imgClass));
+}
+
+void SetSpriteImageProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
+{
+    QString clsName = QString::fromStdWString(L"صورة");
+    IClass *imgClass = dynamic_cast<IClass *>
+            (vm->GetType(clsName)->unboxObj());
+
+    w->typeCheck(stack.top(), BuiltInTypes::SpriteType);
+    void *rawVal = stack.pop()->unboxRaw();
+    Sprite  *sprite = (Sprite *) rawVal;
+
+    w->typeCheck(stack.top(), imgClass);
+    IObject *imgObj = stack.pop()->unboxObj();
+    QImage *img = reinterpret_cast<QImage *>
+            (imgObj->getSlotValue("handle")->unboxRaw());
+
+    sprite->setImage(QPixmap::fromImage(*img));
+    w->redrawWindow();
+}
+
 void WaitProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 {
     /*

@@ -204,6 +204,16 @@ callex getspriteheight
 ret
 .endmethod
 
+.method صورة.الطيف 1 1
+callex getspriteimage
+ret
+.endmethod
+
+.method حدد.صورة.الطيف 2 0
+callex setspriteimage
+ret
+.endmethod
+
 
 .method م.ش 0
 callex cls

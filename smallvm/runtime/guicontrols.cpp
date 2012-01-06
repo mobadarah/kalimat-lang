@@ -30,6 +30,68 @@ void ensureValueIsWidget(Value *val)
         throw VMError(InternalError);
 }
 
+ImageForeignClass::ImageForeignClass(QString name, RunWindow *rw)
+    :EasyForeignClass(name), rw(rw)
+{
+    QImage img;
+
+    methodIds[_ws(L"تدويرها")]
+            = 0;
+    methodArities[_ws(L"تدويرها")]
+            = 2;
+    methodIds[_ws(L"ممطوطة")]
+            = 1;
+    methodArities[_ws(L"ممطوطة")]
+            = 3;
+}
+
+IObject *ImageForeignClass::newValue(Allocator *allocator)
+{
+    //todo: this is a hack
+    this->allocator = allocator;
+
+    Object *obj = new Object();
+    obj->slotNames.append("handle");
+    return obj;
+}
+
+Value *ImageForeignClass::dispatch(int id, QVector<Value *> args)
+{
+    IObject *receiver = args[0]->unboxObj();
+    QImage *handle = reinterpret_cast<QImage*>
+            (receiver->getSlotValue("handle")->unboxRaw());
+
+    QImage *img2;
+    QTransform trans;
+    IObject *obj;
+    double w, h;
+    double degrees;
+    double s1, s2;
+    switch(id)
+    {
+        case 0:
+        rw->typeCheck(args[1], BuiltInTypes::NumericType);
+        degrees = args[1]->unboxNumeric();
+        w = handle->width()/2;
+        h = handle->height() /2 ;
+        trans = trans.translate(w,h).rotate(degrees).translate(-w,-h);
+        img2 = new QImage(handle->transformed(trans));
+        obj = this->newValue(allocator);
+        obj->setSlotValue("handle", allocator->newRaw(img2, BuiltInTypes::ObjectType));
+        return allocator->newObject(obj, this);
+
+    case 1:
+        rw->typeCheck(args[1], BuiltInTypes::NumericType);
+        s1= args[1]->unboxNumeric();
+        s2= args[2]->unboxNumeric();
+        trans = trans.scale(s1, s2);
+        img2 = new QImage(handle->transformed(trans));
+        obj = this->newValue(allocator);
+        obj->setSlotValue("handle", allocator->newRaw(img2, BuiltInTypes::ObjectType));
+        return allocator->newObject(obj, this);
+    }
+}
+
 WindowForeignClass::WindowForeignClass(QString name, RunWindow *rw)
     : EasyForeignClass(name)
 {

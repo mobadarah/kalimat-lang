@@ -167,6 +167,9 @@ void RunWindow::Init(QString program, QMap<QString, QString> stringConstants, QS
         vm->Register("getspritebottom", new WindowProxyMethod(this, vm, GetSpriteBottomProc));
         vm->Register("getspritewidth", new WindowProxyMethod(this, vm, GetSpriteWidthProc));
         vm->Register("getspriteheight", new WindowProxyMethod(this, vm, GetSpriteHeightProc));
+        vm->Register("getspriteimage", new WindowProxyMethod(this, vm, GetSpriteImageProc));
+        vm->Register("setspriteimage", new WindowProxyMethod(this, vm, SetSpriteImageProc));
+
 
         vm->Register("wait", new WindowProxyMethod(this, vm, WaitProc));
         vm->Register("mouse_event_channel", new WindowProxyMethod(this, vm, MouseEventChanProc));
@@ -251,6 +254,7 @@ void RunWindow::Init(QString program, QMap<QString, QString> stringConstants, QS
         vm->RegisterType(_ws(L"صندوق.اختيار"), new RadioButtonForeignClass(_ws(L"صندوق.اختيار"), this));
         vm->RegisterType(_ws(L"مجموعة.اختيارات"), new ButtonGroupForeignClass(_ws(L"مجموعة.اختيارات"), this));
         vm->RegisterType(_ws(L"صندوق.مركب"), new ComboboxForeignClass(_ws(L"صندوق.مركب"), this));
+        vm->RegisterType(_ws(L"صورة"), new ImageForeignClass(_ws(L"صورة"), this));
 
 
         InitVMPrelude(vm);
