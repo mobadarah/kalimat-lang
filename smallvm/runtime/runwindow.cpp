@@ -513,7 +513,8 @@ void RunWindow::checkCollision(Sprite *s)
         void operator() (Sprite *s1, Sprite *s2) { owner->onCollision(s1, s2); }
     } callBack(this);
 
-    spriteLayer.checkCollision(s, &callBack);
+    if(vm->hasRegisteredEventHandler("collision"))
+        spriteLayer.checkCollision(s, &callBack);
 }
 
 void RunWindow::resizeEvent(QResizeEvent *event)

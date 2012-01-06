@@ -426,9 +426,6 @@ void CodeGenerator::generateFFIProceduralDeclaration(shared_ptr<FFIProceduralDec
     */
     // Push a dummy procedure scope since all calls to gen()
     // attempt to increment an instruction count in the current procedure scope
-    // todo: we've called new() 3 times here, this is a memory leak which
-    // can be rectified by cleaning up after we popProcedureScope at the end
-    // of this function
     pushProcedureScope(shared_ptr<FunctionDecl>(new FunctionDecl(decl->getPos(),
                                         decl->getPos(),
                                         shared_ptr<Identifier>(new Identifier(decl->getPos(),decl->procName)),
@@ -517,7 +514,7 @@ void CodeGenerator::generateFFIProceduralDeclaration(shared_ptr<FFIProceduralDec
     gen(decl, "pushl %funcPtr");
     gen(decl, "callex callforeign");
 
-    //TODO: see this debuInfo thing on the next line
+    //TODO: see this debugInfo thing on the next line
     //debugInfo.setInstructionForLine(currentCodeDoc, decl->_endingToken.Line,
      //                               decl->procName()->name, scopeStack.top().instructionCount);
     if(!decl->isFunctionNotProc)
@@ -935,7 +932,8 @@ void CodeGenerator::generateDrawSpriteStmt(shared_ptr<DrawSpriteStmt> stmt)
     generateExpression(stmt->y());
     generateExpression(stmt->x());
     generateExpression(stmt->sprite());
-    gen(stmt, "callex drawsprite");
+    gen(stmt, "launch");
+    gen(stmt, "call drawspr");
 }
 
 void CodeGenerator::generateZoomStmt(shared_ptr<ZoomStmt> stmt)
@@ -1643,7 +1641,6 @@ void CodeGenerator::generateMatchOperation(shared_ptr<MatchOperation> expr)
         // we currently define the temp var, but this pollutes the namespace
         // so we should use generateAssignmentToLVal instead
         defineInCurrentScope(i.value()->name);
-        // todo: this leaks!!
         generateAssignmentStmt(shared_ptr<AssignmentStmt>(new AssignmentStmt(i.key()->getPos(),
                                                   shared_ptr<AssignableExpression>(i.key()),
                                                   shared_ptr<Identifier>(i.value()))));

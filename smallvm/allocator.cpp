@@ -150,8 +150,12 @@ Value *Allocator::newMultiDimensionalArray(QVector<int>dimensions)
     ret->tag = MultiDimensionalArrayVal;
     ret->type = BuiltInTypes::ArrayType;
     ret->v.multiDimensionalArrayVal = new MultiDimensionalArray<Value *>(dimensions);
-    //TODO: init all elementes with a Kalimat-compaitble null value
-    // instead of null pointers
+
+    // Init all elementes with a Kalimat-compaitble null value
+    for(int i=0; i<ret->v.multiDimensionalArrayVal->elements.count(); i++)
+    {
+        ret->v.multiDimensionalArrayVal->elements[i] = this->null();
+    }
     return ret;
 }
 

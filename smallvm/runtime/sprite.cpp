@@ -12,7 +12,6 @@ Sprite::Sprite(QString filename)
 {
     visible = false;
     prepareMask(image);
-
 }
 
 void Sprite::setImage(QPixmap image)

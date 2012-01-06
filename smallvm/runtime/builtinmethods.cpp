@@ -32,6 +32,7 @@
 #include <algorithm>
 #include <QPushButton>
 #include <QVariant>
+#include <QtConcurrentRun>
 
 #include "../smallvm/vm_ffi.h"
 using namespace std;
@@ -459,7 +460,7 @@ int popIntOrCoercable(QStack<Value *> &stack, RunWindow *w, VM *vm)
 {
     if(stack.empty())
     {
-        vm->signal(InternalError);
+        vm->signal(InternalError, "Empty operand stack when reading value");
     }
     Value *v = stack.pop();
     if(v->tag != Int && v->tag != Double)
@@ -582,6 +583,13 @@ void LoadSpriteProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
     w->spriteLayer.AddSprite(sprite);
     stack.push(vm->GetAllocator().newRaw(sprite, BuiltInTypes::SpriteType));
 }
+
+void __DrawSpriteProc(Sprite *sprite, int x, int y, RunWindow *w)
+{
+    w->spriteLayer.showSprite(sprite);
+    w->redrawWindow();
+}
+
 void DrawSpriteProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 {
     w->typeCheck(stack.top(), BuiltInTypes::SpriteType);
@@ -589,16 +597,14 @@ void DrawSpriteProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
     Sprite  *sprite = (Sprite *) rawVal;
 
     int x = popIntOrCoercable(stack, w , vm);
-
     int y = popIntOrCoercable(stack, w , vm);
 
     w->paintSurface->TX(x);
     x-= sprite->image.width();
     sprite->location = QPoint(x,y);
     sprite->visible = true;
-    w->spriteLayer.showSprite(sprite);
     w->checkCollision(sprite);
-    w->redrawWindow();
+    QtConcurrent::run(__DrawSpriteProc, sprite, x, y, w);
 }
 
 void ShowSpriteProc(QStack<Value *> &stack, RunWindow *w, VM *vm)

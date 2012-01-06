@@ -15,6 +15,7 @@
 class Sprite
 {
 public:
+
     QPixmap image;
     QPixmap mask;
     QPoint location;

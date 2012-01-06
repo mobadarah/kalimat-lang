@@ -106,7 +106,7 @@ public:
     Instruction getCurrentInstruction();
     Process *currentProcess();
     void makeItSleep(Process *proc, int ms);
-
+    bool hasRegisteredEventHandler(QString evName);
     void setDebugger(Debugger *);
     void clearAllBreakPoints();
     void setBreakPoint(QString methodName, int offset);

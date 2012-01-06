@@ -182,6 +182,11 @@ void VM::makeItSleep(Process *proc, int ms)
         timerWaiting.append(proc);
 }
 
+bool VM::hasRegisteredEventHandler(QString evName)
+{
+    return registeredEventHandlers.contains(evName);
+}
+
 Frame *VM::currentFrame()
 {
     if(stack().empty())
@@ -445,7 +450,7 @@ void VM::RunStep(bool singleInstruction)
     //bool timerOrNew = (random % 2) == 0;
     clock_t qt = clock();
 
-    if(timerOrNew && timerWaiting.count() > 0 && timerWaiting.front()->timeToWake < qt)
+    if(/*timerOrNew &&*/ timerWaiting.count() > 0 && timerWaiting.front()->timeToWake < qt)
     {
         Process *proc = timerWaiting.takeFirst();
         proc->awaken();
@@ -473,7 +478,7 @@ void VM::RunStep(bool singleInstruction)
     while(runningNow->state == SleepingProcess
           && all < running.count())
     {
-        if(timerOrNew && timerWaiting.count() > 0 && timerWaiting.front()->timeToWake < qt)
+        if(/*timerOrNew &&*/ timerWaiting.count() > 0 && timerWaiting.front()->timeToWake < qt)
         {
             Process *proc = timerWaiting.takeFirst();
             proc->awaken();

@@ -15,6 +15,7 @@
 #include "instruction.h"
 #include "frame.h"
 #include "allocator.h"
+#include "vmerror.h"
 
 Instruction::Instruction()
 {
@@ -73,7 +74,7 @@ Instruction &Instruction::wArgParse(QString argS, Allocator *allocator)
             }
             else
             {
-                //todo:error!
+                throw VMError(InternalError1).arg("Error parsing value in instruction");
             }
         }
     }

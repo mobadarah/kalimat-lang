@@ -169,6 +169,11 @@ callex showsprite
 ret
 .endmethod
 
+.method drawspr 3 0
+callex drawsprite
+ret
+.endmethod
+
 .method يمين.الطيف 1 1
 callex getspriteright
 ret

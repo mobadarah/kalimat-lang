@@ -19,7 +19,7 @@ enum Opcode
     Tail, Call, CallMethod, CallRef, Ret, CallExternal, Nop,
     SetField, GetField, GetFieldRef, GetArr, SetArr, GetArrRef, New, NewArr, ArrLength,
     New_MD_Arr, Get_MD_Arr, Set_MD_Arr, Get_MD_ArrRef, MD_ArrDimensions,
-    PushConstant, Neg, // todo!
+    PushConstant, Neg,
     RegisterEvent, Isa,
     Send, Receive, Select,
     Break
