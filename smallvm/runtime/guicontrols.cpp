@@ -39,10 +39,16 @@ ImageForeignClass::ImageForeignClass(QString name, RunWindow *rw)
             = 0;
     methodArities[_ws(L"تدويرها")]
             = 2;
+
     methodIds[_ws(L"ممطوطة")]
             = 1;
     methodArities[_ws(L"ممطوطة")]
             = 3;
+
+    methodIds[_ws(L"خط")]
+            = 2;
+    methodArities[_ws(L"خط")]
+            = 5;
 }
 
 IObject *ImageForeignClass::newValue(Allocator *allocator)
@@ -67,6 +73,7 @@ Value *ImageForeignClass::dispatch(int id, QVector<Value *> args)
     double w, h;
     double degrees;
     double s1, s2;
+    int x1, y1, x2, y2;
     switch(id)
     {
         case 0:
@@ -74,14 +81,30 @@ Value *ImageForeignClass::dispatch(int id, QVector<Value *> args)
         degrees = args[1]->unboxNumeric();
         w = handle->width()/2;
         h = handle->height() /2 ;
-        trans = trans.translate(w,h).rotate(degrees).translate(-w,-h);
-        img2 = new QImage(handle->transformed(trans));
+        // negative because of 'Arabic' coordinate system
+        trans = trans.translate(w,h).rotate(-degrees).translate(-w,-h);
+        //trans = trans.translate(-w,-h).rotate(-degrees).translate(w,h);
+        //trans = trans.rotate(-degrees);
+        //img2 = new QImage(handle->transformed(trans, Qt::SmoothTransformation));
+        //if(false)
+        {
+            img2 = new QImage(handle->width(),handle->height(), handle->format());
+            QPainter p(img2);
+            QBrush brsh(handle->pixel(0,0));
+            p.setBrush(brsh);
+            p.fillRect(0,0,handle->width(), handle->height(), Qt::SolidPattern);
+            p.translate(w, h);
+            p.rotate(-degrees);
+            p.translate(-w, -h);
+            p.drawImage(0,0, *handle);
+        }
         obj = this->newValue(allocator);
         obj->setSlotValue("handle", allocator->newRaw(img2, BuiltInTypes::ObjectType));
         return allocator->newObject(obj, this);
 
     case 1:
         rw->typeCheck(args[1], BuiltInTypes::NumericType);
+        rw->typeCheck(args[2], BuiltInTypes::NumericType);
         s1= args[1]->unboxNumeric();
         s2= args[2]->unboxNumeric();
         trans = trans.scale(s1, s2);
@@ -89,6 +112,18 @@ Value *ImageForeignClass::dispatch(int id, QVector<Value *> args)
         obj = this->newValue(allocator);
         obj->setSlotValue("handle", allocator->newRaw(img2, BuiltInTypes::ObjectType));
         return allocator->newObject(obj, this);
+    case 2:
+        rw->typeCheck(args[1], BuiltInTypes::NumericType);
+        x1 = (int) args[1]->unboxNumeric();
+        rw->typeCheck(args[2], BuiltInTypes::NumericType);
+        y1 = (int) args[2]->unboxNumeric();
+        rw->typeCheck(args[3], BuiltInTypes::NumericType);
+        x2 = (int) args[3]->unboxNumeric();
+        rw->typeCheck(args[4], BuiltInTypes::NumericType);
+        y2 = (int) args[4]->unboxNumeric();
+        QPainter p(handle);
+        p.drawLine(x1,y1,x2,y2);
+        return NULL;
     }
 }
 
@@ -106,8 +141,6 @@ WindowForeignClass::WindowForeignClass(QString name, RunWindow *rw)
             3;
     methodIds[_ws(L"حدد.العنوان")] =
             4;
-
-
 
     methodArities[QString::fromStdWString(L"كبر")
             ] = 1;
