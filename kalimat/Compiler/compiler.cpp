@@ -31,6 +31,10 @@ shared_ptr<Program> Compiler::loadProgram(QString path, CodeDocument *doc)
 {
     parser.init(loadFileContents(path), &lexer, doc, path);
     shared_ptr<Program> p = dynamic_pointer_cast<Program>(parser.parse());
+    if(!p)
+    {
+        throw CompilerException::no_source(CannotRunAModule);
+    }
 
     for(int i=0; i<p->usedModuleCount(); i++)
     {

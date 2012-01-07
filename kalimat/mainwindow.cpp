@@ -86,6 +86,7 @@ MainWindow::MainWindow(QWidget *parent)
     stoppedRunWindow = NULL;
     atBreak = false;
     currentDebuggerProcess = NULL;
+    lastCodeDocToRun = NULL;
 
     setAcceptDrops(true);
     ui->editorTabs->setAcceptDrops(true);
@@ -350,6 +351,7 @@ void MainWindow::saveAll()
 
 void MainWindow::on_mnuProgramRun_triggered()
 {
+    top:
     CodeDocument *doc = NULL;
     if((currentDebuggerProcess != NULL) && atBreak)
     {
@@ -397,7 +399,7 @@ void MainWindow::on_mnuProgramRun_triggered()
 
         stoppedRunWindow = rw;
         atBreak = false;
-
+        lastCodeDocToRun = doc;
         rw->show();
 
         KalimatLexer lxr;
@@ -439,16 +441,39 @@ void MainWindow::on_mnuProgramRun_triggered()
     }
     catch(CompilerException ex)
     {
+        if(ex.getError() == CannotRunAModule)
+        {
+            if(lastCodeDocToRun && docContainer->hasOpenDocument(lastCodeDocToRun))
+            {
+                QString msg = QString::fromStdWString(L"لا يمكن تنفيذ %1 لأنه وحدة، هل تريد تنفيذ البرنامج %2 بدلا منه؟")
+                        .arg(doc->getFileName())
+                        .arg(lastCodeDocToRun->getFileName());
+                QMessageBox box(QMessageBox::Question,
+                                QString::fromStdWString(L"لا يمكن تنفيذ وحدة"),
+                                msg,
+                                QMessageBox::Yes | QMessageBox::No);
+                if(box.exec() == QMessageBox::Yes)
+                {
+                    docContainer->setCurrentDocument(lastCodeDocToRun);
+                    goto top;
+                }
+                else
+                {
+                    return;
+                }
+            }
+        }
        show_error(ex.getMessage());
        // show_error(QString(L"خطأ في تركيب البرنامج"));
        if(doc != NULL)
        {
            CodeDocument *dc = doc;
-           if(ex.source->getPos().tag != NULL)
+           if(ex.source && ex.source->getPos().tag != NULL)
            {
                dc = (CodeDocument *) ex.source->getPos().tag;
+               highlightLine(dc->getEditor(), ex.source->getPos().Pos);
            }
-           highlightLine(dc->getEditor(), ex.source->getPos().Pos);
+
        }
     }
     catch(VMError err)

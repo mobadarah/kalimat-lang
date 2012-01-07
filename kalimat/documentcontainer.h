@@ -59,8 +59,10 @@ public:
     CodeDocument *getDocumentFromTab(int index);
     CodeDocument *addDocument(QString title, QString fileName, QWidget *editor, bool createNew);
     CodeDocument *addInitialEmptyDocument();
+    bool hasOpenDocument(CodeDocument *doc);
     void removeInitialEmptyDocument();
     CodeDocument *getCurrentDocument();
+    bool setCurrentDocument(CodeDocument *doc);
     CodeDocument *getDocumentFromPath(QString path);
     int documentCount() { return widgetDocs.count(); }
     void onFileTouched(QString fileName, CodeDocument *doc);

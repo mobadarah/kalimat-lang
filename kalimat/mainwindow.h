@@ -104,6 +104,7 @@ private:
     void hideHelpWindow();
 
     QTextEdit *currentEditor();
+    CodeDocument *lastCodeDocToRun;
     void saveAll();
 
     // The breakpoint 'reservations' recorded here will be passed to the code generator

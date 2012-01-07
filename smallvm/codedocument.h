@@ -36,6 +36,7 @@ public:
     static CodeDocument *openDoc(QString fileName, QTabWidget *tabs, QWidget *tabWidget, RecentFileHandler *listener);
     virtual ~CodeDocument();
     QTextEdit *getEditor();
+    QTabWidget *getTab() {return tabs;}
     void setDirty(bool dirty);
     bool isFileDirty();
     bool isDocNewFile();

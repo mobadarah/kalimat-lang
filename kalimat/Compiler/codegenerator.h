@@ -193,7 +193,8 @@ UnimplementedInvokationForm,
 UnimplementedTypeForm,
 UnimplementedPatternForm,
 ProgramsCannotUseExternalModulesWithoutSavingThemFirst,
-InternalCompilerErrorInFunc
+InternalCompilerErrorInFunc,
+CannotRunAModule
 };
 
 class CompilerException
@@ -209,7 +210,7 @@ public:
     CompilerException(shared_ptr<AST> source, CompilerError error);
     static CompilerException no_source(CompilerError error);
     CompilerException &arg(QString);
-
+    CompilerError getError() {return error;}
     QString getMessage();
 };
 #endif // COMPILER_H

@@ -82,6 +82,19 @@ CodeDocument *DocumentContainer::addInitialEmptyDocument()
     hasInitialEmptyDocument = true;
 }
 
+bool DocumentContainer::hasOpenDocument(CodeDocument *doc)
+{
+    for(int i=0; i<tabWidget->count(); i++)
+    {
+        if(widgetDocs.contains(tabWidget->widget(i)))
+        {
+            if(widgetDocs[tabWidget->widget(i)] == doc)
+                return true;
+        }
+    }
+    return false;
+}
+
 void DocumentContainer::removeInitialEmptyDocument()
 {
     if(hasInitialEmptyDocument &&tabWidget->count() !=0)
@@ -99,6 +112,11 @@ CodeDocument *DocumentContainer::getCurrentDocument()
     if(tabWidget->count() == 0)
         return NULL;
     return widgetDocs[tabWidget->currentWidget()];
+}
+
+bool DocumentContainer::setCurrentDocument(CodeDocument *doc)
+{
+    tabWidget->setCurrentWidget(doc->getEditor());
 }
 
 CodeDocument *DocumentContainer::getDocumentFromPath(QString path)
@@ -169,7 +187,6 @@ void DocumentContainer::recentfile_triggered()
 
 void DocumentContainer::handleOpen()
 {
-
     QString dir = "";
     QSettings settings(settingsOrganizationName, settingsApplicationName);
     dir = settings.value("last_open_dir", "").toString();

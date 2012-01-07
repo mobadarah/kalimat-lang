@@ -2196,6 +2196,7 @@ QMap<CompilerError, QString> CompilerException::errorMap;
 
 CompilerException::CompilerException(shared_ptr<AST> source, CompilerError error)
 {
+    this->error = error;
     this->source = source;
     this->message = translateErrorMessage(error);
 }
