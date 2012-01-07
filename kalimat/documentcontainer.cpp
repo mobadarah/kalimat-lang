@@ -163,7 +163,7 @@ void DocumentContainer::recentfile_triggered()
 
     if(!fileName.isEmpty() && QFile::exists(fileName))
     {
-        // If the file is already open; we xswitch to its
+        // If the file is already open; we switch to its
         // existing tab instead of opening it in a new tab
         bool found = false;
         for(int i=0; i<tabWidget->count(); i++)
@@ -182,7 +182,6 @@ void DocumentContainer::recentfile_triggered()
             addDocument(QFileInfo(fileName).fileName(), fileName, client->CreateEditorWidget(), false);
         }
     }
-
 }
 
 void DocumentContainer::handleOpen()

@@ -445,7 +445,7 @@ void MainWindow::on_mnuProgramRun_triggered()
         {
             if(lastCodeDocToRun && docContainer->hasOpenDocument(lastCodeDocToRun))
             {
-                QString msg = QString::fromStdWString(L"لا يمكن تنفيذ %1 لأنه وحدة، هل تريد تنفيذ البرنامج %2 بدلا منه؟")
+                QString msg = QString::fromStdWString(L"لا يمكن تنفيذ '%1' لأنه وحدة، هل تريد تنفيذ البرنامج '%2' بدلا منه؟")
                         .arg(doc->getFileName())
                         .arg(lastCodeDocToRun->getFileName());
                 QMessageBox box(QMessageBox::Question,
