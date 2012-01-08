@@ -269,13 +269,20 @@ void RunWindow::Init(QString program, QMap<QString, QString> stringConstants, QS
         }
         vm->Init();
         vm->setDebugger(client);
-        Value *pt = vm->wrapQObject(parseTree.get(),
+
+        if(parseTree)
+        {
+            // the reified parse tree would not be
+            // available if we've generated an
+            // exe file (for now)
+            Value *pt = vm->wrapQObject(parseTree.get(),
                                     "ParseTree",
                                     this->qtMethodTranslations,
                                     false
                                     );
-        vm->DoPushVal(pt);
-        vm->DoPopGlobal("%parseTree");
+            vm->DoPushVal(pt);
+            vm->DoPopGlobal("%parseTree");
+        }
         Run();
     }
     catch(VMError err)
@@ -367,7 +374,9 @@ void RunWindow::Run()
             bool visualize = client->isWonderfulMonitorEnabled();
 
             if(visualize)
+            {
                 client->markCurrentInstruction(vm, pos, len);
+            }
 
             if(visualize)
                 vm->RunStep(true);

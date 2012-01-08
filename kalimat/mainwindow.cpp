@@ -1306,22 +1306,43 @@ void MainWindow::on_actionMake_exe_triggered()
         QProcess fpc;
 
         QStringList argz;
+        QString problem;
         argz.append(pasFileName);
+        if(!QFile::exists(stagingArea + "/fpc.exe"))
+        {
+            problem = QString::fromStdWString(L"Cannot find fpc.exe");
+        }
         fpc.start(stagingArea + "/fpc.exe", argz);
         fpc.waitForFinished(10000);
         bool success = false;
         if(fpc.exitCode() == 0)
         {
-            success = QFile::copy(exeFileName, targetFile);
+            if(!QFile::exists(targetFile))
+            {
+                problem = "Failed to compile generated program";
+            }
+            bool testCopy = QFile::copy(exeFileName, targetFile);
+            if(!testCopy)
+            {
+                problem = "Failed to copy executable to destination";
+            }
+            else
+            {
+                success = true;
+            }
             QFile::remove(exeFileName);
             QFile::remove(pasFileName);
             QFile::remove(oFileName);
             QFile::remove(aFileName);
         }
+        else
+        {
+            problem = QString("Failed to compile generated program");
+        }
         if(!success)
         {
             QMessageBox box(QMessageBox::Information, QString::fromStdWString(L"عمل ملف تنفيذي"),
-                                  QString::fromStdWString(L"خطأ في عمل الملف التنفيذي"));
+                                  QString::fromStdWString(L"خطأ في عمل الملف التنفيذي<i>%1</i>").arg(problem));
             box.exec();
         }
         else

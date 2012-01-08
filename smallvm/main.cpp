@@ -34,6 +34,8 @@ extern "C"
 Q_DECL_EXPORT
 void SmallVMAddStringConstant(char *symBase64, char *strBase64)
 {
+    //cout << "adding string constant!" << endl;
+    //cout.flush();
     QString sym = base64Decode(symBase64);
     QString val = base64Decode(strBase64);
     tempConstants[val] = sym;
@@ -43,16 +45,20 @@ Q_DECL_EXPORT
 void RunSmallVMCodeBase64(char *pathOfProgramsFile,
                           char *programBase64)
 {
+    //cout << "program gonna run!" << endl;
     int argc = 0;
     char **argv = NULL;// = {"aa.exe"};
     QApplication app(argc, argv);
 
     //cout << "program before decoding:" <<programBase64 << endl;
     //cout.flush();
+    //cout << "path of prog file:" << pathOfProgramsFile << endl;
+    //cout.flush();
     try
     {
         RunWindow rw(pathOfProgramsFile, new NullaryVMClient());
         QString programCode = base64Decode(programBase64);
+        //cout << "program after decoding:" << programCode.toStdString() << endl;
         rw.show();
         rw.Init(programCode, tempConstants, QSet<Breakpoint>(), DebugInfo());
         app.exec();

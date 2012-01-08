@@ -33,7 +33,8 @@
 #include <QPushButton>
 #include <QVariant>
 #include <QtConcurrentRun>
-
+#include <QMessageBox>
+#include <iostream>
 #include "../smallvm/vm_ffi.h"
 using namespace std;
 
@@ -611,7 +612,8 @@ void LoadSpriteProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 
     if(!QFile::exists(*fname))
     {
-        w->assert(false, ArgumentError, QString::fromStdWString(L"تحميل طيف من ملف غير موجود"));
+        w->assert(false, ArgumentError, QString::fromStdWString(L"تحميل طيف من ملف غير موجود '%1'")
+                  .arg(*fname));
     }
     Sprite *sprite = new Sprite(*fname);
     w->spriteLayer.AddSprite(sprite);
