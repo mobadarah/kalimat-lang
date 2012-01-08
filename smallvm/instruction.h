@@ -22,7 +22,7 @@ enum Opcode
     PushConstant, Neg,
     RegisterEvent, Isa,
     Send, Receive, Select,
-    Break
+    Break, Tick
 
 };
 

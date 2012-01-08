@@ -35,7 +35,7 @@ class VMError;
 
 enum Tag
 {
-    Int, Double, Boolean, ObjectVal, NullVal, StringVal, RawVal,
+    Int, Long, Double, Boolean, ObjectVal, NullVal, StringVal, RawVal,
     RefVal, ArrayVal, MultiDimensionalArrayVal, MapVal, ChannelVal, QObjectVal
 };
 
@@ -70,6 +70,7 @@ struct VMap : public VIndexable
 union ValueItem
 {
     int intVal;
+    long longVal;
     double doubleVal;
     bool boolVal;
     IObject *objVal;
@@ -93,6 +94,7 @@ struct Value
     Value();
     ~Value();
     int unboxInt() const;
+    long unboxLong() const;
     double unboxDouble()  const;
     bool unboxBool()  const;
     IObject *unboxObj()  const;
@@ -123,6 +125,7 @@ public:
 
     static ValueClass *NumericType;
     static ValueClass *IntType;
+    static ValueClass *LongType;
     static ValueClass *DoubleType;
     static ValueClass *BoolType;
     static ValueClass *MethodType;

@@ -66,6 +66,20 @@ Value *Allocator::newInt(int i, bool gcMonitor=true)
     return ret;
 }
 
+Value *Allocator::newLong(long i)
+{
+    return newLong(i, true);
+}
+
+Value *Allocator::newLong(long i, bool gcMonitor=true)
+{
+    Value *ret = allocateNewValue(gcMonitor);
+    ret->tag = Long;
+    ret->type = BuiltInTypes::LongType;
+    ret->v.longVal= i;
+    return ret;
+}
+
 Value *Allocator::newDouble(double d)
 {
     return newDouble(d, true);

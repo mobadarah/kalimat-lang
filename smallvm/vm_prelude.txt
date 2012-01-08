@@ -148,6 +148,10 @@ ret
 
 .endmethod
 
+.method النبضات 0 1
+tick
+ret
+
 .method حمل.طيف 1
 callex load_sprite
 ret

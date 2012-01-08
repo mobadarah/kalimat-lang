@@ -1908,6 +1908,7 @@ bool KalimatParser::LA_first_primary_expression()
             LA(LBRACKET) ||
             LA(LBRACE) ||
             LA(IDENTIFIER) ||
+            LA(TIMING) ||
             LA(LPAREN);
                 //todo: decide if we still want to keep the field accessor field(obj, id)
                 //||  LA(FIELD);
@@ -1995,6 +1996,15 @@ shared_ptr<Expression> KalimatParser::primaryExpressionNonInvokation()
             ret = shared_ptr<Expression>(new Idafa(id->getPos(), id, modaf_elaih));
         }
 
+    }
+    else if(LA(TIMING))
+    {
+        Token pos = lookAhead;
+        match(TIMING);
+        match(LPAREN);
+        shared_ptr<Expression> toTime = expression();
+        match(RPAREN);
+        ret = shared_ptr<Expression>(new TimingExpression(pos, toTime));
     }
     else if(LA(LPAREN))
     {

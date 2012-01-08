@@ -1526,6 +1526,11 @@ void CodeGenerator::generateExpression(shared_ptr<Expression> expr)
         generateMethodInvokation(dynamic_pointer_cast<MethodInvokation>(expr), FunctionInvokationContext);
         return;
     }
+    if(isa<TimingExpression>(expr))
+    {
+        generateTimingExpression(dynamic_pointer_cast<TimingExpression>(expr));
+        return;
+    }
     if(isa<Idafa>(expr))
     {
         generateIdafa(dynamic_pointer_cast<Idafa>(expr));
@@ -2066,6 +2071,17 @@ void CodeGenerator::generateMethodInvokation(shared_ptr<MethodInvokation> expr,
         gen(expr->methodSelector(), "launch");
     }
     gen(expr->methodSelector(), QString("callm %1,%2").arg(expr->methodSelector()->name).arg(expr->argumentCount()+1));
+}
+
+void CodeGenerator::generateTimingExpression(shared_ptr<TimingExpression> expr)
+{
+    QString dummy = _asm.uniqueVariable();
+    gen(expr, "tick");
+    generateExpression(expr->toTime());
+    gen(expr, "popl " + dummy);
+    gen(expr, "tick");
+    gen(expr, "sub");
+    gen(expr, "neg");
 }
 
 void CodeGenerator::generateIdafa(shared_ptr<Idafa> expr)

@@ -882,6 +882,18 @@ QString MethodInvokation::toString()
             .arg(vector_toString(_arguments));
 }
 
+TimingExpression::TimingExpression(Token pos, shared_ptr<Expression> toTime)
+    : Expression(pos), _toTime(toTime)
+{
+
+}
+
+QString TimingExpression::toString()
+{
+    return _ws(L"توقيت(%1)")
+            .arg(_toTime->toString());
+}
+
 Idafa::Idafa(Token pos ,shared_ptr<Identifier> modaf, shared_ptr<Expression> modaf_elaih)
     :AssignableExpression(pos),
     _modaf(modaf),
@@ -1821,6 +1833,14 @@ void MethodInvokation::prettyPrint(CodeFormatter *f)
     f->space();
     this->methodSelector()->prettyPrint(f);
     parens(&commaSep(mapFmt(this->_arguments))).run(f);
+}
+
+void TimingExpression::prettyPrint(CodeFormatter *f)
+{
+    f->printKw(L"توقيت");
+    f->openParen();
+    this->toTime()->prettyPrint(f);
+    f->closeParen();
 }
 
 void Idafa::prettyPrint(CodeFormatter *f)

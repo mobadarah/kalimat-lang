@@ -51,6 +51,8 @@ public:
 
     Value *newInt(int i);
     Value *newInt(int i, bool gcMonitor);
+    Value *newLong(long i);
+    Value *newLong(long i, bool gcMonitor);
     Value *newDouble(double d);
     Value *newDouble(double d, bool gcMonitor);
     Value *newBool(bool b);

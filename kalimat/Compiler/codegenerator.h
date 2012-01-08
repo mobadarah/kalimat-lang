@@ -132,6 +132,7 @@ private:
     void generateMapLiteral(shared_ptr<MapLiteral> expr);
     void generateInvokation(shared_ptr<Invokation> expr, InvokationContext context, MethodCallStyle style = NonTailCallStyle);
     void generateMethodInvokation(shared_ptr<MethodInvokation> expr, InvokationContext context, MethodCallStyle style = NonTailCallStyle);
+    void generateTimingExpression(shared_ptr<TimingExpression> expr);
     void generateIdafa(shared_ptr<Idafa> expr);
     void generateArrayIndex(shared_ptr<ArrayIndex> expr);
     void generateMultiDimensionalArrayIndex(shared_ptr<MultiDimensionalArrayIndex> expr);

@@ -49,6 +49,36 @@ ImageForeignClass::ImageForeignClass(QString name, RunWindow *rw)
             = 2;
     methodArities[_ws(L"خط")]
             = 5;
+
+    methodIds[_ws(L"قلبها")]
+            = 3;
+    methodArities[_ws(L"قلبها")]
+            = 3;
+
+    methodIds[_ws(L"نسخة.منها")]
+            = 4;
+    methodArities[_ws(L"نسخة.منها")]
+            = 1;
+
+    methodIds[_ws(L"حدد.لون.النقطة")]
+            = 5;
+    methodArities[_ws(L"حدد.لون.النقطة")]
+            = 4;
+
+    methodIds[_ws(L"لون.النقطة")]
+            = 6;
+    methodArities[_ws(L"لون.النقطة")]
+            = 3;
+
+    methodIds[_ws(L"عرضها")]
+            = 7;
+    methodArities[_ws(L"عرضها")]
+            = 1;
+
+    methodIds[_ws(L"ارتفاعها")]
+            = 8;
+    methodArities[_ws(L"ارتفاعها")]
+            = 1;
 }
 
 IObject *ImageForeignClass::newValue(Allocator *allocator)
@@ -74,9 +104,10 @@ Value *ImageForeignClass::dispatch(int id, QVector<Value *> args)
     double degrees;
     double s1, s2;
     int x1, y1, x2, y2;
+    int clr;
     switch(id)
     {
-        case 0:
+        case 0: // rotated
         rw->typeCheck(args[1], BuiltInTypes::NumericType);
         degrees = args[1]->unboxNumeric();
         w = handle->width()/2;
@@ -102,7 +133,7 @@ Value *ImageForeignClass::dispatch(int id, QVector<Value *> args)
         obj->setSlotValue("handle", allocator->newRaw(img2, BuiltInTypes::ObjectType));
         return allocator->newObject(obj, this);
 
-    case 1:
+    case 1: //scaled
         rw->typeCheck(args[1], BuiltInTypes::NumericType);
         rw->typeCheck(args[2], BuiltInTypes::NumericType);
         s1= args[1]->unboxNumeric();
@@ -112,7 +143,7 @@ Value *ImageForeignClass::dispatch(int id, QVector<Value *> args)
         obj = this->newValue(allocator);
         obj->setSlotValue("handle", allocator->newRaw(img2, BuiltInTypes::ObjectType));
         return allocator->newObject(obj, this);
-    case 2:
+    case 2: // line
         rw->typeCheck(args[1], BuiltInTypes::NumericType);
         x1 = (int) args[1]->unboxNumeric();
         rw->typeCheck(args[2], BuiltInTypes::NumericType);
@@ -121,9 +152,59 @@ Value *ImageForeignClass::dispatch(int id, QVector<Value *> args)
         x2 = (int) args[3]->unboxNumeric();
         rw->typeCheck(args[4], BuiltInTypes::NumericType);
         y2 = (int) args[4]->unboxNumeric();
-        QPainter p(handle);
-        p.drawLine(x1,y1,x2,y2);
+        {
+            QPainter p(handle);
+            p.drawLine(x1,y1,x2,y2);
+        }
         return NULL;
+    case 3: // flipped
+        rw->typeCheck(args[1], BuiltInTypes::NumericType);
+        rw->typeCheck(args[2], BuiltInTypes::NumericType);
+        s1= args[1]->unboxNumeric();
+        s2= args[2]->unboxNumeric();
+        if(s1>0)
+            s1 = 1;
+        else if(s1<0)
+            s1 = -1;
+        if(s2>0)
+            s2 = 1;
+        else if(s2<0)
+            s2 = -1;
+
+        trans = trans.scale(s1, s2);
+        img2 = new QImage(handle->transformed(trans));
+        obj = this->newValue(allocator);
+        obj->setSlotValue("handle", allocator->newRaw(img2, BuiltInTypes::ObjectType));
+        return allocator->newObject(obj, this);
+    case 4:
+        img2 = new QImage(handle->copy());
+        obj = this->newValue(allocator);
+        obj->setSlotValue("handle", allocator->newRaw(img2, BuiltInTypes::ObjectType));
+        return allocator->newObject(obj, this);
+    case 5:
+        rw->typeCheck(args[1], BuiltInTypes::NumericType);
+        rw->typeCheck(args[2], BuiltInTypes::NumericType);
+        rw->typeCheck(args[3], BuiltInTypes::NumericType);
+        {
+            int x = (int) args[1]->unboxNumeric();
+            int y = (int) args[2]->unboxNumeric();
+            clr = (int) args[3]->unboxNumeric();
+            handle->setPixel(x,y, clr);
+        }
+        return NULL;
+    case 6:
+        rw->typeCheck(args[1], BuiltInTypes::NumericType);
+        rw->typeCheck(args[2], BuiltInTypes::NumericType);
+        {
+            int x = (int) args[1]->unboxNumeric();
+            int y = (int) args[2]->unboxNumeric();
+            clr = handle->pixel(x, y);
+        }
+        return allocator->newInt(clr);
+    case 7:
+        return allocator->newInt(handle->width());
+    case 8:
+        return allocator->newInt(handle->height());
     }
 }
 

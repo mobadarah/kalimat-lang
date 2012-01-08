@@ -272,10 +272,16 @@ Value *ConvertStringToNumber(QString str, VM *vm)
 {
     bool ok;
     QLocale loc(QLocale::Arabic, QLocale::Egypt);
-    int i = loc.toLongLong(str, &ok,10);
+    int i = loc.toInt(str, &ok,10);
     if(ok)
     {
        return vm->GetAllocator().newInt(i);
+    }
+
+    long lng = loc.toLongLong(str, &ok, 10);
+    if(ok)
+    {
+        return vm->GetAllocator().newLong(lng);
     }
 
     i = str.toInt(&ok, 10);
@@ -419,6 +425,9 @@ void ToStringProc(QStack<Value *> &stack, RunWindow *, VM *vm)
     case Int:
         ret = QString("%1").arg(v->unboxInt());
         break;
+    case Long:
+        ret = QString("%1").arg(v->unboxLong());
+        break;
     case Double:
         ret = QString("%1").arg(v->unboxDouble());
         break;
@@ -463,12 +472,15 @@ int popIntOrCoercable(QStack<Value *> &stack, RunWindow *w, VM *vm)
         vm->signal(InternalError, "Empty operand stack when reading value");
     }
     Value *v = stack.pop();
-    if(v->tag != Int && v->tag != Double)
+    if(v->tag != Int && v->tag != Double && v->tag != Long)
     {
         w->typeError(BuiltInTypes::NumericType, v->type);
     }
     if(v->tag == Double)
         v = vm->GetAllocator().newInt((int) v->unboxDouble());
+    if(v->tag == Long)
+        v = vm->GetAllocator().newInt((int) v->unboxLong());
+
     return v->unboxInt();
 }
 
@@ -479,12 +491,14 @@ double popDoubleOrCoercable(QStack<Value *> &stack, RunWindow *w, VM *vm)
         vm->signal(InternalError);
     }
     Value *v = stack.pop();
-    if(v->tag != Int && v->tag != Double)
+    if(v->tag != Int && v->tag != Double && v->tag != Long)
     {
         w->typeError(BuiltInTypes::NumericType, v->type);
     }
     if(v->tag == Int)
         v = vm->GetAllocator().newDouble(v->unboxInt());
+    if(v->tag == Long)
+        v = vm->GetAllocator().newDouble(v->unboxLong());
     return v->unboxDouble();
 }
 
@@ -1203,6 +1217,7 @@ void setupChildren(QGridLayout *layout,Value *v, Reference *ref, QString label, 
     {
     case Int:
     case Double:
+    case Long:
     case StringVal:
         layout->addWidget(new QLabel(label), row, 0);
         le = new QLineEdit(v->toString());

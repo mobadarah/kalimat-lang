@@ -22,6 +22,7 @@
 ValueClass *BuiltInTypes::ObjectType = new ValueClass(QSTR(L"شيء"), NULL);
 ValueClass *BuiltInTypes::NumericType = new ValueClass(QSTR(L"عددي"), BuiltInTypes::ObjectType);
 ValueClass *BuiltInTypes::IntType = new ValueClass(QSTR(L"عدد.صحيح"), BuiltInTypes::NumericType);
+ValueClass *BuiltInTypes::LongType = new ValueClass(QSTR(L"عدد.صحيح.واسع"), BuiltInTypes::NumericType);
 ValueClass *BuiltInTypes::DoubleType = new ValueClass(QSTR(L"عدد.حقيقي"), BuiltInTypes::NumericType);
 ValueClass *BuiltInTypes::BoolType = new ValueClass(QSTR(L"قيمة.منطقية"), BuiltInTypes::ObjectType);
 ValueClass *BuiltInTypes::MethodType = new ValueClass("Method", BuiltInTypes::ObjectType);
@@ -69,6 +70,7 @@ Value::~Value()
     switch(this->tag)
     {
     case Int:
+    case Long:
     case Double:
     case Boolean:
     case RawVal:
@@ -132,6 +134,11 @@ int Value::unboxInt() const
     return v.intVal;
 }
 
+long Value::unboxLong() const
+{
+    return v.longVal;
+}
+
 double Value::unboxDouble() const
 {
     return v.doubleVal;
@@ -143,6 +150,8 @@ double Value::unboxNumeric()
         return unboxInt();
     if(tag == Double)
         return unboxDouble();
+    if(tag == Long)
+        return unboxLong();
     // This should not be called
     return 0.0;
 }
@@ -244,6 +253,9 @@ QString Value::toString() const
     case Int:
         ret = loc.toString(v->unboxInt());
         break;
+    case Long:
+        ret = loc.toString((qlonglong)v->unboxLong());
+        break;
     case Double:
         ret = QString("%1").arg(v->unboxDouble());
         break;
@@ -319,7 +331,7 @@ void VArray::set(Value *key, Value *v)
 
 bool VMap::keyCheck(Value *key, VMError &err)
 {
-    if(key->tag == Int || key->tag == StringVal)
+    if(key->tag == Int || key->tag == StringVal || key->tag == Long)
         return true;
     if(key->tag == ArrayVal)
     {
@@ -492,10 +504,13 @@ bool LexicographicLessThan(VArray *arr1, VArray *arr2)
 
 inline bool operator<(const Value &v1, const Value &v2)
 {
-    // Only int, string, and arrays of [comparable value] are comparable values
-    // Since we need a partial order, we will assume ints < string < array
+    // Only int, long, string, and arrays of [comparable value] are comparable values
+    // Since we need a partial order, we will assume ints <long < string < array
     if(v1.tag == Int && v2.tag == Int)
         return v1.unboxInt() < v2.unboxInt();
+
+    if(v1.tag == Long && v2.tag == Long)
+        return v1.unboxLong() < v2.unboxLong();
 
     if(v1.tag == StringVal && v2.tag == StringVal)
         return *v1.unboxStr() < *v2.unboxStr();
@@ -504,7 +519,12 @@ inline bool operator<(const Value &v1, const Value &v2)
         return LexicographicLessThan(v1.unboxArray(), v2.unboxArray());
 
     if(v1.tag == Int &&
-            (v2.tag == StringVal || v2.tag == ArrayVal))
+            (v2.tag == Long || v2.tag == StringVal || v2.tag == ArrayVal))
+    {
+        return true;
+    }
+
+    if(v1.tag == Long && (v2.tag == StringVal || v2.tag == ArrayVal))
     {
         return true;
     }

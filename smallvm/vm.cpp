@@ -12,6 +12,7 @@
 #include "vm_ffi.h"
 //#include <iostream>
 #include <QLibrary>
+#include <QDateTime>
 #include <time.h>
 #include "qobjectforeignclass.h"
 
@@ -509,6 +510,10 @@ void VM::RunStep(bool singleInstruction)
         {
             break;
         }
+        if(runningNow->state == TimerWaitingProcess)
+        {
+            break;
+        }
         RunSingleInstruction(runningNow);
         // A breakpoint might pause/stop the VM, we then must stop this function at once
         if(!_isRunning)
@@ -693,6 +698,9 @@ void VM::RunSingleInstruction(Process *process)
         break;
     case Break:
         this->DoBreak();
+        break;
+    case Tick:
+        this->DoTick();
         break;
     default:
         signal(UnrecognizedInstruction);
@@ -1183,6 +1191,11 @@ void VM::Load(QString assemblyCode)
             Instruction i = Instruction(Break);
             curMethod->Add(i, label, extraInfo);
         }
+        else if(opcode == "tick")
+        {
+            Instruction i = Instruction(Tick);
+            curMethod->Add(i, label, extraInfo);
+        }
         else
         {
             signal(UnrecognizedMnemonic2,opcode,toStr(i));
@@ -1282,16 +1295,20 @@ void VM::DoSetRef()
 }
 
 int add_int(int a, int b) { return a + b;}
+long add_long(long a, long b) { return a + b;}
 double add_double(double a, double b) { return a + b;}
 QString *add_str(QString *a, QString *b){ return new QString((*a) + (*b));}
 
 int sub_int(int a, int b) { return a - b;}
+long sub_long(long a, long b) { return a - b;}
 double sub_double(double a, double b) { return a - b;}
 
 int mul_int(int a, int b) { return a * b;}
+long mul_long (long a, long b) { return a * b;}
 double mul_double(double a, double b) { return a * b;}
 
 int div_int(int a, int b) { return a / b;}
+long div_long(long a, long b) { return a / b;}
 double div_double(double a, double b) { return a / b;}
 
 bool _and(bool a, bool b) { return a && b;}
@@ -1299,24 +1316,29 @@ bool _or(bool a, bool b) { return a || b;}
 bool _not(bool a) { return !a;}
 
 bool lt_int(int a, int b) { return a<b;}
+bool lt_long(long a, long b) { return a<b;}
 bool lt_double(double a, double b) { return a<b;}
 bool lt_str(QString *a, QString *b) { return (*a) < (*b); }
 
 bool gt_int(int a, int b) { return a>b;}
+bool gt_long(long a, long b) { return a>b;}
 bool gt_double(double a, double b) { return a>b;}
 bool gt_str(QString *a, QString *b) { return (*a) > (*b); }
 
 bool le_int(int a, int b) { return a<=b;}
+bool le_long(long a, long b) { return a<=b;}
 bool le_double(double a, double b) { return a<=b;}
 bool le_str(QString *a, QString *b) { return (*a) <= (*b); }
 
 bool ge_int(int a, int b) { return a>=b;}
+bool ge_long(long a, long b) { return a>=b;}
 bool ge_double(double a, double b) { return a>=b;}
 bool ge_str(QString *a, QString *b) { return (*a) >= (*b); }
 
-bool  eq_int(int a, int b) { return a==b;}
-bool  eq_double(double a, double b) { return a==b;}
-bool  eq_bool(bool a, bool b) { return a==b;}
+bool eq_int(int a, int b) { return a==b;}
+bool eq_long(long a, long b) { return a==b;}
+bool eq_double(double a, double b) { return a==b;}
+bool eq_bool(bool a, bool b) { return a==b;}
 bool  eq_obj(IObject *a, IObject *b){ return a==b;}
 bool  eq_raw(void *a, void *b){ return a==b;}
 
@@ -1335,10 +1357,11 @@ bool  eq_difftypes(Value *, Value *)
 bool  eq_bothnull() { return true;}
 
 bool ne_int(int a, int b) { return a!=b;}
-bool  ne_double(double a, double b) { return a!=b;}
-bool  ne_bool(bool a, bool b) { return a!=b;}
-bool  ne_obj(IObject *a, IObject *b) { return a!=b;}
-bool  ne_raw(void *a, void *b) { return a!=b;}
+bool ne_long(long a, long b) { return a!=b;}
+bool ne_double(double a, double b) { return a!=b;}
+bool ne_bool(bool a, bool b) { return a!=b;}
+bool ne_obj(IObject *a, IObject *b) { return a!=b;}
+bool ne_raw(void *a, void *b) { return a!=b;}
 
 bool  ne_str(QString*a, QString*b)
 {
@@ -1355,17 +1378,17 @@ bool  ne_bothnull() { return false; }
 
 void VM::DoAdd()
 {
-    BuiltInAddOp(add_int, add_double, add_str);
+    BuiltInAddOp(add_int, add_long, add_double, add_str);
 }
 
 void VM::DoSub()
 {
-    BuiltInArithmeticOp(QSTR(L"طرح"), sub_int, sub_double);
+    BuiltInArithmeticOp(QSTR(L"طرح"), sub_int, sub_long, sub_double);
 }
 
 void VM::DoMul()
 {
-    BuiltInArithmeticOp(QSTR(L"ضرب"), mul_int, mul_double);
+    BuiltInArithmeticOp(QSTR(L"ضرب"), mul_int, mul_long, mul_double);
 }
 
 void VM::DoDiv()
@@ -1384,9 +1407,11 @@ void VM::DoNeg()
     Value *v1 = currentFrame()->OperandStack.pop();
     Value *v2 = NULL;
 
-    assert(v1->tag == Int || v1->tag == Double, NumericOperationOnNonNumber1, "-");
+    assert(v1->tag == Int || v1->tag == Long || v1->tag == Double, NumericOperationOnNonNumber1, "-");
     if(v1->tag == Int)
         v2 = allocator.newInt(-v1->unboxInt());
+    if(v1->tag == Long)
+        v2 = allocator.newLong(-v1->unboxLong());
     if(v1->tag == Double)
         v2 = allocator.newDouble(-v1->unboxDouble());
 
@@ -1422,32 +1447,32 @@ void VM::DoIf(QString trueLabel, QString falseLabel)
 
 void VM::DoLt()
 {
-    BuiltInComparisonOp(lt_int, lt_double, lt_str);
+    BuiltInComparisonOp(lt_int,lt_long, lt_double, lt_str);
 }
 
 void VM::DoGt()
 {
-    BuiltInComparisonOp(gt_int, gt_double , gt_str);
+    BuiltInComparisonOp(gt_int, gt_long, gt_double , gt_str);
 }
 
 void VM::DoEq()
 {
-    EqualityRelatedOp(eq_int, eq_double, eq_bool, eq_obj, eq_str, eq_raw, eq_difftypes, eq_bothnull);
+    EqualityRelatedOp(eq_int, eq_long, eq_double, eq_bool, eq_obj, eq_str, eq_raw, eq_difftypes, eq_bothnull);
 }
 
 void VM::DoNe()
 {
-    EqualityRelatedOp(ne_int, ne_double, ne_bool, ne_obj, ne_str, ne_raw, ne_difftypes, ne_bothnull);
+    EqualityRelatedOp(ne_int, ne_long, ne_double, ne_bool, ne_obj, ne_str, ne_raw, ne_difftypes, ne_bothnull);
 }
 
 void VM::DoLe()
 {
-    BuiltInComparisonOp(le_int, le_double, le_str);
+    BuiltInComparisonOp(le_int, le_long, le_double, le_str);
 }
 
 void VM::DoGe()
 {
-    BuiltInComparisonOp(ge_int, ge_double, ge_str);
+    BuiltInComparisonOp(ge_int, ge_long, ge_double, ge_str);
 }
 
 void VM::DoCall(QString symRef, int arity, CallStyle callStyle)
@@ -2012,6 +2037,12 @@ void VM::DoBreak()
     }
 }
 
+void VM::DoTick()
+{
+    long t = clock();
+    currentFrame()->OperandStack.push(allocator.newLong(t));
+}
+
 void VM::CallSpecialMethod(IMethod *method, QVector<Value *> args)
 {
     IForeignMethod *fm = dynamic_cast<IForeignMethod *>(method);
@@ -2036,22 +2067,48 @@ void VM::test(bool cond, QString trueLabel, QString falseLabel)
     currentFrame()->ip = newIp;
 }
 
-void VM::BuiltInAddOp(int (*intFunc)(int,int), double (*doubleFunc)(double,double), QString *(*strFunc)(QString *,QString *))
+void VM::coercion(Value *&v1, Value *&v2)
 {
-    Value *v2 = currentFrame()->OperandStack.pop();
-    Value *v1 = currentFrame()->OperandStack.pop();
-
+    //todo: corecion leaks
     if (v1->tag == Int && v2->tag == Double)
     {
         v1 = allocator.newDouble(v1->v.intVal);
+    }
+    else if(v1->tag == Int && v2->tag == Long)
+    {
+        v1 = allocator.newLong(v1->v.intVal);
+    }
+    else if(v1->tag == Long && v2->tag == Double)
+    {
+        v1 = allocator.newDouble(v1->v.longVal);
+    }
+    else if(v1->tag == Long && v2->tag == Int)
+    {
+        v2 = allocator.newLong(v1->v.intVal);
+    }
+    else if(v1->tag == Double && v2->tag == Long)
+    {
+        v2 = allocator.newDouble(v2->v.longVal);
     }
     else if(v1->tag == Double && v2->tag == Int)
     {
         v2 = allocator.newDouble(v2->v.intVal);
     }
+}
+
+void VM::BuiltInAddOp(int (*intFunc)(int,int),
+                      long (*longFunc)(long, long),
+                      double (*doubleFunc)(double,double),
+                      QString *(*strFunc)(QString *,QString *))
+{
+
+    Value *v2 = currentFrame()->OperandStack.pop();
+    Value *v1 = currentFrame()->OperandStack.pop();
+
+    coercion(v1, v2);
 
     assert( v1->tag == v2->tag &&
-            (v1->tag == Double || v1->tag == Int || v1->tag == StringVal
+            (v1->tag == Double || v1->tag == Long || v1->tag == Int || v1->tag == StringVal
              || v1->tag == ArrayVal), BuiltInOperationOnNonBuiltn);
 
     Value *v3 = NULL;
@@ -2060,6 +2117,8 @@ void VM::BuiltInAddOp(int (*intFunc)(int,int), double (*doubleFunc)(double,doubl
         v3 = allocator.newString(strFunc(v1->unboxStr(), v2->unboxStr()));
     else if(v1->tag == Int)
         v3 = allocator.newInt(intFunc(v1->unboxInt(), v2->unboxInt()));
+    else if(v1->tag == Long)
+        v3 = allocator.newLong(longFunc(v1->unboxLong(), v2->unboxLong()));
     else if(v1->tag == Double )
         v3 = allocator.newDouble(doubleFunc(v1->unboxDouble(), v2->unboxDouble()));
     else if(v1->tag == ArrayVal)
@@ -2076,26 +2135,26 @@ void VM::BuiltInAddOp(int (*intFunc)(int,int), double (*doubleFunc)(double,doubl
     currentFrame()->OperandStack.push(v3);
 }
 
-void VM::BuiltInArithmeticOp(QString opName, int (*intFunc)(int,int), double (*doubleFunc)(double,double))
+void VM::BuiltInArithmeticOp(QString opName,
+                             int (*intFunc)(int,int),
+                             long (*longFunc)(long, long),
+                             double (*doubleFunc)(double,double))
 {
     Value *v2 = currentFrame()->OperandStack.pop();
     Value *v1 = currentFrame()->OperandStack.pop();
 
-    if (v1->tag == Int && v2->tag == Double)
-    {
-        v1 = allocator.newDouble(v1->v.intVal);
-    }
-    else if(v1->tag == Double && v2->tag == Int)
-    {
-        v2 = allocator.newDouble(v2->v.intVal);
-    }
+    coercion(v1, v2);
 
-    assert((v1->tag == v2->tag) && (v1->tag == Int || v1->tag == Double), NumericOperationOnNonNumber1 , opName);
+    assert((v1->tag == v2->tag) && (v1->tag == Int || v1->tag == Long || v1->tag == Double), NumericOperationOnNonNumber1 , opName);
 
     Value *v3 = NULL;
 
     if(v1->tag == Int && v2->tag == Int)
         v3 = allocator.newInt(intFunc(v1->unboxInt(), v2->unboxInt()));
+    else if(v1->tag == Long && v2->tag == Long)
+    {
+        v3 = allocator.newLong(longFunc(v1->unboxLong(),v2->unboxLong()));
+    }
     else if(v1->tag == Double && v2->tag == Double)
         v3 = allocator.newDouble(doubleFunc(v1->unboxDouble(), v2->unboxDouble()));
 
@@ -2103,28 +2162,24 @@ void VM::BuiltInArithmeticOp(QString opName, int (*intFunc)(int,int), double (*d
 }
 
 void VM::BuiltInComparisonOp(bool (*intFunc)(int,int),
+                             bool (*longFunc)(long, long),
                              bool (*doubleFunc)(double,double),
                              bool (*strFunc)(QString *, QString *))
 {
     Value *v2 = currentFrame()->OperandStack.pop();
     Value *v1 = currentFrame()->OperandStack.pop();
 
-    if (v1->tag == Int && v2->tag == Double)
-    {
-        v1 = allocator.newDouble(v1->v.intVal);
-    }
-    else if(v1->tag == Double && v2->tag == Int)
-    {
-        v2 = allocator.newDouble(v2->v.intVal);
-    }
+    coercion(v1, v2);
 
-    assert(v1->tag == v2->tag && (v1->tag == Int || v1->tag == Double || v1->tag == StringVal), BuiltInOperationOnNonBuiltn);
+    assert(v1->tag == v2->tag && (v1->tag == Int || v1->tag== Long || v1->tag == Double || v1->tag == StringVal), BuiltInOperationOnNonBuiltn);
 
     Value *v3 = NULL;
     bool result = false;
 
     if(v1->tag == Int)
         result = intFunc(v1->v.intVal, v2->v.intVal);
+    else if(v1->tag == Long)
+        result = longFunc(v1->v.longVal, v2->v.longVal);
     else if(v1->tag == Double)
         result = doubleFunc(v1->v.doubleVal, v2->v.doubleVal);
     else if(v1->tag == StringVal)
@@ -2135,6 +2190,7 @@ void VM::BuiltInComparisonOp(bool (*intFunc)(int,int),
 }
 
 void VM::EqualityRelatedOp(bool(*intFunc)(int, int),
+                           bool (*longFunc)(long, long),
                            bool(*doubleFunc)(double, double),
                            bool(*boolFunc)(bool, bool),
                            bool(*objFunc)(IObject *, IObject *),
@@ -2146,25 +2202,21 @@ void VM::EqualityRelatedOp(bool(*intFunc)(int, int),
     Value *v2 = currentFrame()->OperandStack.pop();
     Value *v1 = currentFrame()->OperandStack.pop();
 
-    if (v1->tag == Int && v2->tag == Double)
-    {
-        v1 = allocator.newDouble(v1->v.intVal);
-    }
-    else if(v1->tag == Double && v2->tag == Int)
-    {
-        v2 = allocator.newDouble(v2->v.intVal);
-    }
+    coercion(v1, v2);
+
     Value *v3 = NULL;
     bool result = false;
 
     // If both values are of the same type...
     if(v1->tag == v2->tag
-            && (v1->tag == Int || v1->tag == Double || v1->tag == Boolean || v1->tag == ObjectVal
+            && (v1->tag == Int || v1->tag == Long || v1->tag == Double || v1->tag == Boolean || v1->tag == ObjectVal
                 || v1->tag == StringVal || v1->tag == ObjectVal || v1->tag == RawVal || v1->tag == NullVal))
 
     {
         if(v1->tag == Int)
             result = intFunc(v1->v.intVal, v2->v.intVal);
+        if(v1->tag == Long)
+            result = longFunc(v1->v.longVal, v2->v.longVal);
         if(v1->tag == Double)
             result = doubleFunc(v1->v.doubleVal, v2->v.doubleVal);
         if(v1->tag == Boolean)
@@ -2211,15 +2263,9 @@ void VM::UnaryLogicOp(bool(*boolFunc)(bool))
 
 Value *VM::_div(Value *v1, Value *v2)
 {
-    if (v1->tag == Int && v2->tag == Double)
-    {
-        v1 = allocator.newDouble(v1->v.intVal);
-    }
-    else if(v1->tag == Double && v2->tag == Int)
-    {
-        v2 = allocator.newDouble(v2->v.intVal);
-    }
-    assert((v1->tag == v2->tag) &&( v1->tag == Double || v1->tag == Int ), NumericOperationOnNonNumber1, QSTR(L"قسمة"));
+    coercion(v1, v2);
+
+    assert((v1->tag == v2->tag) &&( v1->tag == Double || v1->tag == Long || v1->tag == Int ), NumericOperationOnNonNumber1, QSTR(L"قسمة"));
 
     if(v1->tag == Int && v2->tag == Int)
     {
@@ -2231,6 +2277,12 @@ Value *VM::_div(Value *v1, Value *v2)
     {
         assert(v2->v.doubleVal != 0.0, DivisionByZero);
         return allocator.newDouble(v1->v.doubleVal / v2->v.doubleVal);
+    }
+    else if(v1->tag == Long && v2->tag == Long)
+    {
+        assert(v2->v.longVal != 0L, DivisionByZero);
+        return allocator.newLong(((double) v1->v.longVal) /
+                                 ((double)v2->v.longVal));
     }
     return NULL;
 }

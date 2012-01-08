@@ -23,6 +23,7 @@ void GUIEditWidgetHandler::lineEditChanged()
         break;
     case Int:
     case Double:
+    case Long:
             ref->Set(ConvertStringToNumber(le->text(), vm));
         break;
     default:

@@ -186,10 +186,12 @@ public:
     void DoReceive();
     void DoSelect();
     void DoBreak();
+    void DoTick();
 
     void CallImpl(QString sym, bool wantValueNotRef, int arity, CallStyle callStyle);
     void CallSpecialMethod(IMethod *method, QVector<Value *> args);
     void test(bool, QString, QString);
+    void coercion(Value *&v1, Value *&v2);
     Value *_div(Value *, Value *);
     void Pop_Md_Arr_and_indexes(MultiDimensionalArray<Value *> *&theArray, QVector<int> &indexes);
 
@@ -197,12 +199,19 @@ public:
 private:
 
     void patchupInheritance(QMap<ValueClass *, QString> inheritanceList);
-    void BuiltInArithmeticOp(QString opName, int (*intFunc)(int,int), double (*doubleFunc)(double,double));
+    void BuiltInArithmeticOp(QString opName, int (*intFunc)(int,int),
+                             long (*longFunc)(long, long),
+                             double (*doubleFunc)(double,double));
     void BuiltInComparisonOp(bool  (*intFunc)(int,int),
+                             bool (*longFunc)(long, long),
                              bool (*doubleFunc)(double,double),
                              bool (*strFunc)(QString *, QString *));
-    void BuiltInAddOp(int (*intFunc)(int,int), double (*doubleFunc)(double,double), QString *(*strFunc)(QString *,QString *));
+    void BuiltInAddOp(int (*intFunc)(int,int),
+                      long (*longFunc)(long, long),
+                      double (*doubleFunc)(double,double),
+                      QString *(*strFunc)(QString *,QString *));
     void EqualityRelatedOp(bool  (*intFunc)(int,int),
+                           bool (*longFunc)(long, long),
                            bool  (*doubleFunc)(double,double),
                            bool  (*boolFunc)(bool, bool),
                            bool  (*objFunc)(IObject *, IObject *),

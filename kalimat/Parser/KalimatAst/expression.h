@@ -226,6 +226,18 @@ public:
     void prettyPrint(CodeFormatter *f);
 };
 
+class TimingExpression : public Expression
+{
+    Q_OBJECT
+public:
+    shared_ptr<Expression> _toTime;
+public:
+    TimingExpression(Token pos, shared_ptr<Expression> toTime);
+    shared_ptr<Expression> toTime() { return _toTime; }
+    QString toString();
+    void prettyPrint(CodeFormatter *f);
+};
+
 class Idafa : public AssignableExpression
 {
     Q_OBJECT
