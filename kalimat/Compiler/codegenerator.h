@@ -104,6 +104,7 @@ private:
     void generateDrawLineStmt(shared_ptr<DrawLineStmt> stmt);
     void generateDrawRectStmt(shared_ptr<DrawRectStmt> stmt);
     void generateDrawCircleStmt(shared_ptr<DrawCircleStmt> stmt);
+    void generateDrawImageStmt(shared_ptr<DrawImageStmt> stmt);
     void generateDrawSpriteStmt(shared_ptr<DrawSpriteStmt> stmt);
     void generateZoomStmt(shared_ptr<ZoomStmt> stmt);
     void generateEventStatement(shared_ptr<EventStatement> stmt);

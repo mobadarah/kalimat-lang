@@ -312,6 +312,26 @@ public:
     Q_DISABLE_COPY(DrawCircleStmt)
 };
 
+class DrawImageStmt : public GraphicsStatement
+{
+    Q_OBJECT
+public:
+    shared_ptr<Expression> _x, _y;
+    shared_ptr<Expression> _image;
+
+public:
+    DrawImageStmt(Token pos,
+                   shared_ptr<Expression> x,
+                   shared_ptr<Expression> y,
+                   shared_ptr<Expression> image);
+    ~DrawImageStmt();
+    shared_ptr<Expression> x() { return _x;}
+    shared_ptr<Expression> y() { return _y;}
+    shared_ptr<Expression> image() { return _image;}
+    QString toString();
+    void prettyPrint(CodeFormatter *f);
+};
+
 class DrawSpriteStmt : public GraphicsStatement
 {
     Q_OBJECT

@@ -28,7 +28,10 @@ void DrawPixelProc(QStack<Value *> &, RunWindow *, VM *);
 void DrawLineProc(QStack<Value *> &, RunWindow *, VM *);
 void DrawRectProc(QStack<Value *> &, RunWindow *, VM *);
 void DrawCircleProc(QStack<Value *> &, RunWindow *, VM *);
+
+void LoadImageProc(QStack<Value *> &stack, RunWindow *w, VM *vm);
 void LoadSpriteProc(QStack<Value *> &, RunWindow *, VM *);
+void DrawImageProc(QStack<Value *> &stack, RunWindow *w, VM *vm);
 void DrawSpriteProc(QStack<Value *> &, RunWindow *, VM *);
 void ZoomProc(QStack<Value *> &, RunWindow *, VM *);
 void HideSpriteProc(QStack<Value *> &, RunWindow *, VM *);

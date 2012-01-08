@@ -22,8 +22,8 @@ void Sprite::setImage(QPixmap image)
 
 void Sprite::prepareMask(QPixmap image)
 {
-    //mask = image.createHeuristicMask(false);
-    mask = image.createMaskFromColor(image.toImage().pixel(0,0));
+    mask = image.createHeuristicMask(true);
+    //mask = image.createMaskFromColor(image.toImage().pixel(0, 0), Qt::MaskInColor);
     this->image.setMask(mask);
 }
 

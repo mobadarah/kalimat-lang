@@ -119,6 +119,7 @@ void RunWindow::Init(QString program, QMap<QString, QString> stringConstants, QS
         vm->Register("drawline", new WindowProxyMethod(this, vm, DrawLineProc));
         vm->Register("drawrect", new WindowProxyMethod(this, vm, DrawRectProc));
         vm->Register("drawcircle", new WindowProxyMethod(this, vm, DrawCircleProc));
+        vm->Register("drawimage", new WindowProxyMethod(this, vm, DrawImageProc));
         vm->Register("drawsprite", new WindowProxyMethod(this, vm, DrawSpriteProc));
         vm->Register("zoom", new WindowProxyMethod(this, vm, ZoomProc));
         vm->Register("cls", new WindowProxyMethod(this, vm, ClsProc));
@@ -157,6 +158,7 @@ void RunWindow::Init(QString program, QMap<QString, QString> stringConstants, QS
         vm->Register("str_trim", new WindowProxyMethod(this, vm, StrTrimProc));
         vm->Register("str_len", new WindowProxyMethod(this, vm, StrLenProc));
 
+        vm->Register("load_image", new WindowProxyMethod(this, vm, LoadImageProc));
         vm->Register("load_sprite", new WindowProxyMethod(this, vm, LoadSpriteProc));
         vm->Register("showsprite", new WindowProxyMethod(this, vm, ShowSpriteProc));
         vm->Register("hidesprite", new WindowProxyMethod(this, vm, HideSpriteProc));

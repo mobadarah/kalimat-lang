@@ -671,7 +671,9 @@ shared_ptr<Statement> KalimatParser::ioStmt()
 
 bool KalimatParser::LA_first_grfx_statement()
 {
-    return LA(DRAW_PIXEL) || LA(DRAW_LINE) || LA(DRAW_RECT) || LA(DRAW_CIRCLE) || LA(DRAW_SPRITE) || LA(ZOOM);
+    return LA(DRAW_PIXEL) || LA(DRAW_LINE) ||
+            LA(DRAW_RECT) || LA(DRAW_CIRCLE) ||
+            LA(DRAW_IMAGE) || LA(DRAW_SPRITE) || LA(ZOOM);
 }
 
 shared_ptr<Statement> KalimatParser::grfxStatement()
@@ -684,6 +686,8 @@ shared_ptr<Statement> KalimatParser::grfxStatement()
         return drawRectStmt();
     if(LA(DRAW_CIRCLE))
         return drawCircleStmt();
+    if(LA(DRAW_IMAGE))
+        return drawImageStmt();
     if(LA(DRAW_SPRITE))
         return drawSpriteStmt();
     if(LA(ZOOM))
@@ -814,6 +818,25 @@ shared_ptr<Statement> KalimatParser::drawCircleStmt()
         }
     }
     return shared_ptr<Statement>(new DrawCircleStmt(tok, cx, cy, radius, color, filled));
+}
+
+shared_ptr<Statement> KalimatParser::drawImageStmt()
+{
+    shared_ptr<Expression> x, y;
+    shared_ptr<Expression> number;
+
+    Token tok  = lookAhead;
+    match(DRAW_IMAGE);
+    number = expression();
+    match(IN);
+
+    match(LPAREN);
+    x = expression();
+    match(COMMA);
+    y = expression();
+    match(RPAREN);
+
+    return shared_ptr<Statement>(new DrawImageStmt(tok, x, y, number));
 }
 
 shared_ptr<Statement> KalimatParser::drawSpriteStmt()

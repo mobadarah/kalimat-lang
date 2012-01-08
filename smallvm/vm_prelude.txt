@@ -152,6 +152,11 @@ ret
 tick
 ret
 
+.method حمل.صورة 1
+callex load_image
+ret
+.endmethod
+
 .method حمل.طيف 1
 callex load_sprite
 ret

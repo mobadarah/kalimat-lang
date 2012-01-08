@@ -120,10 +120,12 @@ Value *ImageForeignClass::dispatch(int id, QVector<Value *> args)
         //if(false)
         {
             img2 = new QImage(handle->width(),handle->height(), handle->format());
+            //img2->fill(handle->pixel(0,0));
             QPainter p(img2);
             QBrush brsh(handle->pixel(0,0));
+            //p.setBackground(brsh);
             p.setBrush(brsh);
-            p.fillRect(0,0,handle->width(), handle->height(), Qt::SolidPattern);
+            p.fillRect(0,0,handle->width(), handle->height(), handle->pixel(0,0));
             p.translate(w, h);
             p.rotate(-degrees);
             p.translate(-w, -h);

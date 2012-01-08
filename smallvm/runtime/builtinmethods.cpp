@@ -37,6 +37,8 @@
 #include "../smallvm/vm_ffi.h"
 using namespace std;
 
+#define _ws(s) QString::fromStdWString(s)
+
 void PrintProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 {
     if(stack.empty())
@@ -582,6 +584,24 @@ void LnProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 
 }
 
+void LoadImageProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
+{
+    verifyStackNotEmpty(stack, vm);
+    w->typeCheck(stack.top(), BuiltInTypes::StringType);
+    QString *fname = stack.pop()->unboxStr();
+    *fname = w->ensureCompletePath(*fname);
+
+    if(!QFile::exists(*fname))
+    {
+        w->assert(false, ArgumentError, QString::fromStdWString(L"تحميل صورة من ملف غير موجود"));
+    }
+    IClass *imgClass = dynamic_cast<IClass *>(vm->GetType(_ws(L"صورة"))->unboxObj());
+    QImage *img = new QImage(*fname);
+    IObject *obj = imgClass->newValue(&vm->GetAllocator());
+    obj->setSlotValue("handle", vm->GetAllocator().newRaw(img, BuiltInTypes::ObjectType));
+    stack.push(vm->GetAllocator().newObject(obj, imgClass));
+}
+
 void LoadSpriteProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 {
     verifyStackNotEmpty(stack, vm);
@@ -596,6 +616,29 @@ void LoadSpriteProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
     Sprite *sprite = new Sprite(*fname);
     w->spriteLayer.AddSprite(sprite);
     stack.push(vm->GetAllocator().newRaw(sprite, BuiltInTypes::SpriteType));
+}
+
+void DrawImageProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
+{
+    IClass *imgClass = dynamic_cast<IClass *>(vm->GetType(_ws(L"صورة"))->unboxObj());
+
+    w->typeCheck(stack.top(), imgClass);
+    IObject *obj = stack.pop()->unboxObj();
+    QImage *handle = reinterpret_cast<QImage*>
+            (obj->getSlotValue("handle")->unboxRaw());
+
+    int x = popIntOrCoercable(stack, w , vm);
+    int y = popIntOrCoercable(stack, w , vm);
+
+    w->paintSurface->TX(x);
+    x-= handle->width();
+
+    QPainter p(w->paintSurface->GetImage());
+
+    p.drawImage(x, y, *handle);
+
+    w->redrawWindow();
+
 }
 
 void __DrawSpriteProc(Sprite *sprite, int x, int y, RunWindow *w)

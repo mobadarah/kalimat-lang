@@ -62,6 +62,7 @@ private:
     shared_ptr<Statement> drawLineStmt();
     shared_ptr<Statement> drawRectStmt();
     shared_ptr<Statement> drawCircleStmt();
+    shared_ptr<Statement> drawImageStmt();
     shared_ptr<Statement> drawSpriteStmt();
 
     shared_ptr<Statement> zoomStmt();

@@ -2084,7 +2084,7 @@ void VM::coercion(Value *&v1, Value *&v2)
     }
     else if(v1->tag == Long && v2->tag == Int)
     {
-        v2 = allocator.newLong(v1->v.intVal);
+        v2 = allocator.newLong(v2->v.intVal);
     }
     else if(v1->tag == Double && v2->tag == Long)
     {
@@ -2281,7 +2281,7 @@ Value *VM::_div(Value *v1, Value *v2)
     else if(v1->tag == Long && v2->tag == Long)
     {
         assert(v2->v.longVal != 0L, DivisionByZero);
-        return allocator.newLong(((double) v1->v.longVal) /
+        return allocator.newDouble(((double) v1->v.longVal) /
                                  ((double)v2->v.longVal));
     }
     return NULL;

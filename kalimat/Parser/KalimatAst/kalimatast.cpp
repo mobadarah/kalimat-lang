@@ -411,6 +411,27 @@ QString DrawCircleStmt::toString()
             .arg((filled()?filled()->toString(): _ws(L"خطأ")));
 }
 
+DrawImageStmt::DrawImageStmt(Token pos,
+                               shared_ptr<Expression> x,
+                               shared_ptr<Expression> y,
+                               shared_ptr<Expression> image)
+        :GraphicsStatement(pos),
+        _x(x),
+        _y(y),
+        _image(image)
+
+{
+}
+
+QString DrawImageStmt::toString()
+{
+    return _ws(L"رسم.صورة(%، [%2، %3])")
+            .arg(image()->toString())
+            .arg(x()->toString())
+            .arg(y()->toString());
+}
+
+
 DrawSpriteStmt::DrawSpriteStmt(Token pos,
                                shared_ptr<Expression> x,
                                shared_ptr<Expression> y,
@@ -1507,6 +1528,22 @@ void DrawCircleStmt::prettyPrint(CodeFormatter *f)
     }
 }
 
+void DrawImageStmt::prettyPrint(CodeFormatter *f)
+{
+    f->printKw(L"ارسم.صورة");
+    this->image()->prettyPrint(f);
+    f->space();
+    f->printKw(L"في");
+    parens(&commaSep(&ast(this->x()), &ast(this->y()))).run(f);
+    /*
+    f->openParen();
+    this->x()->prettyPrint(f);
+    f->comma();
+    this->y()->prettyPrint(f);
+    this->closeParen();
+    */
+}
+
 void DrawSpriteStmt::prettyPrint(CodeFormatter *f)
 {
     f->printKw(L"ارسم.طيف");
@@ -2076,6 +2113,7 @@ InvokationStmt::~InvokationStmt()
 ReceiveStmt::~ReceiveStmt() {}
 SendStmt::~SendStmt() {}
 ZoomStmt::~ZoomStmt() {}
+DrawImageStmt::~DrawImageStmt() {}
 DrawSpriteStmt::~DrawSpriteStmt() {}
 DrawCircleStmt::~DrawCircleStmt() {}
 DrawRectStmt::~DrawRectStmt() {}

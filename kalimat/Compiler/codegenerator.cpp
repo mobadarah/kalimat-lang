@@ -852,6 +852,11 @@ void CodeGenerator::generateGraphicsStatement(shared_ptr<GraphicsStatement> stmt
         generateDrawCircleStmt(dynamic_pointer_cast<DrawCircleStmt>(stmt));
         return;
     }
+    if(isa<DrawImageStmt>(stmt))
+    {
+        generateDrawImageStmt(dynamic_pointer_cast<DrawImageStmt>(stmt));
+        return;
+    }
     if(isa<DrawSpriteStmt>(stmt))
     {
         generateDrawSpriteStmt(dynamic_pointer_cast<DrawSpriteStmt>(stmt));
@@ -925,6 +930,14 @@ void CodeGenerator::generateDrawCircleStmt(shared_ptr<DrawCircleStmt> stmt)
     generateExpression(stmt->cx());
 
     gen(stmt, "callex drawcircle");
+}
+
+void CodeGenerator::generateDrawImageStmt(shared_ptr<DrawImageStmt> stmt)
+{
+    generateExpression(stmt->y());
+    generateExpression(stmt->x());
+    generateExpression(stmt->image());
+    gen(stmt, "callex drawimage");
 }
 
 void CodeGenerator::generateDrawSpriteStmt(shared_ptr<DrawSpriteStmt> stmt)
