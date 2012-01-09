@@ -1278,11 +1278,12 @@ void MainWindow::on_actionMake_exe_triggered()
 
         QString pascalProgram = QString(" {$APPTYPE GUI} {$LONGSTRINGS ON} \n\
                                         program RunSmallVM;\n\
-        procedure RunSmallVMCodeBase64(A:PChar;B:PChar);stdcall ;external 'smallvm.dll';\n\
+                uses FileUtil;\n\
+        procedure RunSmallVMCodeBase64(A:PUnicodeChar;B:PChar);stdcall ;external 'smallvm.dll';\n\
         procedure SmallVMAddStringConstant(A:PChar; B:PChar); stdcall; external 'smallvm.dll';\n\
                                         begin\n\
                 %1\n%2\n\
-                RunSmallVMCodeBase64(argv^,%3);\n\
+                RunSmallVMCodeBase64(PUnicodeChar(SysToUtf8(ParamStr(0))),%3);\n\
                             end.")
                 .arg(strConstants.join(";\n"))
                 .arg(strConstants.count() >0? ";\n":"")

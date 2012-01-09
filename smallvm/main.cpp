@@ -42,7 +42,7 @@ void SmallVMAddStringConstant(char *symBase64, char *strBase64)
 }
 
 Q_DECL_EXPORT
-void RunSmallVMCodeBase64(char *pathOfProgramsFile,
+void RunSmallVMCodeBase64(wchar_t *pathOfProgramsFile,
                           char *programBase64)
 {
     //cout << "program gonna run!" << endl;
@@ -56,7 +56,7 @@ void RunSmallVMCodeBase64(char *pathOfProgramsFile,
     //cout.flush();
     try
     {
-        RunWindow rw(pathOfProgramsFile, new NullaryVMClient());
+        RunWindow rw(QString::fromStdWString(pathOfProgramsFile), new NullaryVMClient());
         QString programCode = base64Decode(programBase64);
         //cout << "program after decoding:" << programCode.toStdString() << endl;
         rw.show();
