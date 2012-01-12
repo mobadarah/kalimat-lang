@@ -79,6 +79,11 @@ ImageForeignClass::ImageForeignClass(QString name, RunWindow *rw)
             = 8;
     methodArities[_ws(L"ارتفاعها")]
             = 1;
+
+    methodIds[_ws(L"نص")]
+            = 9;
+    methodArities[_ws(L"نص")]
+            = 4;
 }
 
 IObject *ImageForeignClass::newValue(Allocator *allocator)
@@ -207,6 +212,19 @@ Value *ImageForeignClass::dispatch(int id, QVector<Value *> args)
         return allocator->newInt(handle->width());
     case 8:
         return allocator->newInt(handle->height());
+    case 9:
+        rw->typeCheck(args[1], BuiltInTypes::StringType);
+        rw->typeCheck(args[2], BuiltInTypes::NumericType);
+        rw->typeCheck(args[3], BuiltInTypes::NumericType);
+    {
+        QString text = *args[1]->unboxStr();
+        int x = (int) args[2]->unboxNumeric();
+        int y = (int) args[3]->unboxNumeric();
+        QPainter p(handle);
+        p.setFont(QFont("Arial", 12));
+        p.drawText(x, y, text);
+    }
+        return NULL;
     }
 }
 

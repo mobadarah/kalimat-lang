@@ -544,7 +544,7 @@ shared_ptr<Statement> KalimatParser::gotoStmt()
     }
     else
     {
-        throw ParserException("An identifier or number is expected after 'goto'");
+        throw ParserException(pos, "An identifier or number is expected after 'goto'");
     }
     return shared_ptr<Statement>(new GotoStmt(pos, targetIsNum, target));
 }
