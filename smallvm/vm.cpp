@@ -446,7 +446,7 @@ int getInstructionArity(Instruction &i)
 void VM::RunStep(bool singleInstruction)
 {
     int random = rand();
-    int n = singleInstruction? 1 : random % 20;
+    int n = singleInstruction? 1 : random % 10;
     bool pIsRunning = true;
     //bool timerOrNew = (random % 2) == 0;
     clock_t qt = clock();
@@ -1339,8 +1339,8 @@ bool eq_int(int a, int b) { return a==b;}
 bool eq_long(long a, long b) { return a==b;}
 bool eq_double(double a, double b) { return a==b;}
 bool eq_bool(bool a, bool b) { return a==b;}
-bool  eq_obj(IObject *a, IObject *b){ return a==b;}
-bool  eq_raw(void *a, void *b){ return a==b;}
+bool eq_obj(IObject *a, IObject *b){ return a==b;}
+bool eq_raw(void *a, void *b){ return a==b;}
 
 bool  eq_str(QString *a, QString *b)
 {

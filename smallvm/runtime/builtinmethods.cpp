@@ -643,12 +643,6 @@ void DrawImageProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 
 }
 
-void __DrawSpriteProc(Sprite *sprite, int x, int y, RunWindow *w)
-{
-    w->spriteLayer.showSprite(sprite);
-    w->redrawWindow();
-}
-
 void DrawSpriteProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 {
     w->typeCheck(stack.top(), BuiltInTypes::SpriteType);
@@ -663,7 +657,8 @@ void DrawSpriteProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
     sprite->location = QPoint(x,y);
     sprite->visible = true;
     w->checkCollision(sprite);
-    QtConcurrent::run(__DrawSpriteProc, sprite, x, y, w);
+    w->spriteLayer.showSprite(sprite);
+    w->redrawWindow();
 }
 
 void ShowSpriteProc(QStack<Value *> &stack, RunWindow *w, VM *vm)

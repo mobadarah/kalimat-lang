@@ -21,7 +21,7 @@
 //#include <iostream>
 #include <QFileInfo>
 #include <QDir>
-
+#include <QtConcurrentRun>
 using namespace std;
 
 QMap<QString, QString> RunWindow::qtMethodTranslations;
@@ -509,7 +509,9 @@ void RunWindow::reactivateVM()
 void RunWindow::redrawWindow()
 {
     if(updateTimer.canUpdateNow())
+    {
         update();
+    }
 }
 
 void RunWindow::paintEvent(QPaintEvent *)
