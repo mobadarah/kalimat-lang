@@ -71,6 +71,7 @@ void RunSmallVMCodeBase64(wchar_t *pathOfProgramsFile,
 }
 int main(int argc, char *argv[])
 {
-
+    // todo: enable a SmallVM.exe executable to take a string table file
+    // and assembly file and run them
     return 0;
 }

@@ -50,7 +50,7 @@ MainWindow::MainWindow(QWidget *parent)
     ui->setupUi(this);
 
     QToolBar *notice = new QToolBar("");
-    notice->addAction(QString::fromStdWString(L"هذه هي النسخة الأولية لشهر ديسمبر 2011. حمل أحدث نسخة من www.kalimat-lang.com"));
+    notice->addAction(QString::fromStdWString(L"هذه هي النسخة الأولية لشهر يناير 2012. حمل أحدث نسخة من www.kalimat-lang.com"));
 
     addToolBarBreak();
     addToolBar(Qt::TopToolBarArea, notice);
