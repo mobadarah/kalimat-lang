@@ -4,5 +4,6 @@
         <file>tokens.txt</file>
         <file>keywords.txt</file>
         <file>compiler_error_map.txt</file>
+        <file>parser_error_map.txt</file>
     </qresource>
 </RCC>

@@ -13,3 +13,4 @@
 #include "codeformatter.h"
 #include "ast.h"
 #include "parser.h"
+#include "parserexception.h"

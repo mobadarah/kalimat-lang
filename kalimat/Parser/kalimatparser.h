@@ -8,6 +8,7 @@
 #ifndef KALIMATPARSER_H
 #define KALIMATPARSER_H
 
+#include "KalimatParserError.h"
 class KalimatParser : public Parser
 {
     struct PropInfo

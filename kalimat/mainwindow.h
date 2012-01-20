@@ -24,6 +24,9 @@
 #include "myedit.h"
 #include "../smallvm/breakpoint.h"
 #include "../smallvm/runtime/vmclient.h"
+#include "Lexer/token.h"
+#include "Parser/parserexception.h"
+#include "Parser/KalimatParserError.h"
 #include <QQueue>
 #include <QGraphicsView>
 #include <QActionGroup>
@@ -78,6 +81,7 @@ public:
     void visualizeCallStack(QStack<Frame> &callStack, QGraphicsView *view);
 
     void outputMsg(QString s);
+    QString translateParserError(ParserException ex);
 
     void Break(QString methodName, int offset, Frame *frame, Process *process);
     void programStopped(RunWindow *);
@@ -92,6 +96,7 @@ private:
     SyntaxHighlighter *syn;
     VM vm;
     RunWindow *stoppedRunWindow;
+    QMap<KalimatParserError, QString> parserErrorMap;
     void show_error(QString);
     virtual void LoadDocIntoWidget(CodeDocument *doc, QWidget *widget);
     virtual QWidget *GetParentWindow();

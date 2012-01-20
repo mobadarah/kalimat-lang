@@ -10,8 +10,9 @@
 
 #include <memory>
 using namespace std;
+
 struct ParserState
-                           {
+{
     int curToken;
     QVector<Token> tokens;
     Token lookAhead;
@@ -54,22 +55,6 @@ protected:
     bool match(int TokenType);
     void advanceToken();
     Token getPos();
-};
-
-class ParserException
-{
-public:
-    Token pos;
-    bool hasPosInfo;
-    QString message;
-public:
-
-    ParserException(QString msg);
-    ParserException(Token pos, QString msg);
-};
-class ParserBacktrackingException
-{
-
 };
 
 #endif // PARSER_H

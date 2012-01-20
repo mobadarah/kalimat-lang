@@ -92,11 +92,29 @@ MainWindow::MainWindow(QWidget *parent)
     ui->editorTabs->setAcceptDrops(true);
     ui->txtSearchString->installEventFilter(this);
     ui->txtReplacementString->installEventFilter(this);
+    parserErrorMap = Utils::prepareErrorMap<KalimatParserError>(":/parser_error_map.txt");
 }
 
 void MainWindow::outputMsg(QString s)
 {
     ui->outputView->append(s);
+}
+
+QString MainWindow::translateParserError(ParserException ex)
+{
+    QString msg = ex.message;
+    if(ex.hasType())
+    {
+        msg = parserErrorMap[(KalimatParserError)ex.errType()];
+        if(ex.hasPosInfo)
+        {
+            msg += QString::fromStdWString(L" / سطر:%1، عمود:%2، موضع:%3")
+                    .arg(ex.pos.Line)
+                    .arg(ex.pos.Column)
+                    .arg(ex.pos.Pos);
+        }
+    }
+    return msg;
 }
 
 void MainWindow::showHelpWindow()
@@ -231,7 +249,8 @@ void MainWindow::on_actionParse_triggered()
     }
     catch(ParserException ex)
     {
-        ui->outputView->append(ex.message);
+        QString msg = translateParserError(ex);
+        ui->outputView->append(msg);
     }
 }
 
@@ -270,7 +289,9 @@ void MainWindow::on_actionCompile_triggered()
         {
             fn = ((CodeDocument *) ex.pos.tag)->getFileName();
         }
-        ui->outputView->append(QString("File %1:\t%2").arg(fn).arg(ex.message));
+        QString msg = translateParserError(ex);
+
+        ui->outputView->append(QString("File %1:\t%2").arg(fn).arg(msg));
     }
     catch(CompilerException ex)
     {
@@ -320,7 +341,8 @@ void MainWindow::on_actionCompile_without_tags_triggered()
     }
     catch(ParserException ex)
     {
-        ui->outputView->append(ex.message);
+        QString msg = translateParserError(ex);
+        ui->outputView->append(msg);
     }
     catch(CompilerException ex)
     {
@@ -427,6 +449,7 @@ void MainWindow::on_mnuProgramRun_triggered()
     }
     catch(ParserException ex)
     {
+        QString msg = translateParserError(ex);
         //show_error(ex->message);
         show_error(QString::fromStdWString(L"خطأ في تركيب البرنامج"));
         if(doc != NULL && ex.hasPosInfo)

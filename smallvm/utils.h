@@ -36,6 +36,19 @@ class Utils
 public:
     static LineIterator readResourceTextFile(QString fileName);
     static QMap<QString, QString> readAequalBFile(LineIterator &iter);
+    template<class ErrTypeEnum> static QMap<ErrTypeEnum, QString> prepareErrorMap(QString fileName)
+    {
+        QMap<ErrTypeEnum, QString> ErrorMap;
+        LineIterator in = Utils::readResourceTextFile(fileName);
+        int i=0;
+        while(!in.atEnd())
+        {
+            QString val = in.readLine().trimmed();
+            ErrorMap[(ErrTypeEnum) i++] = val;
+        }
+        in.close();
+        return ErrorMap;
+    }
 };
 
 #endif // UTILS_H

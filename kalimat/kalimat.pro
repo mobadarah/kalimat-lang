@@ -60,7 +60,8 @@ SOURCES += main.cpp \
     Parser/astreifier.cpp \
     Parser/kalimatparser.cpp \
     ../smallvm/qobjectforeignclass.cpp \
-    Parser/KalimatAst/kalimatast.cpp
+    Parser/KalimatAst/kalimatast.cpp \
+    Parser/parserexception.cpp
 HEADERS += mainwindow.h \
     Lexer/token.h \
     Lexer/statemachine.h \
@@ -103,7 +104,9 @@ HEADERS += mainwindow.h \
     Parser/kalimatast/formatmaker.h \
     Parser/KalimatAst/kalimatast.h \
     Parser/kalimatast/kalimatast_incl.h \
-    Parser/kalimatast/rules.h
+    Parser/kalimatast/rules.h \
+    Parser/KalimatParserError.h \
+    Parser/parserexception.h
 
 FORMS += mainwindow.ui \
     savechangedfiles.ui \
@@ -122,4 +125,3 @@ RC_FILE = kalimat.rc
 win32:LIBS += -L"$$_PRO_FILE_PWD_/../smallvm/libffi/" -llibffi
 
 unix:LIBS += -lffi
-

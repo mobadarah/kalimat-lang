@@ -776,14 +776,7 @@ QString RunWindow::translate_error(VMError err)
 {
     if(ErrorMap.empty())
     {
-        LineIterator in = Utils::readResourceTextFile(":/error_map.txt");
-        int i=0;
-        while(!in.atEnd())
-        {
-            QString val = in.readLine().trimmed();
-            ErrorMap[(VMErrorType) i++] = val;
-        }
-        in.close();
+        ErrorMap = Utils::prepareErrorMap<VMErrorType>(":/error_map.txt");
     }
     return ErrorMap[err.type];
 }

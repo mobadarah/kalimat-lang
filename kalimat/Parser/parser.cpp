@@ -199,19 +199,3 @@ ParserState::ParserState(int curToken, Token lookAhead, QVector<Token>tokens, QS
     this->tokens = tokens;
     this->tokenFormatter = tokenFormatter;
 }
-
-ParserException::ParserException(QString msg)
-{
-    message = msg;
-    hasPosInfo = false;
-}
-ParserException::ParserException(Token pos, QString msg)
-{
-    if(pos.Type == TokenInvalid)
-        hasPosInfo = false;
-    else
-        hasPosInfo = true;
-    this->pos = pos;
-    message = QString("(%1,%2, pos=%3): %4").arg(pos.Line).arg(pos.Column).arg(pos.Pos).arg(msg);
-}
-

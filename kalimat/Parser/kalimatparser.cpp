@@ -110,7 +110,7 @@ shared_ptr<AST> KalimatParser::program()
         }
         else
         {
-            throw ParserException(getPos(), "Expected statement or declaration");
+            throw ParserException(getPos(), ExpectedStatementOrDeclaration);
         }
         newLines();
     }
@@ -143,11 +143,11 @@ shared_ptr<AST> KalimatParser::module()
         }
         else if(LA_first_statement())
         {
-            throw ParserException(getPos(), "Modules cannot contain statements");
+            throw ParserException(getPos(), ModulesCannotContainStatements);
         }
         else
         {
-            throw ParserException(getPos(), "Expected declaration");
+            throw ParserException(getPos(), ExpectedDeclaration);
         }
         newLines();
     }
@@ -230,7 +230,7 @@ shared_ptr<Statement> KalimatParser::statement()
     }
 
     if(ret == NULL)
-        throw ParserException(getPos(), "statement not implemented");
+        throw ParserException(getPos(), StatementNotImplemented);
 
     if(firstToken.sister != NULL)
     {
@@ -283,7 +283,7 @@ shared_ptr<Declaration> KalimatParser::declaration()
         ret = rulesDecl();
     }
     if(ret == NULL)
-        throw ParserException(getPos(), "Expected a declaration");
+        throw ParserException(getPos(), ExpectedDeclaration);
 
     if(firstToken.sister != NULL)
     {
@@ -306,7 +306,7 @@ shared_ptr<Statement> KalimatParser::assignmentStmt_or_Invokation(ParserState s)
         shared_ptr<AssignableExpression> id = dynamic_pointer_cast<AssignableExpression>(first);
         if(id == NULL)
         {
-            throw ParserException(getPos(), "Left of = must be an assignable expression");
+            throw ParserException(getPos(), LeftOfAssignmentMustBeAssignableExpression);
         }
         Token eqToken = lookAhead;
         match(EQ);
@@ -333,7 +333,7 @@ shared_ptr<Statement> KalimatParser::assignmentStmt_or_Invokation(ParserState s)
         Expression *invokation = expression();
         return new InvokationStmt(invokation->getPos(), invokation);
     }*/
-    throw ParserException(getPos(), "Expected IDENTIFIER");
+    throw ParserException(getPos(), ExpectedIdentifier);
 }
 
 shared_ptr<Statement> KalimatParser::ifStmt()
@@ -692,7 +692,7 @@ shared_ptr<Statement> KalimatParser::grfxStatement()
         return drawSpriteStmt();
     if(LA(ZOOM))
         return zoomStmt();
-    throw ParserException(getPos(), "Expected a drawing statement");
+    throw ParserException(getPos(), ExpectedDrawingStatement);
 }
 shared_ptr<Statement> KalimatParser::drawPixelStmt()
 {
@@ -965,7 +965,7 @@ shared_ptr<ReceiveStmt> KalimatParser::receiveStmt()
     shared_ptr<Expression> chan;
     match(RECEIVE);
     if(eof())
-        throw ParserException(getPos(), "Expected an expression");
+        throw ParserException(getPos(), ExpectedExpression);
     Token tok = lookAhead;
     if(LA(SIGNAL_))
     {
@@ -1006,7 +1006,7 @@ shared_ptr<Statement> KalimatParser::selectStmt()
     }
     else
     {
-        throw ParserException(getPos(), "Expected a 'send' or 'receive' operation");
+        throw ParserException(getPos(), ExpectedSendOrReceiveOperation);
     }
     match(COLON);
     if(LA(NEWLINE))
@@ -1031,7 +1031,7 @@ shared_ptr<Statement> KalimatParser::selectStmt()
         }
         else
         {
-            throw ParserException(getPos(), "Expected a 'send' or 'receive' operation");
+            throw ParserException(getPos(), ExpectedSendOrReceiveOperation);
         }
         match(COLON);
 
@@ -1162,7 +1162,7 @@ void KalimatParser::addPropertyGetter(Token pos,
 
     if(formals.count() !=0)
     {
-        throw ParserException(pos, QString::fromStdWString(L"الرد الذي يكتب الخاصية لابد ألّا يأخذ عواملاً.'"));
+        throw ParserException(pos, QString::fromStdWString(L"الرد الذي يقرأ الخاصية لابد ألّا يأخذ عواملاً.'"));
     }
     QString realName = methodName->name;
     if(!propertyInfo.contains(realName))
@@ -2066,7 +2066,7 @@ shared_ptr<Identifier> KalimatParser::identifier()
             varContext.top()->addReference(ret);
         return ret;
     }
-    throw ParserException(getPos(), "Expected Identifier");
+    throw ParserException(getPos(), ExpectedIdentifier);
 }
 
 bool KalimatParser::LA_first_typeExpression()
