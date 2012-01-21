@@ -542,8 +542,7 @@ shared_ptr<Statement> KalimatParser::delegateStmt()
     }
     else
     {
-        throw ParserException(expr->getPos(),
-                              QString::fromStdWString(L"لا يمكن التوكيل لغير استدعاء إجراء أو دالة") );
+        throw ParserException(expr->getPos(),CanDelegateOnlyToInvokation);
     }
 }
 
@@ -560,7 +559,7 @@ shared_ptr<Statement> KalimatParser::launchStmt()
     else
     {
         throw ParserException(expr->getPos(),
-                              QString::fromStdWString(L"لا يمكن تشغيل ما ليس باستدعاء إجراء") );
+                              CanOnlyLaunchProcedureInvokation);
     }
 }
 
@@ -592,7 +591,7 @@ shared_ptr<Statement> KalimatParser::gotoStmt()
     }
     else
     {
-        throw ParserException(pos, "An identifier or number is expected after 'goto'");
+        throw ParserException(pos, IdentifierOrNumberExpectedAfterGoto);
     }
     return shared_ptr<Statement>(new GotoStmt(pos, targetIsNum, target));
 }
@@ -992,7 +991,7 @@ shared_ptr<SendStmt> KalimatParser::sendStmt()
     shared_ptr<Expression> chan;
     match(SEND);
     if(eof())
-        throw ParserException(getPos(), "Expected an expression");
+        throw ParserException(getPos(), ExpectedExpression);
     Token tok = lookAhead;
     if(LA(SIGNAL_))
     {
@@ -2261,7 +2260,7 @@ QVector<shared_ptr<StrLiteral> > KalimatParser::usingDirectives()
         }
         else
         {
-            throw ParserException(getPos(), "USING keyword must be followed by a string literal");
+            throw ParserException(getPos(), UsingKeywordMustBeFollowedByStringLiteral);
         }
     }
     return usedModules;

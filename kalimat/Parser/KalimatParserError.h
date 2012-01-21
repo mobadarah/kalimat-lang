@@ -9,9 +9,13 @@ enum KalimatParserError
     ExpectedDrawingStatement,
     ExpectedIdentifier,
     ExpectedSendOrReceiveOperation,
+    IdentifierOrNumberExpectedAfterGoto,
+    UsingKeywordMustBeFollowedByStringLiteral,
     ModulesCannotContainStatements,
     StatementNotImplemented,
-    LeftOfAssignmentMustBeAssignableExpression
+    LeftOfAssignmentMustBeAssignableExpression,
+    CanDelegateOnlyToInvokation,
+    CanOnlyLaunchProcedureInvokation
 };
 
 #endif // KALIMATPARSERERROR_H
