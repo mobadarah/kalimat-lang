@@ -24,18 +24,19 @@ struct ParserState
 class Parser
 {
     int curToken;
-
     QString (*tokenFormatter)(int);
 
 protected:
     QVector<Token> tokens;
     Token lookAhead;
+    bool atStartOfFile;
     virtual shared_ptr<AST> parseRoot()=0;
+public:
+    bool withRecovery;
 public:
     Parser();
     Parser(QString (*tokenFormatter)(int));
     virtual ~Parser();
-
 
     virtual void init(QString s, Lexer *lxr);
     virtual void init(QString s, Lexer *lxr, void *tag);

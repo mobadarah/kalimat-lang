@@ -27,6 +27,7 @@ public:
 
     QMap<int, Token> closerFor;
     QMap<int, Token> openerFor;
+
 private:
     QStack<shared_ptr<ProceduralDecl> > varContext;
 private:

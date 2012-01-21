@@ -235,6 +235,7 @@
     <addaction name="actionCompile_without_tags"/>
     <addaction name="actionEvaluate"/>
     <addaction name="actionGo_to_position"/>
+    <addaction name="actionParse_with_recovery"/>
    </widget>
    <widget class="QMenu" name="menu">
     <property name="title">
@@ -868,6 +869,11 @@
   <action name="actionMake_exe">
    <property name="text">
     <string>عمل ملف تنفيذي...</string>
+   </property>
+  </action>
+  <action name="actionParse_with_recovery">
+   <property name="text">
+    <string>Parse with recovery</string>
    </property>
   </action>
  </widget>

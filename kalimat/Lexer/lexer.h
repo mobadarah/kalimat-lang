@@ -20,7 +20,7 @@ public:
     void init(QString s, void *tag);
     void init(QString s, void *tag, QString fileName);
 
-    void tokenize(); // Runs the state machine and keeps adding accepted tokens to a vector
+    void tokenize(bool ignoreUnexpectedChar=false); // Runs the state machine and keeps adding accepted tokens to a vector
     QVector<Token> getTokens(); // Returns all accepted tokens
 protected:
     StateMachine stateMachine;

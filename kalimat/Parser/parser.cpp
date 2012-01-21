@@ -11,11 +11,15 @@ Parser::Parser()
 {
     curToken = -1;
     tokenFormatter = NULL;
+    atStartOfFile = false;
+    withRecovery = false;
 }
 Parser::Parser(QString(*tokenFormatter)(int))
 {
     curToken = -1;
     this->tokenFormatter = tokenFormatter;
+    atStartOfFile = false;
+    withRecovery = false;
 }
 
 Parser::~Parser()
@@ -30,18 +34,38 @@ void Parser::init(QString s, Lexer *lxr)
 
 void Parser::init(QString s, Lexer *lxr, void *tag)
 {
-    lxr->init(s, tag);
-    lxr->tokenize();
+    try
+    {
+        lxr->init(s, tag);
+        lxr->tokenize(withRecovery);
+    }
+    catch(UnexpectedEndOfFileException)
+    {
+        if(!withRecovery)
+            throw;
+    }
+
     tokens = lxr->getTokens();
     curToken = -1;
+    atStartOfFile = false;
 }
 
 void Parser::init(QString s, Lexer *lxr, void *tag, QString fileName)
 {
-    lxr->init(s, tag, fileName);
-    lxr->tokenize();
+    try
+    {
+        lxr->init(s, tag, fileName);
+        lxr->tokenize(withRecovery);
+    }
+    catch(UnexpectedEndOfFileException)
+    {
+        if(!withRecovery)
+            throw;
+    }
+
     tokens = lxr->getTokens();
     curToken = -1;
+    atStartOfFile = false;
 }
 
 bool Parser::LA(TokenType tokenId)
@@ -117,6 +141,8 @@ void Parser::advanceToken()
     {
         lookAhead = tokens[curToken];
     }
+    if(curToken == 0)
+        atStartOfFile = true;
 }
 
 void Parser::initLookAhead()

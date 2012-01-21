@@ -232,12 +232,18 @@ void MainWindow::on_actionLexize_triggered()
 
 void MainWindow::on_actionParse_triggered()
 {
+
+}
+
+void MainWindow::on_actionParse_with_recovery_triggered()
+{
     KalimatLexer lxr;
     KalimatParser parser;
 
     try
     {
         ui->tabWidget->setCurrentWidget(ui->outputView);
+        parser.withRecovery = true;
         parser.init(currentEditor()->document()->toPlainText(), &lxr, NULL);
         shared_ptr<AST> tree = parser.parse();
         //ui->outputView->clear();

@@ -161,6 +161,8 @@ private slots:
     void on_actionMake_exe_triggered();
     void makeDrag();
     void on_editor_linkClicked(MyEdit *source, QString href);
+    void on_actionParse_with_recovery_triggered();
+
 protected:
      void dropEvent(QDropEvent *de);
      void dragMoveEvent(QDragMoveEvent *de);

@@ -40,7 +40,7 @@ QVector<Token> Lexer::getTokens()
     return acceptedTokens;
 }
 
-void Lexer::tokenize()
+void Lexer::tokenize(bool ignoreUnexpectedChar)
 {
     QChar c;
     State nextState;
@@ -61,12 +61,21 @@ void Lexer::tokenize()
         }
         else
         {
-            QString curChar;
-            if(buffer.eof())
-                curChar = "<EOF>";
+            if(!ignoreUnexpectedChar)
+            {
+                QString curChar;
+                if(buffer.eof())
+                    curChar = "<EOF>";
+                else
+                    curChar = QString("%1").arg(buffer.read());
+                throw UnexpectedCharException(curChar, stateMachine.GetPossibleTransitions(state), buffer.GetLine(), buffer.GetColumn(), buffer.GetPos(), state, fileName);
+            }
             else
-                curChar = QString("%1").arg(buffer.read());
-            throw UnexpectedCharException(curChar, stateMachine.GetPossibleTransitions(state), buffer.GetLine(), buffer.GetColumn(), buffer.GetPos(), state, fileName);
+            {
+                int l,c,p;
+                buffer.accept(l,c,p);
+                state = 0;
+            }
         }
         if(accepted)
         {
