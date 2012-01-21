@@ -13,6 +13,7 @@
 #include "syntaxhighlighter.h"
 #include <QMap>
 #include <QTextDocument>
+#include <QTextCursor>
 
 SyntaxHighlighter::SyntaxHighlighter(QTextDocument *parent, KalimatLexer *_lexer) :
     QSyntaxHighlighter(parent)
@@ -22,12 +23,14 @@ SyntaxHighlighter::SyntaxHighlighter(QTextDocument *parent, KalimatLexer *_lexer
     keywords.setForeground(Qt::blue);
     comments.setForeground(Qt::green);
     stringLiterals.setForeground(Qt::darkMagenta);
-
+    fileLink.setForeground(Qt::darkBlue);
+    fileLink.setUnderlineStyle(QTextCharFormat::DashUnderline);
 }
 
 void SyntaxHighlighter::highlightBlock(const QString &text)
 {
     this->lexer->init(text);
+    bool lineStart = true;
     try
     {
         lexer->tokenize();
@@ -38,10 +41,27 @@ void SyntaxHighlighter::highlightBlock(const QString &text)
            Token  t = tokens[i];
            if(t.Type>=1 && t.Type <=KEYWORD_CUTOFF)
                setFormat(t.Pos, t.Lexeme.length(), keywords);
-           else if(t.Type == STR_LITERAL)
-               setFormat(t.Pos, t.Lexeme.length(), stringLiterals);
            else if(t.Type == COMMENT)
                setFormat(t.Pos, t.Lexeme.length(), comments);
+           else if(i>0 && t.Is(STR_LITERAL) && tokens[i-1].Is(USING))
+           {
+               QTextCharFormat f;
+               f.setAnchorHref(t.Lexeme.mid(1, t.Lexeme.length()-2));
+               f.setAnchor(true);
+               f.setToolTip(
+                           QString::fromStdWString(L"اضغط لفتح الملف"));
+               f.setForeground(Qt::gray);
+               f.setUnderlineStyle(QTextCharFormat::SingleUnderline);
+               setFormat(t.Pos, t.Lexeme.length(), f);
+           }
+           else if(t.Type == STR_LITERAL)
+               setFormat(t.Pos, t.Lexeme.length(), stringLiterals);
+
+
+           if(t.Is(NEWLINE))
+               lineStart = true;
+           else
+               lineStart = false;
        }
     }
     catch(UnexpectedCharException ex)

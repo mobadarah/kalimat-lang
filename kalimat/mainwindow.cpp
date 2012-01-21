@@ -83,6 +83,7 @@ MainWindow::MainWindow(QWidget *parent)
     this->showMaximized();
 
     docContainer->addInitialEmptyDocument();
+
     stoppedRunWindow = NULL;
     atBreak = false;
     currentDebuggerProcess = NULL;
@@ -170,6 +171,9 @@ MainWindow::~MainWindow()
 QWidget *MainWindow::CreateEditorWidget()
 {
     MyEdit *edit = new MyEdit(this);
+
+    edit->connect(edit,SIGNAL(linkClickedEvent(MyEdit*,QString)), this,SLOT(on_editor_linkClicked(MyEdit*,QString)));
+
     syn = new SyntaxHighlighter(edit->document(), new KalimatLexer());
     edit->textCursor().setVisualNavigation(true);
     QFont font = edit->font();
@@ -1466,6 +1470,22 @@ void MainWindow::dragEnterEvent(QDragEnterEvent *event)
          qDebug("Error: Only Files can be dragged to this window");
 }
 
+void MainWindow::on_editor_linkClicked(MyEdit *source, QString href)
+{
+    CodeDocument *doc = docContainer->getDocumentFromWidget(source);
+    if(!doc)
+        return;
+    if(doc->isDocNewFile())
+        return;
+    QString docPath = doc->getFileName();
+    QFileInfo f = QFileInfo(docPath);
+    QString dir = f.absoluteDir().absolutePath();
+    QString linkedFile = dir + "/" + href;
+    if(!QFile::exists(linkedFile))
+        return;
+
+    docContainer->OpenOrSwitch(linkedFile);
+}
 
 bool MainWindow::eventFilter(QObject *sender, QEvent *event)
 {

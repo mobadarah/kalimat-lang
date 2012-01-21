@@ -54,6 +54,7 @@ public:
     void handleClose(QCloseEvent *ev);
     void handleTabCloseRequested(int index);
     QString OpenExistingFiles(const QStringList& fileNames);
+    void OpenOrSwitch(const QString fileName);
 
     void updateRecentFiles();
     CodeDocument *getDocumentFromTab(int index);
@@ -62,6 +63,7 @@ public:
     bool hasOpenDocument(CodeDocument *doc);
     void removeInitialEmptyDocument();
     CodeDocument *getCurrentDocument();
+    CodeDocument *getDocumentFromWidget(QWidget *w);
     bool setCurrentDocument(CodeDocument *doc);
     CodeDocument *getDocumentFromPath(QString path);
     int documentCount() { return widgetDocs.count(); }

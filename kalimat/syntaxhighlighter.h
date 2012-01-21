@@ -15,7 +15,7 @@ class SyntaxHighlighter : public QSyntaxHighlighter
 {
 Q_OBJECT
 public:
-     SyntaxHighlighter (QTextDocument *parent, KalimatLexer *);
+     SyntaxHighlighter(QTextDocument *parent, KalimatLexer *);
      void highlightToHtml(QString program, QStringList &output);
      void highlightToWiki(QString program, QStringList &output);
      void highlightLiterateHtml(QString program, QStringList &output);
@@ -29,8 +29,7 @@ public:
      QTextCharFormat keywords;
      QTextCharFormat comments;
      QTextCharFormat stringLiterals;
-
-
+     QTextCharFormat fileLink;
 
 };
 

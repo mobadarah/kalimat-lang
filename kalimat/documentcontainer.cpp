@@ -114,6 +114,15 @@ CodeDocument *DocumentContainer::getCurrentDocument()
     return widgetDocs[tabWidget->currentWidget()];
 }
 
+CodeDocument *DocumentContainer::getDocumentFromWidget(QWidget *w)
+{
+    if(tabWidget->count() == 0)
+        return NULL;
+    if(!widgetDocs.contains(w))
+        return NULL;
+    return widgetDocs[w];
+}
+
 bool DocumentContainer::setCurrentDocument(CodeDocument *doc)
 {
     tabWidget->setCurrentWidget(doc->getEditor());
@@ -326,6 +335,24 @@ void DocumentContainer::onFileTouched(QString fileName, CodeDocument *doc)
     recent.append(recentFileList);
     settings.setValue("recent_files", recent);
     updateRecentFiles();
+}
+
+void DocumentContainer::OpenOrSwitch(const QString fileName)
+{
+    // First, try to switch
+    for(int i=0; i<tabWidget->count();i++)
+    {
+        CodeDocument *doc = getDocumentFromTab(i);
+        if(!doc->isDocNewFile() &&
+                doc->getFileName() == fileName)
+        {
+            setCurrentDocument(doc);
+            return;
+        }
+    }
+    // If we reached here, we have to open
+    CodeDocument *doc = addDocument(QFileInfo(fileName).fileName(), fileName, client->CreateEditorWidget(), false);
+    client->LoadDocIntoWidget(doc, doc->getEditor());
 }
 
 // Opens an existing file, and returns the parent directory path

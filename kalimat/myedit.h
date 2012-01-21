@@ -51,10 +51,14 @@ public:
     int calculateDeindent(int by, QString lineText);
     void eraseFromBeginOfLine(LineInfo li, int toErase);
     void deindentLine(int line, int by);
+signals:
+    void linkClickedEvent(MyEdit *source, QString href);
 private slots:
     void keyPressEvent(QKeyEvent *);
+    void mousePressEvent(QMouseEvent *e);
     void textChangedEvent();
     void selectionChangedEvent();
+
 };
 
 #endif // MYEDIT_H

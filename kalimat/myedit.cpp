@@ -445,7 +445,6 @@ void MyEdit::colonBehavior(QKeyEvent *ev)
 
 void MyEdit::indentAndTerminate(LineInfo prevLine, QString termination)
 {
-
     int n = indentOfLine(prevLine);
     this->insertPlainText("\n");
     for(int i=0; i<4 + n; i++)
@@ -477,6 +476,50 @@ void MyEdit::textChangedEvent()
     lineTracker.setText(this->document()->toPlainText());
     lineTracker.lineColumnOfPos(this->textCursor().position(), _line, _column);
     owner->setLineIndicators(_line, _column);
+}
+
+void MyEdit::mousePressEvent(QMouseEvent *e)
+{
+    QTextEdit::mousePressEvent(e);
+
+    if(e->button() == Qt::LeftButton)
+    {
+        QTextCursor c = this->cursorForPosition(e->pos());
+        KalimatLexer lxr;
+        bool tokenized = false;
+        try
+        {
+            lxr.init(this->toPlainText());
+            lxr.tokenize();
+            tokenized = true;
+        }
+        catch(UnexpectedCharException ex)
+        {
+        }
+        catch(ColonUnsupportedInIdentifiersException ex)
+        {
+        }
+        catch(UnexpectedEndOfFileException ex)
+        {
+        }
+        QVector<Token> tokens = lxr.getTokens();
+        if(tokens.count() > 0)
+        {
+
+
+            for(int i=0; i<tokens.count(); i++)
+            {
+                Token &t = tokens[i];
+                if(t.Is(STR_LITERAL) && i>0 && tokens[i-1].Is(USING)
+                   && c.position()>=t.Pos
+                   && c.position() < (t.Pos + t.Lexeme.length()))
+                {
+                    linkClickedEvent(this, t.Lexeme.mid(1, t.Lexeme.length()-2));
+                    break;
+                }
+            }
+        }
+    }
 }
 
 void MyEdit::selectionChangedEvent()
