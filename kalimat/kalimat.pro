@@ -95,16 +95,16 @@ HEADERS += mainwindow.h \
     ../smallvm/runtime/guicontrols.h \
     ../smallvm/codedocument.h \
     Parser/astreifier.h \
-    Parser/kalimatast/toplevel.h \
-    Parser/kalimatast/statement.h \
-    Parser/kalimatast/typeexpression.h \
-    Parser/kalimatast/expression.h \
-    Parser/kalimatast/declaration.h \
-    Parser/kalimatast/pattern.h \
-    Parser/kalimatast/formatmaker.h \
+    Parser/KalimatAst/toplevel.h \
+    Parser/KalimatAst/statement.h \
+    Parser/KalimatAst/typeexpression.h \
+    Parser/KalimatAst/expression.h \
+    Parser/KalimatAst/declaration.h \
+    Parser/KalimatAst/pattern.h \
+    Parser/KalimatAst/formatmaker.h \
     Parser/KalimatAst/kalimatast.h \
-    Parser/kalimatast/kalimatast_incl.h \
-    Parser/kalimatast/rules.h \
+    Parser/KalimatAst/kalimatast_incl.h \
+    Parser/KalimatAst/rules.h \
     Parser/KalimatParserError.h \
     Parser/parserexception.h
 

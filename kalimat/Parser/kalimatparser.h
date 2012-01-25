@@ -41,6 +41,7 @@ private:
     bool LA_first_method_declaration();
     bool LA_first_assignment_or_invokation();
     bool LA_first_typeExpression();
+    bool LA_first_primary_peg_expression();
 
     shared_ptr<AST> program();
 
@@ -84,6 +85,7 @@ private:
     shared_ptr<Declaration> rulesDecl();
     shared_ptr<RuleDecl> ruleDecl();
     shared_ptr<PegExpr> pegExpr();
+    shared_ptr<PegExpr> primaryPegExpression();
 
     shared_ptr<FFIProceduralDecl> ffiFunctionDecl();
     shared_ptr<FFIProceduralDecl> ffiProcDecl();

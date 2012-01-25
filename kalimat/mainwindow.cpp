@@ -9,7 +9,7 @@
 #include "Lexer/kalimatlexer.h"
 
 #include "Parser/parser_incl.h"
-#include "Parser/kalimatast/kalimatast_incl.h"
+#include "Parser/KalimatAst/kalimatast_incl.h"
 #include "Parser/kalimatparser.h"
 #include "../smallvm/codedocument.h"
 #include "Compiler/codegenerator.h"
@@ -232,7 +232,30 @@ void MainWindow::on_actionLexize_triggered()
 
 void MainWindow::on_actionParse_triggered()
 {
+    KalimatLexer lxr;
+    KalimatParser parser;
 
+    try
+    {
+        ui->tabWidget->setCurrentWidget(ui->outputView);
+        parser.init(currentEditor()->document()->toPlainText(), &lxr, NULL);
+        shared_ptr<AST> tree = parser.parse();
+        //ui->outputView->clear();
+        ui->outputView->append(tree->toString());
+    }
+    catch(UnexpectedCharException ex)
+    {
+        ui->outputView->append(ex.buildMessage());
+    }
+    catch(UnexpectedEndOfFileException ex)
+    {
+        ui->outputView->append("Unexpected end of file");
+    }
+    catch(ParserException ex)
+    {
+        QString msg = translateParserError(ex);
+        ui->outputView->append(msg);
+    }
 }
 
 void MainWindow::on_actionParse_with_recovery_triggered()

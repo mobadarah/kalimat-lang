@@ -7,7 +7,7 @@
 
 #include "parser_incl.h"
 #include "../Lexer/kalimatlexer.h"
-#include "kalimatast/kalimatast_incl.h"
+#include "KalimatAst/kalimatast_incl.h"
 #include "kalimatparser.h"
 
 #include "../mainwindow.h" // temp todo: remove
@@ -1499,6 +1499,7 @@ shared_ptr<Declaration> KalimatParser::ffiLibraryDecl()
 
 shared_ptr<Declaration> KalimatParser::rulesDecl()
 {
+    QVector<shared_ptr<RuleDecl> > subRules;
     match(RULES);
     shared_ptr<Identifier> ruleName = identifier();
     match(COLON);
@@ -1507,9 +1508,15 @@ shared_ptr<Declaration> KalimatParser::rulesDecl()
     while(LA(IDENTIFIER))
     {
         shared_ptr<RuleDecl> rd = ruleDecl();
+        subRules.append(rd);
         newLines();
     }
     match(END);
+    return shared_ptr<Declaration>
+            (new RulesDecl(ruleName->getPos(),
+                           ruleName,
+                           subRules,
+                           true));
 }
 
 shared_ptr<RuleDecl> KalimatParser::ruleDecl()
@@ -1530,13 +1537,15 @@ shared_ptr<RuleDecl> KalimatParser::ruleDecl()
     options.append(shared_ptr<RuleOption>(new RuleOption(expr, resultExpr)));
     while(LA(OR))
     {
+        match(OR);
         expr = pegExpr();
+        shared_ptr<Expression> _resultExpr;
         if(LA(ROCKET))
         {
             match(ROCKET);
-            resultExpr = expression();
+            _resultExpr = expression();
         }
-        options.append(shared_ptr<RuleOption>(new RuleOption(expr, resultExpr)));
+        options.append(shared_ptr<RuleOption>(new RuleOption(expr, _resultExpr)));
         match(NEWLINE);
         newLines();
     }
@@ -1545,7 +1554,37 @@ shared_ptr<RuleDecl> KalimatParser::ruleDecl()
 
 shared_ptr<PegExpr> KalimatParser::pegExpr()
 {
-    identifier();
+    shared_ptr<PegExpr> ret = primaryPegExpression();
+    if(LA_first_primary_peg_expression())
+    {
+        QVector<shared_ptr<PegExpr> > seqElements;
+        seqElements.append(ret);
+        while(LA_first_primary_peg_expression())
+        {
+            seqElements.append(primaryPegExpression());
+        }
+        ret = shared_ptr<PegExpr>(new PegSequence(ret->getPos(),
+                                                  seqElements));
+    }
+    return ret;
+}
+
+bool KalimatParser::LA_first_primary_peg_expression()
+{
+    return LA(IDENTIFIER);
+}
+
+shared_ptr<PegExpr> KalimatParser::primaryPegExpression()
+{
+    shared_ptr<Identifier> ruleName = identifier();
+    shared_ptr<Identifier> varName;
+    if(LA(COLON))
+    {
+        match(COLON);
+        varName = identifier();
+    }
+    return shared_ptr<PegExpr>(
+               new PegRuleInvokation(ruleName->getPos(), varName, ruleName));
 }
 
 shared_ptr<FFIProceduralDecl> KalimatParser::ffiFunctionDecl()

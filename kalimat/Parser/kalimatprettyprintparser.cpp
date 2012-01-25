@@ -129,6 +129,7 @@ bool KalimatPrettyprintParser::is_indentation_starter(LinePP *line, QString &end
 {
     int libraryDecl[] = { LIBRARY, STR_LITERAL, COLON };
     int classDecl[] = { CLASS, IDENTIFIER, COLON };
+    int rulesDecl[] = { RULES, IDENTIFIER, COLON };
     int ifStmtStart[] = { IF }, ifStmtEnd[] = { COLON };
     int forStmtStart[] = { FORALL }, forStmtEnd[] = { COLON };
     int whileStmtStart[] = { WHILE }, whileStmtEnd[] = { COLON };
@@ -139,6 +140,7 @@ bool KalimatPrettyprintParser::is_indentation_starter(LinePP *line, QString &end
     int replyDeclStart[] = { REPLYOF, IDENTIFIER, IDENTIFIER }, replyDeclEnd[] = { RPAREN, COLON };
 
     if(line->tokensEqual(classDecl, 3) ||
+       line->tokensEqual(rulesDecl, 3) ||
        line->tokensEqual(libraryDecl, 3) ||
        line->tokensBeginEnd(procDeclStart, procDeclEnd, 3, 2) ||
        line->tokensBeginEnd(funcDeclStart, funcDeclEnd, 3, 2) ||

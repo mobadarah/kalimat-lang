@@ -2,7 +2,7 @@
 #define ASTREIFIER_H
 
 #ifndef VALUE_H
-    #include "kalimatast/kalimatast_incl.h"
+    #include "KalimatAst/kalimatast_incl.h"
     #include "../smallvm/value.h"
     #include "../smallvm/allocator.h"
 #endif

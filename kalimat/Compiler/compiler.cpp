@@ -8,7 +8,7 @@
 #include "Lexer/lexer_incl.h"
 #include "Lexer/kalimatlexer.h"
 #include "Parser/parser_incl.h"
-#include "Parser/kalimatast/kalimatast_incl.h"
+#include "Parser/KalimatAst/kalimatast_incl.h"
 #include "Parser/kalimatparser.h"
 #include "../../smallvm/codedocument.h"
 #include "documentcontainer.h"

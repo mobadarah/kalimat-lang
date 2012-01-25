@@ -1107,6 +1107,68 @@ QString FFIStructDecl::toString()
     return QString("ffiStruct(%1,%2)").arg(name()->toString()).arg(strs.join(", "));
 }
 
+RulesDecl::RulesDecl(Token pos,
+                     shared_ptr<Identifier> name,
+                     QVector<shared_ptr<RuleDecl> > subRules,
+                     bool isPublic)
+    :Declaration(pos, isPublic),
+      _ruleName(name),
+      _subRules(subRules)
+{
+
+}
+
+QString RulesDecl::toString()
+{
+    QStringList lst;
+    lst.append(_ws(L"قواعد"));
+    lst.append("(");
+    lst.append(this->name()->toString());
+    lst.append(", ");
+    for(int i=0; i<subRuleCount(); i++)
+    {
+        shared_ptr<RuleDecl> r = subRule(i);
+        lst.append(r->ruleName);
+        lst.append("=[");
+
+        for(int j=0; j<r->options.count(); j++)
+        {
+            if(j>0)
+            {
+                lst.append("|");
+            }
+            shared_ptr<RuleOption> ro = r->options[j];
+            lst.append(ro->expression()->toString());
+            if(ro->resultExpr())
+            {
+                lst.append(" => ");
+                lst.append(ro->resultExpr()->toString());
+            }
+            lst.append(", ");
+        }
+        lst.append("]");
+    }
+    lst.append(")");
+    return lst.join("");
+}
+
+QString PegRuleInvokation::toString()
+{
+    return QString("%1%2")
+            .arg(ruleName()->toString())
+            .arg(associatedVar()?
+                     QString(":%1").arg(associatedVar()->toString())
+                   :"");
+}
+
+QString PegSequence::toString()
+{
+    QStringList lst;
+    for(int i=0; i<elementCount(); i++)
+        lst.append(element(i)->toString());
+    return lst.join(" ");
+}
+
 ClassDecl::ClassDecl(Token pos,
                      shared_ptr<Identifier> name,
                      QVector<shared_ptr<Identifier > >fields,
@@ -2002,6 +2064,61 @@ void FFIStructDecl::prettyPrint(CodeFormatter *f)
     f->deindent();
     f->printKw(L"نهاية");
     f->nl(); // for extra neatness, add an empty line after definitions
+}
+
+void RulesDecl::prettyPrint(CodeFormatter *f)
+{
+    f->printKw(L"قواعد");
+    this->name()->prettyPrint(f);
+    f->colon();
+    f->nl();
+    f->indent();
+    for(int i=0; i<subRuleCount(); i++)
+    {
+        shared_ptr<RuleDecl> r = subRule(i);
+        f->print(r->ruleName);
+        f->space();
+        f->print("=");
+        f->space();
+        for(int j=0; j<r->options.count(); j++)
+        {
+            if(j>0)
+            {
+                f->printKw(L"أو");
+            }
+            shared_ptr<RuleOption> ro = r->options[j];
+            ro->expression()->prettyPrint(f);
+            if(ro->resultExpr())
+            {
+                f->space();
+                f->print("=>");
+                f->space();
+                ro->resultExpr()->prettyPrint(f);
+            }
+            f->nl();
+        }
+        f->nl();
+        if(i+1 < subRuleCount())
+            f->nl();
+    }
+    f->deindent();
+    f->printKw(L"نهاية");
+    f->nl(); // for extra neatness, add an empty line after definitions
+}
+
+void PegSequence::prettyPrint(CodeFormatter *f)
+{
+    spaceSep(mapFmt(this->elements)).run(f);
+}
+
+void PegRuleInvokation::prettyPrint(CodeFormatter *f)
+{
+    this->ruleName()->prettyPrint(f);
+    if(this->associatedVar())
+    {
+        f->print(":");
+        this->associatedVar()->prettyPrint(f);
+    }
 }
 
 void Has::prettyPrint(CodeFormatter *f)

@@ -8,7 +8,7 @@
 #include "../Lexer/token.h"
 #include "../Parser/codeformatter.h"
 #include "../Parser/ast.h"
-#include "../Parser/kalimatast/kalimatast_incl.h"
+#include "../Parser/KalimatAst/kalimatast_incl.h"
 #include "../smallvm/codedocument.h"
 #include "codeposition.h"
 #include "codegenhelper.h"
