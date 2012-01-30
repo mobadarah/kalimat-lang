@@ -1571,20 +1571,36 @@ shared_ptr<PegExpr> KalimatParser::pegExpr()
 
 bool KalimatParser::LA_first_primary_peg_expression()
 {
-    return LA(IDENTIFIER);
+    return LA(IDENTIFIER) || LA(STR_LITERAL);
 }
 
 shared_ptr<PegExpr> KalimatParser::primaryPegExpression()
 {
-    shared_ptr<Identifier> ruleName = identifier();
-    shared_ptr<Identifier> varName;
-    if(LA(COLON))
+    if(LA(IDENTIFIER))
     {
-        match(COLON);
-        varName = identifier();
+        shared_ptr<Identifier> ruleName = identifier();
+        shared_ptr<Identifier> varName;
+        if(LA(COLON))
+        {
+            match(COLON);
+            varName = identifier();
+        }
+        return shared_ptr<PegExpr>(
+                   new PegRuleInvokation(ruleName->getPos(), varName, ruleName));
     }
-    return shared_ptr<PegExpr>(
-               new PegRuleInvokation(ruleName->getPos(), varName, ruleName));
+    else if(LA(STR_LITERAL))
+    {
+        shared_ptr<StrLiteral> lit =
+                dynamic_pointer_cast<StrLiteral>(simpleLiteral());
+        shared_ptr<Identifier> varName;
+        if(LA(COLON))
+        {
+            match(COLON);
+            varName = identifier();
+        }
+        return shared_ptr<PegExpr>(
+                   new PegLiteral(lit->getPos(), varName, lit));
+    }
 }
 
 shared_ptr<FFIProceduralDecl> KalimatParser::ffiFunctionDecl()

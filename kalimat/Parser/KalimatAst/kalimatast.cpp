@@ -2121,6 +2121,16 @@ void PegRuleInvokation::prettyPrint(CodeFormatter *f)
     }
 }
 
+void PegLiteral::prettyPrint(CodeFormatter *f)
+{
+    this->value()->prettyPrint(f);
+    if(this->associatedVar())
+    {
+        f->print(":");
+        this->associatedVar()->prettyPrint(f);
+    }
+}
+
 void Has::prettyPrint(CodeFormatter *f)
 {
     f->printKw(L"له");

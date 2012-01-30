@@ -3,6 +3,7 @@
 
 #include "kalimatast.h"
 #include "declaration.h"
+#include "expression.h"
 
 class PegExpr : public KalimatAst
 {
@@ -32,6 +33,7 @@ public:
     void prettyPrint(CodeFormatter *);
     QString toString();
 };
+
 /*
 class PegOr : public PegExpr
 {
@@ -76,6 +78,23 @@ public:
     shared_ptr<Identifier> ruleName() { return _ruleName;}
     void prettyPrint(CodeFormatter *);
     QString toString();
+};
+
+class PegLiteral : public PegPrimary
+{
+    shared_ptr<StrLiteral> _value;
+public:
+    PegLiteral(Token pos,
+                      shared_ptr<Identifier> associatedVar,
+                      shared_ptr<StrLiteral> _value)
+        : PegPrimary(pos, associatedVar),
+          _value(_value)
+    {
+
+    }
+    shared_ptr<StrLiteral> value() { return _value;}
+    void prettyPrint(CodeFormatter *);
+    QString toString() { return _value->toString(); }
 };
 
 class RuleOption
