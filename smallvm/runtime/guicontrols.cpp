@@ -325,7 +325,13 @@ Value *WindowForeignClass::dispatch(int id, QVector<Value *> args)
             if(c)
                 c->move(c->x() - wdiff, c->y());
         }
+
+        // make it so resizing make the righ side fixed, not
+        // left side
+        int left = widget->pos().x() + widget->width() - w;
+        int top = widget->pos().y();
         widget->setFixedSize(w, h);
+        widget->move(left, top);
         return NULL;
     }
     if(id == 4)

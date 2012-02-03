@@ -728,6 +728,9 @@
    </property>
   </action>
   <action name="actionSpeedSuper">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
    <property name="text">
     <string>خارق</string>
    </property>

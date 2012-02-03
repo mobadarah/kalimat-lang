@@ -9,6 +9,7 @@
 #include "Lexer/lexer_incl.h"
 #include "Lexer/kalimatlexer.h"
 #include "mainwindow.h"
+#include "linenumberarea.h"
 
 #include <QComboBox>
 
@@ -48,6 +49,113 @@ MyEdit::MyEdit(MainWindow *owner) : QTextEdit()
     setRtl();
     lastInputChar = "";
     _line = _column = 0;
+
+    lineNumberArea = new LineNumberArea(this);
+
+    connect(this, SIGNAL(blockCountChanged(int)), this, SLOT(updateLineNumberAreaWidth(int)));
+    //connect(this, SIGNAL(updateRequest(QRect,int)), this, SLOT(updateLineNumberArea(QRect,int)));
+    connect(this, SIGNAL(cursorPositionChanged()), this, SLOT(highlightCurrentLine()));
+
+    updateLineNumberAreaWidth(0);
+    highlightCurrentLine();
+}
+
+int MyEdit::lineNumberAreaWidth()
+{
+    int digits = 1;
+    int max = qMax(1, this->document()->blockCount());
+    while (max >= 10) {
+        max /= 10;
+        ++digits;
+    }
+
+    int space = 4 + fontMetrics().width(QLatin1Char('9')) * digits;
+    return space;
+}
+
+void MyEdit::updateLineNumberAreaWidth(int /* newBlockCount */)
+{
+    LineNumberArea *lna = dynamic_cast<LineNumberArea *>(lineNumberArea);
+    setViewportMargins(0, 0, lna->getWidth(), 0);
+}
+
+void MyEdit::updateLineNumberArea(const QRect &rect, int dy)
+{
+    LineNumberArea *lna = dynamic_cast<LineNumberArea *>(lineNumberArea);
+    if (dy)
+        lineNumberArea->scroll(0, dy);
+    else
+        lineNumberArea->update(0, rect.y(), lna->getWidth(), rect.height());
+
+    if (rect.contains(viewport()->rect()))
+        updateLineNumberAreaWidth(0);
+}
+
+void MyEdit::resizeEvent(QResizeEvent *e)
+{
+    QTextEdit::resizeEvent(e);
+    LineNumberArea *lna = dynamic_cast<LineNumberArea *>(lineNumberArea);
+    QRect cr = contentsRect();
+    lineNumberArea->setGeometry(QRect(width() - lna->getWidth()+3,
+                                      cr.top(),
+                                      lna->getWidth(),
+                                      cr.height()));
+}
+
+void MyEdit::highlightCurrentLine()
+{
+    QList<QTextEdit::ExtraSelection> extraSelections;
+
+    if (!isReadOnly()) {
+
+        /*
+        QTextEdit::ExtraSelection selection;
+
+        QColor lineColor = QColor(Qt::lightGray).lighter(100);
+
+        selection.format.setBackground(lineColor);
+        selection.format.setProperty(QTextFormat::FullWidthSelection, true);
+        selection.cursor = textCursor();
+        selection.cursor.clearSelection();
+        extraSelections.append(selection);
+        */
+        lineNumberArea->update();
+    }
+
+    setExtraSelections(extraSelections);
+}
+
+void MyEdit::lineNumberAreaPaintEvent(QPaintEvent *event)
+{
+    /*
+    QPainter painter(lineNumberArea);
+    painter.fillRect(event->rect(), Qt::lightGray);
+
+    QTextBlock block = document()->firstBlock();
+    int blockNumber = block.blockNumber();
+    QTextCursor c = this->textCursor();
+
+    int contents_y = verticalScrollBar()->value();
+    int contents_x = horizontalScrollBar()->value();
+    int top = (int) blockBoundingGeometry(block).
+            translated(contents_x,contents_y).top();
+    int bottom = top + (int) blockBoundingR(block).height();
+
+    while (block.isValid() && top <= event->rect().bottom()) {
+        if (block.isVisible() && bottom >= event->rect().top()) {
+            QString number = QString::number(blockNumber + 1);
+            painter.setPen(Qt::black);
+            painter.drawText(0, top, lineNumberArea->width(), fontMetrics().height(),
+                             Qt::AlignRight, number);
+        }
+
+        block = block.next();
+        top = bottom;
+        bottom = top + (int) blockBoundingRect(block).height();
+        ++blockNumber;
+    }
+    */
+
 }
 
 void MyEdit::setRtl()
@@ -68,7 +176,7 @@ void MyEdit::keyPressEvent(QKeyEvent *ev)
     }
     else if(ev->key() == Qt::Key_Backtab)
     {
-         shiftTabBehavior();
+        shiftTabBehavior();
     }
     else if(ev->key() == Qt::Key_Return)
     {
@@ -298,13 +406,13 @@ void MyEdit::enterKeyBehavior(QKeyEvent *ev)
     if(endOfLine)
     {
         if(insertEnding && (tokensEqual(toks, classDecl, 3) ||
-                             tokensEqual(toks, rulesDecl, 3) ||
-           tokensEqual   (toks, libraryDecl, 3) ||
-           tokensBeginEnd(toks, procDeclStart, procDeclEnd, 3, 2) ||
-           tokensBeginEnd(toks, funcDeclStart, funcDeclEnd, 3, 2) ||
-           tokensBeginEnd(toks, responseDeclStart, responseDeclEnd, 3, 2) ||
-           tokensBeginEnd(toks, replyDeclStart, replyDeclEnd, 3, 2))
-           )
+                            tokensEqual(toks, rulesDecl, 3) ||
+                            tokensEqual   (toks, libraryDecl, 3) ||
+                            tokensBeginEnd(toks, procDeclStart, procDeclEnd, 3, 2) ||
+                            tokensBeginEnd(toks, funcDeclStart, funcDeclEnd, 3, 2) ||
+                            tokensBeginEnd(toks, responseDeclStart, responseDeclEnd, 3, 2) ||
+                            tokensBeginEnd(toks, replyDeclStart, replyDeclEnd, 3, 2))
+                )
         {
             indented = true;
             indentAndTerminate(li, QString::fromStdWString(L"نهاية"));
@@ -333,7 +441,7 @@ void MyEdit::enterKeyBehavior(QKeyEvent *ev)
                 insertPlainText(" ");
         }
         else if(insertEnding && (tokensBeginEnd(toks, forStmtStart, forStmtEnd, 1,1) ||
-                tokensBeginEnd(toks, whileStmtStart, whileStmtEnd, 1,1)))
+                                 tokensBeginEnd(toks, whileStmtStart, whileStmtEnd, 1,1)))
         {
             indented = true;
             indentAndTerminate(li, QString::fromStdWString(L"تابع"));
@@ -418,11 +526,11 @@ void MyEdit::colonBehavior(QKeyEvent *ev)
         if(endOfLine)
         {
             if(tokensBeginEnd(toks, elseIfStart, elseIfEnd, 2, 1) ||
-               tokensEqual(toks, elsePart, 2) ||
-                tokensBeginEnd(toks, selectSendBegin, selectSendEnd, 1, 1) ||
-                tokensBeginEnd(toks, orSendBegin, orSendEnd, 2, 1) ||
-                tokensBeginEnd(toks, selectRecvBegin, selectRecvEnd, 1, 1) ||
-                tokensBeginEnd(toks, orRecvBegin, orRecvEnd, 2, 1))
+                    tokensEqual(toks, elsePart, 2) ||
+                    tokensBeginEnd(toks, selectSendBegin, selectSendEnd, 1, 1) ||
+                    tokensBeginEnd(toks, orSendBegin, orSendEnd, 2, 1) ||
+                    tokensBeginEnd(toks, selectRecvBegin, selectRecvEnd, 1, 1) ||
+                    tokensBeginEnd(toks, orRecvBegin, orRecvEnd, 2, 1))
             {
                 int toErase = calculateDeindent(4, txt);
                 eraseFromBeginOfLine(li, toErase);
@@ -513,8 +621,8 @@ void MyEdit::mousePressEvent(QMouseEvent *e)
             {
                 Token &t = tokens[i];
                 if(t.Is(STR_LITERAL) && i>0 && tokens[i-1].Is(USING)
-                   && c.position()>=t.Pos
-                   && c.position() < (t.Pos + t.Lexeme.length()))
+                        && c.position()>=t.Pos
+                        && c.position() < (t.Pos + t.Lexeme.length()))
                 {
                     linkClickedEvent(this, t.Lexeme.mid(1, t.Lexeme.length()-2));
                     break;

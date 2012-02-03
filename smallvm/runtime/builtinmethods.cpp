@@ -43,7 +43,7 @@ using namespace std;
 void PrintProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 {
     if(stack.empty())
-        vm->signal(InternalError);
+        vm->signal(InternalError1, "Empty operand stack when reading value to in 'print'");
     Value *v = stack.pop();
     QString str = v->toString();
     w->textLayer.print(str);
@@ -472,7 +472,7 @@ int popIntOrCoercable(QStack<Value *> &stack, RunWindow *w, VM *vm)
 {
     if(stack.empty())
     {
-        vm->signal(InternalError, "Empty operand stack when reading value");
+        vm->signal(InternalError1, "Empty operand stack when reading value");
     }
     Value *v = stack.pop();
     if(v->tag != Int && v->tag != Double && v->tag != Long)
@@ -491,7 +491,7 @@ double popDoubleOrCoercable(QStack<Value *> &stack, RunWindow *w, VM *vm)
 {
     if(stack.empty())
     {
-        vm->signal(InternalError);
+        vm->signal(InternalError1, "Empty operand stack when reading double or double-coercible value");
     }
     Value *v = stack.pop();
     if(v->tag != Int && v->tag != Double && v->tag != Long)
@@ -509,7 +509,7 @@ void verifyStackNotEmpty(QStack<Value *> &stack, VM *vm)
 {
     if(stack.empty())
     {
-        vm->signal(InternalError);
+        vm->signal(InternalError1, "Empty operand stack");
     }
 }
 

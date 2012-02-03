@@ -18,6 +18,8 @@ void Channel::send(Value *v, Process *proc)
         recv_q.pop_front();
         receiver->stack.top().OperandStack.push(v);
         receiver->awaken();
+        if(proc)
+            proc->successfullSelect(this);
         receiver->successfullSelect(this);
     }
     else
@@ -33,7 +35,7 @@ void Channel::send(Value *v, Process *proc)
 
 bool Channel::canReceive()
 {
-    return !recv_q.empty();
+    return !send_q.empty();
 }
 
 void Channel::receive(Process *proc)
@@ -45,6 +47,8 @@ void Channel::receive(Process *proc)
         Value *v = data[sender];
         proc->stack.top().OperandStack.push(v);
         sender->awaken();
+        if(proc)
+            proc->successfullSelect(this);
         sender->successfullSelect(this);
     }
     else

@@ -406,7 +406,7 @@ int VM::popIntOrCoercedDouble()
 {
     QStack<Value *> &stack = currentFrame()->OperandStack;
     if(stack.empty())
-        this->signal(InternalError);
+        this->signal(InternalError1, "Empty operand stack when reading integer or integer-coercible value");
     Value *v = stack.top();
     if(v->tag != Int && v->tag != Double)
         this->signal(TypeError2, QString::fromStdWString(L"عدد"), v->type->getName());
@@ -423,7 +423,7 @@ double VM::popDoubleOrCoercedInt()
 {
     QStack<Value *> &stack = currentFrame()->OperandStack;
     if(stack.empty())
-        this->signal(InternalError);
+        this->signal(InternalError1, "Empty operand stack when reading value in 'popDoubleOrCoercedInt'");
     Value *v = stack.top();
     if(v->tag != Int && v->tag != Double)
         this->signal(TypeError2, QString::fromStdWString(L"عدد"), v->type->getName());
@@ -1260,7 +1260,7 @@ void VM::DoPushConstant(QString SymRef)
 void VM::DoPopLocal(QString SymRef)
 {
     if(currentFrame()->OperandStack.empty())
-        signal(InternalError);
+        signal(InternalError1, "Empty operand stack when reading value in 'popl'");
     Value *v = currentFrame()->OperandStack.pop();
     currentFrame()->Locals[SymRef] = v;
 }
@@ -1268,7 +1268,7 @@ void VM::DoPopLocal(QString SymRef)
 void VM::DoPopGlobal(QString SymRef)
 {
     if(currentFrame()->OperandStack.empty())
-        signal(InternalError);
+        signal(InternalError1, "Empty operand stack when reading value in 'popg'");
     Value *v = currentFrame()->OperandStack.pop();
     globalFrame().Locals[SymRef] = v;
 }
@@ -1635,7 +1635,11 @@ void VM::DoRet()
         if(toReturn == 1 && currentFrame()->OperandStack.empty())
             signal(FunctionDidntReturnAValue);
         else if(toReturn != currentFrame()->OperandStack.count())
-            signal(InternalError);
+            signal(InternalError1,
+                   QString("Values left on stack (%1) do not match declared return value count (%2) for method '%3'")
+                   .arg(currentFrame()->OperandStack.count())
+                   .arg(toReturn)
+                   .arg(currentFrame()->currentMethod->getName()));
     }
     if(currentFrame()->OperandStack.count()==1)
         v = currentFrame()->OperandStack.pop();
