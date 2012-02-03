@@ -6,20 +6,13 @@
 
 class LineNumberArea : public QWidget
 {
+public:
     int highest_line;
 public:
-    LineNumberArea(MyEdit *editor) : QWidget(editor)
-    {
-        edit = editor;
-        // This is used to update the width of the control.
-        // It is the highest line that is currently visibile.
-        highest_line = 0;
-    }
+    LineNumberArea(MyEdit *editor);
 
-    void setTextEdit(MyEdit *edit)
-    {
-        this->edit = edit;
-    }
+    void setTextEdit(MyEdit *edit);
+    void setFontPointSize(int f);
     void update(const QRect &);
     int getWidth();
    /* QSize sizeHint() const {

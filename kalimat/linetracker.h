@@ -31,6 +31,7 @@ public:
     int lineFromPos(int pos);
     int posFromLineColumn(int line, int column);
     void linesFromTo(int pos1, int pos2, int &lineFrom, int &lineTo);
+    int lineCount() { return lineStartPositions.count();}
     LineInfo line(int i);
 };
 

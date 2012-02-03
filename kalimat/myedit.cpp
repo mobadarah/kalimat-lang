@@ -44,70 +44,62 @@ bool isAfterArabicNumber(QTextEdit *edit)
 MyEdit::MyEdit(MainWindow *owner) : QTextEdit()
 {
     this->owner = owner;
+    lineNumberArea = new LineNumberArea(this);
+
     connect(this, SIGNAL(textChanged()), SLOT(textChangedEvent()));
     connect(this,  SIGNAL(cursorPositionChanged()), SLOT(selectionChangedEvent()));
     setRtl();
     lastInputChar = "";
     _line = _column = 0;
 
-    lineNumberArea = new LineNumberArea(this);
-
-    connect(this, SIGNAL(blockCountChanged(int)), this, SLOT(updateLineNumberAreaWidth(int)));
-    //connect(this, SIGNAL(updateRequest(QRect,int)), this, SLOT(updateLineNumberArea(QRect,int)));
-    connect(this, SIGNAL(cursorPositionChanged()), this, SLOT(highlightCurrentLine()));
-
     updateLineNumberAreaWidth(0);
     highlightCurrentLine();
 }
 
-int MyEdit::lineNumberAreaWidth()
+void MyEdit::updateLineNumberAreaFont()
 {
-    int digits = 1;
-    int max = qMax(1, this->document()->blockCount());
-    while (max >= 10) {
-        max /= 10;
-        ++digits;
-    }
-
-    int space = 4 + fontMetrics().width(QLatin1Char('9')) * digits;
-    return space;
+    LineNumberArea *lna = dynamic_cast<LineNumberArea *>(lineNumberArea);
+    lna->setFontPointSize(this->font().pointSize() - 3);
 }
 
 void MyEdit::updateLineNumberAreaWidth(int /* newBlockCount */)
 {
     LineNumberArea *lna = dynamic_cast<LineNumberArea *>(lineNumberArea);
+
     setViewportMargins(0, 0, lna->getWidth(), 0);
+    QRect cr = contentsRect();
+    lineNumberArea->setGeometry(QRect(width() - lna->getWidth(),
+                                      cr.top(),
+                                      lna->getWidth(),
+                                      cr.height()));
+    lna->update(lna->rect());
 }
 
-void MyEdit::updateLineNumberArea(const QRect &rect, int dy)
+void MyEdit::updateLineNumberArea(int lineCount)
 {
     LineNumberArea *lna = dynamic_cast<LineNumberArea *>(lineNumberArea);
-    if (dy)
-        lineNumberArea->scroll(0, dy);
-    else
-        lineNumberArea->update(0, rect.y(), lna->getWidth(), rect.height());
-
-    if (rect.contains(viewport()->rect()))
-        updateLineNumberAreaWidth(0);
+    lna->highest_line = lineCount;
+    updateLineNumberAreaWidth(0);
 }
 
 void MyEdit::resizeEvent(QResizeEvent *e)
 {
     QTextEdit::resizeEvent(e);
-    LineNumberArea *lna = dynamic_cast<LineNumberArea *>(lineNumberArea);
-    QRect cr = contentsRect();
-    lineNumberArea->setGeometry(QRect(width() - lna->getWidth()+3,
-                                      cr.top(),
-                                      lna->getWidth(),
-                                      cr.height()));
+    updateLineNumberAreaWidth(0);
+}
+
+void MyEdit::paintEvent(QPaintEvent *e)
+{
+    QTextEdit::paintEvent(e);
+    updateLineNumberArea(lineTracker.lineCount());
 }
 
 void MyEdit::highlightCurrentLine()
 {
-    QList<QTextEdit::ExtraSelection> extraSelections;
+    //QList<QTextEdit::ExtraSelection> extraSelections;
 
-    if (!isReadOnly()) {
-
+    //if (!isReadOnly())
+    {
         /*
         QTextEdit::ExtraSelection selection;
 
@@ -119,43 +111,10 @@ void MyEdit::highlightCurrentLine()
         selection.cursor.clearSelection();
         extraSelections.append(selection);
         */
-        lineNumberArea->update();
+        //lineNumberArea->update();
     }
 
-    setExtraSelections(extraSelections);
-}
-
-void MyEdit::lineNumberAreaPaintEvent(QPaintEvent *event)
-{
-    /*
-    QPainter painter(lineNumberArea);
-    painter.fillRect(event->rect(), Qt::lightGray);
-
-    QTextBlock block = document()->firstBlock();
-    int blockNumber = block.blockNumber();
-    QTextCursor c = this->textCursor();
-
-    int contents_y = verticalScrollBar()->value();
-    int contents_x = horizontalScrollBar()->value();
-    int top = (int) blockBoundingGeometry(block).
-            translated(contents_x,contents_y).top();
-    int bottom = top + (int) blockBoundingR(block).height();
-
-    while (block.isValid() && top <= event->rect().bottom()) {
-        if (block.isVisible() && bottom >= event->rect().top()) {
-            QString number = QString::number(blockNumber + 1);
-            painter.setPen(Qt::black);
-            painter.drawText(0, top, lineNumberArea->width(), fontMetrics().height(),
-                             Qt::AlignRight, number);
-        }
-
-        block = block.next();
-        top = bottom;
-        bottom = top + (int) blockBoundingRect(block).height();
-        ++blockNumber;
-    }
-    */
-
+    //setExtraSelections(extraSelections);
 }
 
 void MyEdit::setRtl()
@@ -583,8 +542,10 @@ void MyEdit::deindentLine(int line, int by)
 
 void MyEdit::textChangedEvent()
 {
+
     lineTracker.setText(this->document()->toPlainText());
     lineTracker.lineColumnOfPos(this->textCursor().position(), _line, _column);
+    updateLineNumberArea(lineTracker.lineCount());
     owner->setLineIndicators(_line, _column);
 }
 
@@ -635,6 +596,7 @@ void MyEdit::mousePressEvent(QMouseEvent *e)
 void MyEdit::selectionChangedEvent()
 {
     lineTracker.lineColumnOfPos(this->textCursor().position(), _line, _column);
+    updateLineNumberArea(lineTracker.lineCount());
     owner->setLineIndicators(_line, _column);
 }
 

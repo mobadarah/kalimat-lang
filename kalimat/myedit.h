@@ -51,9 +51,7 @@ public:
     int calculateDeindent(int by, QString lineText);
     void eraseFromBeginOfLine(LineInfo li, int toErase);
     void deindentLine(int line, int by);
-
-    void lineNumberAreaPaintEvent(QPaintEvent *event);
-    int lineNumberAreaWidth();
+    void updateLineNumberAreaFont();
 private:
     QWidget *lineNumberArea;
 protected:
@@ -65,10 +63,11 @@ private slots:
     void mousePressEvent(QMouseEvent *e);
     void textChangedEvent();
     void selectionChangedEvent();
+    void paintEvent(QPaintEvent *e);
 
     void updateLineNumberAreaWidth(int newBlockCount);
     void highlightCurrentLine();
-    void updateLineNumberArea(const QRect &, int);
+    void updateLineNumberArea(int lineCount);
 
 
 };

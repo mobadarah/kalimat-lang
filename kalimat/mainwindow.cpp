@@ -180,6 +180,7 @@ QWidget *MainWindow::CreateEditorWidget()
     font.setPointSize(18);
 
     edit->setFont(font);
+    edit->updateLineNumberAreaFont();
     // If the next line wasn't there, the syntaxhilighter sends a document modified
     // event on the initial display of the text editor, causing the document
     // to be initially 'dirty'.
