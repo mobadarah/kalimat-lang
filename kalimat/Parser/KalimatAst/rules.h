@@ -18,6 +18,21 @@ public:
     Token getPos() { return _astImpl.getPos();}
 };
 
+
+class PegPrimary : public PegExpr
+{
+    shared_ptr<Identifier> _associatedVar;
+public:
+    PegPrimary(Token pos,
+               shared_ptr<Identifier> associatedVar)
+        :PegExpr(pos),
+          _associatedVar(associatedVar)
+    {
+
+    }
+    shared_ptr<Identifier> associatedVar() { return _associatedVar; }
+};
+
 class PegSequence : public PegExpr
 {
     QVector<shared_ptr<PegExpr> > elements;
@@ -48,20 +63,6 @@ public:
     shared_ptr<PegExpr> element(int i) {return elements[i];}
 };
 */
-
-class PegPrimary : public PegExpr
-{
-    shared_ptr<Identifier> _associatedVar;
-public:
-    PegPrimary(Token pos,
-               shared_ptr<Identifier> associatedVar)
-        :PegExpr(pos),
-          _associatedVar(associatedVar)
-    {
-
-    }
-    shared_ptr<Identifier> associatedVar() { return _associatedVar; }
-};
 
 class PegRuleInvokation : public PegPrimary
 {

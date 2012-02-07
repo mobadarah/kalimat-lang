@@ -17,6 +17,12 @@
 #include <memory>
 using namespace std;
 
+template<class T> void appendAll(QVector<T> &a, QVector<T> b)
+{
+    for(int i=0; i<b.count(); i++)
+        a.append(b[i]);
+}
+
 enum MethodCallStyle
 {
     NonTailCallStyle,
@@ -32,7 +38,6 @@ struct Context
     int instructionCount;
 };
 
-
 struct Thunk
 {
     virtual void operator()()=0;
@@ -45,7 +50,6 @@ enum InvokationContext
 
 class CodeGenerator
 {
-
     SmallVMCodeGenerator _asm;
     QSet<QString> declaredGlobalVariables; // these are declared by the programmer
     QSet<shared_ptr<Identifier> > freeVariables; // and those are references to global variables from within functions
@@ -81,6 +85,8 @@ private:
     void generateFFILibraryDeclaration(shared_ptr<FFILibraryDecl> decl);
     void generateFFIProceduralDeclaration(shared_ptr<FFIProceduralDecl> decl, QString libName);
     void generateFFIStructDeclaration(shared_ptr<FFIStructDecl> decl);
+    void generateRulesDeclaration(shared_ptr<RulesDecl> decl);
+    QVector<shared_ptr<Statement> > pegExprToStatements(shared_ptr<PegExpr> expr);
     void generateClassDeclaration(shared_ptr<ClassDecl> decl);
     void generateGlobalDeclaration(shared_ptr<GlobalDecl> decl);
     void generateMethodDeclaration(shared_ptr<MethodDecl> decl);

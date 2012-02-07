@@ -577,23 +577,15 @@ shared_ptr<Statement> KalimatParser::gotoStmt()
     shared_ptr<Expression> target;
     match(GO);
     match(TO);
-    bool targetIsNum = false;
-    if(LA(NUM_LITERAL))
+    if(LA_first_expression())
     {
-        targetIsNum = true;
-        target = shared_ptr<Expression>(new NumLiteral(lookAhead, lookAhead.Lexeme));
-        match(NUM_LITERAL);
-    }
-    else if(LA(IDENTIFIER))
-    {
-        targetIsNum = false;
-        target = identifier();
+        target = expression();
     }
     else
     {
-        throw ParserException(pos, IdentifierOrNumberExpectedAfterGoto);
+        throw ParserException(pos, ExpressionExpectedAfterGoto);
     }
-    return shared_ptr<Statement>(new GotoStmt(pos, targetIsNum, target));
+    return shared_ptr<Statement>(new GotoStmt(pos, target));
 }
 
 bool KalimatParser::LA_first_io_statement()

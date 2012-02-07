@@ -15,7 +15,7 @@ class Allocator;
 enum Opcode
 {
     PushV, PushLocal, PopLocal, PushGlobal, PopGlobal, PushNull, GetRef, SetRef,
-    Add, Sub, Mul, Div, And, Or, Not, Jmp, If, Lt, Gt, Eq, Ne, Le, Ge,
+    Add, Sub, Mul, Div, And, Or, Not, Jmp, JmpVal, If, Lt, Gt, Eq, Ne, Le, Ge,
     Tail, Call, CallMethod, CallRef, Ret, CallExternal, Nop,
     SetField, GetField, GetFieldRef, GetArr, SetArr, GetArrRef, New, NewArr, ArrLength,
     New_MD_Arr, Get_MD_Arr, Set_MD_Arr, Get_MD_ArrRef, MD_ArrDimensions,

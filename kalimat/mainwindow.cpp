@@ -1512,8 +1512,28 @@ void MainWindow::on_editor_linkClicked(MyEdit *source, QString href)
     QString dir = f.absoluteDir().absolutePath();
     QString linkedFile = dir + "/" + href;
     if(!QFile::exists(linkedFile))
-        return;
-
+    {
+        QMessageBox box(QMessageBox::Question,QString::fromStdWString(L"ملف غير موجود"),
+                        QString::fromStdWString(L"الملف '%1' غير موجود، هل تود إنشاءه؟").arg(linkedFile),
+                        QMessageBox::Yes|QMessageBox::No);
+        box.exec();
+        if( box.result() == QMessageBox::Yes)
+        {
+            QFile file(linkedFile);
+            if(file.open(QIODevice::WriteOnly | QIODevice::Text | QIODevice::Truncate))
+            {
+                file.close();
+            }
+            else
+            {
+                return;
+            }
+        }
+        else
+        {
+            return;
+        }
+    }
     docContainer->OpenOrSwitch(linkedFile);
 }
 

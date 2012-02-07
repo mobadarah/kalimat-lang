@@ -41,6 +41,7 @@ void CodeGenerator::Init()
     currentModuleName = "";
     currentCodeDoc = NULL;
 }
+
 QString CodeGenerator::getOutput()
 {
     return _asm.getOutput();
@@ -292,6 +293,10 @@ void CodeGenerator::generateDeclaration(shared_ptr<Declaration> decl)
     {
         generateFFILibraryDeclaration(dynamic_pointer_cast<FFILibraryDecl>(decl));
     }
+    else if(isa<RulesDecl>(decl))
+    {
+        generateRulesDeclaration(dynamic_pointer_cast<RulesDecl>(decl));
+    }
     else
     {
         throw CompilerException(decl, DeclarationNotSupported).arg(decl->toString());
@@ -530,6 +535,119 @@ void CodeGenerator::generateFFIProceduralDeclaration(shared_ptr<FFIProceduralDec
 void CodeGenerator::generateFFIStructDeclaration(shared_ptr<FFIStructDecl> decl)
 {
 
+}
+
+shared_ptr<Identifier> idOf(Token pos, QString id)
+{
+    return shared_ptr<Identifier>(new Identifier(pos, id));
+}
+
+shared_ptr<Invokation> invokationOf(Token pos, QString fname)
+{
+    QVector<shared_ptr<Expression> > args;
+    return shared_ptr<Invokation>(new Invokation(pos,
+                                                 idOf(pos, fname),
+                                                 args));
+}
+
+shared_ptr<Invokation> invokationOf(Token pos, QString fname, shared_ptr<Expression> arg0)
+{
+    QVector<shared_ptr<Expression> > args;
+    args.append(arg0);
+    return shared_ptr<Invokation>(new Invokation(pos,
+                                                 idOf(pos, fname),
+                                                 args));
+}
+
+shared_ptr<Invokation> invokationOf(Token pos, QString fname, shared_ptr<Expression> arg0,
+                                    shared_ptr<Expression> arg1)
+{
+    QVector<shared_ptr<Expression> > args;
+    args.append(arg0);
+    args.append(arg1);
+    return shared_ptr<Invokation>(new Invokation(pos,
+                                                 idOf(pos, fname),
+                                                 args));
+}
+
+shared_ptr<LabelStmt> labelOf(Token pos, QString lbl)
+{
+    return shared_ptr<LabelStmt>(new LabelStmt(pos, idOf(pos, lbl)));
+}
+
+shared_ptr<AssignmentStmt> assignmentOf(Token pos, shared_ptr<AssignableExpression> lval,
+                                        shared_ptr<Expression> rval)
+{
+    return shared_ptr<AssignmentStmt>(new AssignmentStmt(pos, lval, rval));
+}
+
+void CodeGenerator::generateRulesDeclaration(shared_ptr<RulesDecl> decl)
+{
+    QVector<shared_ptr<Statement> > stmts;
+    Token pos0 = decl->getPos();
+    // %parser = make.parser(%input)
+    // ...and they say Lisp isn't used anymore
+    stmts.append(assignmentOf(pos0, idOf(pos0, "%parser"),
+                     invokationOf(pos0,_ws(L"صنع.معرب"), idOf(pos0, "%input"))));
+
+    for(int i=0; i<decl->subRuleCount(); i++)
+    {
+        shared_ptr<RuleDecl> rule = decl->subRule(i);
+        // a label for our top-level rule
+        // todo: since 'Rule' and it's  children aren't yet derived from KalimatAst
+        // we'll use the position of the "RulesDecl" in place of their positions
+        stmts.append(labelOf(decl->getPos(), rule->ruleName));
+        for(int j=0; j<rule->options.count(); j++)
+        {
+            shared_ptr<RuleOption> opt = rule->options[j];
+            // a label for each option
+            stmts.append(labelOf(decl->getPos(), QString("%1%2").arg(rule->ruleName).arg(j)));
+            // now generate code for the PEG expression
+            appendAll(stmts, pegExprToStatements(opt->expression()));
+            // ...and if there's an associated resultant expression
+            // generate its evaluation and storage in the 'register' result
+            // I'll cut my arm of if this works :D
+            if(opt->resultExpr())
+            {
+                Token pos1 = opt->resultExpr()->getPos();
+                stmts.append(assignmentOf(pos1, idOf(pos1, "%result"), opt->resultExpr()));
+            }
+            else
+            {
+                Token pos1 = opt->expression()->getPos();
+                stmts.append(assignmentOf(pos1, idOf(pos1, "%result"),
+                                          shared_ptr<NullLiteral>(
+                                              new NullLiteral(pos1))));
+            }
+        }
+
+    }
+
+    shared_ptr<BlockStmt> body(
+            new BlockStmt(decl->getPos(), stmts));
+    QVector<shared_ptr<Identifier> > formals;
+    formals.append(idOf(Token(), "%input"));
+    shared_ptr<FunctionDecl> func(
+            new FunctionDecl(decl->getPos(), decl->getPos(),
+                             decl->name(), formals, body, true));
+    generateFunctionDeclaration(func);
+}
+
+QVector<shared_ptr<Statement> > CodeGenerator::pegExprToStatements(
+        shared_ptr<PegExpr> expr)
+{
+    if(isa<PegRuleInvokation>(expr))
+    {
+
+    }
+    if(isa<PegLiteral>(expr))
+    {
+
+    }
+    if(isa<PegSequence>(expr))
+    {
+
+    }
 }
 
 void CodeGenerator::generateClassDeclaration(shared_ptr<ClassDecl> decl)
@@ -1166,13 +1284,15 @@ void CodeGenerator::generateLabelStmt(shared_ptr<LabelStmt> stmt)
 
 void CodeGenerator::generateGotoStmt(shared_ptr<GotoStmt> stmt)
 {
-    if(stmt->numericTarget())
+    shared_ptr<Expression> target = stmt->target();
+    if(isa<NumLiteral>(target) || isa<Identifier>(target))
     {
-        gen(stmt, "jmp "+ stmt->numericTarget()->toString());
+        gen(stmt, "jmp "+ target->toString());
     }
     else
     {
-        gen(stmt, "jmp "+ stmt->idTarget()->name);
+        generateExpression(target);
+        gen(stmt, "jmpv");
     }
 }
 

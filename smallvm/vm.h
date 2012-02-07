@@ -154,6 +154,7 @@ public:
     void DoOr();
     void DoNot();
     void DoJmp(QString label);
+    void DoJmpVal();
     void DoIf(QString trueLabel, QString falseLabel);
     void DoLt();
     void DoGt();

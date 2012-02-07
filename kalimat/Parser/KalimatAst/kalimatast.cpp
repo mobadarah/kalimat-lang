@@ -237,20 +237,15 @@ QString LabelStmt::toString()
 }
 
 GotoStmt::GotoStmt(Token pos,
-                   bool _targetIsNumber,
                    shared_ptr<Expression> target)
-    :Statement(pos)
+    :Statement(pos), _target(target)
 {
-    targetIsNumber = _targetIsNumber;
-    if(targetIsNumber)
-        _numericTarget = dynamic_pointer_cast<NumLiteral>(target);
-    else
-        _idTarget = dynamic_pointer_cast<Identifier>(target);
+
 }
 
 QString GotoStmt::toString()
 {
-    return _ws(L"اذهب(%1)").arg(targetIsNumber? _numericTarget.get()->toString(): _idTarget.get()->toString());
+    return _ws(L"اذهب(%1)").arg(target()->toString());
 }
 
 PrintStmt::PrintStmt(Token pos,
@@ -776,7 +771,7 @@ NumLiteral::NumLiteral(Token pos ,QString lexeme) : SimpleLiteral(pos)
 }
 QString NumLiteral::toString()
 {
-    return _ws(L"عدد(%1)")
+    return _ws(L"%1")
             .arg(repr());
 }
 
@@ -1468,11 +1463,7 @@ void GotoStmt::prettyPrint(CodeFormatter *f)
 {
     f->printKw(L"اذهب إلى");
     f->space();
-    if(!this->targetIsNumber)
-        this->idTarget()->prettyPrint(f);
-    else
-        this->numericTarget()->prettyPrint(f);
-
+    this->target()->prettyPrint(f);
 }
 
 void PrintStmt::prettyPrint(CodeFormatter *f)

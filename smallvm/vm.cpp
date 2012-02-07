@@ -601,6 +601,9 @@ void VM::RunSingleInstruction(Process *process)
     case Jmp:
         this->DoJmp(i.True);
         break;
+    case JmpVal:
+        this->DoJmpVal();
+        break;
     case If:
         this->DoIf(i.True, i.False);
         break;
@@ -1012,6 +1015,11 @@ void VM::Load(QString assemblyCode)
         else if(opcode == "jmp")
         {
             Instruction i = Instruction(Jmp).wLabels(arg, NULL);
+            curMethod->Add(i, label, extraInfo);
+        }
+        else if(opcode == "jmpv")
+        {
+            Instruction i = Instruction(JmpVal);
             curMethod->Add(i, label, extraInfo);
         }
         else if(opcode == "if")
@@ -1436,6 +1444,18 @@ void VM::DoNot()
 void VM::DoJmp(QString label)
 {
     currentFrame()->ip = currentFrame()->currentMethod->GetIp(label);
+}
+
+void VM::DoJmpVal()
+{
+    Value *v = currentFrame()->OperandStack.pop();
+    assert(v->tag == Int || v->tag == StringVal, InternalError1, QString::fromStdWString(L"القيمة المقدمة لأمر اذهب إلى لابد أن تكون عدداً صحيحاً أو نص"));
+    QString label;
+    if(v->tag == Int)
+        label = QString("%1").arg(v->unboxInt());
+    else
+        label = *v->unboxStr();
+    DoJmp(label);
 }
 
 void VM::DoIf(QString trueLabel, QString falseLabel)

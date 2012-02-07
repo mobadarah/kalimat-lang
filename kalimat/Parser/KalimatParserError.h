@@ -9,7 +9,7 @@ enum KalimatParserError
     ExpectedDrawingStatement,
     ExpectedIdentifier,
     ExpectedSendOrReceiveOperation,
-    IdentifierOrNumberExpectedAfterGoto,
+    ExpressionExpectedAfterGoto,
     UsingKeywordMustBeFollowedByStringLiteral,
     ModulesCannotContainStatements,
     StatementNotImplemented,

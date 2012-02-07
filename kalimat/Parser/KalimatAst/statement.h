@@ -161,13 +161,10 @@ class GotoStmt : public Statement
 {
     Q_OBJECT
 public:
-    bool targetIsNumber;
-    shared_ptr<NumLiteral> _numericTarget;
-    shared_ptr<Identifier> _idTarget;
+    shared_ptr<Expression> _target;
 public:
-    GotoStmt(Token pos, bool _targetIsNumber, shared_ptr<Expression> target);
-    shared_ptr<Identifier> idTarget() { return _idTarget; }
-    shared_ptr<NumLiteral> numericTarget() { return _numericTarget; }
+    GotoStmt(Token pos, shared_ptr<Expression> target);
+    shared_ptr<Expression> target() { return _target; }
     QString toString();
     void prettyPrint(CodeFormatter *f);
 };
