@@ -732,6 +732,12 @@ void CodeGenerator::generateRulesDeclaration(shared_ptr<RulesDecl> decl)
     shared_ptr<ReturnStmt> returnNow(new ReturnStmt(pos0,
                                                     idOf(pos0, _ws(L"%النتيجة"))));
     stmts.append(returnNow);
+
+    // and have a label to whom VM routines will jump on error
+    stmts.append(labelOf(pos0, _ws(L"%خطأ.في.الإعراب")));
+    shared_ptr<ReturnStmt> returnErr(new ReturnStmt(pos0,
+                                                    shared_ptr<Expression>(new NullLiteral(pos0))));
+    stmts.append(returnErr);
     shared_ptr<BlockStmt> body(
             new BlockStmt(decl->getPos(), stmts));
     QVector<shared_ptr<Identifier> > formals;
