@@ -635,6 +635,14 @@ shared_ptr<AssignmentStmt> assignmentOf(Token pos, shared_ptr<AssignableExpressi
     return shared_ptr<AssignmentStmt>(new AssignmentStmt(pos, lval, rval));
 }
 
+shared_ptr<IfStmt> ifOf(Token pos, shared_ptr<Expression> cond,
+                                        shared_ptr<Statement> thenpart,
+                                        shared_ptr<Statement> elsepart)
+{
+    return shared_ptr<IfStmt>(new IfStmt(pos, cond, thenpart, elsepart));
+}
+
+
 shared_ptr<InvokationStmt> fromInvokation(shared_ptr<IInvokation> inv)
 {
     return shared_ptr<InvokationStmt>(new InvokationStmt(inv->getPos(), inv));
@@ -698,6 +706,10 @@ void CodeGenerator::generateRulesDeclaration(shared_ptr<RulesDecl> decl)
 
     } // for each rule
 
+    // now return our precious result :D
+    shared_ptr<ReturnStmt> returnNow(new ReturnStmt(pos0,
+                                                    idOf(pos0, _ws(L"%النتيجة"))));
+    stmts.append(returnNow);
     shared_ptr<BlockStmt> body(
             new BlockStmt(decl->getPos(), stmts));
     QVector<shared_ptr<Identifier> > formals;
@@ -710,7 +722,9 @@ void CodeGenerator::generateRulesDeclaration(shared_ptr<RulesDecl> decl)
     QTextStream out(&f);
     out.setCodec("UTF-8");
     out.setGenerateByteOrderMark(true);
-    out << func->toString();
+    SimpleCodeFormatter fmt;
+    func->prettyPrint(&fmt);
+    out << fmt.getOutput();
     f.close();
     pushProcedureScope(func);
     generateFunctionDeclaration(func);
@@ -728,10 +742,32 @@ QVector<shared_ptr<Statement> > CodeGenerator::pegExprToStatements(
     if(isa<PegLiteral>(expr))
     {
 
+        // if %parser: lookAt(lit)
+        //    %parser: progress()
+        // else
+        //     %parser : backtrack()
+        // end
+        shared_ptr<PegLiteral> lit = dynamic_pointer_cast<PegLiteral>(expr);
+        Token pos0 = lit->getPos();
+        shared_ptr<IfStmt> ifStmt = ifOf(pos0,
+                    methodOf(pos0,
+                             idOf(pos0, _ws(L"%المعرب")),
+                             _ws(L"يطل.على"),lit->value()),
+                    fromInvokation(methodOf(pos0,
+                                            idOf(pos0,_ws(L"%المعرب")),
+                                            _ws(L"تقدم"))),
+                    gotoOf(pos0, methodOf(pos0,
+                                            idOf(pos0,_ws(L"%المعرب")),
+                                            _ws(L"الجأ.لبديل"))));
+        result.append(ifStmt);
     }
     if(isa<PegSequence>(expr))
     {
-
+        shared_ptr<PegSequence> seq = dynamic_pointer_cast<PegSequence>(expr);
+        for(int i=0; i<seq->elementCount(); i++)
+        {
+            appendAll(result, pegExprToStatements(seq->element(i)));
+        }
     }
     return result;
 }
