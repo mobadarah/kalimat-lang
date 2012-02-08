@@ -657,6 +657,23 @@ void CodeGenerator::generateRulesDeclaration(shared_ptr<RulesDecl> decl)
     stmts.append(assignmentOf(pos0, idOf(pos0, _ws(L"%المعرب")),
                      invokationOf(pos0,_ws(L"صنع.معرب"), idOf(pos0, _ws(L"%المدخل")))));
 
+    if(decl->subRuleCount() > 0)
+    {
+        // manage start rule:
+        // %parser : call(startRuleLabel, %endOfParsing)
+        shared_ptr<RuleDecl> rule = decl->subRule(0);
+        shared_ptr<StrLiteral> toCall(
+                    new StrLiteral(pos0, rule->ruleName));
+        shared_ptr<StrLiteral> returnHere(
+                    new StrLiteral(pos0, _ws(L"نهاية.الإعراب")));
+        stmts.append(gotoOf(pos0,
+                          methodOf(pos0,
+                                   idOf(pos0, _ws(L"%المعرب")),
+                                   _ws(L"تفرع"),
+                                   toCall,
+                                   returnHere)));
+
+    }
     for(int i=0; i<decl->subRuleCount(); i++)
     {
         shared_ptr<RuleDecl> rule = decl->subRule(i);
@@ -703,10 +720,15 @@ void CodeGenerator::generateRulesDeclaration(shared_ptr<RulesDecl> decl)
         } // for each ruleOption
 
         stmts.append(labelOf(pos0, _ws(L"%نجاح.%1").arg(rule->ruleName)));
-
+        // at the end of each rule:
+        // goto %parser: ret()
+        stmts.append(gotoOf(pos0, methodOf(pos0, idOf(pos0, _ws(L"%المعرب")), _ws(L"عد"))));
     } // for each rule
 
+    // a label %endOfParsing for the start rule to return to
+    stmts.append(labelOf(pos0, _ws(L"نهاية.الإعراب")));
     // now return our precious result :D
+
     shared_ptr<ReturnStmt> returnNow(new ReturnStmt(pos0,
                                                     idOf(pos0, _ws(L"%النتيجة"))));
     stmts.append(returnNow);
@@ -737,7 +759,20 @@ QVector<shared_ptr<Statement> > CodeGenerator::pegExprToStatements(
     QVector<shared_ptr<Statement> > result;
     if(isa<PegRuleInvokation>(expr))
     {
-
+        shared_ptr<PegRuleInvokation> rule = dynamic_pointer_cast<PegRuleInvokation>(expr);
+        Token pos0 = rule->getPos();
+        QString continuationLabel = _asm.uniqueLabel();
+        shared_ptr<StrLiteral> toCall(
+                    new StrLiteral(pos0, rule->ruleName()->name));
+        shared_ptr<StrLiteral> returnHere(
+                    new StrLiteral(pos0, continuationLabel));
+        result.append(gotoOf(pos0,
+                          methodOf(pos0,
+                                   idOf(pos0, _ws(L"%المعرب")),
+                                   _ws(L"تفرع"),
+                                   toCall,
+                                   returnHere)));
+        result.append(labelOf(pos0, continuationLabel));
     }
     if(isa<PegLiteral>(expr))
     {
