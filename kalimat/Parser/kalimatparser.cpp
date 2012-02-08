@@ -1524,6 +1524,21 @@ shared_ptr<RuleDecl> KalimatParser::ruleDecl()
         match(ROCKET);
         resultExpr = expression();
     }
+    else
+    {
+        shared_ptr<PegPrimary> theExpr = dynamic_pointer_cast<PegPrimary>(expr);
+        if(theExpr)
+        {
+            if(!theExpr->associatedVar())
+            {
+                theExpr->setAssociatedVar(
+                            shared_ptr<Identifier>(
+                                new Identifier(theExpr->getPos(), "%tmpAV")));
+            }
+            resultExpr = shared_ptr<Expression>(new Identifier(theExpr->getPos(),
+                                                           theExpr->associatedVar()->name));
+        }
+    }
     match(NEWLINE);
     newLines();
     options.append(shared_ptr<RuleOption>(new RuleOption(expr, resultExpr)));
@@ -1536,6 +1551,21 @@ shared_ptr<RuleDecl> KalimatParser::ruleDecl()
         {
             match(ROCKET);
             _resultExpr = expression();
+        }
+        else
+        {
+            shared_ptr<PegPrimary> theExpr = dynamic_pointer_cast<PegPrimary>(expr);
+            if(theExpr)
+            {
+                if(!theExpr->associatedVar())
+                {
+                    theExpr->setAssociatedVar(
+                                shared_ptr<Identifier>(
+                                    new Identifier(theExpr->getPos(), "%tmpAV")));
+                }
+                _resultExpr = shared_ptr<Expression>(new Identifier(theExpr->getPos(),
+                                                               theExpr->associatedVar()->name));
+            }
         }
         options.append(shared_ptr<RuleOption>(new RuleOption(expr, _resultExpr)));
         match(NEWLINE);

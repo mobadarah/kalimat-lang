@@ -31,6 +31,10 @@ public:
 
     }
     shared_ptr<Identifier> associatedVar() { return _associatedVar; }
+    void setAssociatedVar(shared_ptr<Identifier> v)
+    {
+        _associatedVar = v;
+    }
 };
 
 class PegSequence : public PegExpr
