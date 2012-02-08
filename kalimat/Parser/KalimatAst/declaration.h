@@ -7,7 +7,6 @@
 
 class Declaration: public TopLevel
 {
-    Q_OBJECT
     bool _isPublic;
 public:
     Declaration(Token pos, bool isPublic);
@@ -16,12 +15,13 @@ public:
 
 class ProceduralDecl : public Declaration, public IScopeIntroducer
 {
-    Q_OBJECT
 public:
     shared_ptr<Identifier> _procName;
+        shared_ptr<BlockStmt> _body;
     QVector<shared_ptr<Identifier > > _formals;
-    QVector<shared_ptr<Identifier > > _allReferences;
-    shared_ptr<BlockStmt> _body;
+
+//    QVector<shared_ptr<Identifier > > _allReferences;
+
     Token _endingToken;
 public:
     ProceduralDecl(Token pos,
@@ -33,8 +33,8 @@ public:
     shared_ptr<Identifier> procName() {return _procName;}
     int formalCount() { return _formals.count();}
     shared_ptr<Identifier> formal(int i) { return _formals[i];}
-    shared_ptr<Identifier> allReferences(int i) { return _allReferences[i];}
-    void addReference(shared_ptr<Identifier> id) { _allReferences.append(id);}
+//    shared_ptr<Identifier> allReferences(int i) { return _allReferences[i];}
+//    void addReference(shared_ptr<Identifier> id) { _allReferences.append(id);}
     shared_ptr<BlockStmt> body() {return _body;}
     void body(shared_ptr<BlockStmt> stmt) { _body = stmt;}
     virtual QVector<shared_ptr<Identifier> > getIntroducedVariables();
@@ -52,7 +52,6 @@ class IFunction
 
 class ProcedureDecl : public ProceduralDecl, public IProcedure
 {
-    Q_OBJECT
 public:
     ProcedureDecl(Token pos,
                   Token endingToken,
@@ -66,7 +65,6 @@ public:
 
 class FunctionDecl : public ProceduralDecl, public IFunction
 {
-    Q_OBJECT
 public:
     FunctionDecl(Token pos,
                  Token endingToken,
@@ -82,7 +80,6 @@ class FFIProceduralDecl;
 
 class FFILibraryDecl : public Declaration
 {
-    Q_OBJECT
 public:
     QString libName;
 private:
@@ -97,7 +94,6 @@ public:
 
 class FFIProceduralDecl : public Declaration
 {
-    Q_OBJECT
 public:
     bool isFunctionNotProc;
     QString procName;
@@ -121,7 +117,6 @@ public:
 
 class FFIStructDecl : public Declaration
 {
-    Q_OBJECT
 private:
     shared_ptr<Identifier> _name;
     QVector<shared_ptr<Identifier> > _fieldNames;
@@ -136,9 +131,9 @@ public:
                   QVector<int> fieldBatches,
                   bool isPublic);
     int fieldCount() { return _fieldNames.count();}
-    Identifier *name() { return _name.get(); }
-    Identifier *fieldName(int index) { return _fieldNames[index].get();}
-    TypeExpression *fieldType(int index) { return _fieldTypes[index].get();}
+    shared_ptr<Identifier> name() { return _name; }
+    shared_ptr<Identifier> fieldName(int index) { return _fieldNames[index];}
+    shared_ptr<TypeExpression> fieldType(int index) { return _fieldTypes[index];}
     void prettyPrint(CodeFormatter *formatter);
     QString toString();
 };
@@ -183,13 +178,13 @@ struct Has : public ClassInternalDecl
         fields.append(shared_ptr<Identifier>(field));
     }
     int fieldCount() { return fields.count(); }
-    Identifier *field(int i) { return fields[i].get(); }
-    TypeExpression *marshallingTypeOf(QString field)
+    shared_ptr<Identifier> field(int i) { return fields[i]; }
+    shared_ptr<TypeExpression> marshallingTypeOf(QString field)
     {
         if(_fieldMarshallAs.contains(field))
-            return _fieldMarshallAs[field].get();
+            return _fieldMarshallAs[field];
         else
-            return NULL;
+            return shared_ptr<TypeExpression>();
     }
 };
 
@@ -204,13 +199,12 @@ struct RespondsTo : public ClassInternalDecl
     {
         methods.append(mi);
     }
-    ConcreteResponseInfo *method(int i) { return methods[i].get(); }
+    shared_ptr<ConcreteResponseInfo> method(int i) { return methods[i]; }
     int methodCount() { return methods.count(); }
 };
 
 class ClassDecl : public Declaration
 {
-    Q_OBJECT
 public:
     shared_ptr<Identifier> _ancestorName;
     shared_ptr<Identifier> _name;
@@ -259,7 +253,6 @@ public:
 
 class GlobalDecl : public Declaration
 {
-    Q_OBJECT
 public:
     QString varName;
 public:
@@ -270,7 +263,6 @@ public:
 
 class MethodDecl : public ProceduralDecl
 {
-    Q_OBJECT
 public:
     shared_ptr<Identifier> _className;
     shared_ptr<Identifier> _receiverName;
@@ -284,8 +276,8 @@ public:
                QVector<shared_ptr<Identifier> > formals,
                shared_ptr<BlockStmt> body,
                bool isFunctionNotProcedure);
-    Identifier *className() { return _className.get();}
-    Identifier *receiverName() { return _receiverName.get();}
+    shared_ptr<Identifier> className() { return _className;}
+    shared_ptr<Identifier> receiverName() { return _receiverName;}
     QString toString();
     void prettyPrint(CodeFormatter *f);
 };

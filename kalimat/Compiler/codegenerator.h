@@ -122,13 +122,26 @@ private:
     void generateMatchOperation(shared_ptr<MatchOperation> expr);
     void generatePattern(shared_ptr<Pattern> patterns,
                                         shared_ptr<Expression> expression,
-                                         QMap<AssignableExpression *, shared_ptr<Identifier> > &bindings);
-    void generateSimpleLiteralPattern(shared_ptr<SimpleLiteralPattern> pattern, shared_ptr<Expression> matchee, QMap<AssignableExpression *, shared_ptr<Identifier> > &bindings);
-    void generateVarPattern(shared_ptr<VarPattern> pattern, shared_ptr<Expression> matchee, QMap<AssignableExpression *, shared_ptr<Identifier> > &bindings);
-    void generateAssignedVarPattern(shared_ptr<AssignedVarPattern> pattern, shared_ptr<Expression> matchee, QMap<AssignableExpression *, shared_ptr<Identifier> > &bindings);
-    void generateArrayPattern(shared_ptr<ArrayPattern> pattern, shared_ptr<Expression> matchee, QMap<AssignableExpression *, shared_ptr<Identifier> > &bindings);
-    void generateObjPattern(shared_ptr<ObjPattern> pattern, shared_ptr<Expression> matchee, QMap<AssignableExpression *, shared_ptr<Identifier> > &bindings);
-    void generateMapPattern(shared_ptr<MapPattern> pattern, shared_ptr<Expression> matchee, QMap<AssignableExpression *, shared_ptr<Identifier> > &bindings);
+                                         QMap<shared_ptr<AssignableExpression>, shared_ptr<Identifier> > &bindings);
+    void generateSimpleLiteralPattern(shared_ptr<SimpleLiteralPattern> pattern,
+                                      shared_ptr<Expression> matchee,
+                                      QMap<shared_ptr<AssignableExpression>, shared_ptr<Identifier> > &bindings);
+    void generateVarPattern(shared_ptr<VarPattern> pattern,
+                            shared_ptr<Expression> matchee,
+                            QMap<shared_ptr<AssignableExpression> , shared_ptr<Identifier> > &bindings);
+    void generateAssignedVarPattern(shared_ptr<AssignedVarPattern> pattern,
+                                    shared_ptr<Expression> matchee,
+                                    QMap<shared_ptr<AssignableExpression> , shared_ptr<Identifier> > &bindings);
+    void generateArrayPattern(shared_ptr<ArrayPattern> pattern,
+                              shared_ptr<Expression> matchee,
+                              QMap<shared_ptr<AssignableExpression>, shared_ptr<Identifier> > &bindings);
+    void generateObjPattern(shared_ptr<ObjPattern> pattern,
+                            shared_ptr<Expression> matchee,
+                            QMap<shared_ptr<AssignableExpression> , shared_ptr<Identifier> > &bindings);
+    void generateMapPattern(shared_ptr<MapPattern> pattern,
+                            shared_ptr<Expression> matchee,
+                            QMap<shared_ptr<AssignableExpression>,
+                            shared_ptr<Identifier> > &bindings);
     void generateUnaryOperation(shared_ptr<UnaryOperation> expr);
     void generateIdentifier(shared_ptr<Identifier> expr);
     void generateNumLiteral(shared_ptr<NumLiteral> expr);

@@ -6,28 +6,24 @@
 
 class Statement : public TopLevel
 {
-    Q_OBJECT
 public:
     Statement(Token pos);
 };
 
 class IOStatement : public Statement
 {
-    Q_OBJECT
 public:
     IOStatement(Token pos);
 };
 
 class GraphicsStatement : public Statement
 {
-    Q_OBJECT
 public:
     GraphicsStatement(Token pos);
 };
 
 class AssignmentStmt : public Statement
 {
-    Q_OBJECT
 public:
     shared_ptr <AssignableExpression> _variable;
     shared_ptr<Expression> _value;
@@ -42,7 +38,6 @@ public:
 
 class IfStmt : public Statement
 {
-    Q_OBJECT
 public:
     shared_ptr<Expression> _condition;
     shared_ptr<Statement> _thenPart;
@@ -62,7 +57,6 @@ public:
 
 class WhileStmt : public Statement
 {
-    Q_OBJECT
 public:
     shared_ptr<Expression> _condition;
     shared_ptr<Statement> _statement;
@@ -80,7 +74,6 @@ public:
 
 class ForAllStmt : public Statement
 {
-    Q_OBJECT
 public:
     shared_ptr<Identifier> _variable;
     shared_ptr<Expression> _from;
@@ -107,7 +100,6 @@ public:
 
 class ReturnStmt : public Statement
 {
-    Q_OBJECT
 public:
     shared_ptr<Expression> _returnVal;
 public:
@@ -120,7 +112,6 @@ public:
 
 class DelegationStmt : public Statement
 {
-    Q_OBJECT
 public:
     shared_ptr<IInvokation> _invokation;
 public:
@@ -129,12 +120,10 @@ public:
     shared_ptr<IInvokation> invokation() { return _invokation; }
     QString toString();
     void prettyPrint(CodeFormatter *f);
-    Q_DISABLE_COPY(DelegationStmt)
 };
 
 class LaunchStmt : public Statement
 {
-    Q_OBJECT
 public:
     shared_ptr<IInvokation> _invokation;
 public:
@@ -143,12 +132,10 @@ public:
     shared_ptr<IInvokation> invokation() { return _invokation; }
     QString toString();
     void prettyPrint(CodeFormatter *f);
-    Q_DISABLE_COPY(LaunchStmt)
 };
 
 class LabelStmt : public Statement
 {
-    Q_OBJECT
     shared_ptr<Expression> _target;
 public:
     LabelStmt(Token pos, shared_ptr<Expression> target);
@@ -159,7 +146,6 @@ public:
 
 class GotoStmt : public Statement
 {
-    Q_OBJECT
 public:
     shared_ptr<Expression> _target;
 public:
@@ -171,7 +157,6 @@ public:
 
 class PrintStmt : public IOStatement
 {
-    Q_OBJECT
 public:
     shared_ptr<Expression> _fileObject;
     QVector<shared_ptr<Expression > > _args;
@@ -192,7 +177,6 @@ public:
 
 class ReadStmt : public IOStatement
 {
-    Q_OBJECT
 public:
     shared_ptr<Expression> _fileObject;
     QString prompt;
@@ -213,7 +197,6 @@ public:
 
 class DrawPixelStmt : public GraphicsStatement
 {
-    Q_OBJECT
 public:
     shared_ptr<Expression> _x, _y;
     shared_ptr<Expression> _color;
@@ -228,12 +211,10 @@ public:
     shared_ptr<Expression> color() { return _color;}
     QString toString();
     void prettyPrint(CodeFormatter *f);
-    Q_DISABLE_COPY(DrawPixelStmt)
 };
 
 class DrawLineStmt : public GraphicsStatement
 {
-    Q_OBJECT
 public:
     shared_ptr<Expression> _x1, _y1, _x2, _y2;
     shared_ptr<Expression> _color;
@@ -252,12 +233,10 @@ public:
     shared_ptr<Expression> color() { return _color;}
     QString toString();
     void prettyPrint(CodeFormatter *f);
-    Q_DISABLE_COPY(DrawLineStmt)
 };
 
 class DrawRectStmt : public GraphicsStatement
 {
-    Q_OBJECT
 public:
     shared_ptr<Expression> _x1, _y1, _x2, _y2;
     shared_ptr<Expression> _color;
@@ -279,12 +258,10 @@ public:
     shared_ptr<Expression> filled() { return _filled; }
     QString toString();
     void prettyPrint(CodeFormatter *f);
-    Q_DISABLE_COPY(DrawRectStmt)
 };
 
 class DrawCircleStmt : public GraphicsStatement
 {
-    Q_OBJECT
 public:
     shared_ptr<Expression> _cx, _cy;
     shared_ptr<Expression> _radius;
@@ -306,12 +283,10 @@ public:
     shared_ptr<Expression> filled() { return _filled; }
     QString toString();
     void prettyPrint(CodeFormatter *f);
-    Q_DISABLE_COPY(DrawCircleStmt)
 };
 
 class DrawImageStmt : public GraphicsStatement
 {
-    Q_OBJECT
 public:
     shared_ptr<Expression> _x, _y;
     shared_ptr<Expression> _image;
@@ -331,7 +306,6 @@ public:
 
 class DrawSpriteStmt : public GraphicsStatement
 {
-    Q_OBJECT
 public:
     shared_ptr<Expression> _x, _y;
     shared_ptr<Expression> _sprite;
@@ -347,12 +321,10 @@ public:
     shared_ptr<Expression> sprite() { return _sprite;}
     QString toString();
     void prettyPrint(CodeFormatter *f);
-    Q_DISABLE_COPY(DrawSpriteStmt)
 };
 
 class ZoomStmt : public GraphicsStatement
 {
-    Q_OBJECT
 public:
     shared_ptr<Expression> _x1, _y1, _x2, _y2;
 public:
@@ -368,7 +340,6 @@ public:
     shared_ptr<Expression> y2() { return _y2;}
     QString toString();
     void prettyPrint(CodeFormatter *f);
-     Q_DISABLE_COPY(ZoomStmt)
 };
 
 enum EventType
@@ -384,7 +355,6 @@ enum EventType
 
 class EventStatement : public Statement
 {
-    Q_OBJECT
 public:
     EventType type;
     shared_ptr<Identifier> _handler;
@@ -397,14 +367,12 @@ public:
 
 class ChannelCommunicationStmt : public Statement
 {
-    Q_OBJECT
 public:
     ChannelCommunicationStmt(Token pos);
 };
 
 class SendStmt : public ChannelCommunicationStmt
 {
-    Q_OBJECT
 public:
     bool signal;
     shared_ptr<Expression> _value;
@@ -419,12 +387,10 @@ public:
     shared_ptr<Expression> channel() { return _channel; }
     QString toString();
     void prettyPrint(CodeFormatter *f);
-    Q_DISABLE_COPY(SendStmt)
 };
 
 class ReceiveStmt : public ChannelCommunicationStmt
 {
-    Q_OBJECT
 public:
     bool signal;
     shared_ptr<AssignableExpression> _value;
@@ -439,12 +405,10 @@ public:
     shared_ptr<Expression> channel() { return _channel; }
     QString toString();
     void prettyPrint(CodeFormatter *f);
-    Q_DISABLE_COPY(ReceiveStmt)
 };
 
 class SelectStmt : public Statement
 {
-    Q_OBJECT
 public:
     QVector<shared_ptr<ChannelCommunicationStmt> > _conditions;
     QVector<shared_ptr<Statement> > _actions;
@@ -462,7 +426,6 @@ public:
 
 class BlockStmt : public Statement
 {
-    Q_OBJECT
 public:
     QVector<shared_ptr<Statement> > _statements;
 public:
@@ -476,7 +439,6 @@ public:
 
 class InvokationStmt : public Statement
 {
-    Q_OBJECT
 public:
     shared_ptr<Expression> _expression;
 public:
@@ -485,7 +447,6 @@ public:
     shared_ptr<Expression> expression() { return _expression; }
     QString toString();
     void prettyPrint(CodeFormatter *f);
-    Q_DISABLE_COPY(InvokationStmt)
 };
 
 #endif // STATEMENT_H

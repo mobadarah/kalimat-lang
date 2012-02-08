@@ -5,7 +5,6 @@
 
 class TopLevel : public KalimatAst
 {
-    Q_OBJECT
     ASTImpl _astImpl;
 public:
     QString attachedComments;
@@ -16,19 +15,18 @@ public:
 
 class CompilationUnit: public KalimatAst
 {
-    Q_OBJECT
     ASTImpl _astImpl;
 public:
     CompilationUnit(Token pos);
+    ~CompilationUnit() {}
     QVector<shared_ptr<StrLiteral> > _usedModules;
     int usedModuleCount() { return _usedModules.count();}
-    StrLiteral *usedModule(int i ) { return _usedModules[i].get();}
+    shared_ptr<StrLiteral> usedModule(int i ) { return _usedModules[i];}
     Token getPos() { return _astImpl.getPos(); }
 };
 
 class Program : public CompilationUnit
 {
-    Q_OBJECT
 public:
     QVector<shared_ptr<TopLevel > > _elements;
 
@@ -41,14 +39,13 @@ public:
             QVector<shared_ptr<TopLevel> > originalElements);
     int elementCount() { return _elements.count(); }
     shared_ptr<TopLevel> element(int i) { return _elements[i];}
-    void addElement(TopLevel *element) { _elements.append(shared_ptr<TopLevel>(element));}
+    void addElement(shared_ptr<TopLevel> element) { _elements.append(element);}
     QString toString();
     void prettyPrint(CodeFormatter *f);
 };
 
 class Module : public CompilationUnit
 {
-    Q_OBJECT
 public:
     shared_ptr<Identifier> _name;
     QVector<shared_ptr<Declaration > > _declarations;
@@ -59,14 +56,13 @@ public:
            QVector<shared_ptr<StrLiteral> > usedModules);
     ~Module();
     int declCount() { return _declarations.count(); }
-    Declaration *decl(int i) { return _declarations[i].get();}
+    shared_ptr<Declaration> decl(int i) { return _declarations[i];}
     shared_ptr<Declaration> declPtr(int i) { return _declarations[i];}
-    void addDecl(Declaration *decl) { _declarations.append(shared_ptr<Declaration>(decl));}
-    Identifier *name() { return _name.get();}
+    void addDecl(shared_ptr<Declaration> decl) { _declarations.append(decl);}
+    shared_ptr<Identifier> name() { return _name;}
 
     QString toString();
     void prettyPrint(CodeFormatter *f);
-    Q_DISABLE_COPY(Module)
 };
 
 #endif // TOPLEVEL_H

@@ -1244,7 +1244,7 @@ bool ClassDecl::containsPrototype(QString name)
 {
     if(_methodPrototypes.contains(name))
         return true;
-    if(_ancestorClass && _ancestorClass.get()->containsPrototype(name))
+    if(_ancestorClass && _ancestorClass->containsPrototype(name))
         return true;
     return false;
 }
@@ -1253,7 +1253,7 @@ MethodInfo ClassDecl::methodPrototype(QString name)
 {
     if(_methodPrototypes.contains(name))
         return _methodPrototypes[name];
-    return _ancestorClass.get()->methodPrototype(name);
+    return _ancestorClass->methodPrototype(name);
 }
 
 void ClassDecl::setAncestorClass(shared_ptr<ClassDecl> cd)
@@ -1310,7 +1310,7 @@ void Program::prettyPrint(CodeFormatter *f)
             //f->print("--");
             f->print(el->attachedComments);
         }
-        el.get()->prettyPrint(f);
+        el->prettyPrint(f);
         f->nl();
     }
 }
@@ -2143,7 +2143,7 @@ void RespondsTo::prettyPrint(CodeFormatter *f)
 
 void ConcreteResponseInfo::prettyPrint(CodeFormatter *f)
 {
-    this->name.get()->prettyPrint(f);
+    this->name->prettyPrint(f);
     f->space();
     parens(&commaSep(mapFmt(params))).run(f);
 }
@@ -2163,7 +2163,7 @@ void ClassDecl::prettyPrint(CodeFormatter *f)
     }
     for(int i=0; i<_internalDecls.count(); i++)
     {
-        ClassInternalDecl *id = _internalDecls[i].get();
+        shared_ptr<ClassInternalDecl> id = _internalDecls[i];
         id->prettyPrint(f);
         f->nl();
     }

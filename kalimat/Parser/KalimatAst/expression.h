@@ -6,37 +6,34 @@
 class Pattern;
 class Expression : public KalimatAst
 {
-    Q_OBJECT
     ASTImpl _astImpl;
 public:
     Expression(Token pos);
+    virtual ~Expression() {}
     Token getPos() { return _astImpl.getPos();}
 };
 
 class AssignableExpression : public Expression
 {
-    Q_OBJECT
 public:
     AssignableExpression(Token pos);
+    virtual ~AssignableExpression() {}
 };
 
 class Literal : public Expression
 {
-    Q_OBJECT
 public:
     Literal(Token pos): Expression(pos) {}
 };
 
 class SimpleLiteral : public Literal
 {
-    Q_OBJECT
 public:
     SimpleLiteral(Token pos) : Literal(pos) {}
 };
 
 class BinaryOperation : public Expression
 {
-    Q_OBJECT
 public:
     QString _operator;
     shared_ptr<Expression> _operand1, _operand2;
@@ -53,7 +50,6 @@ public:
 
 class IsaOperation : public Expression
 {
-    Q_OBJECT
 public:
     shared_ptr<Expression> _expression;
     shared_ptr<Identifier> _type;
@@ -67,7 +63,6 @@ public:
 
 class MatchOperation : public Expression
 {
-    Q_OBJECT
 public:
     shared_ptr<Expression> _expression;
     shared_ptr<Pattern> _pattern;
@@ -84,7 +79,6 @@ public:
 
 class UnaryOperation : public Expression
 {
-    Q_OBJECT
 public:
     QString _operator;
     shared_ptr<Expression> _operand;
@@ -97,18 +91,17 @@ public:
 
 class Identifier : public AssignableExpression
 {
-    Q_OBJECT
 public:
     QString name;
 public:
     Identifier(Token pos, QString name);
+    ~Identifier() {}
     QString toString();
     void prettyPrint(CodeFormatter *f);
 };
 
 class NumLiteral : public SimpleLiteral
 {
-    Q_OBJECT
 public:
     long lValue;
     double dValue;
@@ -123,7 +116,6 @@ public:
 
 class StrLiteral : public SimpleLiteral
 {
-    Q_OBJECT
 public:
     QString value;
 public:
@@ -135,7 +127,6 @@ public:
 
 class NullLiteral : public SimpleLiteral
 {
-    Q_OBJECT
 public:
     NullLiteral(Token pos);
     QString toString();
@@ -144,7 +135,6 @@ public:
 };
 class BoolLiteral : public SimpleLiteral
 {
-    Q_OBJECT
 public:
     bool value;
 public:
@@ -156,13 +146,12 @@ public:
 
 class ArrayLiteral : public Literal
 {
-    Q_OBJECT
 public:
     QVector<shared_ptr<Expression > > _data;
 public:
     ArrayLiteral(Token pos, QVector<shared_ptr<Expression> > data);
     int dataCount() {return _data.count();}
-    Expression *data(int i) { return _data[i].get(); }
+    shared_ptr<Expression> data(int i) { return _data[i]; }
     QVector<shared_ptr<Expression> > dataVector() { return _data;}
     QString toString();
     void prettyPrint(CodeFormatter *f);
@@ -170,7 +159,6 @@ public:
 
 class MapLiteral : public Literal
 {
-    Q_OBJECT
 public:
     QVector<shared_ptr<Expression > > _data;
 public:
@@ -184,14 +172,12 @@ public:
 
 class IInvokation : public Expression
 {
-    Q_OBJECT
 public:
     IInvokation(Token pos);
 };
 
 class Invokation : public IInvokation
 {
-    Q_OBJECT
 public:
     shared_ptr<Expression> _functor;
     QVector<shared_ptr<Expression > > _arguments;
@@ -208,7 +194,6 @@ public:
 
 class MethodInvokation : public IInvokation
 {
-    Q_OBJECT
 public:
     shared_ptr<Expression> _receiver;
     shared_ptr<Identifier> _methodSelector;
@@ -228,7 +213,6 @@ public:
 
 class TimingExpression : public Expression
 {
-    Q_OBJECT
 public:
     shared_ptr<Expression> _toTime;
 public:
@@ -240,7 +224,6 @@ public:
 
 class Idafa : public AssignableExpression
 {
-    Q_OBJECT
 public:
     shared_ptr<Identifier> _modaf;
     shared_ptr<Expression> _modaf_elaih;
@@ -254,7 +237,6 @@ public:
 
 class ArrayIndex : public AssignableExpression
 {
-    Q_OBJECT
 public:
     shared_ptr<Expression> _array;
     shared_ptr<Expression> _index;
@@ -268,7 +250,6 @@ public:
 
 class MultiDimensionalArrayIndex : public AssignableExpression
 {
-    Q_OBJECT
 public:
     shared_ptr<Expression> _array;
     QVector<shared_ptr<Expression> > _indexes;
@@ -286,7 +267,6 @@ public:
 
 class ObjectCreation : public Expression
 {
-    Q_OBJECT
 public:
     shared_ptr<Identifier> _className;
 public:

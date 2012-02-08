@@ -5,7 +5,6 @@
 
 class TypeExpression : public KalimatAst
 {
-    Q_OBJECT
     ASTImpl _astImpl;
 public:
     TypeExpression(Token pos) : _astImpl(pos) {}
@@ -14,7 +13,6 @@ public:
 
 class TypeIdentifier : public TypeExpression
 {
-    Q_OBJECT
 public:
     QString name;
     TypeIdentifier(Token pos, QString name);
@@ -24,7 +22,6 @@ public:
 
 class PointerTypeExpression : public TypeExpression
 {
-    Q_OBJECT
     shared_ptr<TypeExpression> _pointeeType;
 public:
     PointerTypeExpression(Token pos, shared_ptr<TypeExpression> pointeeType);
@@ -35,7 +32,6 @@ public:
 
 class FunctionTypeExpression : public TypeExpression
 {
-    Q_OBJECT
     shared_ptr<TypeExpression> _retType;
     QVector<shared_ptr<TypeExpression> > _argTypes;
 public:
@@ -46,7 +42,7 @@ public:
     void prettyPrint(CodeFormatter *formatter);
     shared_ptr<TypeExpression> retType() { return _retType; }
     int argTypeCount() { return _argTypes.count(); }
-    TypeExpression *argType(int i) { return _argTypes[i].get(); }
+    shared_ptr<TypeExpression> argType(int i) { return _argTypes[i]; }
 };
 
 #endif // TYPEEXPRESSION_H

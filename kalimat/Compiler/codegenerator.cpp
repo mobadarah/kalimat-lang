@@ -542,6 +542,11 @@ shared_ptr<Identifier> idOf(Token pos, QString id)
     return shared_ptr<Identifier>(new Identifier(pos, id));
 }
 
+shared_ptr<StrLiteral> strLitOf(Token pos, QString value)
+{
+    return shared_ptr<StrLiteral>(new StrLiteral(pos, value));
+}
+
 shared_ptr<Invokation> invokationOf(Token pos, QString fname)
 {
     QVector<shared_ptr<Expression> > args;
@@ -570,9 +575,58 @@ shared_ptr<Invokation> invokationOf(Token pos, QString fname, shared_ptr<Express
                                                  args));
 }
 
+shared_ptr<MethodInvokation> methodOf(Token pos,
+                                shared_ptr<Expression> target,
+                                QString mname)
+{
+    QVector<shared_ptr<Expression> > args;
+    return shared_ptr<MethodInvokation>(new MethodInvokation(pos,
+                                                             target,
+                                                 idOf(pos, mname),
+                                                 args));
+}
+
+shared_ptr<MethodInvokation> methodOf(Token pos,
+                                    shared_ptr<Expression> target,
+                                    QString mname,
+                                    shared_ptr<Expression> arg0)
+{
+    QVector<shared_ptr<Expression> > args;
+    args.append(arg0);
+    return shared_ptr<MethodInvokation>(new MethodInvokation(pos,
+                                                             target,
+                                                 idOf(pos, mname),
+                                                 args));
+}
+
+shared_ptr<MethodInvokation> methodOf(Token pos,
+                                    shared_ptr<Expression> target,
+                                    QString mname,
+                                    shared_ptr<Expression> arg0,
+                                    shared_ptr<Expression> arg1)
+{
+    QVector<shared_ptr<Expression> > args;
+    args.append(arg0);
+    args.append(arg1);
+    return shared_ptr<MethodInvokation>(new MethodInvokation(pos,
+                                                             target,
+                                                 idOf(pos, mname),
+                                                 args));
+}
+
 shared_ptr<LabelStmt> labelOf(Token pos, QString lbl)
 {
     return shared_ptr<LabelStmt>(new LabelStmt(pos, idOf(pos, lbl)));
+}
+
+shared_ptr<GotoStmt> gotoOf(Token pos, QString lbl)
+{
+    return shared_ptr<GotoStmt>(new GotoStmt(pos, idOf(pos, lbl)));
+}
+
+shared_ptr<GotoStmt> gotoOf(Token pos, shared_ptr<Expression> lbl)
+{
+    return shared_ptr<GotoStmt>(new GotoStmt(pos, lbl));
 }
 
 shared_ptr<AssignmentStmt> assignmentOf(Token pos, shared_ptr<AssignableExpression> lval,
@@ -581,14 +635,19 @@ shared_ptr<AssignmentStmt> assignmentOf(Token pos, shared_ptr<AssignableExpressi
     return shared_ptr<AssignmentStmt>(new AssignmentStmt(pos, lval, rval));
 }
 
+shared_ptr<InvokationStmt> fromInvokation(shared_ptr<IInvokation> inv)
+{
+    return shared_ptr<InvokationStmt>(new InvokationStmt(inv->getPos(), inv));
+}
+
 void CodeGenerator::generateRulesDeclaration(shared_ptr<RulesDecl> decl)
 {
     QVector<shared_ptr<Statement> > stmts;
     Token pos0 = decl->getPos();
     // %parser = make.parser(%input)
     // ...and they say Lisp isn't used anymore
-    stmts.append(assignmentOf(pos0, idOf(pos0, "%parser"),
-                     invokationOf(pos0,_ws(L"صنع.معرب"), idOf(pos0, "%input"))));
+    stmts.append(assignmentOf(pos0, idOf(pos0, _ws(L"%المعرب")),
+                     invokationOf(pos0,_ws(L"صنع.معرب"), idOf(pos0, _ws(L"%المدخل")))));
 
     for(int i=0; i<decl->subRuleCount(); i++)
     {
@@ -599,6 +658,13 @@ void CodeGenerator::generateRulesDeclaration(shared_ptr<RulesDecl> decl)
         stmts.append(labelOf(decl->getPos(), rule->ruleName));
         for(int j=0; j<rule->options.count(); j++)
         {
+            if((j+1) < rule->options.count())
+            {
+                stmts.append(fromInvokation(methodOf(pos0, idOf(pos0, _ws(L"%المعرب")),
+                                      _ws(L"ادفع.مسار.بديل"),
+                                      strLitOf(pos0,QString("%1%2")
+                                                     .arg(rule->ruleName).arg(j+1)))));
+            }
             shared_ptr<RuleOption> opt = rule->options[j];
             // a label for each option
             stmts.append(labelOf(decl->getPos(), QString("%1%2").arg(rule->ruleName).arg(j)));
@@ -610,32 +676,51 @@ void CodeGenerator::generateRulesDeclaration(shared_ptr<RulesDecl> decl)
             if(opt->resultExpr())
             {
                 Token pos1 = opt->resultExpr()->getPos();
-                stmts.append(assignmentOf(pos1, idOf(pos1, "%result"), opt->resultExpr()));
+                stmts.append(assignmentOf(pos1, idOf(pos1, _ws(L"%النتيجة")), opt->resultExpr()));
             }
             else
             {
                 Token pos1 = opt->expression()->getPos();
-                stmts.append(assignmentOf(pos1, idOf(pos1, "%result"),
+                stmts.append(assignmentOf(pos1, idOf(pos1, "%النتيجة"),
                                           shared_ptr<NullLiteral>(
                                               new NullLiteral(pos1))));
             }
-        }
+            // if we've succeded, ignore the most recent backtrack point
+            if((j+1) < rule->options.count())
+            {
+                stmts.append(fromInvokation(methodOf(pos0, idOf(pos0, _ws(L"%المعرب")),
+                                      _ws(L"تجاهل.آخر.مسار.بديل"))));
+                stmts.append(gotoOf(pos0, _ws(L"%نجاح.%1").arg(rule->ruleName)));
+            }
+        } // for each ruleOption
 
-    }
+        stmts.append(labelOf(pos0, _ws(L"%نجاح.%1").arg(rule->ruleName)));
+
+    } // for each rule
 
     shared_ptr<BlockStmt> body(
             new BlockStmt(decl->getPos(), stmts));
     QVector<shared_ptr<Identifier> > formals;
-    formals.append(idOf(Token(), "%input"));
+    formals.append(idOf(Token(), _ws(L"%المدخل")));
     shared_ptr<FunctionDecl> func(
             new FunctionDecl(decl->getPos(), decl->getPos(),
                              decl->name(), formals, body, true));
+    QFile f("pargen_debug.txt");
+    f.open(QFile::Text | QFile::WriteOnly | QFile::Truncate);
+    QTextStream out(&f);
+    out.setCodec("UTF-8");
+    out.setGenerateByteOrderMark(true);
+    out << func->toString();
+    f.close();
+    pushProcedureScope(func);
     generateFunctionDeclaration(func);
+    popProcedureScope();
 }
 
 QVector<shared_ptr<Statement> > CodeGenerator::pegExprToStatements(
         shared_ptr<PegExpr> expr)
 {
+    QVector<shared_ptr<Statement> > result;
     if(isa<PegRuleInvokation>(expr))
     {
 
@@ -648,6 +733,7 @@ QVector<shared_ptr<Statement> > CodeGenerator::pegExprToStatements(
     {
 
     }
+    return result;
 }
 
 void CodeGenerator::generateClassDeclaration(shared_ptr<ClassDecl> decl)
@@ -1764,15 +1850,14 @@ void CodeGenerator::generateIsaOperation(shared_ptr<IsaOperation> expr)
 
 void CodeGenerator::generateMatchOperation(shared_ptr<MatchOperation> expr)
 {
-
-    QMap<AssignableExpression *, shared_ptr<Identifier> > bindings;
+    QMap<shared_ptr<AssignableExpression>, shared_ptr<Identifier> > bindings;
     generatePattern(expr->pattern(), expr->expression(), bindings);
 
     // Now use all the bindings we've collected
     QString bind = _asm.uniqueLabel(), nobind = _asm.uniqueLabel(), exit = _asm.uniqueLabel();
     gen(expr, QString("if %1,%2").arg(bind).arg(nobind));
     gen(expr, QString("%1:").arg(bind));
-    for(QMap<AssignableExpression*, shared_ptr<Identifier> >::const_iterator i=bindings.begin(); i!=bindings.end();++i)
+    for(QMap<shared_ptr<AssignableExpression>, shared_ptr<Identifier> >::const_iterator i=bindings.begin(); i!=bindings.end();++i)
     {
         // todo: we want to execute the equivalent of matchedVar = tempVar
         // but tempVar is undefined to the compiler refuses the dummy assignment
@@ -1780,8 +1865,8 @@ void CodeGenerator::generateMatchOperation(shared_ptr<MatchOperation> expr)
         // so we should use generateAssignmentToLVal instead
         defineInCurrentScope(i.value()->name);
         generateAssignmentStmt(shared_ptr<AssignmentStmt>(new AssignmentStmt(i.key()->getPos(),
-                                                  shared_ptr<AssignableExpression>(i.key()),
-                                                  shared_ptr<Identifier>(i.value()))));
+                                                    i.key(),
+                                                  i.value())));
     }
     gen(expr, "pushv true");
     gen(expr, QString("jmp %1").arg(exit));
@@ -1793,7 +1878,7 @@ void CodeGenerator::generateMatchOperation(shared_ptr<MatchOperation> expr)
 
 void CodeGenerator::generatePattern(shared_ptr<Pattern> pattern,
                                     shared_ptr<Expression> expression,
-                                     QMap<AssignableExpression *, shared_ptr<Identifier> > &bindings)
+                                     QMap<shared_ptr<AssignableExpression> , shared_ptr<Identifier> > &bindings)
 {
     if(isa<SimpleLiteralPattern>(pattern))
     {
@@ -1827,7 +1912,7 @@ void CodeGenerator::generatePattern(shared_ptr<Pattern> pattern,
 
 void CodeGenerator::generateSimpleLiteralPattern(shared_ptr<SimpleLiteralPattern> pattern,
                                                  shared_ptr<Expression> matchee,
-                                                   QMap<AssignableExpression *, shared_ptr<Identifier> > &bindings)
+                                                   QMap<shared_ptr<AssignableExpression>, shared_ptr<Identifier> > &bindings)
 {
     generateExpression(pattern->value());
     generateExpression(matchee);
@@ -1836,7 +1921,7 @@ void CodeGenerator::generateSimpleLiteralPattern(shared_ptr<SimpleLiteralPattern
 
 void CodeGenerator::generateVarPattern(shared_ptr<VarPattern> pattern,
                                        shared_ptr<Expression> matchee,
-                                        QMap<AssignableExpression *, shared_ptr<Identifier> > &bindings)
+                                        QMap<shared_ptr<AssignableExpression>, shared_ptr<Identifier> > &bindings)
 {
     generateExpression(pattern->id());
     generateExpression(matchee);
@@ -1845,7 +1930,7 @@ void CodeGenerator::generateVarPattern(shared_ptr<VarPattern> pattern,
 
 void CodeGenerator::generateAssignedVarPattern(shared_ptr<AssignedVarPattern> pattern,
                                                shared_ptr<Expression> matchee,
-                                                QMap<AssignableExpression *, shared_ptr<Identifier> > &bindings)
+                                                QMap<shared_ptr<AssignableExpression>, shared_ptr<Identifier> > &bindings)
 {
     /*
       <matchee>
@@ -1856,12 +1941,13 @@ void CodeGenerator::generateAssignedVarPattern(shared_ptr<AssignedVarPattern> pa
     generateExpression(matchee);
     gen(matchee, QString("popl ") + tempVar);
     gen(pattern->lv(), "pushv true");
-    bindings.insert(pattern->lv().get(), shared_ptr<Identifier>(new Identifier(matchee->getPos(), tempVar)));
+    bindings.insert(pattern->lv(),
+                    shared_ptr<Identifier>(new Identifier(matchee->getPos(), tempVar)));
 }
 
 void CodeGenerator::generateArrayPattern(shared_ptr<ArrayPattern> pattern,
                                          shared_ptr<Expression> matchee,
-                                          QMap<AssignableExpression *, shared_ptr<Identifier> > &bindings)
+                                          QMap<shared_ptr<AssignableExpression>, shared_ptr<Identifier> > &bindings)
 {
     QString arrVar = _asm.uniqueVariable();
     // todo: for why this is ugly please refer to the comment
@@ -1938,7 +2024,7 @@ void CodeGenerator::generateArrayPattern(shared_ptr<ArrayPattern> pattern,
 
 void CodeGenerator::generateObjPattern(shared_ptr<ObjPattern> pattern,
                                        shared_ptr<Expression> matchee,
-                                        QMap<AssignableExpression *, shared_ptr<Identifier> > &bindings)
+                                        QMap<shared_ptr<AssignableExpression>, shared_ptr<Identifier> > &bindings)
 {
     QString objVar = _asm.uniqueVariable();
     // todo: for why this is ugly please refer to the comment
@@ -1995,7 +2081,7 @@ void CodeGenerator::generateObjPattern(shared_ptr<ObjPattern> pattern,
 
 void CodeGenerator::generateMapPattern(shared_ptr<MapPattern> pattern,
                                        shared_ptr<Expression> matchee,
-                                        QMap<AssignableExpression *, shared_ptr<Identifier> > &bindings)
+                                        QMap<shared_ptr<AssignableExpression>, shared_ptr<Identifier> > &bindings)
 {
     QString mapVar = _asm.uniqueVariable();
     // todo: for why this is ugly please refer to the comment

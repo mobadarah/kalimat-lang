@@ -282,7 +282,7 @@ shared_ptr<Statement> KalimatParser::statement()
 
     if(firstToken.sister != NULL)
     {
-        ret.get()->attachedComments = firstToken.sister->Lexeme;
+        ret->attachedComments = firstToken.sister->Lexeme;
         /*   MainWindow::that->outputMsg(QString("Statement: %1; has sister: %2")
                                     .arg(ret->toString()).arg(ret->attachedComments));
                                     */
@@ -2180,8 +2180,8 @@ shared_ptr<Identifier> KalimatParser::identifier()
     {
         ret = shared_ptr<Identifier>(new Identifier(lookAhead, lookAhead.Lexeme));
         match(IDENTIFIER);
-        if(!varContext.empty())
-            varContext.top()->addReference(ret);
+        //if(!varContext.empty())
+        //    varContext.top()->addReference(ret);
         return ret;
     }
     throw ParserException(getPos(), ExpectedIdentifier);

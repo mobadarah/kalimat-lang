@@ -333,11 +333,14 @@ void MainWindow::on_actionCompile_triggered()
         if(doc != NULL)
         {
             CodeDocument *dc = doc;
-            if(ex.source->getPos().tag != NULL)
+            if(ex.source)
             {
-                dc = (CodeDocument *) ex.source->getPos().tag;
+                if(ex.source->getPos().tag != NULL)
+                {
+                    dc = (CodeDocument *) ex.source->getPos().tag;
+                }
+                highlightLine(dc->getEditor(), ex.source->getPos().Pos);
             }
-            highlightLine(dc->getEditor(), ex.source->getPos().Pos);
         }
     }
 }
@@ -458,10 +461,10 @@ void MainWindow::on_mnuProgramRun_triggered()
         lastCodeDocToRun = doc;
         rw->show();
 
-        KalimatLexer lxr;
-        KalimatParser parser;
-        parser.init(doc->getEditor()->document()->toPlainText(), &lxr, doc);
-        rw->parseTree = dynamic_pointer_cast<KalimatAst>(parser.parse());
+        //KalimatLexer lxr;
+        //KalimatParser parser;
+        //parser.init(doc->getEditor()->document()->toPlainText(), &lxr, doc);
+        //rw->parseTree = dynamic_pointer_cast<KalimatAst>(parser.parse());
         rw->Init(output, compiler.generator.getStringConstants(), breakPoints, debugInfo);
 
     }

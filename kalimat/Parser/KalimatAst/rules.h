@@ -14,7 +14,7 @@ public:
     {
 
     }
-
+    virtual ~PegExpr() {}
     Token getPos() { return _astImpl.getPos();}
 };
 
@@ -43,6 +43,7 @@ public:
     {
 
     }
+    ~PegSequence() {}
     int elementCount() {return elements.count();}
     shared_ptr<PegExpr> element(int i) {return elements[i];}
     void prettyPrint(CodeFormatter *);
@@ -76,6 +77,7 @@ public:
     {
 
     }
+    ~PegRuleInvokation() {}
     shared_ptr<Identifier> ruleName() { return _ruleName;}
     void prettyPrint(CodeFormatter *);
     QString toString();
@@ -93,6 +95,7 @@ public:
     {
 
     }
+    ~PegLiteral() {}
     shared_ptr<StrLiteral> value() { return _value;}
     void prettyPrint(CodeFormatter *);
     QString toString() { return _value->toString(); }
@@ -127,7 +130,6 @@ struct RuleDecl
 
 class RulesDecl : public Declaration
 {
-    Q_OBJECT
     QVector<shared_ptr<RuleDecl> > _subRules;
     shared_ptr<Identifier> _ruleName;
 public:

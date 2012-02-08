@@ -6,7 +6,7 @@ template<typename V> QString vector_toString(V vector)
     QStringList lst;
     for(int i=0; i<vector.count(); i++)
     {
-        AST *ast = vector[i].get();
+        shared_ptr<AST> ast = vector[i];
         lst.append(ast->toString());
     }
     return lst.join(", ");

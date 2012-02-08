@@ -42,11 +42,11 @@ using namespace std;
 
 QString strLiteralRepr(QString value);
 
-class KalimatAst : public QObject, public AST
+class KalimatAst : public AST
 {
-    Q_OBJECT
 public:
-    Q_INVOKABLE virtual QString toString() { return "";}
+    virtual ~KalimatAst(){}
+    virtual QString toString() { return "";}
 };
 
 class IScopeIntroducer

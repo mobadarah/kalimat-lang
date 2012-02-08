@@ -6,16 +6,15 @@
 
 class Pattern : public KalimatAst
 {
-    Q_OBJECT
     ASTImpl _astImpl;
 public:
     Pattern(Token pos);
+    virtual ~Pattern() {}
     Token getPos() { return _astImpl.getPos();}
 };
 
 class SimpleLiteralPattern : public Pattern
 {
-    Q_OBJECT
     shared_ptr<SimpleLiteral> _value;
 public:
     SimpleLiteralPattern(Token pos, shared_ptr<SimpleLiteral> value)
@@ -30,7 +29,6 @@ public:
 
 class VarPattern : public Pattern
 {
-    Q_OBJECT
     shared_ptr<Identifier> _id;
 public:
     VarPattern(Token pos, shared_ptr<Identifier> id) : Pattern(pos),_id(id) {}
@@ -41,12 +39,13 @@ public:
 
 class AssignedVarPattern : public Pattern
 {
-    Q_OBJECT
     shared_ptr<AssignableExpression> _lv;
 public:
     AssignedVarPattern(Token pos, shared_ptr<AssignableExpression> lv)
         : Pattern(pos),_lv(lv)
     {
+    }
+    virtual ~AssignedVarPattern() {
     }
     shared_ptr<AssignableExpression> lv() { return _lv; }
     QString toString() { return QString("? %1").arg(lv()->toString()); }
@@ -59,12 +58,12 @@ public:
 
 class ArrayPattern : public Pattern
 {
-    Q_OBJECT
     QVector<shared_ptr<Pattern> > _elements;
 public:
     bool fixedLength;
 public:
     ArrayPattern(Token pos, QVector<shared_ptr<Pattern> > elements);
+    ~ArrayPattern() {}
     int elementCount() { return _elements.count(); }
     shared_ptr<Pattern> element(int i) { return _elements[i]; }
     QString toString();
@@ -73,7 +72,6 @@ public:
 
 class ObjPattern : public Pattern
 {
-    Q_OBJECT
     shared_ptr<Identifier> _classId;
     QVector<shared_ptr<Identifier> > _fieldNames;
     QVector<shared_ptr<Pattern> > _fieldPatterns;
@@ -93,7 +91,6 @@ public:
 
 class MapPattern : public Pattern
 {
-    Q_OBJECT
     QVector<shared_ptr<Expression> > _keys;
     QVector<shared_ptr<Pattern> > _values;
 public:

@@ -16,7 +16,7 @@ struct PrettyPrintable
 class AST : public PrettyPrintable
 {
 public:
-    //virtual ~AST();
+    virtual ~AST() {}
     virtual QString toString()=0;
     virtual Token getPos()=0;
 };
