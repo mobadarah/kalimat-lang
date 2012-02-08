@@ -769,6 +769,14 @@ NumLiteral::NumLiteral(Token pos ,QString lexeme) : SimpleLiteral(pos)
     valueRecognized = ok;
 
 }
+
+NumLiteral::NumLiteral(Token pos ,int value) : SimpleLiteral(pos)
+{
+    valueRecognized = true;
+    this->lValue = value;
+    longNotDouble = true;
+}
+
 QString NumLiteral::toString()
 {
     return _ws(L"%1")

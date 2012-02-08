@@ -653,10 +653,12 @@ void CodeGenerator::generateRulesDeclaration(shared_ptr<RulesDecl> decl)
     QVector<shared_ptr<Statement> > stmts;
     Token pos0 = decl->getPos();
     // %parser = make.parser(%input)
+    // %result = null -- to declare the variable
     // ...and they say Lisp isn't used anymore
     stmts.append(assignmentOf(pos0, idOf(pos0, _ws(L"%المعرب")),
                      invokationOf(pos0,_ws(L"صنع.معرب"), idOf(pos0, _ws(L"%المدخل")))));
-
+    stmts.append(assignmentOf(pos0, idOf(pos0, _ws(L"%النتيجة")),
+                              shared_ptr<NullLiteral>(new NullLiteral(pos0))));
     if(decl->subRuleCount() > 0)
     {
         // manage start rule:
@@ -779,27 +781,82 @@ QVector<shared_ptr<Statement> > CodeGenerator::pegExprToStatements(
                                    toCall,
                                    returnHere)));
         result.append(labelOf(pos0, continuationLabel));
+        if(rule->associatedVar())
+        {
+            Token pos1 = rule->associatedVar()->getPos();
+            result.append(assignmentOf(pos1,
+                                       rule->associatedVar(),
+                                       idOf(pos1, _ws(L"%النتيجة"))));
+        }
     }
     if(isa<PegLiteral>(expr))
     {
 
         // if %parser: lookAt(lit)
+        //    associatedVar = %parser: look()
         //    %parser: progress()
         // else
         //     %parser : backtrack()
         // end
         shared_ptr<PegLiteral> lit = dynamic_pointer_cast<PegLiteral>(expr);
+        bool multiChar = lit->value()->value.count() !=1;
+        int charCount = lit->value()->value.count();
         Token pos0 = lit->getPos();
+        QVector<shared_ptr<Statement> > thenStmts;
+        QVector<shared_ptr<Statement> > elseStmts;
+        Token pos1; // of associated variable
+        if(lit->associatedVar())
+        {
+            pos1 = lit->associatedVar()->getPos();
+        }
+        shared_ptr<MethodInvokation> lookAheadCall, conditionCall, progressCall;
+        if(multiChar)
+        {
+            lookAheadCall = (
+                        methodOf(pos1,
+                                 idOf(pos1, _ws(L"%المعرب")),
+                                 _ws(L"انظر.عديد"),
+                                 shared_ptr<Expression>(new NumLiteral(pos1,
+                                                                       charCount))));
+            progressCall = methodOf(pos0,
+                                    idOf(pos0,_ws(L"%المعرب")),
+                                    _ws(L"تقدم.عديد"),
+                                    shared_ptr<Expression>(new NumLiteral(pos1,
+                                                                          charCount)));
+            conditionCall = methodOf(pos0,
+                     idOf(pos0, _ws(L"%المعرب")),
+                     _ws(L"يطل.على.عديد"),
+                     lit->value());
+        }
+        else
+        {
+            lookAheadCall = (
+                        methodOf(pos1,
+                                 idOf(pos1, _ws(L"%المعرب")),
+                                 _ws(L"انظر")));
+            progressCall = methodOf(pos0,
+                                    idOf(pos0,_ws(L"%المعرب")),
+                                    _ws(L"تقدم"));
+            conditionCall = methodOf(pos0,
+                     idOf(pos0, _ws(L"%المعرب")),
+                     _ws(L"يطل.على"),lit->value());
+        }
+        if(lit->associatedVar())
+        {
+            thenStmts.append(assignmentOf(pos1,
+                                       lit->associatedVar(),
+                                          lookAheadCall));
+        }
+        thenStmts.append(fromInvokation(progressCall));
+        elseStmts.append(gotoOf(pos0, methodOf(pos0,
+                                idOf(pos0,_ws(L"%المعرب")),
+                                        _ws(L"الجأ.لبديل"))));
+        shared_ptr<BlockStmt> thenPart(new BlockStmt(pos0, thenStmts));
+        shared_ptr<BlockStmt> elsePart(new BlockStmt(pos0, elseStmts));
         shared_ptr<IfStmt> ifStmt = ifOf(pos0,
-                    methodOf(pos0,
-                             idOf(pos0, _ws(L"%المعرب")),
-                             _ws(L"يطل.على"),lit->value()),
-                    fromInvokation(methodOf(pos0,
-                                            idOf(pos0,_ws(L"%المعرب")),
-                                            _ws(L"تقدم"))),
-                    gotoOf(pos0, methodOf(pos0,
-                                            idOf(pos0,_ws(L"%المعرب")),
-                                            _ws(L"الجأ.لبديل"))));
+                    conditionCall,
+                    thenPart,
+                    elsePart);
         result.append(ifStmt);
     }
     if(isa<PegSequence>(expr))

@@ -109,6 +109,7 @@ public:
     bool valueRecognized;
 public:
     NumLiteral(Token pos, QString lexeme);
+    NumLiteral(Token pos, int value);
     QString toString();
     QString repr();
     void prettyPrint(CodeFormatter *f);
