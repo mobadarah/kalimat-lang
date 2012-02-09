@@ -15,6 +15,7 @@ public:
 
     }
     virtual ~PegExpr() {}
+    virtual QSet<QString> getAllAssociatedVars()=0;
     Token getPos() { return _astImpl.getPos();}
 };
 
@@ -35,6 +36,7 @@ public:
     {
         _associatedVar = v;
     }
+    virtual QSet<QString> getAllAssociatedVars();
 };
 
 class PegSequence : public PegExpr
@@ -52,6 +54,7 @@ public:
     shared_ptr<PegExpr> element(int i) {return elements[i];}
     void prettyPrint(CodeFormatter *);
     QString toString();
+    virtual QSet<QString> getAllAssociatedVars();
 };
 
 /*
@@ -130,6 +133,7 @@ struct RuleDecl
     {
 
     }
+    virtual QSet<QString> getAllAssociatedVars();
 };
 
 class RulesDecl : public Declaration
@@ -146,6 +150,7 @@ public:
     shared_ptr<Identifier> name() { return _ruleName; }
     void prettyPrint(CodeFormatter *);
     QString toString();
+    virtual QSet<QString> getAllAssociatedVars();
 };
 
 #endif // RULES_H

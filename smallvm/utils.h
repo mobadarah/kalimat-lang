@@ -12,11 +12,27 @@
 #include <QTextStream>
 #include <QString>
 #include <QMap>
-
+#include <QSet>
 QString _ws(QStdWString str);
 QString readFile(QString path);
 QString base64encode(QString other);
 QString base64Decode(QString source);
+
+template<class T> void appendAll(QVector<T> &a, QVector<T> b)
+{
+    for(int i=0; i<b.count(); i++)
+        a.append(b[i]);
+}
+
+template<class T> void appendAll(QSet<T> &a, QSet<T> b)
+{
+    auto i=b.begin();
+    while(i != b.end())
+    {
+        a.insert(*i);
+        ++i;
+    }
+}
 
 class LineIterator
 {

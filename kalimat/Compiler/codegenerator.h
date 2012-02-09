@@ -17,12 +17,6 @@
 #include <memory>
 using namespace std;
 
-template<class T> void appendAll(QVector<T> &a, QVector<T> b)
-{
-    for(int i=0; i<b.count(); i++)
-        a.append(b[i]);
-}
-
 enum MethodCallStyle
 {
     NonTailCallStyle,
@@ -86,7 +80,9 @@ private:
     void generateFFIProceduralDeclaration(shared_ptr<FFIProceduralDecl> decl, QString libName);
     void generateFFIStructDeclaration(shared_ptr<FFIStructDecl> decl);
     void generateRulesDeclaration(shared_ptr<RulesDecl> decl);
-    QVector<shared_ptr<Statement> > pegExprToStatements(shared_ptr<PegExpr> expr);
+    QVector<shared_ptr<Statement> > pegExprToStatements(
+            shared_ptr<PegExpr> expr,
+            QList<QString> locals);
     void generateClassDeclaration(shared_ptr<ClassDecl> decl);
     void generateGlobalDeclaration(shared_ptr<GlobalDecl> decl);
     void generateMethodDeclaration(shared_ptr<MethodDecl> decl);

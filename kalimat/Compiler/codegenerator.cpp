@@ -659,6 +659,21 @@ void CodeGenerator::generateRulesDeclaration(shared_ptr<RulesDecl> decl)
                      invokationOf(pos0,_ws(L"صنع.معرب"), idOf(pos0, _ws(L"%المدخل")))));
     stmts.append(assignmentOf(pos0, idOf(pos0, _ws(L"%النتيجة")),
                               shared_ptr<NullLiteral>(new NullLiteral(pos0))));
+
+
+    // initialize the associated vars with null
+    // to make them 'declared'
+    QList<QString> identifiersForRules
+            = decl->getAllAssociatedVars().toList();
+    for(int k=0; k<identifiersForRules.count(); k++)
+    {
+
+        stmts.append(
+                    assignmentOf(pos0,
+                                 idOf(pos0, identifiersForRules[k]),
+                                 shared_ptr<NullLiteral>(new NullLiteral(pos0))));
+    }
+
     if(decl->subRuleCount() > 0)
     {
         // manage start rule:
@@ -685,6 +700,8 @@ void CodeGenerator::generateRulesDeclaration(shared_ptr<RulesDecl> decl)
         stmts.append(labelOf(decl->getPos(), rule->ruleName));
         for(int j=0; j<rule->options.count(); j++)
         {
+            // a label for each option
+            stmts.append(labelOf(decl->getPos(), QString("%1%2").arg(rule->ruleName).arg(j)));
             if((j+1) < rule->options.count())
             {
                 stmts.append(fromInvokation(methodOf(pos0, idOf(pos0, _ws(L"%المعرب")),
@@ -693,10 +710,13 @@ void CodeGenerator::generateRulesDeclaration(shared_ptr<RulesDecl> decl)
                                                      .arg(rule->ruleName).arg(j+1)))));
             }
             shared_ptr<RuleOption> opt = rule->options[j];
-            // a label for each option
-            stmts.append(labelOf(decl->getPos(), QString("%1%2").arg(rule->ruleName).arg(j)));
+
+
             // now generate code for the PEG expression
-            appendAll(stmts, pegExprToStatements(opt->expression()));
+            QList<QString> identifiersForRuleOption
+                    = opt->expression()->getAllAssociatedVars().toList();
+            appendAll(stmts, pegExprToStatements(opt->expression(),
+                                                 identifiersForRuleOption));
             // ...and if there's an associated resultant expression
             // generate its evaluation and storage in the 'register' result
             // I'll cut my arm of if this works :D
@@ -762,13 +782,29 @@ void CodeGenerator::generateRulesDeclaration(shared_ptr<RulesDecl> decl)
 }
 
 QVector<shared_ptr<Statement> > CodeGenerator::pegExprToStatements(
-        shared_ptr<PegExpr> expr)
+        shared_ptr<PegExpr> expr, QList<QString> locals)
 {
     QVector<shared_ptr<Statement> > result;
     if(isa<PegRuleInvokation>(expr))
     {
         shared_ptr<PegRuleInvokation> rule = dynamic_pointer_cast<PegRuleInvokation>(expr);
         Token pos0 = rule->getPos();
+        // save locals
+        // %parser : pushLocals([loc1, loc2, loc3])
+        QVector<shared_ptr<Expression> > elems;
+        for(int i=0; i<locals.count(); i++)
+        {
+            elems.append(idOf(pos0, locals[i]));
+        }
+        shared_ptr<ArrayLiteral> arr(
+                    new ArrayLiteral(pos0, elems));
+
+        result.append(fromInvokation(methodOf(pos0,
+                               idOf(pos0, _ws(L"%المعرب")),
+                               _ws(L"ادفع.المتغيرات.المحلية"),
+                               arr)));
+        // done save locals
+
         QString continuationLabel = _asm.uniqueLabel();
         shared_ptr<StrLiteral> toCall(
                     new StrLiteral(pos0, rule->ruleName()->name));
@@ -781,6 +817,30 @@ QVector<shared_ptr<Statement> > CodeGenerator::pegExprToStatements(
                                    toCall,
                                    returnHere)));
         result.append(labelOf(pos0, continuationLabel));
+        // restore locals
+        // %tempFrame = %parser: restoreLocals()
+        // loc1 = %tempFrame[1]
+        // loc2 = %tempFrame[2]
+        // loc3 = %tempFrame[3]
+        result.append(assignmentOf(pos0,
+                                   idOf(pos0, _ws(L"%اطار.مؤقت")),
+                                    methodOf(pos0,
+                               idOf(pos0, _ws(L"%المعرب")),
+                               _ws(L"ارفع.المتغيرات.المحلية"))));
+        for(int i=0;i<locals.count(); i++)
+        {
+            shared_ptr<NumLiteral> idx(
+                        new NumLiteral(pos0, i+1));
+            shared_ptr<ArrayIndex> arrAccess(
+                        new ArrayIndex(pos0,
+                                       idOf(pos0,_ws(L"%اطار.مؤقت")),
+                                       idx));
+            result.append(assignmentOf(pos0,
+                                       idOf(pos0, locals[i]),
+                                       arrAccess
+                                            ));
+        }
+
         if(rule->associatedVar())
         {
             Token pos1 = rule->associatedVar()->getPos();
@@ -864,7 +924,7 @@ QVector<shared_ptr<Statement> > CodeGenerator::pegExprToStatements(
         shared_ptr<PegSequence> seq = dynamic_pointer_cast<PegSequence>(expr);
         for(int i=0; i<seq->elementCount(); i++)
         {
-            appendAll(result, pegExprToStatements(seq->element(i)));
+            appendAll(result, pegExprToStatements(seq->element(i), locals));
         }
     }
     return result;

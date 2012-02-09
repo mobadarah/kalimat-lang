@@ -1899,7 +1899,7 @@ shared_ptr<Pattern> KalimatParser::arrayPattern()
         }
     }
     match(RBRACKET);
-    return shared_ptr<Pattern>(new ArrayPattern(pos, patterns));
+    return shared_ptr<Pattern>(new ArrayPattern(pos, patterns, fixedLen));
 }
 
 shared_ptr<Pattern> KalimatParser::mapPattern()

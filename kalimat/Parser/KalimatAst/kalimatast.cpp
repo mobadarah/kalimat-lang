@@ -632,9 +632,9 @@ QString VarPattern::toString()
     return id()->toString();
 }
 
-ArrayPattern::ArrayPattern(Token pos, QVector<shared_ptr<Pattern> > elements)
+ArrayPattern::ArrayPattern(Token pos, QVector<shared_ptr<Pattern> > elements, bool fixedLength)
     : Pattern(pos),
-      _elements(elements)
+      _elements(elements), fixedLength(fixedLength)
 {
 }
 
@@ -1121,6 +1121,22 @@ RulesDecl::RulesDecl(Token pos,
 
 }
 
+QSet<QString> RuleDecl::getAllAssociatedVars()
+{
+    QSet<QString> ret;
+    for(int i=0; i<this->options.count(); i++)
+        appendAll(ret, options[i]->expression()->getAllAssociatedVars());
+    return ret;
+}
+
+QSet<QString> RulesDecl::getAllAssociatedVars()
+{
+    QSet<QString> ret;
+    for(int i=0; i<this->subRuleCount(); i++)
+        appendAll(ret, subRule(i)->getAllAssociatedVars());
+    return ret;
+}
+
 QString RulesDecl::toString()
 {
     QStringList lst;
@@ -1170,6 +1186,26 @@ QString PegSequence::toString()
     for(int i=0; i<elementCount(); i++)
         lst.append(element(i)->toString());
     return lst.join(" ");
+}
+
+QSet<QString> PegSequence::getAllAssociatedVars()
+{
+    QSet<QString> ret;
+    for(int i=0; i<elementCount(); i++)
+    {
+        appendAll(ret, element(i)->getAllAssociatedVars());
+    }
+    return ret;
+}
+
+QSet<QString> PegPrimary::getAllAssociatedVars()
+{
+    QSet<QString> ret;
+    if(associatedVar())
+    {
+        ret.insert(associatedVar()->name);
+    }
+    return ret;
 }
 
 ClassDecl::ClassDecl(Token pos,

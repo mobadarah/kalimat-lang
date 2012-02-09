@@ -62,7 +62,7 @@ class ArrayPattern : public Pattern
 public:
     bool fixedLength;
 public:
-    ArrayPattern(Token pos, QVector<shared_ptr<Pattern> > elements);
+    ArrayPattern(Token pos, QVector<shared_ptr<Pattern> > elements, bool fixedLength);
     ~ArrayPattern() {}
     int elementCount() { return _elements.count(); }
     shared_ptr<Pattern> element(int i) { return _elements[i]; }
