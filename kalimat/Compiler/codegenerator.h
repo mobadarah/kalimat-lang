@@ -80,6 +80,9 @@ private:
     void generateFFIProceduralDeclaration(shared_ptr<FFIProceduralDecl> decl, QString libName);
     void generateFFIStructDeclaration(shared_ptr<FFIStructDecl> decl);
     void generateRulesDeclaration(shared_ptr<RulesDecl> decl);
+    QVector<shared_ptr<Statement> > generateRuleImplementation(
+            shared_ptr<PegRuleInvokation> rule,
+            QList<QString> locals);
     QVector<shared_ptr<Statement> > pegExprToStatements(
             shared_ptr<PegExpr> expr,
             QList<QString> locals);

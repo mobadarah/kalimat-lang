@@ -618,6 +618,41 @@ shared_ptr<MethodInvokation> methodOf(shared_ptr<Expression> target,
                                                  args));
 }
 
+shared_ptr<MethodInvokation> methodOf(shared_ptr<Expression> target,
+                                    QString mname,
+                                    shared_ptr<Expression> arg0,
+                                    shared_ptr<Expression> arg1,
+                                      shared_ptr<Expression> arg2)
+{
+    QVector<shared_ptr<Expression> > args;
+    args.append(arg0);
+    args.append(arg1);
+    args.append(arg2);
+    return shared_ptr<MethodInvokation>(new MethodInvokation(target->getPos(),
+                                                             target,
+                                                 idOf(target->getPos(), mname),
+                                                 args));
+}
+
+shared_ptr<MethodInvokation> methodOf(shared_ptr<Expression> target,
+                                    QString mname,
+                                    shared_ptr<Expression> arg0,
+                                    shared_ptr<Expression> arg1,
+                                    shared_ptr<Expression> arg2,
+                                    shared_ptr<Expression> arg3
+                                      )
+{
+    QVector<shared_ptr<Expression> > args;
+    args.append(arg0);
+    args.append(arg1);
+    args.append(arg2);
+    args.append(arg3);
+    return shared_ptr<MethodInvokation>(new MethodInvokation(target->getPos(),
+                                                             target,
+                                                 idOf(target->getPos(), mname),
+                                                 args));
+}
+
 shared_ptr<LabelStmt> labelOf(Token pos, QString lbl)
 {
     return shared_ptr<LabelStmt>(new LabelStmt(pos, idOf(pos, lbl)));
@@ -669,6 +704,10 @@ void CodeGenerator::generateRulesDeclaration(shared_ptr<RulesDecl> decl)
     // ...and they say Lisp isn't used anymore
     stmts.append(assignmentOf(pos0, idOf(pos0, _ws(L"%المعرب")),
                      invokationOf(pos0,_ws(L"صنع.معرب"), idOf(pos0, _ws(L"%المدخل")))));
+
+    stmts.append(assignmentOf(pos0, idOf(pos0, _ws(L"%الموقع")),
+                              shared_ptr<NumLiteral>(new NumLiteral(pos0,1))));
+
     stmts.append(assignmentOf(pos0, idOf(pos0, _ws(L"%النتيجة")),
                               shared_ptr<NullLiteral>(new NullLiteral(pos0))));
 
@@ -689,6 +728,16 @@ void CodeGenerator::generateRulesDeclaration(shared_ptr<RulesDecl> decl)
     if(decl->subRuleCount() > 0)
     {
         // manage start rule:
+        // we shall push a locals frame since each 'call' assumes
+        // both return address and locals frames
+        // %parser : pushLocals([])
+        stmts.append(fromInvokation(methodOf(
+                                        idOf(pos0, _ws(L"%المعرب")),
+                                        _ws(L"ادفع.المتغيرات.المحلية"),
+                                        shared_ptr<ArrayLiteral>(
+                                            new ArrayLiteral(pos0,
+                                                             QVector<shared_ptr<Expression> >())
+                                            ))));
         // %parser : call(startRuleLabel, %endOfParsing)
         shared_ptr<RuleDecl> rule = decl->subRule(0);
         shared_ptr<StrLiteral> toCall(
@@ -754,12 +803,26 @@ void CodeGenerator::generateRulesDeclaration(shared_ptr<RulesDecl> decl)
 
         stmts.append(labelOf(pos0, _ws(L"%نجاح.%1").arg(rule->ruleName)));
         // at the end of each rule:
+        // first, memoize:
+        // %parser: remember("ruleName", %pos, %result)
+        stmts.append(fromInvokation(methodOf(idOf(pos0, _ws(L"%المعرب")),
+                                             _ws(L"تذكر"),
+                                             strLitOf(pos0, rule->ruleName),
+                                             idOf(pos0, _ws(L"%الموقع")),
+                                             fieldAccessOf(idOf(pos0, _ws(L"%المعرب")), _ws(L"موقع")),
+                                             idOf(pos0, _ws(L"%النتيجة")))));
+        // then return
         // goto %parser: ret()
         stmts.append(gotoOf(pos0, methodOf(idOf(pos0, _ws(L"%المعرب")), _ws(L"عد"))));
     } // for each rule
 
     // a label %endOfParsing for the start rule to return to
     stmts.append(labelOf(pos0, _ws(L"نهاية.الإعراب")));
+    // pop dummy 'locals' frame that was first pushed
+    stmts.append(assignmentOf(pos0,
+                               idOf(pos0, _ws(L"%اطار.مؤقت")),
+                                methodOf(idOf(pos0, _ws(L"%المعرب")),
+                           _ws(L"ارفع.المتغيرات.المحلية"))));
     // now return our precious result :D
 
     shared_ptr<ReturnStmt> returnNow(new ReturnStmt(pos0,
@@ -792,15 +855,16 @@ void CodeGenerator::generateRulesDeclaration(shared_ptr<RulesDecl> decl)
     popProcedureScope();
 }
 
-QVector<shared_ptr<Statement> > generateRuleImplementation(
+QVector<shared_ptr<Statement> > CodeGenerator::generateRuleImplementation(
         shared_ptr<PegRuleInvokation> rule,
         QList<QString> locals)
 {
     QVector<shared_ptr<Statement> > result;
     Token pos0 = rule->getPos();
     // save locals
-    // %parser : pushLocals([loc1, loc2, loc3])
+    // %parser : pushLocals([%pos, loc1, loc2, loc3])
     QVector<shared_ptr<Expression> > elems;
+    elems.append(idOf(pos0, _ws(L"%الموقع")));
     for(int i=0; i<locals.count(); i++)
     {
         elems.append(idOf(pos0, locals[i]));
@@ -808,34 +872,38 @@ QVector<shared_ptr<Statement> > generateRuleImplementation(
     shared_ptr<ArrayLiteral> arr(
                 new ArrayLiteral(pos0, elems));
 
-    result.append(fromInvokation(methodOf(pos0,
-                           idOf(pos0, _ws(L"%المعرب")),
+    result.append(fromInvokation(methodOf(idOf(pos0, _ws(L"%المعرب")),
                            _ws(L"ادفع.المتغيرات.المحلية"),
                            arr)));
     // done save locals
-
+    // %pos = pos of %parser
+    result.append(assignmentOf(idOf(pos0, _ws(L"%الموقع")),
+                               fieldAccessOf(idOf(pos0, _ws(L"%المعرب")),
+                                             _ws(L"موقع"))));
+    //now invoke the rule
     QString continuationLabel = _asm.uniqueLabel();
     shared_ptr<StrLiteral> toCall(
                 new StrLiteral(pos0, rule->ruleName()->name));
     shared_ptr<StrLiteral> returnHere(
                 new StrLiteral(pos0, continuationLabel));
+
     result.append(gotoOf(pos0,
-                      methodOf(pos0,
-                               idOf(pos0, _ws(L"%المعرب")),
+                      methodOf(idOf(pos0, _ws(L"%المعرب")),
                                _ws(L"تفرع"),
                                toCall,
                                returnHere)));
     result.append(labelOf(pos0, continuationLabel));
     // restore locals
     // %tempFrame = %parser: restoreLocals()
-    // loc1 = %tempFrame[1]
-    // loc2 = %tempFrame[2]
-    // loc3 = %tempFrame[3]
+    // %pos = %tempFrame[1]
+    // loc1 = %tempFrame[2]
+    // loc2 = %tempFrame[3]
+    // loc3 = %tempFrame[4]
     result.append(assignmentOf(pos0,
                                idOf(pos0, _ws(L"%اطار.مؤقت")),
-                                methodOf(pos0,
-                           idOf(pos0, _ws(L"%المعرب")),
+                                methodOf(idOf(pos0, _ws(L"%المعرب")),
                            _ws(L"ارفع.المتغيرات.المحلية"))));
+    locals.prepend(_ws(L"%الموقع"));
     for(int i=0;i<locals.count(); i++)
     {
         shared_ptr<NumLiteral> idx(
@@ -849,6 +917,7 @@ QVector<shared_ptr<Statement> > generateRuleImplementation(
                                    arrAccess
                                         ));
     }
+    locals.removeFirst();
     return result;
 }
 
@@ -861,35 +930,34 @@ QVector<shared_ptr<Statement> > CodeGenerator::pegExprToStatements(
         shared_ptr<PegRuleInvokation> rule = dynamic_pointer_cast<PegRuleInvokation>(expr);
         Token pos0 = rule->getPos();
         // if %parser: youRemember("ruleName", pos of %parser):
-        //     %tmp = %parser : getMemory("ruleName", %pos)
+        //     %tmp = %parser : getMemory("ruleName", pos of %parser)
         //     pos of %parser = pos of %tmp
         //     %result = result of %tmp
         // else:
         //    ...rule invokation...
         // done
         shared_ptr<Expression> rememberCond(
-                    methodOf(pos0,
-                             idOf(pos0, _ws(L"%المعرب")),
+                    methodOf(idOf(pos0, _ws(L"%المعرب")),
                              _ws(L"هل.تذكر"),
-                             strLitOf(pos0, rule->ruleName()),
+                             strLitOf(pos0, rule->ruleName()->name),
                              fieldAccessOf(idOf(pos0, _ws(L"%المعرب")),
                                            _ws(L"موقع"))));
 
         QVector<shared_ptr<Statement> > assignStmts;
-        shared_ptr<Identifier> tmpId = idOf(pos0, _ws(L"%مؤقت");
-        shared_ptr<Identifier> parserId = idOf(pos0, _ws(L"%المعرب");
+        shared_ptr<Identifier> tmpId = idOf(pos0, _ws(L"%مؤقت"));
+        shared_ptr<Identifier> parserId = idOf(pos0, _ws(L"%المعرب"));
         assignStmts.append(assignmentOf(tmpId,
                                         methodOf(parserId,
                                                  _ws(L"استرد.ذكرى"),
-                                                 strLitOf(pos0, rule->ruleName()),
+                                                 strLitOf(pos0, rule->ruleName()->name),
                                                  fieldAccessOf(idOf(pos0, _ws(L"%المعرب")),
                                                                 _ws(L"موقع"))
                                                  )));
         assignStmts.append(assignmentOf(fieldAccessOf(parserId, _ws(L"موقع")),
-                                        ieldAccessOf(tmpId, _ws(L"موقع"))));
+                                        fieldAccessOf(tmpId, _ws(L"موقع"))));
 
         assignStmts.append(assignmentOf(idOf(pos0, _ws(L"%النتيجة")),
-                                        ieldAccessOf(tmpId, _ws(L"نتيجة"))));
+                                        fieldAccessOf(tmpId, _ws(L"نتيجة"))));
 
 
 
@@ -938,32 +1006,26 @@ QVector<shared_ptr<Statement> > CodeGenerator::pegExprToStatements(
         if(multiChar)
         {
             lookAheadCall = (
-                        methodOf(pos1,
-                                 idOf(pos1, _ws(L"%المعرب")),
+                        methodOf(idOf(pos1, _ws(L"%المعرب")),
                                  _ws(L"انظر.عديد"),
                                  shared_ptr<Expression>(new NumLiteral(pos1,
                                                                        charCount))));
-            progressCall = methodOf(pos0,
-                                    idOf(pos0,_ws(L"%المعرب")),
+            progressCall = methodOf(idOf(pos0,_ws(L"%المعرب")),
                                     _ws(L"تقدم.عديد"),
                                     shared_ptr<Expression>(new NumLiteral(pos1,
                                                                           charCount)));
-            conditionCall = methodOf(pos0,
-                     idOf(pos0, _ws(L"%المعرب")),
+            conditionCall = methodOf(idOf(pos0, _ws(L"%المعرب")),
                      _ws(L"يطل.على.عديد"),
                      lit->value());
         }
         else
         {
             lookAheadCall = (
-                        methodOf(pos1,
-                                 idOf(pos1, _ws(L"%المعرب")),
+                        methodOf(idOf(pos1, _ws(L"%المعرب")),
                                  _ws(L"انظر")));
-            progressCall = methodOf(pos0,
-                                    idOf(pos0,_ws(L"%المعرب")),
+            progressCall = methodOf(idOf(pos0,_ws(L"%المعرب")),
                                     _ws(L"تقدم"));
-            conditionCall = methodOf(pos0,
-                     idOf(pos0, _ws(L"%المعرب")),
+            conditionCall = methodOf(idOf(pos0, _ws(L"%المعرب")),
                      _ws(L"يطل.على"),lit->value());
         }
         if(lit->associatedVar())
@@ -973,8 +1035,7 @@ QVector<shared_ptr<Statement> > CodeGenerator::pegExprToStatements(
                                           lookAheadCall));
         }
         thenStmts.append(fromInvokation(progressCall));
-        elseStmts.append(gotoOf(pos0, methodOf(pos0,
-                                idOf(pos0,_ws(L"%المعرب")),
+        elseStmts.append(gotoOf(pos0, methodOf(idOf(pos0,_ws(L"%المعرب")),
                                         _ws(L"الجأ.لبديل"))));
         shared_ptr<BlockStmt> thenPart(new BlockStmt(pos0, thenStmts));
         shared_ptr<BlockStmt> elsePart(new BlockStmt(pos0, elseStmts));
