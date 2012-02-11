@@ -706,7 +706,7 @@ void CodeGenerator::generateRulesDeclaration(shared_ptr<RulesDecl> decl)
                      invokationOf(pos0,_ws(L"صنع.معرب"), idOf(pos0, _ws(L"%المدخل")))));
 
     stmts.append(assignmentOf(pos0, idOf(pos0, _ws(L"%الموقع")),
-                              shared_ptr<NumLiteral>(new NumLiteral(pos0,1))));
+                              shared_ptr<NumLiteral>(new NumLiteral(pos0,0))));
 
     stmts.append(assignmentOf(pos0, idOf(pos0, _ws(L"%النتيجة")),
                               shared_ptr<NullLiteral>(new NullLiteral(pos0))));

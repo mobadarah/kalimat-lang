@@ -112,6 +112,7 @@ void AddressOfProc(QStack<Value *> &stack, RunWindow *w, VM *vm);
 void InvokeForeignProc(QStack<Value *> &stack, RunWindow *w, VM *vm);
 
 void CurrentParseTreeProc(QStack<Value *> &stack, RunWindow *w, VM *vm);
+void MakeParserProc(QStack<Value *> &stack, RunWindow *w, VM *vm);
 
 double verifyNumeric(Value *v, RunWindow *w); // TODO: make this a method of RunWindow
 int popIntOrCoercable(QStack<Value *> &stack, RunWindow *w, VM *vm);

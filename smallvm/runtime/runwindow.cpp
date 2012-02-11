@@ -10,6 +10,7 @@
 
 #include "../utils.h"
 #include "guicontrols.h"
+#include "parserengine.h"
 
 #include <QPushButton>
 #include <QPainter>
@@ -199,6 +200,7 @@ void RunWindow::Init(QString program, QMap<QString, QString> stringConstants, QS
         vm->Register("callforeign", new WindowProxyMethod(this, vm, InvokeForeignProc));
 
         vm->Register("current_parse_tree", new WindowProxyMethod(this, vm, CurrentParseTreeProc));
+        vm->Register("make_parser", new WindowProxyMethod(this, vm, MakeParserProc));
 
 
         for(int i=0; i<stringConstants.keys().count(); i++)
@@ -257,6 +259,8 @@ void RunWindow::Init(QString program, QMap<QString, QString> stringConstants, QS
         vm->RegisterType(_ws(L"مجموعة.اختيارات"), new ButtonGroupForeignClass(_ws(L"مجموعة.اختيارات"), this));
         vm->RegisterType(_ws(L"صندوق.مركب"), new ComboboxForeignClass(_ws(L"صندوق.مركب"), this));
         vm->RegisterType(_ws(L"صورة"), new ImageForeignClass(_ws(L"صورة"), this));
+        vm->RegisterType(_ws(L"معرب"), new ParserClass(_ws(L"معرب"), this));
+        vm->RegisterType(_ws(L"ParseResult"), new ParserClass(_ws(L"ParseResult"), this));
 
 
         InitVMPrelude(vm);

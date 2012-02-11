@@ -1242,6 +1242,17 @@ void CurrentParseTreeProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
     stack.push(v);
 }
 
+void MakeParserProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
+{
+    QString *datum = popString(stack, w, vm);
+    IClass *parserClass = dynamic_cast<IClass *>(vm->GetType(_ws(L"معرب"))->unboxObj());
+    IObject *parser = parserClass->newValue(&vm->GetAllocator());
+    parser->setSlotValue(_ws(L"موقع"), vm->GetAllocator().newInt(0));
+    parser->setSlotValue(_ws(L"بيان"), vm->GetAllocator().newString(
+                             new QString(*datum)));
+    stack.push(vm->GetAllocator().newObject(parser, parserClass));
+}
+
 void setupChildren(QGridLayout *layout,Value *v, Reference *ref, QString label, int row, VM *vm)
 {
     QCheckBox *cb;

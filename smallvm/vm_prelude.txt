@@ -413,3 +413,8 @@ ret
 callex current_parse_tree
 ret
 .endmethod
+
+.method صنع.معرب 1 1
+callex make_parser
+ret
+.endmethod
