@@ -1147,27 +1147,41 @@ QString RulesDecl::toString()
     for(int i=0; i<subRuleCount(); i++)
     {
         shared_ptr<RuleDecl> r = subRule(i);
-        lst.append(r->ruleName);
-        lst.append("=[");
-
-        for(int j=0; j<r->options.count(); j++)
-        {
-            if(j>0)
-            {
-                lst.append("|");
-            }
-            shared_ptr<RuleOption> ro = r->options[j];
-            lst.append(ro->expression()->toString());
-            if(ro->resultExpr())
-            {
-                lst.append(" => ");
-                lst.append(ro->resultExpr()->toString());
-            }
-            lst.append(", ");
-        }
-        lst.append("]");
+        lst.append(r->toString());
     }
     lst.append(")");
+    return lst.join("");
+}
+
+QString RuleOption::toString()
+{
+    QStringList lst;
+    lst.append(expression()->toString());
+    if(resultExpr())
+    {
+        lst.append(" => ");
+        lst.append(resultExpr()->toString());
+    }
+    return lst.join("");
+}
+
+QString RuleDecl::toString()
+{
+    QStringList lst;
+    lst.append(ruleName);
+    lst.append("=[");
+
+    for(int j=0; j<options.count(); j++)
+    {
+        if(j>0)
+        {
+            lst.append("|");
+        }
+        shared_ptr<RuleOption> ro = options[j];
+        lst.append(ro->toString());
+        lst.append(", ");
+    }
+    lst.append("]");
     return lst.join("");
 }
 
@@ -2101,6 +2115,36 @@ void FFIStructDecl::prettyPrint(CodeFormatter *f)
     f->nl(); // for extra neatness, add an empty line after definitions
 }
 
+void RuleOption::prettyPrint(CodeFormatter *f)
+{
+    expression()->prettyPrint(f);
+    if(resultExpr())
+    {
+        f->space();
+        f->print("=>");
+        f->space();
+        resultExpr()->prettyPrint(f);
+    }
+}
+
+void RuleDecl::prettyPrint(CodeFormatter *f)
+{
+    f->print(ruleName);
+    f->space();
+    f->print("=");
+    f->space();
+    for(int j=0; j<options.count(); j++)
+    {
+        if(j>0)
+        {
+            f->printKw(L"أو");
+        }
+        shared_ptr<RuleOption> ro = options[j];
+        ro->prettyPrint(f);
+        f->nl();
+    }
+}
+
 void RulesDecl::prettyPrint(CodeFormatter *f)
 {
     f->printKw(L"قواعد");
@@ -2111,27 +2155,7 @@ void RulesDecl::prettyPrint(CodeFormatter *f)
     for(int i=0; i<subRuleCount(); i++)
     {
         shared_ptr<RuleDecl> r = subRule(i);
-        f->print(r->ruleName);
-        f->space();
-        f->print("=");
-        f->space();
-        for(int j=0; j<r->options.count(); j++)
-        {
-            if(j>0)
-            {
-                f->printKw(L"أو");
-            }
-            shared_ptr<RuleOption> ro = r->options[j];
-            ro->expression()->prettyPrint(f);
-            if(ro->resultExpr())
-            {
-                f->space();
-                f->print("=>");
-                f->space();
-                ro->resultExpr()->prettyPrint(f);
-            }
-            f->nl();
-        }
+        r->prettyPrint(f);
         f->nl();
         if(i+1 < subRuleCount())
             f->nl();

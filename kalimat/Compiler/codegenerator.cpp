@@ -732,6 +732,14 @@ shared_ptr<InvokationStmt> fromInvokation(shared_ptr<IInvokation> inv)
 
 void CodeGenerator::generateRulesDeclaration(shared_ptr<RulesDecl> decl)
 {
+    QMap<QString, shared_ptr<RuleDecl> > ruleTable;
+    for(int i=0; i<decl->subRuleCount(); i++)
+    {
+        shared_ptr<RuleDecl> rule = decl->subRule(i);
+        if(ruleTable.contains(rule->ruleName))
+            throw CompilerException(rule, RuleAlreadyDefined).arg(rule->ruleName);
+        ruleTable[rule->ruleName] = rule;
+    }
     Labeller labeller;
     QVector<shared_ptr<Statement> > stmts;
     Token pos0 = decl->getPos();
@@ -790,24 +798,28 @@ void CodeGenerator::generateRulesDeclaration(shared_ptr<RulesDecl> decl)
     for(int i=0; i<decl->subRuleCount(); i++)
     {
         shared_ptr<RuleDecl> rule = decl->subRule(i);
+        Token rulePos = rule->getPos();
         // a label for our top-level rule
         // todo: since 'Rule' and it's  children aren't yet derived from KalimatAst
         // we'll use the position of the "RulesDecl" in place of their positions
-        stmts.append(labelOf(decl->getPos(), rule->ruleName, labeller));
+        stmts.append(labelOf(rulePos, rule->ruleName, labeller));
+
         for(int j=0; j<rule->options.count(); j++)
         {
+            shared_ptr<RuleOption> opt = rule->options[j];
+            Token optPos = opt->getPos();
             // a label for each option
             stmts.append(
-                        labelOf(decl->getPos(), QString("%1%%2").arg(rule->ruleName).arg(j), labeller)
+                        labelOf(optPos, QString("%1%%2").arg(rule->ruleName).arg(j), labeller)
                         );
             if((j+1) < rule->options.count())
             {
-                stmts.append(fromInvokation(methodOf(idOf(pos0, _ws(L"%المعرب")),
+                stmts.append(fromInvokation(methodOf(idOf(optPos, _ws(L"%المعرب")),
                                       _ws(L"ادفع.مسار.بديل"),
-                                      numLitOf(pos0,labeller.labelOf(QString("%1%%2")
+                                      numLitOf(optPos, labeller.labelOf(QString("%1%%2")
                                                      .arg(rule->ruleName).arg(j+1))))));
             }
-            shared_ptr<RuleOption> opt = rule->options[j];
+
 
 
             // now generate code for the PEG expression
@@ -815,7 +827,8 @@ void CodeGenerator::generateRulesDeclaration(shared_ptr<RulesDecl> decl)
                     = opt->expression()->getAllAssociatedVars().toList();
             appendAll(stmts, pegExprToStatements(opt->expression(),
                                                  identifiersForRuleOption,
-                                                 labeller));
+                                                 labeller,
+                                                 ruleTable));
             // ...and if there's an associated resultant expression
             // generate its evaluation and storage in the 'register' result
             // I'll cut my arm of if this works :D
@@ -834,28 +847,28 @@ void CodeGenerator::generateRulesDeclaration(shared_ptr<RulesDecl> decl)
             // if we've succeded, ignore the most recent backtrack point
             if((j+1) < rule->options.count())
             {
-                stmts.append(fromInvokation(methodOf(idOf(pos0, _ws(L"%المعرب")),
+                stmts.append(fromInvokation(methodOf(idOf(optPos, _ws(L"%المعرب")),
                                       _ws(L"تجاهل.آخر.مسار.بديل"))));
-                stmts.append(gotoOf(pos0, _ws(L"%نجاح.%1").arg(rule->ruleName), labeller)
+                stmts.append(gotoOf(optPos, _ws(L"%نجاح.%1").arg(rule->ruleName), labeller)
                         );
             }
         } // for each ruleOption
 
         stmts.append(
-                    labelOf(pos0, _ws(L"%نجاح.%1").arg(rule->ruleName), labeller)
+                    labelOf(rulePos, _ws(L"%نجاح.%1").arg(rule->ruleName), labeller)
                     );
         // at the end of each rule:
         // first, memoize:
         // %parser: remember("ruleName", %pos, %result)
-        stmts.append(fromInvokation(methodOf(idOf(pos0, _ws(L"%المعرب")),
+        stmts.append(fromInvokation(methodOf(idOf(rulePos, _ws(L"%المعرب")),
                                              _ws(L"تذكر"),
-                                             numLitOf(pos0, labeller.labelOf(rule->ruleName)),
-                                             idOf(pos0, _ws(L"%الموقع")),
-                                             fieldAccessOf(idOf(pos0, _ws(L"%المعرب")), _ws(L"موقع")),
-                                             idOf(pos0, _ws(L"%النتيجة")))));
+                                             numLitOf(rulePos, labeller.labelOf(rule->ruleName)),
+                                             idOf(rulePos, _ws(L"%الموقع")),
+                                             fieldAccessOf(idOf(rulePos, _ws(L"%المعرب")), _ws(L"موقع")),
+                                             idOf(rulePos, _ws(L"%النتيجة")))));
         // then return
         // goto %parser: ret()
-        stmts.append(gotoOf(pos0, methodOf(idOf(pos0, _ws(L"%المعرب")), _ws(L"عد"))));
+        stmts.append(gotoOf(rulePos, methodOf(idOf(rulePos, _ws(L"%المعرب")), _ws(L"عد"))));
     } // for each rule
 
     // a label %endOfParsing for the start rule to return to
@@ -966,12 +979,17 @@ QVector<shared_ptr<Statement> > CodeGenerator::generateRuleImplementation(
 
 QVector<shared_ptr<Statement> > CodeGenerator::pegExprToStatements(
         shared_ptr<PegExpr> expr, QList<QString> locals,
-        Labeller &labeller)
+        Labeller &labeller,
+        QMap<QString, shared_ptr<RuleDecl> > ruleTable)
 {
     QVector<shared_ptr<Statement> > result;
     if(isa<PegRuleInvokation>(expr))
     {
         shared_ptr<PegRuleInvokation> rule = dynamic_pointer_cast<PegRuleInvokation>(expr);
+        if(!ruleTable.contains(rule->ruleName()->name))
+        {
+            throw CompilerException(rule, InvokingUndefinedRule).arg(rule->ruleName()->name);
+        }
         Token pos0 = rule->getPos();
         // if %parser: youRemember("ruleName", pos of %parser):
         //     %tmp = %parser : getMemory("ruleName", pos of %parser)
@@ -1094,7 +1112,7 @@ QVector<shared_ptr<Statement> > CodeGenerator::pegExprToStatements(
         shared_ptr<PegSequence> seq = dynamic_pointer_cast<PegSequence>(expr);
         for(int i=0; i<seq->elementCount(); i++)
         {
-            appendAll(result, pegExprToStatements(seq->element(i), locals, labeller));
+            appendAll(result, pegExprToStatements(seq->element(i), locals, labeller, ruleTable));
         }
     }
     return result;

@@ -108,32 +108,43 @@ public:
     QString toString() { return _value->toString(); }
 };
 
-class RuleOption
+class RuleOption : public KalimatAst
 {
+    ASTImpl _astImpl;
     shared_ptr<PegExpr> _expression;
     shared_ptr<Expression> _resultExpr;
 public:
-    RuleOption(shared_ptr<PegExpr> _expression,
+    RuleOption(Token pos, shared_ptr<PegExpr> _expression,
                shared_ptr<Expression> _resultExpr)
-        : _expression(_expression), _resultExpr(_resultExpr)
+        : _astImpl(pos),
+          _expression(_expression),
+          _resultExpr(_resultExpr)
     {
 
     }
     shared_ptr<PegExpr> expression() { return _expression;}
     shared_ptr<Expression> resultExpr() { return _resultExpr;}
+    Token getPos() { return _astImpl.getPos();}
+    QString toString();
+    void prettyPrint(CodeFormatter *formatter);
 };
 
-struct RuleDecl
+struct RuleDecl : public KalimatAst
 {
+    ASTImpl _astImpl;
     QString ruleName;
     QVector<shared_ptr<RuleOption> > options;
-    RuleDecl(QString ruleName, QVector<shared_ptr<RuleOption> > options)
-        :ruleName(ruleName),
+    RuleDecl(Token pos, QString ruleName, QVector<shared_ptr<RuleOption> > options)
+        : _astImpl(pos),
+          ruleName(ruleName),
           options(options)
     {
 
     }
     virtual QSet<QString> getAllAssociatedVars();
+    Token getPos() { return _astImpl.getPos();}
+    QString toString();
+    void prettyPrint(CodeFormatter *formatter);
 };
 
 class RulesDecl : public Declaration

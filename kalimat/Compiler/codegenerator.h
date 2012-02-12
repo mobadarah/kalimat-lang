@@ -93,7 +93,8 @@ private:
             QList<QString> locals, Labeller &labeller);
     QVector<shared_ptr<Statement> > pegExprToStatements(
             shared_ptr<PegExpr> expr,
-            QList<QString> locals, Labeller &labeller);
+            QList<QString> locals, Labeller &labeller,
+            QMap<QString, shared_ptr<RuleDecl> > ruleTable);
     void generateClassDeclaration(shared_ptr<ClassDecl> decl);
     void generateGlobalDeclaration(shared_ptr<GlobalDecl> decl);
     void generateMethodDeclaration(shared_ptr<MethodDecl> decl);
@@ -222,7 +223,9 @@ UnimplementedTypeForm,
 UnimplementedPatternForm,
 ProgramsCannotUseExternalModulesWithoutSavingThemFirst,
 InternalCompilerErrorInFunc,
-CannotRunAModule
+CannotRunAModule,
+RuleAlreadyDefined,
+InvokingUndefinedRule
 };
 
 class CompilerException

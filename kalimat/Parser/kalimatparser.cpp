@@ -1541,7 +1541,7 @@ shared_ptr<RuleDecl> KalimatParser::ruleDecl()
     }
     match(NEWLINE);
     newLines();
-    options.append(shared_ptr<RuleOption>(new RuleOption(expr, resultExpr)));
+    options.append(shared_ptr<RuleOption>(new RuleOption(expr->getPos(), expr, resultExpr)));
     while(LA(OR))
     {
         match(OR);
@@ -1567,11 +1567,11 @@ shared_ptr<RuleDecl> KalimatParser::ruleDecl()
                                                                theExpr->associatedVar()->name));
             }
         }
-        options.append(shared_ptr<RuleOption>(new RuleOption(expr, _resultExpr)));
+        options.append(shared_ptr<RuleOption>(new RuleOption(expr->getPos(), expr, _resultExpr)));
         match(NEWLINE);
         newLines();
     }
-    return shared_ptr<RuleDecl>(new RuleDecl(name->name, options));
+    return shared_ptr<RuleDecl>(new RuleDecl(name->getPos(), name->name, options));
 }
 
 shared_ptr<PegExpr> KalimatParser::pegExpr()
