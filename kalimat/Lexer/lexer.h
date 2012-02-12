@@ -29,6 +29,13 @@ protected:
 };
 class UnexpectedEndOfFileException
 {
+public:
+    QString fileName;
+    UnexpectedEndOfFileException(QString fileName)
+        : fileName(fileName)
+    {
+
+    }
 };
 
 class UnexpectedCharException
@@ -37,12 +44,13 @@ class UnexpectedCharException
     QString gotThis;
     int line, column, pos;
     int state;
-    QString fileName;
 public:
+    QString fileName;
     UnexpectedCharException(QString _gotThis, QVector<Predicate *> possibleTransitions, int line, int column, int pos, int state, QString fileName);
     QString buildMessage();
 
     int getLine() { return line; }
+    int getPos() { return pos; }
     QString getCulprit() { return gotThis; }
 };
 

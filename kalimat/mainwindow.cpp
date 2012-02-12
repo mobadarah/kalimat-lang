@@ -471,11 +471,20 @@ void MainWindow::on_mnuProgramRun_triggered()
     catch(UnexpectedCharException ex)
     {
         //show_error(ex->buildMessage());
-        show_error(QString::fromStdWString(L"لا يمكن كتابة هذا الرمز هنا '%1'").arg(ex.getCulprit()));
-        if(doc != NULL)
+        CodeDocument *dc = NULL;
+        if(ex.getCulprit() == "<EOF>")
         {
-            CodeDocument *dc = doc;
-            highlightLine(dc->getEditor(), ex.getLine());
+            show_error(QString::fromStdWString(L"انتهى البرنامج قبل أن يكون له معنى"));
+        }
+        else
+        {
+            show_error(QString::fromStdWString(L"لا يمكن كتابة هذا الرمز هنا '%1'").arg(ex.getCulprit()));
+        }
+        if(QFile::exists(ex.fileName))
+            dc = docContainer->getDocumentFromPath(ex.fileName, true);
+        if(dc != NULL)
+        {
+            highlightLine(dc->getEditor(), ex.getPos());
         }
     }
     catch(UnexpectedEndOfFileException ex)

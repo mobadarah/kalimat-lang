@@ -104,7 +104,7 @@ void Lexer::tokenize(bool ignoreUnexpectedChar)
     }
     else
     {
-        throw UnexpectedEndOfFileException();
+        throw UnexpectedEndOfFileException(fileName);
     }
     */
 }
