@@ -8,12 +8,18 @@
 #include "vm_incl.h"
 #include "allocator.h"
 
+Value *Allocator::_true = NULL;
+Value *Allocator::_false = NULL;
 Allocator::Allocator(QMap<QString, Value *> *constantPool, QQueue<Process *> *processes)
 {
     this->constantPool = constantPool;
     this->processes = processes;
     currentAllocationInBytes = 0;
     maxAllocationInBytes = NORMAL_MAX_HEAP;
+    if(_true == NULL)
+        _true = newBool(true, false);
+    if(_false == NULL)
+        _false = newBool(false, false);
 }
 
 Value *Allocator::allocateNewValue(bool gcMonitor)
@@ -96,7 +102,15 @@ Value *Allocator::newDouble(double d, bool gcMonitor)
 
 Value *Allocator::newBool(bool b)
 {
-    return newBool(b, true);
+    if(b)
+    {
+        return _true;
+    }
+    else
+    {
+        return _false;
+    }
+
 }
 
 Value *Allocator::newBool(bool b, bool gcMonitor)

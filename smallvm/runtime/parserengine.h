@@ -23,15 +23,15 @@
 struct ParseFrame
 {
     bool backTrack;
-    QString continuationLabel;
+    int continuationLabel;
     int parsePos;
     ParseFrame() {}
-    ParseFrame(QString label)
+    ParseFrame(int label)
     {
         backTrack = false;
         continuationLabel = label;
     }
-    ParseFrame(QString label, int parsePos)
+    ParseFrame(int label, int parsePos)
     {
         backTrack = true;
         this->parsePos = parsePos;
@@ -65,7 +65,8 @@ struct ParserObj : public Object
     Allocator *allocator;
     Value *data;
     QStack<ParseFrame> stack;
-    QMap<QString, QMap<int, ParseResult> > memoize;
+    // label -> pos -> result
+    QMap<int, QMap<int, ParseResult> > memoize;
     Value *valueStack;
     int valueStackTop;
     int pos;
@@ -76,6 +77,7 @@ struct ParserObj : public Object
 
 class ParserClass : public EasyForeignClass
 {
+    QMap<int,int> callCount; // for profiling
     RunWindow *rw;
     Allocator *allocator;
 public:

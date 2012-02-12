@@ -42,6 +42,21 @@ enum InvokationContext
     ProcedureInvokationContext, FunctionInvokationContext
 };
 
+struct Labeller
+{
+    QMap<QString, int> labelMap;
+    int count;
+    Labeller() { count = 0;}
+    int labelOf(QString str)
+    {
+        if(!labelMap.contains(str))
+        {
+            labelMap[str] = count++;
+        }
+        return labelMap[str];
+    }
+};
+
 class CodeGenerator
 {
     SmallVMCodeGenerator _asm;
@@ -82,10 +97,10 @@ private:
     void generateRulesDeclaration(shared_ptr<RulesDecl> decl);
     QVector<shared_ptr<Statement> > generateRuleImplementation(
             shared_ptr<PegRuleInvokation> rule,
-            QList<QString> locals);
+            QList<QString> locals, Labeller &labeller);
     QVector<shared_ptr<Statement> > pegExprToStatements(
             shared_ptr<PegExpr> expr,
-            QList<QString> locals);
+            QList<QString> locals, Labeller &labeller);
     void generateClassDeclaration(shared_ptr<ClassDecl> decl);
     void generateGlobalDeclaration(shared_ptr<GlobalDecl> decl);
     void generateMethodDeclaration(shared_ptr<MethodDecl> decl);

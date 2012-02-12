@@ -642,7 +642,8 @@ void MainWindow::visualizeCallStack(QStack<Frame> &callStack, QGraphicsView *vie
         {
             QString var = f.Locals.keys().at(j);
             QString val = f.Locals.values().at(j)->toString();
-
+            if(var.startsWith("%"))
+                continue;
             if(var.length() > 5)
                 var = var.mid(0,4) +"-";
             if(val.length() > 10)

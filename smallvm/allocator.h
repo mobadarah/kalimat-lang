@@ -38,6 +38,9 @@ class Allocator
     unsigned int currentAllocationInBytes;
     unsigned int maxAllocationInBytes;
 
+    static Value * _true;
+    static Value * _false;
+
     // Store VM root objects for GC
     QMap<QString, Value*> *constantPool;
     QQueue<Process *> *processes;

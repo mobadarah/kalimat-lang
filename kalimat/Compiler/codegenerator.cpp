@@ -547,6 +547,11 @@ shared_ptr<StrLiteral> strLitOf(Token pos, QString value)
     return shared_ptr<StrLiteral>(new StrLiteral(pos, value));
 }
 
+shared_ptr<NumLiteral> numLitOf(Token pos, int value)
+{
+    return shared_ptr<NumLiteral>(new NumLiteral(pos, value));
+}
+
 shared_ptr<Idafa> fieldAccessOf(shared_ptr<Expression> obj, QString fname)
 {
     return shared_ptr<Idafa>(new Idafa(obj->getPos(),
@@ -653,14 +658,32 @@ shared_ptr<MethodInvokation> methodOf(shared_ptr<Expression> target,
                                                  args));
 }
 
-shared_ptr<LabelStmt> labelOf(Token pos, QString lbl)
+shared_ptr<LabelStmt> labelOf(Token pos, QString lbl, Labeller &lblr)
 {
-    return shared_ptr<LabelStmt>(new LabelStmt(pos, idOf(pos, lbl)));
+    /*
+    return shared_ptr<LabelStmt>(new LabelStmt(pos,
+                                               strLitOf(pos,lbl)));
+    //*/
+    //*
+    int label = lblr.labelOf(lbl);
+    return shared_ptr<LabelStmt>(new LabelStmt(pos,
+                                               shared_ptr<NumLiteral>(
+                                               new NumLiteral(pos,
+                                                              label))));
+    //*/
 }
 
-shared_ptr<GotoStmt> gotoOf(Token pos, QString lbl)
+shared_ptr<LabelStmt> labelOf(Token pos, QString lbl)
 {
-    return shared_ptr<GotoStmt>(new GotoStmt(pos, idOf(pos, lbl)));
+    return shared_ptr<LabelStmt>(new LabelStmt(pos,
+                                               idOf(pos,lbl)));
+}
+
+
+shared_ptr<GotoStmt> gotoOf(Token pos, QString lbl, Labeller &lblr)
+{
+    return shared_ptr<GotoStmt>(new GotoStmt(pos,
+                                             numLitOf(pos, lblr.labelOf(lbl))));
 }
 
 shared_ptr<GotoStmt> gotoOf(Token pos, shared_ptr<Expression> lbl)
@@ -697,6 +720,7 @@ shared_ptr<InvokationStmt> fromInvokation(shared_ptr<IInvokation> inv)
 
 void CodeGenerator::generateRulesDeclaration(shared_ptr<RulesDecl> decl)
 {
+    Labeller labeller;
     QVector<shared_ptr<Statement> > stmts;
     Token pos0 = decl->getPos();
     // %parser = make.parser(%input)
@@ -740,10 +764,10 @@ void CodeGenerator::generateRulesDeclaration(shared_ptr<RulesDecl> decl)
                                             ))));
         // %parser : call(startRuleLabel, %endOfParsing)
         shared_ptr<RuleDecl> rule = decl->subRule(0);
-        shared_ptr<StrLiteral> toCall(
-                    new StrLiteral(pos0, rule->ruleName));
-        shared_ptr<StrLiteral> returnHere(
-                    new StrLiteral(pos0, _ws(L"نهاية.الإعراب")));
+        shared_ptr<NumLiteral> toCall =
+                    numLitOf(pos0, labeller.labelOf(rule->ruleName));
+        shared_ptr<NumLiteral> returnHere =
+                    numLitOf(pos0, labeller.labelOf(_ws(L"نهاية.الإعراب")));
         stmts.append(gotoOf(pos0,
                           methodOf(idOf(pos0, _ws(L"%المعرب")),
                                    _ws(L"تفرع"),
@@ -757,17 +781,19 @@ void CodeGenerator::generateRulesDeclaration(shared_ptr<RulesDecl> decl)
         // a label for our top-level rule
         // todo: since 'Rule' and it's  children aren't yet derived from KalimatAst
         // we'll use the position of the "RulesDecl" in place of their positions
-        stmts.append(labelOf(decl->getPos(), rule->ruleName));
+        stmts.append(labelOf(decl->getPos(), rule->ruleName, labeller));
         for(int j=0; j<rule->options.count(); j++)
         {
             // a label for each option
-            stmts.append(labelOf(decl->getPos(), QString("%1%2").arg(rule->ruleName).arg(j)));
+            stmts.append(
+                        labelOf(decl->getPos(), QString("%1%%2").arg(rule->ruleName).arg(j), labeller)
+                        );
             if((j+1) < rule->options.count())
             {
                 stmts.append(fromInvokation(methodOf(idOf(pos0, _ws(L"%المعرب")),
                                       _ws(L"ادفع.مسار.بديل"),
-                                      strLitOf(pos0,QString("%1%2")
-                                                     .arg(rule->ruleName).arg(j+1)))));
+                                      numLitOf(pos0,labeller.labelOf(QString("%1%%2")
+                                                     .arg(rule->ruleName).arg(j+1))))));
             }
             shared_ptr<RuleOption> opt = rule->options[j];
 
@@ -776,7 +802,8 @@ void CodeGenerator::generateRulesDeclaration(shared_ptr<RulesDecl> decl)
             QList<QString> identifiersForRuleOption
                     = opt->expression()->getAllAssociatedVars().toList();
             appendAll(stmts, pegExprToStatements(opt->expression(),
-                                                 identifiersForRuleOption));
+                                                 identifiersForRuleOption,
+                                                 labeller));
             // ...and if there's an associated resultant expression
             // generate its evaluation and storage in the 'register' result
             // I'll cut my arm of if this works :D
@@ -788,7 +815,7 @@ void CodeGenerator::generateRulesDeclaration(shared_ptr<RulesDecl> decl)
             else
             {
                 Token pos1 = opt->expression()->getPos();
-                stmts.append(assignmentOf(pos1, idOf(pos1, "%النتيجة"),
+                stmts.append(assignmentOf(pos1, idOf(pos1, _ws(L"%النتيجة")),
                                           shared_ptr<NullLiteral>(
                                               new NullLiteral(pos1))));
             }
@@ -797,17 +824,20 @@ void CodeGenerator::generateRulesDeclaration(shared_ptr<RulesDecl> decl)
             {
                 stmts.append(fromInvokation(methodOf(idOf(pos0, _ws(L"%المعرب")),
                                       _ws(L"تجاهل.آخر.مسار.بديل"))));
-                stmts.append(gotoOf(pos0, _ws(L"%نجاح.%1").arg(rule->ruleName)));
+                stmts.append(gotoOf(pos0, _ws(L"%نجاح.%1").arg(rule->ruleName), labeller)
+                        );
             }
         } // for each ruleOption
 
-        stmts.append(labelOf(pos0, _ws(L"%نجاح.%1").arg(rule->ruleName)));
+        stmts.append(
+                    labelOf(pos0, _ws(L"%نجاح.%1").arg(rule->ruleName), labeller)
+                    );
         // at the end of each rule:
         // first, memoize:
         // %parser: remember("ruleName", %pos, %result)
         stmts.append(fromInvokation(methodOf(idOf(pos0, _ws(L"%المعرب")),
                                              _ws(L"تذكر"),
-                                             strLitOf(pos0, rule->ruleName),
+                                             numLitOf(pos0, labeller.labelOf(rule->ruleName)),
                                              idOf(pos0, _ws(L"%الموقع")),
                                              fieldAccessOf(idOf(pos0, _ws(L"%المعرب")), _ws(L"موقع")),
                                              idOf(pos0, _ws(L"%النتيجة")))));
@@ -817,7 +847,7 @@ void CodeGenerator::generateRulesDeclaration(shared_ptr<RulesDecl> decl)
     } // for each rule
 
     // a label %endOfParsing for the start rule to return to
-    stmts.append(labelOf(pos0, _ws(L"نهاية.الإعراب")));
+    stmts.append(labelOf(pos0, _ws(L"نهاية.الإعراب"), labeller));
     // pop dummy 'locals' frame that was first pushed
     stmts.append(assignmentOf(pos0,
                                idOf(pos0, _ws(L"%اطار.مؤقت")),
@@ -830,7 +860,7 @@ void CodeGenerator::generateRulesDeclaration(shared_ptr<RulesDecl> decl)
     stmts.append(returnNow);
 
     // and have a label to whom VM routines will jump on error
-    stmts.append(labelOf(pos0, _ws(L"%خطأ.في.الإعراب")));
+    stmts.append(labelOf(pos0, _ws(L"خطأ.في.الإعراب")));
     shared_ptr<ReturnStmt> returnErr(new ReturnStmt(pos0,
                                                     shared_ptr<Expression>(new NullLiteral(pos0))));
     stmts.append(returnErr);
@@ -857,7 +887,8 @@ void CodeGenerator::generateRulesDeclaration(shared_ptr<RulesDecl> decl)
 
 QVector<shared_ptr<Statement> > CodeGenerator::generateRuleImplementation(
         shared_ptr<PegRuleInvokation> rule,
-        QList<QString> locals)
+        QList<QString> locals,
+        Labeller &labeller)
 {
     QVector<shared_ptr<Statement> > result;
     Token pos0 = rule->getPos();
@@ -882,17 +913,17 @@ QVector<shared_ptr<Statement> > CodeGenerator::generateRuleImplementation(
                                              _ws(L"موقع"))));
     //now invoke the rule
     QString continuationLabel = _asm.uniqueLabel();
-    shared_ptr<StrLiteral> toCall(
-                new StrLiteral(pos0, rule->ruleName()->name));
-    shared_ptr<StrLiteral> returnHere(
-                new StrLiteral(pos0, continuationLabel));
+    shared_ptr<NumLiteral> toCall(
+                numLitOf(pos0, labeller.labelOf(rule->ruleName()->name)));
+    shared_ptr<NumLiteral> returnHere =
+                numLitOf(pos0, labeller.labelOf(continuationLabel));
 
     result.append(gotoOf(pos0,
                       methodOf(idOf(pos0, _ws(L"%المعرب")),
                                _ws(L"تفرع"),
                                toCall,
                                returnHere)));
-    result.append(labelOf(pos0, continuationLabel));
+    result.append(labelOf(pos0, continuationLabel, labeller));
     // restore locals
     // %tempFrame = %parser: restoreLocals()
     // %pos = %tempFrame[1]
@@ -922,7 +953,8 @@ QVector<shared_ptr<Statement> > CodeGenerator::generateRuleImplementation(
 }
 
 QVector<shared_ptr<Statement> > CodeGenerator::pegExprToStatements(
-        shared_ptr<PegExpr> expr, QList<QString> locals)
+        shared_ptr<PegExpr> expr, QList<QString> locals,
+        Labeller &labeller)
 {
     QVector<shared_ptr<Statement> > result;
     if(isa<PegRuleInvokation>(expr))
@@ -939,7 +971,7 @@ QVector<shared_ptr<Statement> > CodeGenerator::pegExprToStatements(
         shared_ptr<Expression> rememberCond(
                     methodOf(idOf(pos0, _ws(L"%المعرب")),
                              _ws(L"هل.تذكر"),
-                             strLitOf(pos0, rule->ruleName()->name),
+                             numLitOf(pos0, labeller.labelOf(rule->ruleName()->name)),
                              fieldAccessOf(idOf(pos0, _ws(L"%المعرب")),
                                            _ws(L"موقع"))));
 
@@ -949,7 +981,7 @@ QVector<shared_ptr<Statement> > CodeGenerator::pegExprToStatements(
         assignStmts.append(assignmentOf(tmpId,
                                         methodOf(parserId,
                                                  _ws(L"استرد.ذكرى"),
-                                                 strLitOf(pos0, rule->ruleName()->name),
+                                                 numLitOf(pos0, labeller.labelOf(rule->ruleName()->name)),
                                                  fieldAccessOf(idOf(pos0, _ws(L"%المعرب")),
                                                                 _ws(L"موقع"))
                                                  )));
@@ -965,7 +997,7 @@ QVector<shared_ptr<Statement> > CodeGenerator::pegExprToStatements(
                     new BlockStmt(pos0, assignStmts));
 
         QVector<shared_ptr<Statement> > invokeStmts =
-                generateRuleImplementation(rule, locals);
+                generateRuleImplementation(rule, locals, labeller);
 
         shared_ptr<BlockStmt> invokeBlock(
                     new BlockStmt(pos0, invokeStmts));
@@ -1050,7 +1082,7 @@ QVector<shared_ptr<Statement> > CodeGenerator::pegExprToStatements(
         shared_ptr<PegSequence> seq = dynamic_pointer_cast<PegSequence>(expr);
         for(int i=0; i<seq->elementCount(); i++)
         {
-            appendAll(result, pegExprToStatements(seq->element(i), locals));
+            appendAll(result, pegExprToStatements(seq->element(i), locals, labeller));
         }
     }
     return result;

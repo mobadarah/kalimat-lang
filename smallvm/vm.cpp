@@ -1570,12 +1570,14 @@ void VM::DoCallMethod(QString SymRef, int arity, CallStyle callStyle)
     assert(receiver ->tag == ObjectVal, CallingMethodOnNonObject);
 
     IMethod *_method = receiver->type->lookupMethod(SymRef);
+    /*
     if(_method == NULL)
     {
         _method = receiver->type->lookupMethod("%nosuchmethod");
         if(_method)
             noSuchMethodTrapFound = true;
     }
+    */
     assert(_method!=NULL, NoSuchMethod2,SymRef, receiver->type->getName());
 
     assert(!noSuchMethodTrapFound || arity !=-1, InternalError1, "Calling with %nosuchmethod needs the arity to be specified in the instruction");
