@@ -1443,7 +1443,9 @@ void VM::DoNot()
 
 void VM::DoJmp(QString label)
 {
-    currentFrame()->ip = currentFrame()->currentMethod->GetIp(label);
+    int ip = currentFrame()->currentMethod->GetIp(label);
+    assert(ip != -1, InternalError1, QString(_ws(L"Jumping to nonexistant label: %1").arg(label)));
+    currentFrame()->ip = ip;
 }
 
 void VM::DoJmpVal()

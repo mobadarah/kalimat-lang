@@ -224,6 +224,9 @@ Value *ParserClass::dispatch(int id, QVector<Value *>args)
         //rw->typeCheck(args[1], BuiltInTypes::IntType);
         //rw->typeCheck(args[2], BuiltInTypes::IntType);
         parser->stack.push(ParseFrame(args[2]->unboxInt()));
+        i = args[1]->unboxInt();
+        if(i==48)
+            i=0;
         return args[1];
     case 11:    // عد
         return allocator->newInt(parser->stack.pop().continuationLabel);

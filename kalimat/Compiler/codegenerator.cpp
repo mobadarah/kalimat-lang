@@ -673,6 +673,18 @@ shared_ptr<LabelStmt> labelOf(Token pos, QString lbl, Labeller &lblr)
     //*/
 }
 
+int Labeller::labelOf(QString str)
+{
+    if(!labelMap.contains(str))
+    {
+        labelMap[str] = count++;
+    }
+    if(labelMap[str] == 48)
+    {
+        int x = 5;
+    }
+    return labelMap[str];
+}
 shared_ptr<LabelStmt> labelOf(Token pos, QString lbl)
 {
     return shared_ptr<LabelStmt>(new LabelStmt(pos,

@@ -65,6 +65,9 @@ void Method::Set(int ip, Instruction i)
 
 int Method::GetIp(QString label)
 {
+    // todo: slow
+    if(!labels.contains(label))
+        return -1;
     return labels[label];
 }
 bool Method::HasInstruction(int ip)
