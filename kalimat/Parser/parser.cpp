@@ -13,6 +13,7 @@ Parser::Parser()
     tokenFormatter = NULL;
     atStartOfFile = false;
     withRecovery = false;
+    tag = NULL;
 }
 Parser::Parser(QString(*tokenFormatter)(int))
 {
@@ -20,6 +21,7 @@ Parser::Parser(QString(*tokenFormatter)(int))
     this->tokenFormatter = tokenFormatter;
     atStartOfFile = false;
     withRecovery = false;
+    tag = NULL;
 }
 
 Parser::~Parser()
@@ -44,10 +46,11 @@ void Parser::init(QString s, Lexer *lxr, void *tag)
         if(!withRecovery)
             throw;
     }
-
+    fileName = "";
     tokens = lxr->getTokens();
     curToken = -1;
     atStartOfFile = false;
+    this->tag = tag;
 }
 
 void Parser::init(QString s, Lexer *lxr, void *tag, QString fileName)
@@ -66,6 +69,8 @@ void Parser::init(QString s, Lexer *lxr, void *tag, QString fileName)
     tokens = lxr->getTokens();
     curToken = -1;
     atStartOfFile = false;
+    this->tag = tag;
+    this->fileName = fileName;
 }
 
 bool Parser::LA(TokenType tokenId)
@@ -98,14 +103,14 @@ bool Parser::expect(TokenType tokenType)
         tokenId = tokenFormatter(tokenType);
 
     if(eof())
-        throw ParserException(QString("EOF reached while expecting token:%1").arg(tokenId));
+        throw ParserException(fileName, QString("EOF reached while expecting token:%1").arg(tokenId));
     if(lookAhead.Type == tokenType)
     {
         return true;
     }
     else
     {
-        throw ParserException(getPos(), QString("Exprected token of type:%1").arg(tokenId));
+        throw ParserException(fileName, getPos(), QString("Exprected token of type:%1").arg(tokenId));
     }
 }
 
@@ -118,7 +123,7 @@ bool Parser::match(TokenType tokenType)
         tokenId = tokenFormatter(tokenType);
 
     if(eof())
-        throw ParserException(QString("EOF reached while expecting token:%1").arg(tokenId));
+        throw ParserException(fileName, getPos(), QString("EOF reached while expecting token:%1").arg(tokenId));
     if(lookAhead.Type == tokenType)
     {
         if(!eof())
@@ -127,7 +132,7 @@ bool Parser::match(TokenType tokenType)
     }
     if(true)
     {
-        throw ParserException(getPos(), QString("Exprected token of type:%1").arg(tokenId));
+        throw ParserException(fileName, getPos(), QString("Exprected token of type:%1").arg(tokenId));
     }
 }
 
@@ -172,9 +177,13 @@ Token Parser::getPos()
     else
     {
         // Otherwise input is empty, return a token at position number 0
-        Token t("", TokenInvalid);
+        // we make the type 'TokenNone' instead of 'TokenInvalid'
+        // so that the error handler can point to a position in the file
+        Token t("", TokenNone);
         t.Pos = 0;
         t.Line = t.Column = 0;
+        t.tag = this->tag;
+
         return t;
     }
 }
@@ -186,7 +195,7 @@ shared_ptr<AST> Parser::parse()
     if(!eof())
     {
         throw ParserException
-                (QString("Parser did not consume all input, stopped at token #%1 : %2")
+                (fileName, QString("Parser did not consume all input, stopped at token #%1 : %2")
                  .arg(curToken)
                  .arg(lookAhead.Lexeme));
     }
@@ -199,7 +208,7 @@ shared_ptr<AST> Parser::parse(shared_ptr<AST> (*root)(Parser *p))
     if(!eof())
     {
         throw ParserException
-                (QString("Parser did not consume all input, stopped at token #%1 : %2")
+                (fileName, QString("Parser did not consume all input, stopped at token #%1 : %2")
                  .arg(curToken)
                  .arg(lookAhead.Lexeme));
     }

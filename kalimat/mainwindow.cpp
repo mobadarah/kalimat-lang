@@ -491,12 +491,20 @@ void MainWindow::on_mnuProgramRun_triggered()
         show_error(QString::fromStdWString(L"خطأ في تركيب البرنامج"));
         if(doc != NULL && ex.hasPosInfo)
         {
-            CodeDocument *dc = doc;
+            CodeDocument *dc = NULL;
+            if(ex.pos.tag == NULL)
+            {
+                dc = docContainer->getDocumentFromPath(ex.fileName, true);
+            }
             if(ex.pos.tag != NULL)
             {
                 dc = (CodeDocument *) ex.pos.tag;
             }
-            highlightLine(dc->getEditor(), ex.pos.Pos);
+            if(dc)
+            {
+                highlightLine(dc->getEditor(), ex.pos.Pos);
+            }
+
         }
     }
     catch(CompilerException ex)
@@ -527,11 +535,19 @@ void MainWindow::on_mnuProgramRun_triggered()
        // show_error(QString(L"خطأ في تركيب البرنامج"));
        if(doc != NULL)
        {
-           CodeDocument *dc = doc;
+           CodeDocument *dc = NULL;
+
            if(ex.source && ex.source->getPos().tag != NULL)
            {
                dc = (CodeDocument *) ex.source->getPos().tag;
-               highlightLine(dc->getEditor(), ex.source->getPos().Pos);
+           }
+           else
+           {
+           dc = docContainer->getDocumentFromPath(ex.fileName, true);
+           }
+           if(dc)
+           {
+                highlightLine(dc->getEditor(), ex.source->getPos().Pos);
            }
 
        }
@@ -557,7 +573,8 @@ void MainWindow::highlightLine(QTextEdit *editor, int pos, QColor color)
 
     editor->setTextCursor(cur);
     editor->ensureCursorVisible();
-
+    // todo: doesn't highlight whole line when
+    // the file is empty (e.g when using a module that's an empty file)
     sel.cursor = cur;
     sel.format.setProperty(QTextFormat::FullWidthSelection, true);
     sel.format.setBackground(QBrush(color));

@@ -68,9 +68,13 @@ CodeDocument *DocumentContainer::addDocument(QString title, QString fileName, QW
 
     
     if(!createNew)
+    {
         doc = CodeDocument::openDoc(fileName, tabWidget, editor, this);
+    }
     else
+    {
         doc = CodeDocument::newDoc(fileName, tabWidget, editor, this);
+    }
     widgetDocs[editor] = doc;
     editor->setFocus();
     return doc;
@@ -128,12 +132,18 @@ bool DocumentContainer::setCurrentDocument(CodeDocument *doc)
     tabWidget->setCurrentWidget(doc->getEditor());
 }
 
-CodeDocument *DocumentContainer::getDocumentFromPath(QString path)
+CodeDocument *DocumentContainer::getDocumentFromPath(QString path, bool addIfNeeded)
 {
     for(int i=0; i<widgetDocs.values().count(); i++)
     {
         if(!widgetDocs.values()[i]->isDocNewFile() && widgetDocs.values()[i]->getFileName() == path)
             return widgetDocs.values()[i];
+    }
+    if(addIfNeeded)
+    {
+        CodeDocument *doc = addDocument(QFileInfo(path).fileName(), path, client->CreateEditorWidget(), false);
+        client->LoadDocIntoWidget(doc, doc->getEditor());
+        return doc;
     }
     return NULL;
 }

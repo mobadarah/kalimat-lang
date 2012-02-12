@@ -91,7 +91,7 @@ bool CodeGenerator::currentScopeFuncNotProc()
     }
 }
 
-void CodeGenerator::generate(shared_ptr<Program> program, CodeDocument *curDoc)
+void CodeGenerator::generate(shared_ptr<Program> program, QString fileName, CodeDocument *curDoc)
 {
     QVector<shared_ptr<Declaration> > declarations;
     QVector<shared_ptr<Statement> > statements;
@@ -110,7 +110,7 @@ void CodeGenerator::generate(shared_ptr<Program> program, CodeDocument *curDoc)
         else if(isa<Statement>(tl))
             statements.append(dynamic_pointer_cast<Statement>(tl));
         else
-            throw CompilerException(tl, ASTMustBeStatementOrDeclaration).arg(tl->toString());
+            throw CompilerException(currentFileName,tl, ASTMustBeStatementOrDeclaration).arg(tl->toString());
     }
 
     for(int i=0; i<declarations.count(); i++)
@@ -132,10 +132,11 @@ void CodeGenerator::generate(shared_ptr<Program> program, CodeDocument *curDoc)
     }
 }
 
-void CodeGenerator::compileModule(shared_ptr<Module> module, CodeDocument *curDoc)
+void CodeGenerator::compileModule(shared_ptr<Module> module, QString fileName, CodeDocument *curDoc)
 {
     // Copy-pasted from generate(Program *)
     currentCodeDoc = curDoc;
+    currentFileName = fileName;
     QVector<shared_ptr<Declaration> > declarations;
 
  /*   for(int i=0; i<module->usedModuleCount(); i++)
@@ -175,7 +176,7 @@ void CodeGenerator::firstPass(shared_ptr<Declaration> decl)
         shared_ptr<ClassDecl> cd = dynamic_pointer_cast<ClassDecl>(decl);
         QString name = cd->name()->name;
         if(allClasses.contains(name))
-            throw CompilerException(decl, ClassAlreadyExists).arg(name);
+            throw CompilerException(currentFileName,decl, ClassAlreadyExists).arg(name);
         else
             allClasses[name] = cd;
         return;
@@ -210,7 +211,7 @@ void CodeGenerator::secondPass(shared_ptr<Declaration>  decl)
             QString ancestorName = cd->ancestor()->name;
             if(!allClasses.contains(ancestorName))
             {
-                throw CompilerException(decl, AncestorClassXforClassYdoesntExist)
+                throw CompilerException(currentFileName,decl, AncestorClassXforClassYdoesntExist)
                                             .arg(ancestorName).arg(cd->name()->name);
             }
             shared_ptr<ClassDecl> ancestor = allClasses[ancestorName];
@@ -227,22 +228,22 @@ void CodeGenerator::thirdPass(shared_ptr<Declaration> decl)
         QString name = md->procName()->name;
         QString className = md->className()->name;
         if(!allClasses.contains(className))
-            throw CompilerException(decl, MethodDefinedForNotYetExistingClass).arg(className);
+            throw CompilerException(currentFileName,decl, MethodDefinedForNotYetExistingClass).arg(className);
         else
         {
             shared_ptr<ClassDecl> theClass = allClasses[className];
             if(theClass->containsMethod(name))
-                throw CompilerException(decl, MethodCalledXwasAlreadyDefinedForClassY).arg(name).arg(className);
+                throw CompilerException(currentFileName,decl, MethodCalledXwasAlreadyDefinedForClassY).arg(name).arg(className);
             if(!theClass->containsPrototype(name))
-                throw CompilerException(decl, MethodXwasNotDeclaredInClassY).arg(name).arg(className);
+                throw CompilerException(currentFileName,decl, MethodXwasNotDeclaredInClassY).arg(name).arg(className);
 
             // We subtract the 1 to account for the extra 'this' parameter in md
             if(theClass->methodPrototype(name).arity != md->formalCount()-1)
-                throw CompilerException(decl, MethodXwasDeclaredWithDifferentArityInClassY).arg(name).arg(className);
+                throw CompilerException(currentFileName,decl, MethodXwasDeclaredWithDifferentArityInClassY).arg(name).arg(className);
             if(theClass->methodPrototype(name).isFunction && !md->isFunctionNotProcedure)
-                throw CompilerException(decl, MethodXwasDeclaredAfunctionButImplementedAsProcedureInClassY).arg(name).arg(className);
+                throw CompilerException(currentFileName,decl, MethodXwasDeclaredAfunctionButImplementedAsProcedureInClassY).arg(name).arg(className);
             if(!theClass->methodPrototype(name).isFunction && md->isFunctionNotProcedure)
-                throw CompilerException(decl, MethodXwasDeclaredAprocedureButImplementedAsFunctionInClassY).arg(name).arg(className);
+                throw CompilerException(currentFileName,decl, MethodXwasDeclaredAprocedureButImplementedAsFunctionInClassY).arg(name).arg(className);
             allClasses[className]->insertMethod(name, md);
         }
         return;
@@ -299,7 +300,7 @@ void CodeGenerator::generateDeclaration(shared_ptr<Declaration> decl)
     }
     else
     {
-        throw CompilerException(decl, DeclarationNotSupported).arg(decl->toString());
+        throw CompilerException(currentFileName,decl, DeclarationNotSupported).arg(decl->toString());
     }
 
     if(isa<ProceduralDecl>(decl))
@@ -366,7 +367,7 @@ void CodeGenerator::generateFFILibraryDeclaration(shared_ptr<FFILibraryDecl> dec
         }
         else
         {
-            throw CompilerException(decl, DeclarationNotSupported);
+            throw CompilerException(currentFileName,decl, DeclarationNotSupported);
         }
 
     }
@@ -737,7 +738,7 @@ void CodeGenerator::generateRulesDeclaration(shared_ptr<RulesDecl> decl)
     {
         shared_ptr<RuleDecl> rule = decl->subRule(i);
         if(ruleTable.contains(rule->ruleName))
-            throw CompilerException(rule, RuleAlreadyDefined).arg(rule->ruleName);
+            throw CompilerException(currentFileName,rule, RuleAlreadyDefined).arg(rule->ruleName);
         ruleTable[rule->ruleName] = rule;
     }
     Labeller labeller;
@@ -988,7 +989,7 @@ QVector<shared_ptr<Statement> > CodeGenerator::pegExprToStatements(
         shared_ptr<PegRuleInvokation> rule = dynamic_pointer_cast<PegRuleInvokation>(expr);
         if(!ruleTable.contains(rule->ruleName()->name))
         {
-            throw CompilerException(rule, InvokingUndefinedRule).arg(rule->ruleName()->name);
+            throw CompilerException(currentFileName,rule, InvokingUndefinedRule).arg(rule->ruleName()->name);
         }
         Token pos0 = rule->getPos();
         // if %parser: youRemember("ruleName", pos of %parser):
@@ -1127,7 +1128,7 @@ void CodeGenerator::generateClassDeclaration(shared_ptr<ClassDecl> decl)
         gen(decl->ancestor(), ".extends "+ parent);
     }
    /* if(decl->prototypeCount() > decl->methodCount())
-        throw CompilerException(decl, QString("Class '%1' has some unimplemented methods").arg(decl->name()->name));
+        throw CompilerException(currentFileName,decl, QString("Class '%1' has some unimplemented methods").arg(decl->name()->name));
         */
     for(int i=0;i<decl->fieldCount();i++)
     {
@@ -1267,7 +1268,7 @@ void CodeGenerator::generateStatement(shared_ptr<Statement> stmt)
     }
     else
     {
-        throw new CompilerException(stmt, UnimplementedStatementForm);
+        throw new CompilerException(currentFileName, stmt, UnimplementedStatementForm);
     }
 }
 
@@ -1356,9 +1357,9 @@ void CodeGenerator::generateReadStmt(shared_ptr<ReadStmt> stmt)
     if(stmt->fileObject() != NULL)
     {
         if(stmt->prompt != NULL)
-            throw CompilerException(stmt, ReadFromCannotContainAPrompt);
+            throw CompilerException(currentFileName,stmt, ReadFromCannotContainAPrompt);
         if(stmt->variableCount() !=1)
-            throw CompilerException(stmt, ReadFromCanReadOnlyOneVariable);
+            throw CompilerException(currentFileName,stmt, ReadFromCanReadOnlyOneVariable);
         shared_ptr<AssignableExpression> lvalue = stmt->variable(0);
 
         // We first read the data into a temporary variable,
@@ -1620,7 +1621,7 @@ void CodeGenerator::generateAssignmentToLvalue(shared_ptr<AST> src, shared_ptr<A
     }
     else
     {
-        throw CompilerException(src, LValueFormNotImplemented).arg(lval->toString());
+        throw CompilerException(currentFileName,src, LValueFormNotImplemented).arg(lval->toString());
     }
 }
 
@@ -1732,7 +1733,7 @@ void CodeGenerator::generateLabelStmt(shared_ptr<LabelStmt> stmt)
     QString labelName = target->toString();
     if(scopeStack.top().labels.contains(labelName))
     {
-        throw CompilerException(stmt, DuplicateLabel).arg(labelName).arg(getCurrentFunctionNameFormatted());
+        throw CompilerException(currentFileName,stmt, DuplicateLabel).arg(labelName).arg(getCurrentFunctionNameFormatted());
     }
     scopeStack.top().labels.insert(labelName);
 
@@ -1746,7 +1747,7 @@ void CodeGenerator::generateLabelStmt(shared_ptr<LabelStmt> stmt)
     }
     else
     {
-        throw CompilerException(stmt, TargetOfLabelMustBeNumberOrIdentifier);
+        throw CompilerException(currentFileName,stmt, TargetOfLabelMustBeNumberOrIdentifier);
     }
 }
 
@@ -1777,7 +1778,7 @@ void CodeGenerator::generateReturnStmt(shared_ptr<ReturnStmt> stmt)
     else if(!isa<FunctionDecl>(scopeStack.top().proc))
         notFunc = true;
     if(notFunc)
-        throw CompilerException(stmt, ReturnCanBeUsedOnlyInFunctions);
+        throw CompilerException(currentFileName,stmt, ReturnCanBeUsedOnlyInFunctions);
     generateExpression(stmt->returnVal());
     gen(stmt,"ret");
 }
@@ -1799,7 +1800,7 @@ void CodeGenerator::generateDelegationStmt(shared_ptr<DelegationStmt> stmt)
         return;
     }
 
-    throw CompilerException(expr, UnimplementedInvokationForm).arg(expr->toString());
+    throw CompilerException(currentFileName,expr, UnimplementedInvokationForm).arg(expr->toString());
 }
 
 void CodeGenerator::generateLaunchStmt(shared_ptr<LaunchStmt> stmt)
@@ -1816,7 +1817,7 @@ void CodeGenerator::generateLaunchStmt(shared_ptr<LaunchStmt> stmt)
         return;
     }
 
-    throw CompilerException(expr, UnimplementedInvokationForm).arg(expr->toString());
+    throw CompilerException(currentFileName,expr, UnimplementedInvokationForm).arg(expr->toString());
 }
 
 void CodeGenerator::generateBlockStmt(shared_ptr<BlockStmt> stmt)
@@ -1851,7 +1852,7 @@ void CodeGenerator::generateInvokationStmt(shared_ptr<InvokationStmt> stmt)
     }
     else
     {
-        throw CompilerException(stmt, UnimplementedInvokationForm).arg(expr->toString());
+        throw CompilerException(currentFileName,stmt, UnimplementedInvokationForm).arg(expr->toString());
     }
 }
 
@@ -2152,7 +2153,7 @@ void CodeGenerator::generateExpression(shared_ptr<Expression> expr)
         generateObjectCreation(dynamic_pointer_cast<ObjectCreation>(expr));
         return;
     }
-    throw CompilerException(expr, UnimplementedExpressionForm).arg(expr->toString());
+    throw CompilerException(currentFileName,expr, UnimplementedExpressionForm).arg(expr->toString());
 }
 
 void CodeGenerator::generateBinaryOperation(shared_ptr<BinaryOperation> expr)
@@ -2288,7 +2289,7 @@ void CodeGenerator::generatePattern(shared_ptr<Pattern> pattern,
     }
     else
     {
-        throw CompilerException(pattern, UnimplementedPatternForm).arg(pattern->toString());
+        throw CompilerException(currentFileName,pattern, UnimplementedPatternForm).arg(pattern->toString());
     }
 }
 
@@ -2564,14 +2565,14 @@ void CodeGenerator::generateIdentifier(shared_ptr<Identifier> expr)
     else if(declaredGlobalVariables.contains(expr->name))
         gen(expr, "pushg "+expr->name);
     else
-        throw CompilerException(expr, UndefinedVariable).arg(expr->name);
+        throw CompilerException(currentFileName,expr, UndefinedVariable).arg(expr->name);
 }
 
 void CodeGenerator::generateNumLiteral(shared_ptr<NumLiteral> expr)
 {
     if(!expr->valueRecognized)
     {
-        throw CompilerException(expr, UnacceptableNumberLiteral).arg(expr->toString());
+        throw CompilerException(currentFileName,expr, UnacceptableNumberLiteral).arg(expr->toString());
     }
     if(expr->longNotDouble)
         gen(expr, "pushv "+ QString("%1").arg(expr->lValue));
@@ -2629,7 +2630,7 @@ void CodeGenerator::generateInvokation(shared_ptr<Invokation> expr,
 {
     if(context == FunctionInvokationContext && this->allProcedures.contains(expr->functor()->toString()))
     {
-        throw CompilerException(expr, CannotCallProcedureInExpression1).arg(expr->functor()->toString());
+        throw CompilerException(currentFileName,expr, CannotCallProcedureInExpression1).arg(expr->functor()->toString());
     }
 
     for(int i=expr->argumentCount()-1; i>=0; i--)
@@ -2744,7 +2745,7 @@ QString CodeGenerator::typeExpressionToAssemblyTypeId(shared_ptr<TypeExpression>
     }
     else
     {
-        throw CompilerException(expr, UnimplementedTypeForm);
+        throw CompilerException(currentFileName,expr, UnimplementedTypeForm);
     }
 }
 
@@ -2811,8 +2812,9 @@ QString CodeGenerator::getCurrentFunctionNameFormatted()
 
 QMap<CompilerError, QString> CompilerException::errorMap;
 
-CompilerException::CompilerException(shared_ptr<AST> source, CompilerError error)
+CompilerException::CompilerException(QString fileName, shared_ptr<AST> source, CompilerError error)
 {
+    this->fileName = fileName;
     this->error = error;
     this->source = source;
     this->message = translateErrorMessage(error);
@@ -2820,7 +2822,7 @@ CompilerException::CompilerException(shared_ptr<AST> source, CompilerError error
 
 CompilerException CompilerException::no_source(CompilerError error)
 {
-    return CompilerException(shared_ptr<AST>(), error);
+    return CompilerException("", shared_ptr<AST>(), error);
 }
 
 QString CompilerException::getMessage()

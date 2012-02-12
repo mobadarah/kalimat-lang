@@ -37,7 +37,7 @@ shared_ptr<AST> KalimatPrettyprintParser::parseRoot()
     {
         QString ender;
         if(levels.empty())
-            throw ParserException("weird indentation");
+            throw ParserException(fileName, "weird indentation");
         LinePP *line = lines[i];
 
         if(is_indentation_starter(line, ender))
@@ -54,7 +54,7 @@ shared_ptr<AST> KalimatPrettyprintParser::parseRoot()
         {
             if(expectedBlockEnders.empty() || (!match_ender(line, expectedBlockEnders.top())))
             {
-                //throw ParserException("Non-matching block delimiters");
+                //throw ParserException(fileName, fileName, "Non-matching block delimiters");
                 ret->append(line);
             }
             else
@@ -390,7 +390,7 @@ void BlockPP::prettyPrint(CodeFormatter *cf)
             LinePP *line = dynamic_cast<LinePP *>(subs[i]);
             if(line == NULL)
             {
-                throw ParserException("weird Pretty print element");
+                throw ParserException("", "weird Pretty print element");
             }
             if(line->blockfollows && i>0 &&!afterComment)
             {

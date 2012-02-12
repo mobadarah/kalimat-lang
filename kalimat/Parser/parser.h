@@ -25,8 +25,10 @@ class Parser
 {
     int curToken;
     QString (*tokenFormatter)(int);
-
+    void *tag; // same tag from lexer, in case we want to return a
+               // dummy token
 protected:
+    QString fileName;
     QVector<Token> tokens;
     Token lookAhead;
     bool atStartOfFile;

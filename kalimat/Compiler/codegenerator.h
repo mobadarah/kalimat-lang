@@ -62,19 +62,21 @@ class CodeGenerator
     QStack<Context> scopeStack;
     QString currentModuleName;
 
+
     int codePosKeyCount;
 public:
     DebugInfo debugInfo;
     QMap<int, CodePosition> PositionInfo;
     CodeDocument *currentCodeDoc;
+    QString currentFileName;
     QMap<int, CodePosition> getPositionInfo() {return PositionInfo;}
     QMap<QString, QString> &getStringConstants() { return _asm.StringConstants; }
 public:
     CodeGenerator();
     void Init();
-    void generate(shared_ptr<Program> program, CodeDocument *curDoc);
+    void generate(shared_ptr<Program> program, QString fileName, CodeDocument *curDoc);
     QString getOutput();
-    void compileModule(shared_ptr<Module> module, CodeDocument *curDoc);
+    void compileModule(shared_ptr<Module> module, QString fileName, CodeDocument *curDoc);
     QString getStringConstantsAsOpCodes();
 private:
 
@@ -225,7 +227,8 @@ ProgramsCannotUseExternalModulesWithoutSavingThemFirst,
 InternalCompilerErrorInFunc,
 CannotRunAModule,
 RuleAlreadyDefined,
-InvokingUndefinedRule
+InvokingUndefinedRule,
+ModuleDoesntExist
 };
 
 class CompilerException
@@ -237,8 +240,9 @@ class CompilerException
     QString translateErrorMessage(CompilerError error);
 public:
     shared_ptr<AST> source;
+    QString fileName;
 public:
-    CompilerException(shared_ptr<AST> source, CompilerError error);
+    CompilerException(QString fileName, shared_ptr<AST> source, CompilerError error);
     static CompilerException no_source(CompilerError error);
     CompilerException &arg(QString);
     CompilerError getError() {return error;}

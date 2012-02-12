@@ -65,7 +65,7 @@ public:
     CodeDocument *getCurrentDocument();
     CodeDocument *getDocumentFromWidget(QWidget *w);
     bool setCurrentDocument(CodeDocument *doc);
-    CodeDocument *getDocumentFromPath(QString path);
+    CodeDocument *getDocumentFromPath(QString path, bool addIfNeeded);
     int documentCount() { return widgetDocs.count(); }
     void onFileTouched(QString fileName, CodeDocument *doc);
 private slots:

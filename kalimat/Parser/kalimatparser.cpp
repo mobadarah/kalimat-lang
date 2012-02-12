@@ -115,7 +115,7 @@ recover:
             }
             else
             {
-                throw ParserException(getPos(), ExpectedStatementOrDeclaration);
+                throw ParserException(fileName, getPos(), ExpectedStatementOrDeclaration);
             }
             newLines();
         }
@@ -151,13 +151,16 @@ recoveryLogic:
 shared_ptr<AST> KalimatParser::module()
 {
     QVector<shared_ptr<Declaration> > elements;
-
+    QVector<shared_ptr<StrLiteral > > usedModules;
     newLines();
     match(UNIT);
     shared_ptr<Identifier> modName = identifier();
+    if(!LA(NEWLINE))
+        goto emptyModule;
+
     match(NEWLINE);
     newLines();
-    QVector<shared_ptr<StrLiteral > > usedModules = usingDirectives();
+    usedModules = usingDirectives();
 
     //#parser-recovery
 recover:
@@ -172,11 +175,11 @@ recover:
             }
             else if(LA_first_statement())
             {
-                throw ParserException(getPos(), ModulesCannotContainStatements);
+                throw ParserException(fileName, getPos(), ModulesCannotContainStatements);
             }
             else
             {
-                throw ParserException(getPos(), ExpectedDeclaration);
+                throw ParserException(fileName, getPos(), ExpectedDeclaration);
             }
             newLines();
         }
@@ -199,6 +202,7 @@ recoveryLogic:
             }
         }
     }
+    emptyModule:
     return shared_ptr<AST>(new Module(Token(), modName, elements, usedModules));
 }
 
@@ -278,7 +282,7 @@ shared_ptr<Statement> KalimatParser::statement()
     }
 
     if(ret == NULL)
-        throw ParserException(getPos(), StatementNotImplemented);
+        throw ParserException(fileName, getPos(), StatementNotImplemented);
 
     if(firstToken.sister != NULL)
     {
@@ -331,7 +335,7 @@ shared_ptr<Declaration> KalimatParser::declaration()
         ret = rulesDecl();
     }
     if(ret == NULL)
-        throw ParserException(getPos(), ExpectedDeclaration);
+        throw ParserException(fileName, getPos(), ExpectedDeclaration);
 
     if(firstToken.sister != NULL)
     {
@@ -354,7 +358,7 @@ shared_ptr<Statement> KalimatParser::assignmentStmt_or_Invokation(ParserState s)
         shared_ptr<AssignableExpression> id = dynamic_pointer_cast<AssignableExpression>(first);
         if(id == NULL)
         {
-            throw ParserException(getPos(), LeftOfAssignmentMustBeAssignableExpression);
+            throw ParserException(fileName, getPos(), LeftOfAssignmentMustBeAssignableExpression);
         }
         Token eqToken = lookAhead;
         match(EQ);
@@ -381,7 +385,7 @@ shared_ptr<Statement> KalimatParser::assignmentStmt_or_Invokation(ParserState s)
         Expression *invokation = expression();
         return new InvokationStmt(invokation->getPos(), invokation);
     }*/
-    throw ParserException(getPos(), ExpectedIdentifier);
+    throw ParserException(fileName, getPos(), ExpectedIdentifier);
 }
 
 shared_ptr<Statement> KalimatParser::ifStmt()
@@ -465,7 +469,7 @@ shared_ptr<Statement> KalimatParser::ifStmt()
         }
         return shared_ptr<Statement>(new IfStmt(ifTok, cond, thenPart, elsePart));
     }
-    throw ParserException(getPos(), "Expected IF");
+    throw ParserException(fileName, getPos(), "Expected IF");
 }
 shared_ptr<Statement> KalimatParser::forEachStmt()
 {
@@ -542,7 +546,7 @@ shared_ptr<Statement> KalimatParser::delegateStmt()
     }
     else
     {
-        throw ParserException(expr->getPos(),CanDelegateOnlyToInvokation);
+        throw ParserException(fileName, expr->getPos(),CanDelegateOnlyToInvokation);
     }
 }
 
@@ -558,7 +562,7 @@ shared_ptr<Statement> KalimatParser::launchStmt()
     }
     else
     {
-        throw ParserException(expr->getPos(),
+        throw ParserException(fileName, expr->getPos(),
                               CanOnlyLaunchProcedureInvokation);
     }
 }
@@ -583,7 +587,7 @@ shared_ptr<Statement> KalimatParser::gotoStmt()
     }
     else
     {
-        throw ParserException(pos, ExpressionExpectedAfterGoto);
+        throw ParserException(fileName, pos, ExpressionExpectedAfterGoto);
     }
     return shared_ptr<Statement>(new GotoStmt(pos, target));
 }
@@ -678,7 +682,7 @@ officialEndOfPrintStmt:
         var = dynamic_pointer_cast<AssignableExpression>(lvalue);
         if(var == NULL)
         {
-            throw ParserException(getPos(), "Item in read statement must be an assignable expression");
+            throw ParserException(fileName, getPos(), "Item in read statement must be an assignable expression");
         }
         vars.append(var);
         readNums.append(readInt);
@@ -698,14 +702,14 @@ officialEndOfPrintStmt:
             var = dynamic_pointer_cast<AssignableExpression>(lvalue);
             if(var == NULL)
             {
-                throw ParserException(getPos(), "Item in read statement must be an assignable expression");
+                throw ParserException(fileName, getPos(), "Item in read statement must be an assignable expression");
             }
             vars.append(var);
             readNums.append(readInt);
         }
         return shared_ptr<Statement>(new ReadStmt(readTok, fileObject, prompt, vars, readNums));
     }
-    throw ParserException(getPos(), "Expected PRINT or READ");
+    throw ParserException(fileName, getPos(), "Expected PRINT or READ");
 }
 
 bool KalimatParser::LA_first_grfx_statement()
@@ -731,7 +735,7 @@ shared_ptr<Statement> KalimatParser::grfxStatement()
         return drawSpriteStmt();
     if(LA(ZOOM))
         return zoomStmt();
-    throw ParserException(getPos(), ExpectedDrawingStatement);
+    throw ParserException(fileName, getPos(), ExpectedDrawingStatement);
 }
 shared_ptr<Statement> KalimatParser::drawPixelStmt()
 {
@@ -969,7 +973,7 @@ shared_ptr<Statement> KalimatParser::eventHandlerStmt()
     }
     else
     {
-        throw ParserException("Expected KB or MOUSE");
+        throw ParserException(fileName, "Expected KB or MOUSE");
     }
     match(DO);
     proc = identifier();
@@ -983,7 +987,7 @@ shared_ptr<SendStmt> KalimatParser::sendStmt()
     shared_ptr<Expression> chan;
     match(SEND);
     if(eof())
-        throw ParserException(getPos(), ExpectedExpression);
+        throw ParserException(fileName, getPos(), ExpectedExpression);
     Token tok = lookAhead;
     if(LA(SIGNAL_))
     {
@@ -1004,7 +1008,7 @@ shared_ptr<ReceiveStmt> KalimatParser::receiveStmt()
     shared_ptr<Expression> chan;
     match(RECEIVE);
     if(eof())
-        throw ParserException(getPos(), ExpectedExpression);
+        throw ParserException(fileName, getPos(), ExpectedExpression);
     Token tok = lookAhead;
     if(LA(SIGNAL_))
     {
@@ -1017,7 +1021,7 @@ shared_ptr<ReceiveStmt> KalimatParser::receiveStmt()
         value = dynamic_pointer_cast<AssignableExpression>(expr);
         if(value == NULL)
         {
-            throw ParserException(getPos(), "'Receive' must take an assignable expression");
+            throw ParserException(fileName, getPos(), "'Receive' must take an assignable expression");
         }
     }
     match(FROM);
@@ -1045,7 +1049,7 @@ shared_ptr<Statement> KalimatParser::selectStmt()
     }
     else
     {
-        throw ParserException(getPos(), ExpectedSendOrReceiveOperation);
+        throw ParserException(fileName, getPos(), ExpectedSendOrReceiveOperation);
     }
     match(COLON);
     if(LA(NEWLINE))
@@ -1070,7 +1074,7 @@ shared_ptr<Statement> KalimatParser::selectStmt()
         }
         else
         {
-            throw ParserException(getPos(), ExpectedSendOrReceiveOperation);
+            throw ParserException(fileName, getPos(), ExpectedSendOrReceiveOperation);
         }
         match(COLON);
 
@@ -1202,11 +1206,11 @@ void KalimatParser::addPropertySetter(Token pos,
 
     if(!methodName->name.startsWith(QString::fromStdWString(L"حدد.")))
     {
-        throw ParserException(pos, QString::fromStdWString(L"الاستجابة التي تكتب الخاصية لابد أن تبدأ بـ 'حدد.'"));
+        throw ParserException(fileName, pos, QString::fromStdWString(L"الاستجابة التي تكتب الخاصية لابد أن تبدأ بـ 'حدد.'"));
     }
     else if(formals.count() !=1)
     {
-        throw ParserException(pos, QString::fromStdWString(L"الاستجابة التي تكتب الخاصية لابد أن تأخذ عاملاً واحداً.'"));
+        throw ParserException(fileName, pos, QString::fromStdWString(L"الاستجابة التي تكتب الخاصية لابد أن تأخذ عاملاً واحداً.'"));
     }
     QString realName = methodName->name.mid(4); // remove حدد.
     if(!propertyInfo.contains(realName))
@@ -1225,7 +1229,7 @@ void KalimatParser::addPropertyGetter(Token pos,
 
     if(formals.count() !=0)
     {
-        throw ParserException(pos, QString::fromStdWString(L"الرد الذي يقرأ الخاصية لابد ألّا يأخذ عواملاً.'"));
+        throw ParserException(fileName, pos, QString::fromStdWString(L"الرد الذي يقرأ الخاصية لابد ألّا يأخذ عواملاً.'"));
     }
     QString realName = methodName->name;
     if(!propertyInfo.contains(realName))
@@ -1368,7 +1372,7 @@ shared_ptr<Declaration> KalimatParser::classDecl()
         {
             Token b = lookAhead;
             if(ancestorName != NULL)
-                throw ParserException(getPos(), "Class cannot inherit from more than one base class");
+                throw ParserException(fileName, getPos(), "Class cannot inherit from more than one base class");
             match(BUILT);
             match(ON);
             ancestorName = identifier();
@@ -1430,7 +1434,7 @@ shared_ptr<Declaration> KalimatParser::methodDecl()
     }
     else
     {
-        throw ParserException(tok, "Syntax error");
+        throw ParserException(fileName, tok, "Syntax error");
     }
 
     formals = formalParamList();
@@ -1439,7 +1443,7 @@ shared_ptr<Declaration> KalimatParser::methodDecl()
 
     if(methodName->name == "%nosuchmethod" && formals.count() !=2)
     {
-        throw ParserException(tok, QString::fromStdWString(L"الرد على رسالة أخرى لابد أن يأخذ عاملين"));
+        throw ParserException(fileName, tok, QString::fromStdWString(L"الرد على رسالة أخرى لابد أن يأخذ عاملين"));
     }
 
     shared_ptr<MethodDecl> ret(new MethodDecl(tok, Token(), className, receiverName,
@@ -1485,7 +1489,7 @@ shared_ptr<Declaration> KalimatParser::ffiLibraryDecl()
     }
     else
     {
-        throw ParserException(tok, "Expected string literal");
+        throw ParserException(fileName, tok, "Expected string literal");
     }
 }
 
@@ -1646,7 +1650,7 @@ shared_ptr<FFIProceduralDecl> KalimatParser::ffiFunctionDecl()
         }
         else
         {
-            throw ParserException(pos, "Expected string literal after keyword 'symbol'");
+            throw ParserException(fileName, pos, "Expected string literal after keyword 'symbol'");
         }
     }
 
@@ -1686,7 +1690,7 @@ shared_ptr<FFIProceduralDecl> KalimatParser::ffiProcDecl()
         }
         else
         {
-            throw ParserException(pos, "Expected string literal after keyword 'symbol'");
+            throw ParserException(fileName, pos, "Expected string literal after keyword 'symbol'");
         }
     }
 
@@ -1828,7 +1832,7 @@ shared_ptr<Pattern> KalimatParser::assignedVarPattern()
     shared_ptr<AssignableExpression> id = dynamic_pointer_cast<AssignableExpression>(expr);
     if(id == NULL)
     {
-        throw ParserException(getPos(), "After ? must be an assignable expression");
+        throw ParserException(fileName, getPos(), "After ? must be an assignable expression");
     }
     return shared_ptr<Pattern>(new AssignedVarPattern(id->getPos(), id));
 }
@@ -2115,7 +2119,7 @@ shared_ptr<SimpleLiteral> KalimatParser::simpleLiteral()
     }
     else
     {
-        throw ParserException(getPos(), "Expected a simple literal");
+        throw ParserException(fileName, getPos(), "Expected a simple literal");
     }
     return ret;
 }
@@ -2198,7 +2202,7 @@ shared_ptr<Expression> KalimatParser::primaryExpressionNonInvokation()
     */
     else
     {
-        throw ParserException(getPos(), "Expected a literal, identifier, or parenthesized expression");
+        throw ParserException(fileName, getPos(), "Expected a literal, identifier, or parenthesized expression");
     }
     return ret;
 }
@@ -2214,7 +2218,7 @@ shared_ptr<Identifier> KalimatParser::identifier()
         //    varContext.top()->addReference(ret);
         return ret;
     }
-    throw ParserException(getPos(), ExpectedIdentifier);
+    throw ParserException(fileName, getPos(), ExpectedIdentifier);
 }
 
 bool KalimatParser::LA_first_typeExpression()
@@ -2280,7 +2284,7 @@ shared_ptr<TypeExpression> KalimatParser::typeExpression()
         return shared_ptr<TypeExpression>(new FunctionTypeExpression(tok, retType, argTypes));
     }
 
-    throw ParserException(getPos(), "Expected Type Expression");
+    throw ParserException(fileName, getPos(), "Expected Type Expression");
 }
 
 QVector<shared_ptr<Expression> > KalimatParser::comma_separated_expressions()
@@ -2306,6 +2310,7 @@ QVector<shared_ptr<Expression> > KalimatParser::comma_separated_pairs()
     {
         ret.append(expression());
         match(ROCKET);
+
         ret.append(expression());
         while(LA(COMMA))
         {
@@ -2337,7 +2342,7 @@ QVector<shared_ptr<StrLiteral> > KalimatParser::usingDirectives()
         }
         else
         {
-            throw ParserException(getPos(), UsingKeywordMustBeFollowedByStringLiteral);
+            throw ParserException(fileName, getPos(), UsingKeywordMustBeFollowedByStringLiteral);
         }
     }
     return usedModules;
@@ -2377,7 +2382,7 @@ QString KalimatParser::getOperation(Token token)
     case NE:
         return "ne";
     default:
-        throw ParserException(getPos(), "Unknown operator");
+        throw ParserException(fileName, getPos(), "Unknown operator");
     }
 }
 
