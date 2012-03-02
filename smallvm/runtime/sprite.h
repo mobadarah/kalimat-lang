@@ -22,6 +22,7 @@ public:
     bool visible;
 public:
     Sprite(QString filename);
+    Sprite(QPixmap img);
     void setImage(QPixmap image);
     QRect boundingRect();
 private:

@@ -31,6 +31,7 @@ void DrawCircleProc(QStack<Value *> &, RunWindow *, VM *);
 
 void LoadImageProc(QStack<Value *> &stack, RunWindow *w, VM *vm);
 void LoadSpriteProc(QStack<Value *> &, RunWindow *, VM *);
+void SpriteFromImageProc(QStack<Value *> &stack, RunWindow *w, VM *vm);
 void DrawImageProc(QStack<Value *> &stack, RunWindow *w, VM *vm);
 void DrawSpriteProc(QStack<Value *> &, RunWindow *, VM *);
 void ZoomProc(QStack<Value *> &, RunWindow *, VM *);
@@ -62,6 +63,7 @@ void TypeOfProc(QStack<Value *> &stack, RunWindow *w, VM *vm);
 void TypeFromIdProc(QStack<Value *> &stack, RunWindow *w, VM *vm);
 void NewMapProc(QStack<Value *> &stack, RunWindow *w, VM *vm);
 void HasKeyProc(QStack<Value *> &stack, RunWindow *w, VM *vm);
+void KeysOfProc(QStack<Value *> &stack, RunWindow *w, VM *vm);
 
 void RandomProc(QStack<Value *> &stack, RunWindow *, VM *w);
 void ToNumProc(QStack<Value *> &stack, RunWindow *, VM *w);
@@ -80,6 +82,7 @@ void StrContainsProc(QStack<Value *> &stack, RunWindow *w, VM *vm);
 
 void StrSplitProc(QStack<Value *> &stack, RunWindow *, VM *);
 void StrTrimProc(QStack<Value *> &stack, RunWindow *w, VM *vm);
+void StrReplaceProc(QStack<Value *> &stack, RunWindow *w, VM *vm);
 
 void SinProc(QStack<Value *> &stack, RunWindow *, VM *);
 void CosProc(QStack<Value *> &stack, RunWindow *, VM *);
@@ -89,6 +92,7 @@ void ACosProc(QStack<Value *> &stack, RunWindow *, VM *);
 void ATanProc(QStack<Value *> &stack, RunWindow *, VM *);
 
 void SqrtProc(QStack<Value *> &stack, RunWindow *, VM *);
+void PowProc(QStack<Value *> &stack, RunWindow *w, VM *vm);
 void Log10Proc(QStack<Value *> &stack, RunWindow *, VM *);
 void LnProc(QStack<Value *> &stack, RunWindow *, VM *);
 
@@ -113,6 +117,8 @@ void InvokeForeignProc(QStack<Value *> &stack, RunWindow *w, VM *vm);
 
 void CurrentParseTreeProc(QStack<Value *> &stack, RunWindow *w, VM *vm);
 void MakeParserProc(QStack<Value *> &stack, RunWindow *w, VM *vm);
+void PushParserBacktrackPointProc(QStack<Value *> &stack, RunWindow *w, VM *vm);
+void IgnoreParserBacktrackPointProc(QStack<Value *> &stack, RunWindow *w, VM *vm);
 
 double verifyNumeric(Value *v, RunWindow *w); // TODO: make this a method of RunWindow
 int popIntOrCoercable(QStack<Value *> &stack, RunWindow *w, VM *vm);
@@ -120,7 +126,7 @@ double popDoubleOrCoercable(QStack<Value *> &stack, RunWindow *w, VM *vm);
 int popInt(QStack<Value *> &stack, RunWindow *w, VM *vm);
 bool popBool(QStack<Value *> &stack, RunWindow *w, VM *vm);
 void *popRaw(QStack<Value *> &stack, RunWindow *w, VM *vm, IClass *type);
-QString *popString(QStack<Value *> &stack, RunWindow *w, VM *vm);
+QString popString(QStack<Value *> &stack, RunWindow *w, VM *vm);
 Value *popValue(QStack<Value *> &stack, RunWindow *w, VM *vm);
 void verifyStackNotEmpty(QStack<Value *> &stack, VM *vm);
 

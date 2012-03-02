@@ -28,6 +28,8 @@
     #include "debugger.h"
 #endif
 
+#include "utils.h"
+
 #include <QQueue>
 
 template <typename T> bool isa(void * obj)
@@ -36,9 +38,28 @@ template <typename T> bool isa(void * obj)
     return value != NULL;
 }
 
+template<class T> class QVectorMap
+{
+    QVector<T> _map;
+public:
+    T &operator[](int idx) {
+        if(idx < _map.size())
+            return _map[idx];
+        else
+        {
+            _map.resize(idx+10);
+            return _map[idx];
+        }
+    }
+    bool contains(int key) {
+        return _map[key] != NULL;
+    }
+};
+
 class VM
 {
-    QMap<QString, Value*> constantPool;
+    Labeller constantPoolLabeller;
+    QHash<int, Value*> constantPool;
     // Maps from original QObject-based class name
     // to name in SmallVM (English or Arabic)
     QMap<QString, QString> translatedQbjClasses;
@@ -58,7 +79,13 @@ class VM
 private:
     QStack<Frame> &stack();
 public: // todo:temp
-    Frame *currentFrame();
+    inline Frame *currentFrame()
+    {
+        if(stack().empty())
+            return NULL;
+        return &stack().top();
+    }
+
 private:
     Frame &globalFrame();
 private:
@@ -71,7 +98,9 @@ public:
     VM();
     void Init();
     static void LoadCallInstruction(Opcode type, QString arg, Allocator &allocator,
-                                    Method *method, QString label, int extraInfo, CallStyle callStyle);
+                                    Method *method, QString label,
+                                    int extraInfo, CallStyle callStyle,
+                                    Labeller &constantPoolLabeller);
     void Load(QString assemblyCode);
 
     void Register(QString symRef, ExternalMethod *method);
@@ -102,9 +131,30 @@ public:
 
     Frame *launchProcess(Method *method);
     bool hasRunningInstruction();
-    bool processIsFinished(Process *process);
+    inline bool processIsFinished(Process *process)
+    {
+        if(process->stack.isEmpty())
+        {
+            return true;
+        }
+
+        //*
+        Frame &frame = process->stack.top();
+        if(frame.currentMethod == NULL)
+        {
+            return true;
+        }
+        if(!frame.currentMethod->HasInstruction(currentFrame()->ip))
+        {
+            return true;
+        }
+        //*/
+
+        return false;
+    }
+
     Instruction getCurrentInstruction();
-    Process *currentProcess();
+    inline Process *currentProcess() { return running.front(); }
     void makeItSleep(Process *proc, int ms);
     bool hasRegisteredEventHandler(QString evName);
     void setDebugger(Debugger *);
@@ -139,7 +189,7 @@ public:
     void DoPushVal(Value *Arg);
     void DoPushLocal(QString SymRef);
     void DoPushGlobal(QString SymRef);
-    void DoPushConstant(QString SymRef);
+    void DoPushConstant(QString SymRef, int SymRefLabel);
     void DoPopLocal(QString SymRef);
     void DoPopGlobal(QString SymRef);
     void DoPushNull();
@@ -162,18 +212,18 @@ public:
     void DoNe();
     void DoLe();
     void DoGe();
-    void DoCall(QString symRef, int arity, CallStyle callStyle);
-    void DoCallRef(QString symRef, int arity, CallStyle callStyle);
-    void DoCallMethod(QString SymRef, int arity, CallStyle callStyle);
+    void DoCall(QString symRef, int SymRefLabel, int arity, CallStyle callStyle);
+    void DoCallRef(QString symRef, int SymRefLabel, int arity, CallStyle callStyle);
+    void DoCallMethod(QString SymRef, int SymRefLabel, int arity, CallStyle callStyle);
     void DoRet();
-    void DoCallExternal(QString symRef, int arity);
+    void DoCallExternal(QString symRef, int SymRefLabel, int arity);
     void DoSetField(QString SymRef);
     void DoGetField(QString SymRef);
     void DoGetFieldRef(QString SymRef);
     void DoGetArr();
     void DoSetArr();
     void DoGetArrRef();
-    void DoNew(QString SymRef);
+    void DoNew(QString SymRef, int SymRefLabel);
     void DoNewArr();
     void DoArrLength();
     void DoNewMD_Arr();
@@ -182,14 +232,16 @@ public:
     void DoGetMD_ArrRef();
     void DoMD_ArrDimensions();
     void DoRegisterEvent(Value *evname, QString SymRef);
-    void DoIsa(QString SymRef);
+    void DoIsa(QString SymRef, int SymRefLabel);
     void DoSend();
     void DoReceive();
     void DoSelect();
     void DoBreak();
     void DoTick();
+    void DoPushParserBacktrack();
+    void DoIgnoreParserBacktrack();
 
-    void CallImpl(QString sym, bool wantValueNotRef, int arity, CallStyle callStyle);
+    void CallImpl(QString sym, int SymRefLabel, bool wantValueNotRef, int arity, CallStyle callStyle);
     void CallSpecialMethod(IMethod *method, QVector<Value *> args);
     void test(bool, QString, QString);
     void coercion(Value *&v1, Value *&v2);
@@ -206,17 +258,17 @@ private:
     void BuiltInComparisonOp(bool  (*intFunc)(int,int),
                              bool (*longFunc)(long, long),
                              bool (*doubleFunc)(double,double),
-                             bool (*strFunc)(QString *, QString *));
+                             bool (*strFunc)(QString, QString));
     void BuiltInAddOp(int (*intFunc)(int,int),
                       long (*longFunc)(long, long),
                       double (*doubleFunc)(double,double),
-                      QString *(*strFunc)(QString *,QString *));
+                      QString (*strFunc)(QString ,QString));
     void EqualityRelatedOp(bool  (*intFunc)(int,int),
                            bool (*longFunc)(long, long),
                            bool  (*doubleFunc)(double,double),
                            bool  (*boolFunc)(bool, bool),
                            bool  (*objFunc)(IObject *, IObject *),
-                           bool  (*strFunc)(QString *, QString *),
+                           bool  (*strFunc)(QString, QString),
                            bool  (*rawFunc)(void *, void *),
                            bool  (*differentTypesFunc)(Value *, Value *),
                            bool  (*nullFunc)());

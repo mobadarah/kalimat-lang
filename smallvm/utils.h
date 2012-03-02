@@ -34,6 +34,14 @@ template<class T> void appendAll(QSet<T> &a, QSet<T> b)
     }
 }
 
+struct Labeller
+{
+    QMap<QString, int> labelMap;
+    int count;
+    Labeller() { count = 0;}
+    int labelOf(QString str);
+};
+
 class LineIterator
 {
 public:

@@ -147,6 +147,7 @@ void Buffer::retract(int numChars)
     }
     updateStartOfLine();
 }
+
 BufferState::BufferState(QString _buffer, int _p1, int _p2, bool _startOfLine, int _col, int _line)
 {
     buffer = _buffer;

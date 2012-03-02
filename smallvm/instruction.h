@@ -11,6 +11,9 @@
     #include "value.h"
 #endif
 
+#ifndef UTILS_H
+    #include "utils.h"
+#endif
 class Allocator;
 enum Opcode
 {
@@ -22,7 +25,8 @@ enum Opcode
     PushConstant, Neg,
     RegisterEvent, Isa,
     Send, Receive, Select,
-    Break, Tick
+    Break, Tick,
+    push_bk_pt, ignore_bk_pt // special instructions to speed up parsing engine
 
 };
 
@@ -38,6 +42,7 @@ struct Instruction
     Opcode opcode;
     Value *Arg;
     QString SymRef;
+    int SymRefLabel;
     QString True, False;
     CallStyle callStyle;
     int extra;
@@ -47,7 +52,7 @@ struct Instruction
     Instruction &wArg(Value *);
     Instruction &wArgParse(QString, Allocator *allocator);
     Instruction &wLabels(QString, QString);
-    Instruction &wRef(QString);
+    Instruction &wRef(QString, Labeller &lblr);
     Instruction &wExtra(int info);
     Instruction &wCallStyle(CallStyle);
 };

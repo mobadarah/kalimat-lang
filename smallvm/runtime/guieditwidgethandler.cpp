@@ -19,7 +19,7 @@ void GUIEditWidgetHandler::lineEditChanged()
     switch(oldVal->tag)
     {
     case StringVal:
-        ref->Set(vm->GetAllocator().newString(new QString(le->text())));
+        ref->Set(vm->GetAllocator().newString(le->text()));
         break;
     case Int:
     case Double:

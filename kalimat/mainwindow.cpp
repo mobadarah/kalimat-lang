@@ -50,8 +50,7 @@ MainWindow::MainWindow(QWidget *parent)
     ui->setupUi(this);
 
     QToolBar *notice = new QToolBar("");
-    notice->addAction(QString::fromStdWString(L"هذه هي النسخة الأولية لشهر فبراير 2012. حمل أحدث نسخة من www.kalimat-lang.com"));
-
+    notice->addAction(QString::fromStdWString(L"هذه هي النسخة الأولية لشهر مارس 2012. حمل أحدث نسخة من www.kalimat-lang.com"));
     addToolBarBreak();
     addToolBar(Qt::TopToolBarArea, notice);
     speedGroup = new QActionGroup(this);
@@ -94,6 +93,7 @@ MainWindow::MainWindow(QWidget *parent)
     ui->txtSearchString->installEventFilter(this);
     ui->txtReplacementString->installEventFilter(this);
     parserErrorMap = Utils::prepareErrorMap<KalimatParserError>(":/parser_error_map.txt");
+
 }
 
 void MainWindow::outputMsg(QString s)
@@ -513,7 +513,6 @@ void MainWindow::on_mnuProgramRun_triggered()
             {
                 highlightLine(dc->getEditor(), ex.pos.Pos);
             }
-
         }
     }
     catch(CompilerException ex)
@@ -552,13 +551,12 @@ void MainWindow::on_mnuProgramRun_triggered()
            }
            else
            {
-           dc = docContainer->getDocumentFromPath(ex.fileName, true);
+               dc = docContainer->getDocumentFromPath(ex.fileName, true);
            }
-           if(dc)
+           if(ex.source && dc)
            {
                 highlightLine(dc->getEditor(), ex.source->getPos().Pos);
            }
-
        }
     }
     catch(VMError err)

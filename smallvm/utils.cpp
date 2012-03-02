@@ -9,6 +9,7 @@
 #include <QStringList>
 //#include <iostream>
 using namespace std;
+
 QString _ws(QStdWString str)
 {
     return QString::fromStdWString(str);
@@ -36,6 +37,19 @@ QString base64Decode(QString source)
 
     return ret;
 
+}
+
+int Labeller::labelOf(QString str)
+{
+    if(!labelMap.contains(str))
+    {
+        labelMap[str] = count++;
+    }
+    if(labelMap[str] == 48)
+    {
+        int x = 5;
+    }
+    return labelMap[str];
 }
 
 QString readFile(QString path)

@@ -674,18 +674,6 @@ shared_ptr<LabelStmt> labelOf(Token pos, QString lbl, Labeller &lblr)
     //*/
 }
 
-int Labeller::labelOf(QString str)
-{
-    if(!labelMap.contains(str))
-    {
-        labelMap[str] = count++;
-    }
-    if(labelMap[str] == 48)
-    {
-        int x = 5;
-    }
-    return labelMap[str];
-}
 shared_ptr<LabelStmt> labelOf(Token pos, QString lbl)
 {
     return shared_ptr<LabelStmt>(new LabelStmt(pos,
@@ -815,9 +803,10 @@ void CodeGenerator::generateRulesDeclaration(shared_ptr<RulesDecl> decl)
                         );
             if((j+1) < rule->options.count())
             {
-                stmts.append(fromInvokation(methodOf(idOf(optPos, _ws(L"%المعرب")),
-                                      _ws(L"ادفع.مسار.بديل"),
-                                      numLitOf(optPos, labeller.labelOf(QString("%1%%2")
+                stmts.append(fromInvokation(invokationOf(optPos,
+                                                         _ws(L"ادفع.مسار.بديل"),
+                                                         idOf(optPos, _ws(L"%المعرب")),
+                                                        numLitOf(optPos, labeller.labelOf(QString("%1%%2")
                                                      .arg(rule->ruleName).arg(j+1))))));
             }
 
@@ -848,8 +837,9 @@ void CodeGenerator::generateRulesDeclaration(shared_ptr<RulesDecl> decl)
             // if we've succeded, ignore the most recent backtrack point
             if((j+1) < rule->options.count())
             {
-                stmts.append(fromInvokation(methodOf(idOf(optPos, _ws(L"%المعرب")),
-                                      _ws(L"تجاهل.آخر.مسار.بديل"))));
+                stmts.append(fromInvokation(invokationOf(optPos,
+                                      _ws(L"تجاهل.آخر.مسار.بديل"),
+                                      idOf(optPos, _ws(L"%المعرب")))));
                 stmts.append(gotoOf(optPos, _ws(L"%نجاح.%1").arg(rule->ruleName), labeller)
                         );
             }
@@ -897,15 +887,15 @@ void CodeGenerator::generateRulesDeclaration(shared_ptr<RulesDecl> decl)
     shared_ptr<FunctionDecl> func(
             new FunctionDecl(decl->getPos(), decl->getPos(),
                              decl->name(), formals, body, true));
-    QFile f("pargen_debug.txt");
-    f.open(QFile::Text | QFile::WriteOnly | QFile::Truncate);
-    QTextStream out(&f);
-    out.setCodec("UTF-8");
-    out.setGenerateByteOrderMark(true);
-    SimpleCodeFormatter fmt;
-    func->prettyPrint(&fmt);
-    out << fmt.getOutput();
-    f.close();
+    //QFile f("pargen_debug.txt");
+    //f.open(QFile::Text | QFile::WriteOnly | QFile::Truncate);
+    //QTextStream out(&f);
+    //out.setCodec("UTF-8");
+    //out.setGenerateByteOrderMark(true);
+    //SimpleCodeFormatter fmt;
+    //func->prettyPrint(&fmt);
+    //out << fmt.getOutput();
+    //f.close();
     pushProcedureScope(func);
     generateFunctionDeclaration(func);
     popProcedureScope();
@@ -2645,7 +2635,12 @@ void CodeGenerator::generateInvokation(shared_ptr<Invokation> expr,
     {
         gen(expr->functor(), "launch");
     }
-    gen(expr->functor(), QString("call %1,%2").arg(expr->functor()->toString()).arg(expr->argumentCount()));
+    if(expr->functor()->toString() == _ws(L"ادفع.مسار.بديل"))
+        gen(expr->functor(), "push_bk_pt");
+    else if(expr->functor()->toString() == _ws(L"تجاهل.آخر.مسار.بديل"))
+        gen(expr->functor(), "ignore_bk_pt");
+    else
+        gen(expr->functor(), QString("call %1,%2").arg(expr->functor()->toString()).arg(expr->argumentCount()));
 
 }
 

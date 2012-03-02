@@ -17,6 +17,12 @@ callex haskey
 ret
 .endmethod
 
+.method مفاتيح 1 1
+callex keysof
+ret
+.endmethod
+
+
 .method مصفوفة.متعددة 1 1
 newmdarr
 ret
@@ -87,6 +93,12 @@ callex sqrt
 ret
 .endmethod
 
+.method أس 2 1
+callex pow
+ret
+.endmethod
+
+
 .method لو 1
 callex log10
 ret
@@ -134,23 +146,27 @@ ret
 .method يحتوي 2 1
 callex str_contains
 ret
-
-
 .endmethod
 
 .method تفصيص 2 1 
 callex str_split
 ret
+.endmethod 
 
 .method تقليم 1 1
 callex str_trim
 ret
+.endmethod
 
+.method تبديل 3 1
+callex str_replace
+ret
 .endmethod
 
 .method النبضات 0 1
 tick
 ret
+.endmethod
 
 .method حمل.صورة 1
 callex load_image
@@ -162,9 +178,13 @@ callex load_sprite
 ret
 .endmethod
 
+.method طيف.من.صورة 1 1
+callex sprite_from_image
+ret
+.endmethod
+
 .method انتظر 1
 callex wait
-
 ret
 .endmethod
 
@@ -416,5 +436,15 @@ ret
 
 .method صنع.معرب 1 1
 callex make_parser
+ret
+.endmethod
+
+.method ادفع.مسار.بديل 2 0
+push_bk_pt
+ret
+.endmethod
+
+.method تجاهل.آخر.مسار.بديل 1 0
+ignore_bk_pt
 ret
 .endmethod

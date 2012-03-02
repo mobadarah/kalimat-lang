@@ -68,7 +68,7 @@ void kalimat_to_ffi_type(IClass *kalimatType, ffi_type *&type, VM *vm)
             Value *fieldMarshallingType;
             if(vc->getFieldAttribute("marshalas", fieldMarshallingType, NULL))
             {
-                QString str = *fieldMarshallingType->unboxStr();
+                QString str = fieldMarshallingType->unboxStr();
                 if(vm->GetType(str) == NULL)
                     vm->signal(InternalError1, QString("Marshalling type '%1' does not exist").arg(str));
 
@@ -126,7 +126,7 @@ void kalimat_to_ffi_value(IClass *kalimatType, Value *v, ffi_type *type, void *&
     {
         if(kalimatType == BuiltInTypes::c_asciiz)
         {
-            std::string str_c = v->unboxStr()->toStdString();
+            std::string str_c = v->unboxStr().toStdString();
             char *str = new char[str_c.length()+1];
             for(int i=0;i<str_c.length(); i++)
             {
@@ -138,7 +138,7 @@ void kalimat_to_ffi_value(IClass *kalimatType, Value *v, ffi_type *type, void *&
         }
         else if(kalimatType == BuiltInTypes::c_wstr)
         {
-            std::wstring str_c = v->unboxStr()->toStdWString();
+            std::wstring str_c = v->unboxStr().toStdWString();
             wchar_t *str = new wchar_t[str_c.length()+1];
             for(int i=0;i<str_c.length(); i++)
             {
@@ -168,7 +168,7 @@ void kalimat_to_ffi_value(IClass *kalimatType, Value *v, ffi_type *type, void *&
             Value *fieldMarshallingType;
             if(vc->getFieldAttribute("marshalas", fieldMarshallingType, NULL))
             {
-                QString str = *fieldMarshallingType->unboxStr();
+                QString str = fieldMarshallingType->unboxStr();
                 if(vm->GetType(str) == NULL)
                     vm->signal(InternalError1, QString("Marshalling type '%1' does not exist").arg(str));
 
@@ -215,19 +215,19 @@ void toKalimatType(IClass *kalimatType, ffi_type *type, Value *&value, void *v, 
         x[0] = *((char *) v);
         x[1] = '\0';
         QString s = QString("%1").arg(x);
-        value = allocator->newString(new QString(s));
+        value = allocator->newString(s);
     }
     else if(kalimatType == BuiltInTypes::c_asciiz)
     {
         char *str = *((char **) v);
         QString s = QString("%1").arg(str);
-        value = allocator->newString(new QString(s));
+        value = allocator->newString(s);
     }
     else if(kalimatType == BuiltInTypes::c_wstr)
     {
         wchar_t *str = *((wchar_t **) v);
         QString s = QString::fromWCharArray(str);
-        value = allocator->newString(new QString(s));
+        value = allocator->newString(s);
     }
     else if(kalimatType == BuiltInTypes::c_ptr)
     {
@@ -252,7 +252,7 @@ void toKalimatType(IClass *kalimatType, ffi_type *type, Value *&value, void *v, 
             Value *fieldMarshallingType;
             if(vc->getFieldAttribute("marshalas", fieldMarshallingType, NULL))
             {
-                QString str = *fieldMarshallingType->unboxStr();
+                QString str = fieldMarshallingType->unboxStr();
                 if(vm->GetType(str) == NULL)
                     vm->signal(InternalError1, QString("Marshalling type '%1' does not exist").arg(str));
 
@@ -287,7 +287,7 @@ void guessType(Value *v, ffi_type *&type, void *&ret)
     else if(v->type->subclassOf(BuiltInTypes::StringType))
     {
         type = &ffi_type_pointer;
-        ret = (void *) v->unboxStr()->toStdString().c_str();
+        ret = (void *) v->unboxStr().toStdString().c_str();
     }
 }
 

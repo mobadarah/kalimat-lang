@@ -79,7 +79,8 @@ Value::~Value()
         delete v.objVal;
         break;
     case StringVal:
-        delete v.strVal;
+        // not needed if we don't use a pointer to QString
+        //delete v.strVal;
         break;
     case ArrayVal:
         delete[] v.arrayVal->Elements;
@@ -191,9 +192,9 @@ MultiDimensionalArray<Value *> *Value::unboxMultiDimensionalArray() const
     return v.multiDimensionalArrayVal;
 }
 
-QString *Value::unboxStr() const
+QString Value::unboxStr() const
 {
-    return v.strVal;
+    return vstrVal;
 }
 
 void *Value::unboxRaw() const
@@ -239,7 +240,7 @@ QString MapToString(VMap *map)
 
 QString Value::toString() const
 {
-    QString *sv = NULL;
+    QString sv;
     QString ret = "<unprintable value>";
     QStringList elems;
     void *val ;
@@ -263,9 +264,7 @@ QString Value::toString() const
         ret = QString("<%1>").arg(v->type->getName());
         break;
     case StringVal:
-        val = v->unboxStr();
-        sv = (QString *) val;
-        ret = *sv;
+        ret = v->unboxStr();
         break;
     case NullVal:
         ret = QString::fromWCharArray(L"<لاشيء>");
@@ -356,7 +355,7 @@ Value *VMap::get(Value *key)
 
 void VMap::set(Value *key, Value *v)
 {
-    allKeys.append(v);
+    allKeys.append(key);
     Elements[*key] = v;
 }
 
@@ -513,7 +512,7 @@ inline bool operator<(const Value &v1, const Value &v2)
         return v1.unboxLong() < v2.unboxLong();
 
     if(v1.tag == StringVal && v2.tag == StringVal)
-        return *v1.unboxStr() < *v2.unboxStr();
+        return v1.unboxStr() < v2.unboxStr();
 
     if(v1.tag == ArrayVal && v2.tag == ArrayVal)
         return LexicographicLessThan(v1.unboxArray(), v2.unboxArray());
@@ -563,7 +562,7 @@ inline bool operator==(const Value &v1, const Value &v2)
         return v1.unboxInt() == v2.unboxInt();
 
     if(v1.tag == StringVal)
-        return *v1.unboxStr() == *v2.unboxStr();
+        return v1.unboxStr() == v2.unboxStr();
 
     if(v1.tag == ArrayVal && v2.tag == ArrayVal)
         return ElementWiseCompare(v1.unboxArray(), v2.unboxArray());

@@ -14,6 +14,8 @@
     #include "../smallvm/debuginfo.h"
 #endif
 
+#include "../smallvm/utils.h"
+
 #include <memory>
 using namespace std;
 
@@ -40,14 +42,6 @@ struct Thunk
 enum InvokationContext
 {
     ProcedureInvokationContext, FunctionInvokationContext
-};
-
-struct Labeller
-{
-    QMap<QString, int> labelMap;
-    int count;
-    Labeller() { count = 0;}
-    int labelOf(QString str);
 };
 
 class CodeGenerator

@@ -14,6 +14,13 @@ Sprite::Sprite(QString filename)
     prepareMask(image);
 }
 
+Sprite::Sprite(QPixmap img)
+    :image(img)
+{
+    visible = false;
+    prepareMask(image);
+}
+
 void Sprite::setImage(QPixmap image)
 {
     this->image = image;

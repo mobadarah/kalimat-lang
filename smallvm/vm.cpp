@@ -15,6 +15,7 @@
 #include <QDateTime>
 #include <time.h>
 #include "qobjectforeignclass.h"
+#include "runtime/parserengine.h"
 
 using namespace std;
 #define QSTR(x) QString::fromStdWString(x)
@@ -29,10 +30,11 @@ void VM::Init()
 {
     BuiltInTypes::ClassType->setAllocator(&this->allocator);
 
-    if(!constantPool.contains("main"))
-        signal(InternalError1 ,QSTR(L"لا يوجد برنامج أساسي لينفّذ"));
-    Method *method = dynamic_cast<Method *>(constantPool["main"]->unboxObj());
-    QString malaf = "%file";
+    int _main = constantPoolLabeller.labelOf("main");
+    if(!constantPool.contains(_main))
+            signal(InternalError1 ,QSTR(L"لا يوجد برنامج أساسي لينفّذ"));
+    Method *method = dynamic_cast<Method *>(constantPool[_main]->unboxObj());
+    int malaf = constantPoolLabeller.labelOf("%file");
     if(constantPool.contains(malaf))
         BuiltInTypes::FileType = (ValueClass *) constantPool[malaf]->unboxObj();
 
@@ -158,12 +160,6 @@ QStack<Frame> &VM::stack()
     return running.front()->stack;
 }
 
-Process *VM::currentProcess()
-{
-    return running.front();
-}
-
-
 void VM::makeItSleep(Process *proc, int ms)
 {
     proc->state = TimerWaitingProcess;
@@ -186,13 +182,6 @@ void VM::makeItSleep(Process *proc, int ms)
 bool VM::hasRegisteredEventHandler(QString evName)
 {
     return registeredEventHandlers.contains(evName);
-}
-
-Frame *VM::currentFrame()
-{
-    if(stack().empty())
-        return NULL;
-    return &stack().top();
 }
 
 Frame &VM::globalFrame()
@@ -223,10 +212,11 @@ void VM::setBreakPoint(QString methodName, int offset)
       TODO: Check how the debugging system behaves with multiple open programs and modules
     */
 
-    if(!constantPool.contains(methodName))
+    int methodLabel = constantPoolLabeller.labelOf(methodName);
+    if(!constantPool.contains(methodLabel))
         return;
 
-    Method *method = dynamic_cast<Method*>(constantPool[methodName]->v.objVal);
+    Method *method = dynamic_cast<Method*>(constantPool[methodLabel]->v.objVal);
     if(method == NULL)
         return;
     Instruction newI = method->Get(offset);
@@ -238,7 +228,8 @@ void VM::setBreakPoint(QString methodName, int offset)
 
 void VM::clearBreakPoint(QString methodName, int offset)
 {
-    Method *method = (Method*) constantPool[methodName]->v.objVal;
+    int methodLabel = constantPoolLabeller.labelOf(methodName);
+    Method *method = (Method*) constantPool[methodLabel]->v.objVal;
     method->Set(offset, breakPoints[methodName][offset]);
 }
 
@@ -256,12 +247,14 @@ bool VM::getCodePos(Process *proc, QString &method, int &offset, Frame *&frame)
 
 void VM::Register(QString symRef, ExternalMethod *method)
 {
-    constantPool[symRef] = allocator.newObject(method, BuiltInTypes::ExternalMethodType);
+    constantPool[constantPoolLabeller.labelOf(symRef)] =
+            allocator.newObject(method, BuiltInTypes::ExternalMethodType);
 }
 
 void VM::RegisterType(QString typeName, IClass *type)
 {
-    constantPool[typeName] = allocator.newObject(type, BuiltInTypes::ClassType);
+    constantPool[constantPoolLabeller.labelOf(typeName)] =
+            allocator.newObject(type, BuiltInTypes::ClassType);
 }
 
 void VM::ActivateEvent(QString evName, QVector<Value *>args)
@@ -270,9 +263,9 @@ void VM::ActivateEvent(QString evName, QVector<Value *>args)
     if(!registeredEventHandlers.contains(evName))
         return;
     QString procName = registeredEventHandlers[evName];
-
-    assert(constantPool.contains(procName), NoSuchProcedureOrFunction1, procName);
-    Method *method = (Method *) constantPool[procName]->unboxObj();
+    int procLabel = constantPoolLabeller.labelOf(procName);
+    assert(constantPool.contains(procLabel), NoSuchProcedureOrFunction1, procName);
+    Method *method = (Method *) constantPool[procLabel]->unboxObj();
     assert(args.count() == method->Arity(), WrongNumberOfArguments);
 
     Frame *newFrame = launchProcess(method);
@@ -286,9 +279,8 @@ void VM::ActivateEvent(QString evName, QVector<Value *>args)
 
 void VM::DefineStringConstant(QString symRef, QString strValue)
 {
-    QString *str = new QString(strValue);
-    Value *v = allocator.newString(str);
-    constantPool[symRef] = v;
+    Value *v = allocator.newString(strValue);
+    constantPool[constantPoolLabeller.labelOf(symRef)] = v;
     //cout << "Defined string constant " << symRef.toStdString() << endl;
     //cout.flush();
 }
@@ -305,9 +297,10 @@ Value *VM::GetType(QString vmTypeId)
     }
     else
     {
-        if(!constantPool.contains(vmTypeId))
+        int vmTypeIdLabel = constantPoolLabeller.labelOf(vmTypeId);
+        if(!constantPool.contains(vmTypeIdLabel))
             signal(InternalError1, QString("VM::GetType Cannot find type:%1").arg(vmTypeId));
-        Value *v = constantPool[vmTypeId];
+        Value *v = constantPool[vmTypeIdLabel];
         if(!(v->type == BuiltInTypes::ClassType))
             signal(InternalError1, QString("VM::GetType: Constant pool entry '%1' not a type").arg(vmTypeId));
         return v;
@@ -316,7 +309,7 @@ Value *VM::GetType(QString vmTypeId)
 
 Value *VM::wrapQObject(QObject *obj, QString newClassName, QMap<QString, QString> translations, bool wrapAll)
 {
-    if(!constantPool.contains(newClassName))
+    if(!constantPool.contains(constantPoolLabeller.labelOf(newClassName)))
     {
         RegisterType(newClassName,
                      new QObjectForeignClass(this,
@@ -363,26 +356,6 @@ bool VM::hasRunningInstruction()
 
     return true;
 
-}
-
-bool VM::processIsFinished(Process *process)
-{
-    if(process->stack.isEmpty())
-    {
-        return true;
-    }
-    Frame &frame = process->stack.top();
-    if(frame.currentMethod == NULL)
-    {
-        return true;
-    }
-
-    if(!frame.currentMethod->HasInstruction(currentFrame()->ip))
-    {
-        return true;
-    }
-
-    return false;
 }
 
 Instruction VM::getCurrentInstruction()
@@ -446,7 +419,7 @@ int getInstructionArity(Instruction &i)
 void VM::RunStep(bool singleInstruction)
 {
     int random = rand();
-    int n = singleInstruction? 1 : random % 10;
+    int n = singleInstruction? 1 : random % 30;
     bool pIsRunning = true;
     //bool timerOrNew = (random % 2) == 0;
     clock_t qt = clock();
@@ -557,7 +530,7 @@ void VM::RunSingleInstruction(Process *process)
         this->DoPushGlobal(i.SymRef);
         break;
     case PushConstant:
-        this->DoPushConstant(i.SymRef);
+        this->DoPushConstant(i.SymRef, i.SymRefLabel);
         break;
     case PopLocal:
         this->DoPopLocal(i.SymRef);
@@ -626,19 +599,19 @@ void VM::RunSingleInstruction(Process *process)
         this->DoGe();
         break;
     case Call:
-        this->DoCall(i.SymRef, getInstructionArity(i), i.callStyle);
+        this->DoCall(i.SymRef, i.SymRefLabel, getInstructionArity(i), i.callStyle);
         break;
     case CallRef:
-        this->DoCallRef(i.SymRef, getInstructionArity(i), i.callStyle);
+        this->DoCallRef(i.SymRef, i.SymRefLabel, getInstructionArity(i), i.callStyle);
         break;
     case CallMethod:
-        this->DoCallMethod(i.SymRef, getInstructionArity(i), i.callStyle);
+        this->DoCallMethod(i.SymRef, i.SymRefLabel, getInstructionArity(i), i.callStyle);
         break;
     case Ret:
         this->DoRet();
         break;
     case CallExternal:
-        this->DoCallExternal(i.SymRef, getInstructionArity(i));
+        this->DoCallExternal(i.SymRef, i.SymRefLabel, getInstructionArity(i));
         break;
     case Nop:
         break;
@@ -661,7 +634,7 @@ void VM::RunSingleInstruction(Process *process)
         this->DoGetArrRef();
         break;
     case New:
-        this->DoNew(i.SymRef);
+        this->DoNew(i.SymRef, i.SymRefLabel);
         break;
     case NewArr:
         this->DoNewArr();
@@ -688,7 +661,7 @@ void VM::RunSingleInstruction(Process *process)
         this->DoRegisterEvent(i.Arg, i.SymRef);
         break;
     case Isa:
-        this->DoIsa(i.SymRef);
+        this->DoIsa(i.SymRef, i.SymRefLabel);
         break;
     case Send:
         this->DoSend();
@@ -704,6 +677,12 @@ void VM::RunSingleInstruction(Process *process)
         break;
     case Tick:
         this->DoTick();
+        break;
+    case push_bk_pt:
+        this->DoPushParserBacktrack();
+        break;
+    case ignore_bk_pt:
+        this->DoIgnoreParserBacktrack();
         break;
     default:
         signal(UnrecognizedInstruction);
@@ -744,7 +723,9 @@ end
 
 // This is a helper function for the next function - VM::Load()
 void VM::LoadCallInstruction(Opcode type, QString arg, Allocator &allocator,
-                             Method *method, QString label, int extraInfo, CallStyle callStyle)
+                             Method *method, QString label, int extraInfo,
+                             CallStyle callStyle,
+                             Labeller &constantPoolLabeller)
 {
     if(arg.contains(","))
     {
@@ -752,14 +733,14 @@ void VM::LoadCallInstruction(Opcode type, QString arg, Allocator &allocator,
         ref_arity[0] = ref_arity[0].trimmed();
         ref_arity[1] = ref_arity[1].trimmed();
         Instruction i = Instruction(type)
-                .wRef(ref_arity[0])
+                .wRef(ref_arity[0], constantPoolLabeller)
                 .wArgParse(ref_arity[1], &allocator)
                 .wCallStyle(callStyle);
         method->Add(i, label, extraInfo);
     }
     else
     {
-        Instruction i = Instruction(type).wRef(arg).wCallStyle(callStyle);
+        Instruction i = Instruction(type).wRef(arg, constantPoolLabeller).wCallStyle(callStyle);
         method->Add(i, label, extraInfo);
     }
 }
@@ -865,10 +846,11 @@ void VM::Load(QString assemblyCode)
             Value *methodVal = allocator.newObject(curMethod, BuiltInTypes::MethodType);
             if(curClass == NULL)
             {
-                if(constantPool.contains(curMethodName))
+                int methodLabel = constantPoolLabeller.labelOf(curMethodName);
+                if(constantPool.contains(methodLabel))
                     signal(ElementAlreadyDefined1, curMethodName);
                 else
-                    constantPool[curMethodName] = methodVal;
+                    constantPool[methodLabel] = methodVal;
             }
             else
             {
@@ -887,10 +869,11 @@ void VM::Load(QString assemblyCode)
         {
             curClassName = arg.trimmed();
             curClass = new ValueClass(curClassName, BuiltInTypes::ObjectType);
-            if(constantPool.contains(curClassName))
+            int classLabel = constantPoolLabeller.labelOf(curClassName);
+            if(constantPool.contains(classLabel))
                 signal(ElementAlreadyDefined1, curClassName);
             else
-                constantPool[curClassName] = allocator.newObject(curClass, BuiltInTypes::ClassType);
+                constantPool[classLabel] = allocator.newObject(curClass, BuiltInTypes::ClassType);
         }
         else if(opcode == ".endclass")
         {
@@ -918,7 +901,7 @@ void VM::Load(QString assemblyCode)
                     {
                         QString key = kv[0];
                         QString val = kv[1];
-                        curClass->fieldAttributes[key] = allocator.newString(new QString(val));
+                        curClass->fieldAttributes[key] = allocator.newString(val);
                     }
                 }
             }
@@ -934,27 +917,27 @@ void VM::Load(QString assemblyCode)
         }
         else if(opcode == "pushl")
         {
-            Instruction i = Instruction(PushLocal).wRef(arg);
+            Instruction i = Instruction(PushLocal).wRef(arg, constantPoolLabeller);
             curMethod->Add(i, label, extraInfo);
         }
         else if(opcode == "pushg")
         {
-            Instruction i = Instruction(PushGlobal).wRef(arg);
+            Instruction i = Instruction(PushGlobal).wRef(arg, constantPoolLabeller);
             curMethod->Add(i, label, extraInfo);
         }
         else if(opcode == "pushc")
         {
-            Instruction i = Instruction(PushConstant).wRef(arg);
+            Instruction i = Instruction(PushConstant).wRef(arg, constantPoolLabeller);
             curMethod->Add(i, label, extraInfo);
         }
         else if(opcode == "popl")
         {
-            Instruction i = Instruction(PopLocal).wRef(arg);
+            Instruction i = Instruction(PopLocal).wRef(arg, constantPoolLabeller);
             curMethod->Add(i, label, extraInfo);
         }
         else if(opcode == "popg")
         {
-            Instruction i = Instruction(PopGlobal).wRef(arg);
+            Instruction i = Instruction(PopGlobal).wRef(arg, constantPoolLabeller);
             curMethod->Add(i, label, extraInfo);
         }
         else if(opcode == "pushnull")
@@ -1068,12 +1051,12 @@ void VM::Load(QString assemblyCode)
         }
         else if(opcode == "call")
         {
-            LoadCallInstruction(Call, arg, allocator, curMethod, label, extraInfo, callStyle);
+            LoadCallInstruction(Call, arg, allocator, curMethod, label, extraInfo, callStyle, constantPoolLabeller);
             callStyle = NormalCall;
         }
         else if(opcode == "callr")
         {
-            LoadCallInstruction(CallRef, arg, allocator, curMethod, label, extraInfo, callStyle);
+            LoadCallInstruction(CallRef, arg, allocator, curMethod, label, extraInfo, callStyle, constantPoolLabeller);
             callStyle = NormalCall;
         }
         else if(opcode == "ret")
@@ -1083,7 +1066,7 @@ void VM::Load(QString assemblyCode)
         }
         else if(opcode == "callex")
         {
-            LoadCallInstruction(CallExternal, arg, allocator, curMethod, label, extraInfo, NormalCall);
+            LoadCallInstruction(CallExternal, arg, allocator, curMethod, label, extraInfo, NormalCall, constantPoolLabeller);
         }
         else if(opcode == "nop")
         {
@@ -1092,17 +1075,17 @@ void VM::Load(QString assemblyCode)
         }
         else if(opcode == "setfld")
         {
-            Instruction i = Instruction(SetField).wRef(arg);
+            Instruction i = Instruction(SetField).wRef(arg, constantPoolLabeller);
             curMethod->Add(i, label, extraInfo);
         }
         else if(opcode == "getfld")
         {
-            Instruction i = Instruction(GetField).wRef(arg);
+            Instruction i = Instruction(GetField).wRef(arg, constantPoolLabeller);
             curMethod->Add(i, label, extraInfo);
         }
         else if(opcode == "getfldref")
         {
-            Instruction i = Instruction(GetFieldRef).wRef(arg);
+            Instruction i = Instruction(GetFieldRef).wRef(arg, constantPoolLabeller);
             curMethod->Add(i, label, extraInfo);
         }
         else if(opcode == "setarr")
@@ -1122,12 +1105,12 @@ void VM::Load(QString assemblyCode)
         }
         else if(opcode == "callm")
         {
-            LoadCallInstruction(CallMethod, arg, allocator, curMethod, label, extraInfo, callStyle);
+            LoadCallInstruction(CallMethod, arg, allocator, curMethod, label, extraInfo, callStyle, constantPoolLabeller);
             callStyle = NormalCall;
         }
         else if(opcode == "new")
         {
-            Instruction i = Instruction(New).wRef(arg);
+            Instruction i = Instruction(New).wRef(arg, constantPoolLabeller);
             curMethod->Add(i, label, extraInfo);
         }
         else if(opcode == "newarr")
@@ -1170,13 +1153,15 @@ void VM::Load(QString assemblyCode)
             QStringList ev_and_proc = arg.split(",", QString::SkipEmptyParts, Qt::CaseInsensitive);
             QString evName = ev_and_proc[0].trimmed();
             QString procSymRef = ev_and_proc[1].trimmed();
-            Value *name = allocator.newString(new QString(evName));
-            Instruction i = Instruction(RegisterEvent).wArg(name).wRef(procSymRef);
+            Value *name = allocator.newString(evName);
+            Instruction i = Instruction(RegisterEvent)
+                    .wArg(name)
+                    .wRef(procSymRef, constantPoolLabeller);
             curMethod->Add(i, label, extraInfo);
         }
         else if(opcode == "isa")
         {
-            Instruction i = Instruction(Isa).wRef(arg);
+            Instruction i = Instruction(Isa).wRef(arg, constantPoolLabeller);
             curMethod->Add(i, label, extraInfo);
         }
         else if(opcode == "send")
@@ -1204,6 +1189,16 @@ void VM::Load(QString assemblyCode)
             Instruction i = Instruction(Tick);
             curMethod->Add(i, label, extraInfo);
         }
+        else if(opcode == "push_bk_pt")
+        {
+            Instruction i = Instruction(push_bk_pt);
+            curMethod->Add(i, label, extraInfo);
+        }
+        else if(opcode == "ignore_bk_pt")
+        {
+            Instruction i = Instruction(ignore_bk_pt);
+            curMethod->Add(i, label, extraInfo);
+        }
         else
         {
             signal(UnrecognizedMnemonic2,opcode,toStr(i));
@@ -1221,7 +1216,8 @@ void VM::patchupInheritance(QMap<ValueClass *, QString> inheritanceList)
     {
         ValueClass *c = i.key();
         QString parentName = i.value();
-        Value *classObj = (Value*) constantPool[parentName];
+        int parentNameLabel = constantPoolLabeller.labelOf(parentName);
+        Value *classObj = (Value*) constantPool[parentNameLabel];
         ValueClass *parent = dynamic_cast<ValueClass *>(classObj->v.objVal);
 
         // In VM::Load we always initialize a class with a base of BuiltInTypes::ObjectType
@@ -1255,10 +1251,10 @@ void VM::DoPushGlobal(QString SymRef)
     currentFrame()->OperandStack.push(globalFrame().Locals[SymRef]);
 }
 
-void VM::DoPushConstant(QString SymRef)
+void VM::DoPushConstant(QString SymRef, int SymRefLabel)
 {
-    if(constantPool.contains(SymRef))
-        currentFrame()->OperandStack.push(constantPool[SymRef]);
+    if(constantPool.contains(SymRefLabel))
+        currentFrame()->OperandStack.push(constantPool[SymRefLabel]);
     else
     {
         signal(InternalError1, QString("pushc: Constant pool doesn't contain key '%1'").arg(SymRef));
@@ -1305,7 +1301,7 @@ void VM::DoSetRef()
 int add_int(int a, int b) { return a + b;}
 long add_long(long a, long b) { return a + b;}
 double add_double(double a, double b) { return a + b;}
-QString *add_str(QString *a, QString *b){ return new QString((*a) + (*b));}
+QString add_str(QString a, QString b){ return a + b;}
 
 int sub_int(int a, int b) { return a - b;}
 long sub_long(long a, long b) { return a - b;}
@@ -1326,22 +1322,22 @@ bool _not(bool a) { return !a;}
 bool lt_int(int a, int b) { return a<b;}
 bool lt_long(long a, long b) { return a<b;}
 bool lt_double(double a, double b) { return a<b;}
-bool lt_str(QString *a, QString *b) { return (*a) < (*b); }
+bool lt_str(QString a, QString b) { return a < b; }
 
 bool gt_int(int a, int b) { return a>b;}
 bool gt_long(long a, long b) { return a>b;}
 bool gt_double(double a, double b) { return a>b;}
-bool gt_str(QString *a, QString *b) { return (*a) > (*b); }
+bool gt_str(QString a, QString b) { return a > b; }
 
 bool le_int(int a, int b) { return a<=b;}
 bool le_long(long a, long b) { return a<=b;}
 bool le_double(double a, double b) { return a<=b;}
-bool le_str(QString *a, QString *b) { return (*a) <= (*b); }
+bool le_str(QString a, QString b) { return a <= b; }
 
 bool ge_int(int a, int b) { return a>=b;}
 bool ge_long(long a, long b) { return a>=b;}
 bool ge_double(double a, double b) { return a>=b;}
-bool ge_str(QString *a, QString *b) { return (*a) >= (*b); }
+bool ge_str(QString a, QString b) { return a >= b; }
 
 bool eq_int(int a, int b) { return a==b;}
 bool eq_long(long a, long b) { return a==b;}
@@ -1350,11 +1346,9 @@ bool eq_bool(bool a, bool b) { return a==b;}
 bool eq_obj(IObject *a, IObject *b){ return a==b;}
 bool eq_raw(void *a, void *b){ return a==b;}
 
-bool  eq_str(QString *a, QString *b)
+bool  eq_str(QString a, QString b)
 {
-    QString *s1 = (QString *) a;
-    QString *s2 = (QString *) b;
-    return QString::compare(*s1, *s2, Qt::CaseSensitive) == 0;
+    return QString::compare(a, b, Qt::CaseSensitive) == 0;
 }
 
 bool  eq_difftypes(Value *, Value *)
@@ -1371,11 +1365,9 @@ bool ne_bool(bool a, bool b) { return a!=b;}
 bool ne_obj(IObject *a, IObject *b) { return a!=b;}
 bool ne_raw(void *a, void *b) { return a!=b;}
 
-bool  ne_str(QString*a, QString*b)
+bool  ne_str(QString a, QString b)
 {
-    QString *s1 = (QString *) a;
-    QString *s2 = (QString *) b;
-    return QString::compare(*s1, *s2, Qt::CaseSensitive) != 0;
+    return QString::compare(a, b, Qt::CaseSensitive) != 0;
 }
 
 bool  ne_difftypes(Value *, Value *)
@@ -1456,7 +1448,7 @@ void VM::DoJmpVal()
     if(v->tag == Int)
         label = QString("%1").arg(v->unboxInt());
     else
-        label = *v->unboxStr();
+        label = v->unboxStr();
     DoJmp(label);
 }
 
@@ -1497,17 +1489,17 @@ void VM::DoGe()
     BuiltInComparisonOp(ge_int, ge_long, ge_double, ge_str);
 }
 
-void VM::DoCall(QString symRef, int arity, CallStyle callStyle)
+void VM::DoCall(QString symRef, int SymRefLabel, int arity, CallStyle callStyle)
 {
-    CallImpl(symRef, true, arity, callStyle);
+    CallImpl(symRef, SymRefLabel, true, arity, callStyle);
 }
 
-void VM::DoCallRef(QString symRef, int arity, CallStyle callStyle)
+void VM::DoCallRef(QString symRef, int SymRefLabel, int arity, CallStyle callStyle)
 {
-    CallImpl(symRef, false, arity, callStyle);
+    CallImpl(symRef, SymRefLabel, false, arity, callStyle);
 }
 
-void VM::CallImpl(QString symRef, bool wantValueNotRef, int arity, CallStyle callStyle)
+void VM::CallImpl(QString symRef, int symRefLabel, bool wantValueNotRef, int arity, CallStyle callStyle)
 {
     // call expects the arguments on the operand stack in reverse order,
     // but the callee pops them in the right order
@@ -1524,10 +1516,9 @@ void VM::CallImpl(QString symRef, bool wantValueNotRef, int arity, CallStyle cal
     // pop b
     // pop c
     // ...code
-    assert(constantPool.contains(symRef), NoSuchProcedureOrFunction1, symRef);
-    Method *method = (Method *) constantPool[symRef]->v.objVal;
-
-
+    assert(constantPool.contains(symRefLabel), NoSuchProcedureOrFunction1, symRef);
+    Method *method = dynamic_cast<Method *>(constantPool[symRefLabel]->unboxObj());
+    assert(method, NoSuchProcedureOrFunction1, symRef);
     assert(arity == -1 || method->Arity() ==-1 || arity == method->Arity(), WrongNumberOfArguments);
     QVector<Value *> args;
     for(int i=0; i<method->Arity(); i++)
@@ -1561,7 +1552,7 @@ void VM::CallImpl(QString symRef, bool wantValueNotRef, int arity, CallStyle cal
     }
 }
 
-void VM::DoCallMethod(QString SymRef, int arity, CallStyle callStyle)
+void VM::DoCallMethod(QString SymRef, int SymRefLabel, int arity, CallStyle callStyle)
 {
     // callm expects the arguments in reverse order, and the last pushed argument is 'this'
     // but the execution site pops them in the correct order, i.e the first popped is 'this'
@@ -1600,7 +1591,7 @@ void VM::DoCallMethod(QString SymRef, int arity, CallStyle callStyle)
     }
     else
     {
-        args.append(allocator.newString(new QString(SymRef)));
+        args.append(allocator.newString(SymRef));
         Value *arr = allocator.newArray(arity);
         for(int i=0; i<arity; i++)
         {
@@ -1677,11 +1668,11 @@ void VM::DoRet()
     }
 }
 
-void VM::DoCallExternal(QString symRef, int arity)
+void VM::DoCallExternal(QString symRef, int SymRefLabel, int arity)
 {
-    assert(constantPool.contains(symRef), NoSuchExternalMethod1, symRef);
+    assert(constantPool.contains(SymRefLabel), NoSuchExternalMethod1, symRef);
 
-    ExternalMethod *method = (ExternalMethod*) constantPool[symRef]->v.objVal;
+    ExternalMethod *method = (ExternalMethod*) constantPool[SymRefLabel]->v.objVal;
     assert(arity == -1 || method->Arity() ==-1 || arity == method->Arity(), WrongNumberOfArguments);
     (*method)(currentFrame()->OperandStack);
 }
@@ -1767,12 +1758,12 @@ void VM::DoSetArr()
     {
         assert(index->tag == Int, SubscribtMustBeInteger);
         assert(v->tag == StringVal, TypeError2, BuiltInTypes::StringType, v->type);
-        QString *arr = arrVal->unboxStr();
-        QString *sv = v->unboxStr();
-        assert(sv->length() ==1, ArgumentError,
+        QString arr = arrVal->unboxStr();
+        QString sv = v->unboxStr();
+        assert(sv.length() ==1, ArgumentError,
                QString::fromStdWString(L"النص المحدد لابد أن يكون طوله رمزا واحدا"));
         int i = index->unboxInt() -1;
-        (*arr)[i] = (*sv)[0];
+        arr[i] = sv[0];
     }
 }
 
@@ -1808,14 +1799,17 @@ void VM::DoGetArr()
         bool b = container->keyCheck(index, err);
         if(!b)
             signalWithStack(err);
-        currentFrame()->OperandStack.push(container->get(index));
+        Value *v = container->get(index);
+        if(!v)
+            assert(false, IndexableNotFound1, index->toString());
+        currentFrame()->OperandStack.push(v);
     }
     else
     {
         assert(index->tag == Int, SubscribtMustBeInteger);
-        QString *arr = arrVal->unboxStr();
+        QString arr = arrVal->unboxStr();
         int i = index->unboxInt() -1;
-        Value *v = allocator.newString(new QString(arr->mid(i,1 )));
+        Value *v = allocator.newString(arr.mid(i,1));
         currentFrame()->OperandStack.push(v);
     }
 }
@@ -1838,10 +1832,10 @@ void VM::DoGetArrRef()
     currentFrame()->OperandStack.push(ref);
 }
 
-void VM::DoNew(QString SymRef)
+void VM::DoNew(QString SymRef, int SymRefLabel)
 {
-    assert(constantPool.contains(SymRef), NoSuchClass, SymRef);
-    Value *classObj = (Value*) constantPool[SymRef];
+    assert(constantPool.contains(SymRefLabel), NoSuchClass, SymRef);
+    Value *classObj = (Value*) constantPool[SymRefLabel];
     IClass *theClass = dynamic_cast<IClass *>(classObj->v.objVal);
     assert(theClass != NULL, NameDoesntIndicateAClass1, SymRef);
     Value *newObj = allocator.newObject(theClass);
@@ -1867,7 +1861,7 @@ void VM::DoArrLength()
     Value *arrVal= currentFrame()->OperandStack.pop();
     if(arrVal->tag == StringVal)
     {
-        Value *len = allocator.newInt(arrVal->unboxStr()->length());
+        Value *len = allocator.newInt(arrVal->unboxStr().length());
         currentFrame()->OperandStack.push(len);
     }
     else
@@ -1976,21 +1970,24 @@ void VM::DoMD_ArrDimensions()
 
 void VM::DoRegisterEvent(Value *evname, QString SymRef)
 {
+    int SymRefLabel = constantPoolLabeller.labelOf(SymRef);
     assert(evname->type == BuiltInTypes::StringType, TypeError2, BuiltInTypes::StringType, evname->type);
-    assert(constantPool.contains(SymRef), NoSuchProcedure1, SymRef);
-    QString *evName = evname->unboxStr();
-    registeredEventHandlers[*evName] = SymRef;
+
+    // todo: verify symref is actually a procedure
+    assert(constantPool.contains(SymRefLabel), NoSuchProcedure1, SymRef);
+    QString evName = evname->unboxStr();
+    registeredEventHandlers[evName] = SymRef;
 }
 
-void VM::DoIsa(QString SymRef)
+void VM::DoIsa(QString SymRef, int SymRefLabel)
 {
     // ...value => ...bool
     Value *v = currentFrame()->OperandStack.pop();
     ValueClass *cls = NULL;
     Value *classObj = NULL;
-    if(constantPool.contains(SymRef))
+    if(constantPool.contains(SymRefLabel))
     {
-        classObj = constantPool[SymRef];
+        classObj = constantPool[SymRefLabel];
         if(classObj->type == BuiltInTypes::ClassType)
         {
             cls = dynamic_cast<ValueClass *>(classObj->unboxObj());
@@ -2071,6 +2068,23 @@ void VM::DoTick()
     currentFrame()->OperandStack.push(allocator.newLong(t));
 }
 
+void VM::DoPushParserBacktrack()
+{
+    IObject *receiver = currentFrame()->OperandStack.pop()->unboxObj();
+    int arg1 = currentFrame()->OperandStack.pop()->unboxInt();
+    ParserObj *parser = dynamic_cast<ParserObj *>(receiver);
+    parser->stack.push(ParseFrame(arg1, parser->pos));
+}
+
+void VM::DoIgnoreParserBacktrack()
+{
+    IObject *receiver = currentFrame()->OperandStack.pop()->unboxObj();
+    ParserObj *parser = dynamic_cast<ParserObj *>(receiver);
+    ParseFrame f = parser->stack.pop();
+    if(!f.backTrack)
+        assert(false, InternalError1, _ws(L"تجاهل آخر مسار بديل: قمة المكدس (%1) ليست نقطة تراجع").arg(f.continuationLabel));
+}
+
 void VM::CallSpecialMethod(IMethod *method, QVector<Value *> args)
 {
     IForeignMethod *fm = dynamic_cast<IForeignMethod *>(method);
@@ -2127,7 +2141,7 @@ void VM::coercion(Value *&v1, Value *&v2)
 void VM::BuiltInAddOp(int (*intFunc)(int,int),
                       long (*longFunc)(long, long),
                       double (*doubleFunc)(double,double),
-                      QString *(*strFunc)(QString *,QString *))
+                      QString (*strFunc)(QString, QString))
 {
 
     Value *v2 = currentFrame()->OperandStack.pop();
@@ -2192,7 +2206,7 @@ void VM::BuiltInArithmeticOp(QString opName,
 void VM::BuiltInComparisonOp(bool (*intFunc)(int,int),
                              bool (*longFunc)(long, long),
                              bool (*doubleFunc)(double,double),
-                             bool (*strFunc)(QString *, QString *))
+                             bool (*strFunc)(QString, QString))
 {
     Value *v2 = currentFrame()->OperandStack.pop();
     Value *v1 = currentFrame()->OperandStack.pop();
@@ -2211,7 +2225,7 @@ void VM::BuiltInComparisonOp(bool (*intFunc)(int,int),
     else if(v1->tag == Double)
         result = doubleFunc(v1->v.doubleVal, v2->v.doubleVal);
     else if(v1->tag == StringVal)
-        result = strFunc(v1->v.strVal, v2->v.strVal);
+        result = strFunc(v1->vstrVal, v2->vstrVal);
 
     v3 = allocator.newBool(result);
     currentFrame()->OperandStack.push(v3);
@@ -2222,7 +2236,7 @@ void VM::EqualityRelatedOp(bool(*intFunc)(int, int),
                            bool(*doubleFunc)(double, double),
                            bool(*boolFunc)(bool, bool),
                            bool(*objFunc)(IObject *, IObject *),
-                           bool(*strFunc)(QString *, QString *),
+                           bool(*strFunc)(QString, QString),
                            bool(*rawFunc)(void *, void *),
                            bool(*differentTypesFunc)(Value *, Value *),
                            bool(*nullFunc)())

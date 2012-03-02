@@ -8,9 +8,12 @@
 #include "vm_incl.h"
 #include "allocator.h"
 
+const int intCacheSize = 40;
 Value *Allocator::_true = NULL;
 Value *Allocator::_false = NULL;
-Allocator::Allocator(QMap<QString, Value *> *constantPool, QQueue<Process *> *processes)
+Value *Allocator::_ints[intCacheSize];
+
+Allocator::Allocator(QHash<int, Value *> *constantPool, QQueue<Process *> *processes)
 {
     this->constantPool = constantPool;
     this->processes = processes;
@@ -20,6 +23,8 @@ Allocator::Allocator(QMap<QString, Value *> *constantPool, QQueue<Process *> *pr
         _true = newBool(true, false);
     if(_false == NULL)
         _false = newBool(false, false);
+    for(int i=0; i<intCacheSize; i++)
+        _ints[i] = newInt(i, false);
 }
 
 Value *Allocator::allocateNewValue(bool gcMonitor)
@@ -60,6 +65,9 @@ Value *Allocator::allocateNewValue(bool gcMonitor)
 
 Value *Allocator::newInt(int i)
 {
+    if(i>=0 && i < intCacheSize)
+        return _ints[i];
+
     return newInt(i, true);
 }
 
@@ -110,7 +118,6 @@ Value *Allocator::newBool(bool b)
     {
         return _false;
     }
-
 }
 
 Value *Allocator::newBool(bool b, bool gcMonitor)
@@ -187,12 +194,12 @@ Value *Allocator::newMultiDimensionalArray(QVector<int>dimensions)
     return ret;
 }
 
-Value *Allocator::newString(QString *str)
+Value *Allocator::newString(QString str)
 {
     Value *ret = allocateNewValue();
     ret->tag = StringVal;
     ret->type = BuiltInTypes::StringType;
-    ret->v.strVal = str;
+    ret->vstrVal = str;
     return ret;
 }
 Value *Allocator::newRaw(void *ptr, IClass *_class)
@@ -270,7 +277,7 @@ void Allocator::mark()
     currentAllocationInBytes = 0;
     QStack<Value *> reachable;
 
-    for(QMap<QString, Value *>::const_iterator i=constantPool->begin(); i != constantPool->end(); ++i)
+    for(QHash<int, Value *>::const_iterator i=constantPool->begin(); i != constantPool->end(); ++i)
     {
         Value * v = i.value();
         reachable.push(v);

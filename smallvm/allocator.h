@@ -40,13 +40,14 @@ class Allocator
 
     static Value * _true;
     static Value * _false;
+    static Value * _ints[];
 
     // Store VM root objects for GC
-    QMap<QString, Value*> *constantPool;
+    QHash<int, Value*> *constantPool;
     QQueue<Process *> *processes;
     QSet<Frame *> otherFrames;
 public:
-    Allocator(QMap<QString, Value*> *constantPool,
+    Allocator(QHash<int, Value*> *constantPool,
               QQueue<Process *> *processes);
 
     void addOtherFrameAsRoot(Frame *f) { otherFrames.insert(f); }
@@ -61,7 +62,7 @@ public:
     Value *newBool(bool b);
     Value *newBool(bool b, bool gcMonitor);
     Value *newObject(IClass *);
-    Value *newString(QString *);
+    Value *newString(QString);
     Value *newObject(IObject *, IClass *, bool gcMonitor = true);
     Value *newArray(int size);
     Value *newMap();

@@ -133,6 +133,7 @@ void RunWindow::Init(QString program, QMap<QString, QString> stringConstants, QS
         vm->Register("typefromid", new WindowProxyMethod(this, vm, TypeFromIdProc));
         vm->Register("newmap", new WindowProxyMethod(this, vm, NewMapProc));
         vm->Register("haskey", new WindowProxyMethod(this, vm, HasKeyProc));
+        vm->Register("keysof", new WindowProxyMethod(this, vm, KeysOfProc));
 
         vm->Register("random", new WindowProxyMethod(this, vm, RandomProc));
         vm->Register("sin", new WindowProxyMethod(this, vm, SinProc));
@@ -142,6 +143,7 @@ void RunWindow::Init(QString program, QMap<QString, QString> stringConstants, QS
         vm->Register("acos", new WindowProxyMethod(this, vm, ACosProc));
         vm->Register("atan", new WindowProxyMethod(this, vm, ATanProc));
         vm->Register("sqrt", new WindowProxyMethod(this, vm, SqrtProc));
+        vm->Register("pow", new WindowProxyMethod(this, vm, PowProc));
         vm->Register("log10", new WindowProxyMethod(this, vm, Log10Proc));
         vm->Register("ln", new WindowProxyMethod(this, vm, LnProc));
         vm->Register("to_num", new WindowProxyMethod(this, vm, ToNumProc));
@@ -157,10 +159,12 @@ void RunWindow::Init(QString program, QMap<QString, QString> stringConstants, QS
         vm->Register("str_contains", new WindowProxyMethod(this, vm, StrContainsProc));
         vm->Register("str_split", new WindowProxyMethod(this, vm, StrSplitProc));
         vm->Register("str_trim", new WindowProxyMethod(this, vm, StrTrimProc));
+        vm->Register("str_replace", new WindowProxyMethod(this, vm, StrReplaceProc));
         vm->Register("str_len", new WindowProxyMethod(this, vm, StrLenProc));
 
         vm->Register("load_image", new WindowProxyMethod(this, vm, LoadImageProc));
         vm->Register("load_sprite", new WindowProxyMethod(this, vm, LoadSpriteProc));
+        vm->Register("sprite_from_image", new WindowProxyMethod(this, vm, SpriteFromImageProc));
         vm->Register("showsprite", new WindowProxyMethod(this, vm, ShowSpriteProc));
         vm->Register("hidesprite", new WindowProxyMethod(this, vm, HideSpriteProc));
 
@@ -201,7 +205,8 @@ void RunWindow::Init(QString program, QMap<QString, QString> stringConstants, QS
 
         vm->Register("current_parse_tree", new WindowProxyMethod(this, vm, CurrentParseTreeProc));
         vm->Register("make_parser", new WindowProxyMethod(this, vm, MakeParserProc));
-
+        vm->Register("push_bk_pt", new WindowProxyMethod(this, vm, PushParserBacktrackPointProc));
+        vm->Register("ignore_bk_pt", new WindowProxyMethod(this, vm, IgnoreParserBacktrackPointProc));
 
         for(int i=0; i<stringConstants.keys().count(); i++)
         {
@@ -642,7 +647,7 @@ void RunWindow::keyPressEvent(QKeyEvent *ev)
             }
             else
             {
-                v = vm->GetAllocator().newString(new QString(inputText));
+                v = vm->GetAllocator().newString(inputText);
             }
             if(v == NULL)
             {
@@ -713,10 +718,9 @@ void RunWindow::activateKeyEvent(QKeyEvent *ev, QString evName)
     {
         QVector<Value *> args;
         int k = ev->key();
-        QString *txt = new QString(ev->text());
 
         Value *key = vm->GetAllocator().newInt(k);
-        Value *kchar = vm->GetAllocator().newString(txt);
+        Value *kchar = vm->GetAllocator().newString(ev->text());
         args.append(key);
         args.append(kchar);
 

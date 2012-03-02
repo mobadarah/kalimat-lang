@@ -114,7 +114,7 @@ QGenericArgument wrap(QByteArray typeName_, Value *val, VM *vm)
     }
     if(typeName == "QString")
     {
-        qVal = new QString(*val->unboxStr());
+        qVal = new QString(val->unboxStr());
         return QGenericArgument(typeName.toAscii(), qVal);
     }
     // todo: this is a ^&%^## hack!!!
@@ -160,7 +160,7 @@ Value *unwrap(QGenericReturnArgument ret, VM *vm)
     if(strcmp(ret.name(), "QString") == 0)
     {
         return vm->GetAllocator().newString(
-                    ((QString*)ret.data()));
+                    (*((QString*)ret.data())));
     }
     IClass *cls;
     if(cls = vm->classForQtClass(QString(ret.name())))
@@ -207,7 +207,7 @@ QVariant wrapVariant(QByteArray typeName_, Value *val, VM *vm)
     }
     if(typeName == "QString")
     {
-        return QVariant(*val->unboxStr());
+        return QVariant(val->unboxStr());
     }
 }
 
@@ -244,7 +244,7 @@ Value *unwrapVariant(QVariant ret, VM *vm)
     if(strcmp(ret.typeName(), "QString") == 0)
     {
         return vm->GetAllocator().newString(
-                    (new QString(ret.value<QString>())));
+                    (ret.value<QString>()));
     }
 }
 

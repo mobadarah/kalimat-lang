@@ -108,6 +108,21 @@ public:
     QString toString() { return _value->toString(); }
 };
 
+/*
+  rep(stmt)
+  expr = term:t1 rep(x=t1, "+" term:t2, x=binOp("+", t1,t2)):x
+*/
+class PegRepetion : public PegPrimary
+{
+public:
+    bool hasResult;
+private:
+    shared_ptr<Identifier> _resultVar;
+    shared_ptr<PegExpr> _subExpr;
+    shared_ptr<AssignmentStmt> _stepAssignment;
+public:
+};
+
 class RuleOption : public KalimatAst
 {
     ASTImpl _astImpl;

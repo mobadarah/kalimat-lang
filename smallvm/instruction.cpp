@@ -22,6 +22,7 @@ Instruction::Instruction()
     this->Arg = NULL;
     this->extra = -1;
     this->callStyle = NormalCall;
+    this->SymRefLabel = -1;
 }
 
 Instruction::Instruction(Opcode opcode)
@@ -30,6 +31,7 @@ Instruction::Instruction(Opcode opcode)
     this->extra = -1;
     this->Arg = NULL;
     this->callStyle = NormalCall;
+    this->SymRefLabel = -1;
 }
 
 Instruction &Instruction::wArg(Value *arg)
@@ -89,9 +91,10 @@ Instruction &Instruction::wLabels(QString l1, QString l2)
     return *this;
 }
 
-Instruction &Instruction::wRef(QString ref)
+Instruction &Instruction::wRef(QString ref, Labeller &lblr)
 {
     this->SymRef = ref;
+    this->SymRefLabel = lblr.labelOf(ref);
     return *this;
 }
 

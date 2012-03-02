@@ -75,7 +75,6 @@ union ValueItem
     bool boolVal;
     IObject *objVal;
     void *rawVal;
-    QString *strVal;
     Reference *refVal;
     VArray *arrayVal;
     MultiDimensionalArray<Value *> *multiDimensionalArrayVal;
@@ -90,7 +89,11 @@ struct Value
     IClass *type;
     Tag tag;
     ValueItem v;
-
+    // not in the union because QStrings have a constuctor
+    // and a pointer to QString in the union would mean a lot of
+    // allocation and copying. this adds 4 bytes to *every* value
+    // though
+    QString vstrVal;
     Value();
     ~Value();
     int unboxInt() const;
@@ -102,7 +105,7 @@ struct Value
     MultiDimensionalArray<Value *> *unboxMultiDimensionalArray() const;
     VMap *unboxMap()  const;
     void *unboxRaw()  const;
-    QString *unboxStr() const;
+    QString unboxStr() const;
     Reference *unboxRef() const;
     Channel *unboxChan() const;
     QObject *unboxQObj() const;

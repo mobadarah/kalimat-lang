@@ -30,6 +30,7 @@ struct ParseFrame
     {
         backTrack = false;
         continuationLabel = label;
+        parsePos = -1;
     }
     ParseFrame(int label, int parsePos)
     {

@@ -14,6 +14,7 @@ LA::LA(CharPredicate *p) :Predicate()
 {
     this->predicate = p;
 }
+
 bool LA::operator ()(Buffer &buffer)
 {
     BufferState s = buffer.saveState();
@@ -28,6 +29,7 @@ bool LA::operator ()(Buffer &buffer)
     return false;
 
 }
+
 LAStr::LAStr(QString s) :Predicate()
 {
     this->str = s;
@@ -52,22 +54,27 @@ bool LAStr::operator ()(Buffer &buffer)
     return false;
 
 }
+
 CharEquals::CharEquals(QChar c)
 {
         _c = c;
 }
+
 bool CharEquals::operator ()(QChar c)
 {
         return _c == c;
 }
+
 CharNotEqual::CharNotEqual(QChar c)
 {
         _c = c;
 }
+
 bool CharNotEqual::operator ()(QChar c)
 {
         return _c != c;
 }
+
 bool CharIsLetter::operator ()(QChar c)
 {
     return c.isLetter();
@@ -77,29 +84,36 @@ CharRange::CharRange(QChar c1, QChar c2)
 {
         _c1 = c1, _c2 = c2;;
 }
+
 bool CharRange::operator ()(QChar c)
 {
         return (_c1<= c) && (_c2 >= c);
 }
+
 CharOr::CharOr(CharPredicate *a,CharPredicate *b)
 {
         _a = a; _b = b;
 }
+
 bool CharOr::operator ()(QChar c)
 {
         return (*_a)(c) || (*_b)(c);
 }
+
 AnyChar::AnyChar() : CharPredicate()
 {
 }
+
 bool AnyChar::operator ()(QChar)
 {
     return true;
 }
+
 Else::Else()
 {
 
 }
+
 bool Else::operator ()(Buffer &)
 {
         return true;
@@ -113,10 +127,12 @@ bool LineStart::operator ()(Buffer &b)
 Eof::Eof() : Predicate()
 {
 }
+
 bool Eof::operator ()(Buffer &b)
 {
     return b.eof();
 }
+
 ReSeq::ReSeq(Predicate *p1, Predicate *p2)
 {
     predicateCount = 2;
@@ -124,6 +140,7 @@ ReSeq::ReSeq(Predicate *p1, Predicate *p2)
     predicates[0] = p1;
     predicates[1] = p2;
 }
+
 bool ReSeq::operator ()(Buffer &b)
 {
     BufferState s = b.saveState();

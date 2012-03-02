@@ -9,6 +9,7 @@
 #include "runwindow.h"
 #include "builtinmethods.h"
 #include "guieditwidgethandler.h"
+#include "parserengine.h"
 
 #include <QApplication>
 #include <QDialog>
@@ -304,43 +305,42 @@ Value *ConvertStringToNumber(QString str, VM *vm)
 void ToNumProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 {
 
-    QString *str = popString(stack, w, vm);
-    Value * v = ConvertStringToNumber(*str, vm);
+    QString str = popString(stack, w, vm);
+    Value * v = ConvertStringToNumber(str, vm);
 
     if(v != NULL)
         stack.push(v);
     else
     {
-        vm->signal(ArgumentError, QString::fromStdWString(L"لا يمكن تحويل النص \"%1\" إلى قيمة عددية").arg(*str));
+        vm->signal(ArgumentError, QString::fromStdWString(L"لا يمكن تحويل النص \"%1\" إلى قيمة عددية").arg(str));
     }
-
 }
 
 void ConcatProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 {
-    QString *str1 = popString(stack, w, vm);
-    QString *str2 = popString(stack, w, vm);
+    QString str1 = popString(stack, w, vm);
+    QString str2 = popString(stack, w, vm);
 
 
-    QString *ret = new QString((*str1)+(*str2));
+    QString ret = str1 + str2;
     stack.push(vm->GetAllocator().newString(ret));
 
 }
 
 void StrLenProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 {
-    QString *str = popString(stack, w, vm);
+    QString str = popString(stack, w, vm);
 
-    int ret = str->length();
+    int ret = str.length();
     stack.push(vm->GetAllocator().newInt(ret));
 }
 
 void StrFirstProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 {
     int n = popInt(stack, w, vm);
-    QString *str = popString(stack, w, vm);
+    QString str = popString(stack, w, vm);
 
-    QString *ret = new QString(str->left(n));
+    QString ret = str.left(n);
     stack.push(vm->GetAllocator().newString(ret));
 }
 
@@ -348,15 +348,15 @@ void StrLastProc(QStack<Value *> &stack, RunWindow *w,VM *vm)
 {
     int n = popInt(stack, w, vm);
 
-    QString *str = popString(stack, w, vm);
+    QString str = popString(stack, w, vm);
 
-    QString *ret = new QString(str->right(n));
+    QString ret = str.right(n);
     stack.push(vm->GetAllocator().newString(ret));
 }
 
 void StrMidProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 {
-    QString *str = popString(stack, w, vm);
+    QString str = popString(stack, w, vm);
 
 
     int i = popInt(stack, w, vm);
@@ -365,56 +365,66 @@ void StrMidProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 
     // We make indexing one-based instead of QT's zero-based
     // todo: range checking in StrMidProc()
-    QString *ret = new QString(str->mid(i -1 ,n));
+    QString ret = str.mid(i -1 ,n);
     stack.push(vm->GetAllocator().newString(ret));
 }
 
 void StrBeginsWithProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 {
-    QString *strMain = popString(stack, w, vm);
-    QString *strSub = popString(stack, w, vm);
+    QString strMain = popString(stack, w, vm);
+    QString strSub = popString(stack, w, vm);
 
-    bool ret = strMain->startsWith(*strSub, Qt::CaseSensitive);
+    bool ret = strMain.startsWith(strSub, Qt::CaseSensitive);
     stack.push(vm->GetAllocator().newBool(ret));
 }
 
 void StrEndsWithProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 {
-    QString *strMain = popString(stack, w, vm);
-    QString *strSub = popString(stack, w, vm);
+    QString strMain = popString(stack, w, vm);
+    QString strSub = popString(stack, w, vm);
 
-    bool ret = strMain->endsWith(*strSub, Qt::CaseSensitive);
+    bool ret = strMain.endsWith(strSub, Qt::CaseSensitive);
     stack.push(vm->GetAllocator().newBool(ret));
 }
 
 void StrContainsProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 {
-    QString *strMain = popString(stack, w, vm);
-    QString *strSub = popString(stack, w, vm);
+    QString strMain = popString(stack, w, vm);
+    QString strSub = popString(stack, w, vm);
 
-    bool ret = strMain->contains(*strSub, Qt::CaseSensitive);
+    bool ret = strMain.contains(strSub, Qt::CaseSensitive);
     stack.push(vm->GetAllocator().newBool(ret));
 }
 
 void StrSplitProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 {
-    QString *str = popString(stack, w, vm);
-    QString *separator = popString(stack, w, vm);
+    QString str = popString(stack, w, vm);
+    QString separator = popString(stack, w, vm);
 
-    QStringList result = str->split(*separator, QString::KeepEmptyParts);
+    QStringList result = str.split(separator, QString::KeepEmptyParts);
     Value *ret = vm->GetAllocator().newArray(result.count());
     for(int i=0; i<result.count(); i++)
     {
-        ret->v.arrayVal->Elements[i] = vm->GetAllocator().newString(new QString(result[i]));
+        ret->v.arrayVal->Elements[i] = vm->GetAllocator().newString(result[i]);
     }
     stack.push(ret);
 }
 
 void StrTrimProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 {
-    QString *str = popString(stack, w, vm);
-    QString *str2 = new QString(str->trimmed());
+    QString str = popString(stack, w, vm);
+    QString str2 = str.trimmed();
     Value *ret = vm->GetAllocator().newString(str2);
+    stack.push(ret);
+}
+
+void StrReplaceProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
+{
+    QString str = popString(stack, w, vm);
+    QString str2 = popString(stack, w, vm);
+    QString str3 = popString(stack, w, vm);
+    str = str.replace(str2, str3);
+    Value *ret = vm->GetAllocator().newString(str);
     stack.push(ret);
 }
 
@@ -435,7 +445,7 @@ void ToStringProc(QStack<Value *> &stack, RunWindow *, VM *vm)
         ret = QString("%1").arg(v->unboxDouble());
         break;
     case StringVal:
-        ret = QString(*v->unboxStr());
+        ret = v->unboxStr();
         break;
     case RawVal:
         ret = QString("%1").arg((long)v->unboxRaw());
@@ -446,7 +456,7 @@ void ToStringProc(QStack<Value *> &stack, RunWindow *, VM *vm)
     default:
         break;
     }
-    stack.push(vm->GetAllocator().newString(new QString(ret)));
+    stack.push(vm->GetAllocator().newString(ret));
 }
 
 void RoundProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
@@ -570,6 +580,16 @@ void SqrtProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
     stack.push(vm->GetAllocator().newDouble(result));
 
 }
+
+void PowProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
+{
+    double base = popDoubleOrCoercable(stack, w, vm);
+    double power = popDoubleOrCoercable(stack, w, vm);
+    double result = pow(base, power);
+    stack.push(vm->GetAllocator().newDouble(result));
+
+}
+
 void Log10Proc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 {
     double theta = popDoubleOrCoercable(stack, w, vm);
@@ -589,15 +609,15 @@ void LoadImageProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 {
     verifyStackNotEmpty(stack, vm);
     w->typeCheck(stack.top(), BuiltInTypes::StringType);
-    QString *fname = stack.pop()->unboxStr();
-    *fname = w->ensureCompletePath(*fname);
+    QString fname = stack.pop()->unboxStr();
+    fname = w->ensureCompletePath(fname);
 
-    if(!QFile::exists(*fname))
+    if(!QFile::exists(fname))
     {
-        w->assert(false, ArgumentError, QString::fromStdWString(L"تحميل صورة من ملف غير موجود"));
+        w->assert(false, ArgumentError, QString::fromStdWString(L"%1:تحميل صورة من ملف غير موجود").arg(fname));
     }
     IClass *imgClass = dynamic_cast<IClass *>(vm->GetType(_ws(L"صورة"))->unboxObj());
-    QImage *img = new QImage(*fname);
+    QImage *img = new QImage(fname);
     IObject *obj = imgClass->newValue(&vm->GetAllocator());
     obj->setSlotValue("handle", vm->GetAllocator().newRaw(img, BuiltInTypes::ObjectType));
     stack.push(vm->GetAllocator().newObject(obj, imgClass));
@@ -607,15 +627,29 @@ void LoadSpriteProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 {
     verifyStackNotEmpty(stack, vm);
     w->typeCheck(stack.top(), BuiltInTypes::StringType);
-    QString *fname = stack.pop()->unboxStr();
-    *fname = w->ensureCompletePath(*fname);
+    QString fname = stack.pop()->unboxStr();
+    fname = w->ensureCompletePath(fname);
 
-    if(!QFile::exists(*fname))
+    if(!QFile::exists(fname))
     {
         w->assert(false, ArgumentError, QString::fromStdWString(L"تحميل طيف من ملف غير موجود '%1'")
-                  .arg(*fname));
+                  .arg(fname));
     }
-    Sprite *sprite = new Sprite(*fname);
+    Sprite *sprite = new Sprite(fname);
+    w->spriteLayer.AddSprite(sprite);
+    stack.push(vm->GetAllocator().newRaw(sprite, BuiltInTypes::SpriteType));
+}
+
+void SpriteFromImageProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
+{
+    IClass *imgClass = dynamic_cast<IClass *>(vm->GetType(_ws(L"صورة"))->unboxObj());
+    verifyStackNotEmpty(stack, vm);
+    w->typeCheck(stack.top(), imgClass);
+    IObject *obj = stack.pop()->unboxObj();
+    QImage *handle = reinterpret_cast<QImage*>
+            (obj->getSlotValue("handle")->unboxRaw());
+
+    Sprite *sprite = new Sprite(QPixmap::fromImage(*handle));
     w->spriteLayer.AddSprite(sprite);
     stack.push(vm->GetAllocator().newRaw(sprite, BuiltInTypes::SpriteType));
 }
@@ -832,48 +866,48 @@ void SetTextColorProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 
 void BuiltInConstantProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 {
-    QString *constName = popString(stack, w, vm);
-    if(constName->operator ==(QString::fromStdWString(L"سطر.جديد")))
+    QString constName = popString(stack, w, vm);
+    if(constName == QString::fromStdWString(L"سطر.جديد"))
     {
-        stack.push(vm->GetAllocator().newString(new QString("\n")));
+        stack.push(vm->GetAllocator().newString("\n"));
         return;
     }
-    if((*constName) ==(QString::fromStdWString(L"c_int")))
+    if(constName ==QString::fromStdWString(L"c_int"))
     {
         stack.push(vm->GetAllocator().newObject(BuiltInTypes::c_int, BuiltInTypes::ClassType, false));
         return;
     }
-    if((*constName) ==(QString::fromStdWString(L"c_long")))
+    if(constName == QString::fromStdWString(L"c_long"))
     {
         stack.push(vm->GetAllocator().newObject(BuiltInTypes::c_long, BuiltInTypes::ClassType, false));
         return;
     }
-    if((*constName) ==(QString::fromStdWString(L"c_float")))
+    if(constName == QString::fromStdWString(L"c_float"))
     {
         stack.push(vm->GetAllocator().newObject(BuiltInTypes::c_float, BuiltInTypes::ClassType, false));
         return;
     }
-    if((*constName) ==(QString::fromStdWString(L"c_double")))
+    if(constName == QString::fromStdWString(L"c_double"))
     {
         stack.push(vm->GetAllocator().newObject(BuiltInTypes::c_double, BuiltInTypes::ClassType, false));
         return;
     }
-    if((*constName) ==(QString::fromStdWString(L"c_char")))
+    if(constName== QString::fromStdWString(L"c_char"))
     {
         stack.push(vm->GetAllocator().newObject(BuiltInTypes::c_char, BuiltInTypes::ClassType, false));
         return;
     }
-    if((*constName) ==(QString::fromStdWString(L"c_asciiz")))
+    if(constName == QString::fromStdWString(L"c_asciiz"))
     {
         stack.push(vm->GetAllocator().newObject(BuiltInTypes::c_asciiz, BuiltInTypes::ClassType, false));
         return;
     }
-    if((*constName) ==(QString::fromStdWString(L"c_wstr")))
+    if(constName == QString::fromStdWString(L"c_wstr"))
     {
         stack.push(vm->GetAllocator().newObject(BuiltInTypes::c_wstr, BuiltInTypes::ClassType, false));
         return;
     }
-    if((*constName) ==(QString::fromStdWString(L"c_ptr")))
+    if(constName == QString::fromStdWString(L"c_ptr"))
     {
         stack.push(vm->GetAllocator().newObject(BuiltInTypes::c_ptr, BuiltInTypes::ClassType, false));
         return;
@@ -884,11 +918,11 @@ void BuiltInConstantProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 
 void StringIsNumericProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 {
-    QString *s = popString(stack, w, vm);
+    QString s = popString(stack, w, vm);
     bool yep = true;
-    for(int i=0; i<s->length(); i++)
+    for(int i=0; i<s.length(); i++)
     {
-        QChar c = s->operator [](i);
+        QChar c = s[i];
         if(!c.isDigit())
             yep = false;
     }
@@ -897,11 +931,11 @@ void StringIsNumericProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 
 void StringIsAlphabeticProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 {
-    QString *s = popString(stack, w, vm);
+    QString s = popString(stack, w, vm);
     bool yep = true;
-    for(int i=0; i<s->length(); i++)
+    for(int i=0; i<s.length(); i++)
     {
-        QChar c = s->operator [](i);
+        QChar c = s[i];
         if(!c.isLetter())
             yep = false;
     }
@@ -919,8 +953,8 @@ void TypeOfProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 
 void TypeFromIdProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 {
-    QString *typeId = popString(stack, w, vm);
-    Value *type = vm->GetType(*typeId);
+    QString typeId = popString(stack, w, vm);
+    Value *type = vm->GetType(typeId);
     stack.push(type);
 }
 
@@ -955,6 +989,17 @@ void HasKeyProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
     stack.push(vm->GetAllocator().newBool(result));
 }
 
+void KeysOfProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
+{
+    w->typeCheck(stack.top(), BuiltInTypes::MapType);
+    Value *v = popValue(stack, w, vm);
+
+    VMap *m = v->unboxMap();
+    Value *k = vm->GetAllocator().newArray(m->allKeys.count());
+    for(int i=0; i<m->allKeys.count(); i++)
+        k->unboxArray()->Elements[i] = m->allKeys.at(i);
+    stack.push(k);
+}
 
 struct FileBlob
 {
@@ -984,11 +1029,11 @@ Value *popValue(QStack<Value *> &stack, RunWindow *w, VM *vm)
     return v;
 }
 
-QString *popString(QStack<Value *> &stack, RunWindow *w, VM *vm)
+QString popString(QStack<Value *> &stack, RunWindow *w, VM *vm)
 {
     verifyStackNotEmpty(stack, vm);
     w->typeCheck(stack.top(), BuiltInTypes::StringType);
-    QString *s = stack.pop()->unboxStr();
+    QString s = stack.pop()->unboxStr();
     return s;
 }
 
@@ -1027,14 +1072,14 @@ VArray *popArray(QStack<Value *> &stack, RunWindow *w, VM *vm)
 void DoFileWrite(QStack<Value *> &stack, RunWindow *w, VM *vm, bool newLine)
 {
     FileBlob *f = popFileBlob(stack, w, vm);
-    QString *s = popString(stack, w, vm);
+    QString s = popString(stack, w, vm);
 
     if(f->file == NULL)
         w->assert(false, ArgumentError, QString::fromStdWString(L"لا يمكن الكتابة في ملف مغلق"));
     if(newLine)
-        *(f->stream) << *s << endl;
+        *(f->stream) << s << endl;
     else
-        *(f->stream) << *s;
+        *(f->stream) << s;
 }
 
 void FileWriteProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
@@ -1047,10 +1092,10 @@ void FileWriteUsingWidthProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
     FileBlob *f = popFileBlob(stack, w, vm);
     if(f->file == NULL)
         w->assert(false, ArgumentError, QString::fromStdWString(L"لا يمكن الكتابة في ملف مغلق"));
-    QString *s = popString(stack, w, vm);
+    QString s = popString(stack, w, vm);
     int width = popInt(stack, w, vm);
 
-    QString s2 = w->textLayer.formatStringUsingWidth(*s, width);
+    QString s2 = w->textLayer.formatStringUsingWidth(s, width);
     *(f->stream) << s2;
 }
 
@@ -1065,7 +1110,7 @@ void FileReadLineProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
     FileBlob *f = popFileBlob(stack, w, vm);
     if(f->file == NULL)
         w->assert(false, ArgumentError, QString::fromStdWString(L"لا يمكن القراءة من ملف مغلق"));
-    QString *s = new QString(f->stream->readLine());
+    QString s = f->stream->readLine();
     Value *v = vm->GetAllocator().newString(s);
     stack.push(v);
 }
@@ -1082,10 +1127,10 @@ void FileEofProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 
 void FileOpenProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 {
-    QString *fname = popString(stack, w, vm);
-    *fname = w->ensureCompletePath(*fname);
-    w->assert(QFile::exists(*fname), ArgumentError, QString::fromStdWString(L"محاولة فتح ملف غير موجود"));
-    QFile *f = new QFile(*fname);
+    QString fname = popString(stack, w, vm);
+    fname = w->ensureCompletePath(fname);
+    w->assert(QFile::exists(fname), ArgumentError, QString::fromStdWString(L"محاولة فتح ملف غير موجود:%1").arg(fname));
+    QFile *f = new QFile(fname);
     bool ret = f->open(QIODevice::ReadOnly | QIODevice::Text);
     w->assert(ret, RuntimeError, QString::fromStdWString(L"لم ينجح فتح الملف"));
     QTextStream *stream = new QTextStream(f);
@@ -1099,11 +1144,11 @@ void FileOpenProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 
 void FileCreateProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 {
-    QString *fname = popString(stack, w, vm);
-    *fname = w->ensureCompletePath(*fname);
-    QFile *f = new QFile(*fname);
+    QString fname = popString(stack, w, vm);
+    fname = w->ensureCompletePath(fname);
+    QFile *f = new QFile(fname);
     bool ret = f->open(QIODevice::WriteOnly | QIODevice::Text | QIODevice::Truncate);
-    w->assert(ret, RuntimeError, QString::fromStdWString(L"لم ينجح فتح الملف"));
+    w->assert(ret, RuntimeError, QString::fromStdWString(L"لم ينجح فتح الملف:%1").arg(fname));
     QTextStream *stream = new QTextStream(f);
     FileBlob *blob = new FileBlob();
     blob->file = f;
@@ -1115,11 +1160,11 @@ void FileCreateProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 
 void FileAppendProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 {
-    QString *fname = popString(stack, w, vm);
-    *fname = w->ensureCompletePath(*fname);
-    QFile *f = new QFile(*fname);
+    QString fname = popString(stack, w, vm);
+    fname = w->ensureCompletePath(fname);
+    QFile *f = new QFile(fname);
     bool ret = f->open(QIODevice::WriteOnly | QIODevice::Text | QIODevice::Append);
-    w->assert(ret, ArgumentError, QString::fromStdWString(L"لم ينجح فتح الملف"));
+    w->assert(ret, ArgumentError, QString::fromStdWString(L"لم ينجح فتح الملف:%1").arg(fname));
     Value *v = vm->GetAllocator().newObject(BuiltInTypes::FileType);
     QTextStream *stream = new QTextStream(f);
     FileBlob *blob = new FileBlob();
@@ -1168,11 +1213,11 @@ void NewChannelProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 
 void LoadLibraryProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 {
-    QString *libName = popString(stack, w, vm);
+    QString libName = popString(stack, w, vm);
     // todo: will this leak?
-    QLibrary *lib = new QLibrary(*libName);
+    QLibrary *lib = new QLibrary(libName);
     if(!lib->load())
-        vm->signal(InternalError1, QString("Failed to load library '%1'").arg(*libName));
+        vm->signal(InternalError1, QString("Failed to load library '%1'").arg(libName));
 
     Value *ret = vm->GetAllocator().newRaw(lib, BuiltInTypes::ExternalLibrary);
     stack.push(ret);
@@ -1181,15 +1226,15 @@ void LoadLibraryProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 void GetProcAddressProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 {
     void *libRaw = popRaw(stack, w, vm, BuiltInTypes::ExternalLibrary);
-    QString *funcName = popString(stack, w, vm);
+    QString funcName = popString(stack, w, vm);
     // todo: invalid casts here will crash the VM
     QLibrary *lib = (QLibrary *) libRaw;
     // todo: all those conversion might be slow
-    void * func = lib->resolve(funcName->toStdString().c_str());
+    void * func = lib->resolve(funcName.toStdString().c_str());
     if(func == NULL)
     {
         vm->signal(InternalError1, QString("Cannot find function in called '%1' in external library %2")
-                   .arg(*funcName).arg(lib->fileName()));
+                   .arg(funcName).arg(lib->fileName()));
     }
     Value *ret = vm->GetAllocator().newRaw(func, BuiltInTypes::ExternalMethodType);
     stack.push(ret);
@@ -1244,13 +1289,30 @@ void CurrentParseTreeProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 
 void MakeParserProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 {
-    QString *datum = popString(stack, w, vm);
+    QString datum = popString(stack, w, vm);
     IClass *parserClass = dynamic_cast<IClass *>(vm->GetType(_ws(L"معرب"))->unboxObj());
     IObject *parser = parserClass->newValue(&vm->GetAllocator());
     parser->setSlotValue(_ws(L"موقع"), vm->GetAllocator().newInt(0));
     parser->setSlotValue(_ws(L"بيان"), vm->GetAllocator().newString(
-                             new QString(*datum)));
+                             datum));
     stack.push(vm->GetAllocator().newObject(parser, parserClass));
+}
+
+void PushParserBacktrackPointProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
+{
+    IObject *receiver = popValue(stack, w, vm)->unboxObj();
+    int arg1 = popInt(stack, w, vm);
+    ParserObj *parser = dynamic_cast<ParserObj *>(receiver);
+    parser->stack.push(ParseFrame(arg1, parser->pos));
+}
+
+void IgnoreParserBacktrackPointProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
+{
+    IObject *receiver = popValue(stack, w, vm)->unboxObj();
+    ParserObj *parser = dynamic_cast<ParserObj *>(receiver);
+    ParseFrame f = parser->stack.pop();
+    if(!f.backTrack)
+        w->assert(false, InternalError1, _ws(L"تجاهل آخر مسار بديل: قمة المكدس (%1) ليست نقطة تراجع").arg(f.continuationLabel));
 }
 
 void setupChildren(QGridLayout *layout,Value *v, Reference *ref, QString label, int row, VM *vm)

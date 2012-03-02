@@ -138,7 +138,7 @@ Value *ParserClass::dispatch(int id, QVector<Value *>args)
     IObject *receiver = args[0]->unboxObj();
     ParserObj *parser = dynamic_cast<ParserObj *>(receiver);
     ParseFrame f;
-    QString str, str2, *pstr;
+    QString str, str2;
     int n;
     int i;
     IObject *res;
@@ -179,7 +179,7 @@ Value *ParserClass::dispatch(int id, QVector<Value *>args)
         if(parser->stack.empty())
         {
             //rw->assert(false, InternalError1, _ws(L"الجأ لبديل: قمة المكدس فارغة بعد حذف اي علامات عادية"));
-            return allocator->newString(new QString(_ws(L"خطأ.في.الإعراب")));
+            return allocator->newString(_ws(L"خطأ.في.الإعراب"));
         }
         f = parser->stack.pop();
         parser->pos = f.parsePos;
@@ -195,27 +195,25 @@ Value *ParserClass::dispatch(int id, QVector<Value *>args)
         return NULL;
 
     case 6:    // انظر
-        pstr = parser->data->unboxStr();
-        return allocator->newString(new QString(pstr->mid(parser->pos, 1)));
+        str = parser->data->unboxStr();
+        return allocator->newString(str.mid(parser->pos, 1));
     case 7:    // انظر.عديد
         rw->typeCheck(parser->data, BuiltInTypes::StringType);
         rw->typeCheck(args[1], BuiltInTypes::IntType);
-        return allocator->newString(new QString(
-                                        parser->data->unboxStr()->mid(parser->pos, args[1]->unboxInt())));
-
+        return allocator->newString(parser->data->unboxStr().mid(parser->pos, args[1]->unboxInt()));
     case 8:    // يطل.على
         //rw->typeCheck(parser->data, BuiltInTypes::StringType);
         //rw->typeCheck(args[1], BuiltInTypes::StringType);
-        pstr = parser->data->unboxStr();
-        if(parser->pos >= pstr->length())
+        str = parser->data->unboxStr();
+        if(parser->pos >= str.length())
             return allocator->newBool(false);
-        return allocator->newBool(pstr->at(parser->pos) == args[1]->unboxStr()->at(0));
+        return allocator->newBool(str.at(parser->pos) == args[1]->unboxStr().at(0));
 
     case 9:     // يطل.على.عديد
         rw->typeCheck(parser->data, BuiltInTypes::StringType);
         rw->typeCheck(args[1], BuiltInTypes::StringType);
-        str = *parser->data->unboxStr();
-        str2 = *args[1]->unboxStr();
+        str = parser->data->unboxStr();
+        str2 = args[1]->unboxStr();
         if(parser->pos + str2.length() > str.length())
             return allocator->newBool(false);
         return allocator->newBool(str.mid(parser->pos,str2.length()) == str2);
@@ -224,9 +222,6 @@ Value *ParserClass::dispatch(int id, QVector<Value *>args)
         //rw->typeCheck(args[1], BuiltInTypes::IntType);
         //rw->typeCheck(args[2], BuiltInTypes::IntType);
         parser->stack.push(ParseFrame(args[2]->unboxInt()));
-        i = args[1]->unboxInt();
-        if(i==48)
-            i=0;
         return args[1];
     case 11:    // عد
         return allocator->newInt(parser->stack.pop().continuationLabel);
@@ -251,7 +246,7 @@ Value *ParserClass::dispatch(int id, QVector<Value *>args)
         return parser->valueStack->unboxArray()->Elements[parser->valueStackTop];
 
     case 14:     // منته
-        str = *parser->data->unboxStr();
+        str = parser->data->unboxStr();
         if(parser->pos >= str.length())
             return allocator->newBool(false);
         else
@@ -298,6 +293,6 @@ Value *ParserClass::dispatch(int id, QVector<Value *>args)
         }
         strList.append(QString("Total=%1").arg(n));
         QString s = strList.join("  /  ");
-        return allocator->newString(new QString(s));
+        return allocator->newString(s);
     }
 }
