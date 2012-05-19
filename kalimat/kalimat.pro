@@ -3,7 +3,7 @@
 # -------------------------------------------------
 TARGET = kalimat
 TEMPLATE = app
-QMAKE_CXXFLAGS += -std=gnu++0x
+QMAKE_CXXFLAGS += -fpermissive
 
 SOURCES += main.cpp \
     mainwindow.cpp \
@@ -63,7 +63,10 @@ SOURCES += main.cpp \
     Parser/KalimatAst/kalimatast.cpp \
     Parser/parserexception.cpp \
     linenumberarea.cpp \
-    ../smallvm/runtime/parserengine.cpp
+    ../smallvm/runtime/parserengine.cpp \
+    AutoComplete/completioninfo.cpp \
+    AutoComplete/completioninfoloading.cpp \
+    settingsdlg.cpp
 HEADERS += mainwindow.h \
     Lexer/token.h \
     Lexer/statemachine.h \
@@ -110,11 +113,15 @@ HEADERS += mainwindow.h \
     Parser/KalimatParserError.h \
     Parser/parserexception.h \
     linenumberarea.h \
-    ../smallvm/runtime/parserengine.h
+    ../smallvm/runtime/parserengine.h \
+    AutoComplete/completioninfo.h \
+    AutoComplete/completioninfoloading.h \
+    settingsdlg.h
 
 FORMS += mainwindow.ui \
     savechangedfiles.ui \
-    ../smallvm/runtime/runwindow.ui
+    ../smallvm/runtime/runwindow.ui \
+    settingsdlg.ui
 
 # QT += testlib
 # CONFIG += qtestlib
@@ -123,12 +130,19 @@ RESOURCES += keywords.qrc \
     icons.qrc \
     ../smallvm/messages.qrc
 OTHER_FILES += 
-# QMAKE_CXXFLAGS += -std=c++0x
+QMAKE_CXXFLAGS += -std=gnu++0x
 RC_FILE = kalimat.rc
 
 win32:LIBS += -L"$$_PRO_FILE_PWD_/../smallvm/libffi/" -llibffi
 
 unix:LIBS += -lffi
+
+
+
+
+
+
+
 
 
 

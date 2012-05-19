@@ -43,6 +43,7 @@ ValueClass *BuiltInTypes::ArrayRefType = new ValueClass("ArrayReference", BuiltI
 ValueClass *BuiltInTypes::NullType = new ValueClass(QSTR(L"لاشيء"), BuiltInTypes::ObjectType);
 ValueClass *BuiltInTypes::ChannelType = new ValueClass(QSTR(L"قناة"), BuiltInTypes::ObjectType);
 ValueClass *BuiltInTypes::QObjectType = new ValueClass(QSTR(L"QObject"), BuiltInTypes::ObjectType);
+IClass *BuiltInTypes::ActivationFrameType = new FrameClass(QSTR(L"إطار.تفعيل"));
 
 ValueClass *BuiltInTypes::c_int = new ValueClass(QSTR(L"صحيح32.سي"), BuiltInTypes::ObjectType);
 ValueClass *BuiltInTypes::c_long = new ValueClass(QSTR(L"طويل.سي"), BuiltInTypes::ObjectType);

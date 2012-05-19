@@ -25,6 +25,15 @@ class PaintSurface
     QFont textFont;
     QColor textColor;
 public:
+    // We have a specia 'demo coordinates' mode in Kalimat
+    // to teach children about the x/y coordinate system
+    // by drawing the axes and showing mouse position if this
+    // mode was activated
+
+    bool showCoordinates;
+    QPoint mouseLocationForDemo;
+
+public:
     PaintSurface(QSize size, QFont font);
     void paint(QPainter &painter, TextLayer &textLayer, SpriteLayer &spriteLayer);
     void TX(int &);

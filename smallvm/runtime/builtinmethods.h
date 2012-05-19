@@ -119,6 +119,7 @@ void CurrentParseTreeProc(QStack<Value *> &stack, RunWindow *w, VM *vm);
 void MakeParserProc(QStack<Value *> &stack, RunWindow *w, VM *vm);
 void PushParserBacktrackPointProc(QStack<Value *> &stack, RunWindow *w, VM *vm);
 void IgnoreParserBacktrackPointProc(QStack<Value *> &stack, RunWindow *w, VM *vm);
+void ActivationFrameProc(QStack<Value *> &stack, RunWindow *w, VM *vm);
 
 double verifyNumeric(Value *v, RunWindow *w); // TODO: make this a method of RunWindow
 int popIntOrCoercable(QStack<Value *> &stack, RunWindow *w, VM *vm);

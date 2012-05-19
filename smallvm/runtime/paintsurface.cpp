@@ -21,11 +21,37 @@ PaintSurface::PaintSurface(QSize size, QFont font)
 void PaintSurface::paint(QPainter &painter, TextLayer &textLayer, SpriteLayer &spriteLayer)
 {
     QPainter imgPainter(&finalImg);
-
     imgPainter.drawImage(QPoint(0,0), image);
     drawTextLayer(imgPainter, textLayer);
     drawSpriteLayer(imgPainter, spriteLayer);
 
+    const int shiftDist = 15;
+    if(showCoordinates)
+    {
+        int x1 =shiftDist, y1 =shiftDist,
+                x2 = this->image.width() - shiftDist, y2 = shiftDist;
+        TX(x1);
+        TX(x2);
+        imgPainter.setPen(QColor::fromRgb(255,0,0));
+        imgPainter.drawLine(x1, y1, x2, y2);
+        imgPainter.drawLine(x2, y2, x2+5, y2-5);
+        imgPainter.drawLine(x2, y2, x2+5, y2+5);
+
+        x2 = shiftDist;
+        TX(x2);
+        y2 = this->image.height() - shiftDist;
+        imgPainter.drawLine(x1, y1, x2, y2);
+        imgPainter.drawLine(x2, y2, x2-5, y2-5);
+        imgPainter.drawLine(x2, y2, x2+5, y2-5);
+
+        QString loc = QString("(%1, %2)").arg(mouseLocationForDemo.x())
+                .arg(mouseLocationForDemo.y());
+        int locX = 230;
+        int locY = 20 + shiftDist;
+        TX(locX);
+        imgPainter.drawText(locX, locY, loc);
+
+    }
     painter.drawImage(QPoint(0, 0), finalImg);
 }
 

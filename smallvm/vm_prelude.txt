@@ -448,3 +448,13 @@ ret
 ignore_bk_pt
 ret
 .endmethod
+
+.method إطار.التفعيل 1 1
+callex activation_frame
+ret
+.endmethod
+
+.method نقطة.الكود.هذه 0 1
+call thiscp
+ret
+.endmethod

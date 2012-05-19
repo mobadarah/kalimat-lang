@@ -110,6 +110,7 @@ public:
     void onCollision(Sprite *s1, Sprite *s2);
     void cls();
     void clearAllText();
+    void setMouseDemoMode(bool enable);
 private:
     int timerID;
 public:

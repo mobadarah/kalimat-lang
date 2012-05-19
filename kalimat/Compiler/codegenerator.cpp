@@ -887,15 +887,15 @@ void CodeGenerator::generateRulesDeclaration(shared_ptr<RulesDecl> decl)
     shared_ptr<FunctionDecl> func(
             new FunctionDecl(decl->getPos(), decl->getPos(),
                              decl->name(), formals, body, true));
-    //QFile f("pargen_debug.txt");
-    //f.open(QFile::Text | QFile::WriteOnly | QFile::Truncate);
-    //QTextStream out(&f);
-    //out.setCodec("UTF-8");
-    //out.setGenerateByteOrderMark(true);
-    //SimpleCodeFormatter fmt;
-    //func->prettyPrint(&fmt);
-    //out << fmt.getOutput();
-    //f.close();
+    QFile f("pargen_debug.txt");
+    f.open(QFile::Text | QFile::WriteOnly | QFile::Truncate);
+    QTextStream out(&f);
+    out.setCodec("UTF-8");
+    out.setGenerateByteOrderMark(true);
+    SimpleCodeFormatter fmt;
+    func->prettyPrint(&fmt);
+    out << fmt.getOutput();
+    f.close();
     pushProcedureScope(func);
     generateFunctionDeclaration(func);
     popProcedureScope();
@@ -1085,6 +1085,52 @@ QVector<shared_ptr<Statement> > CodeGenerator::pegExprToStatements(
         {
             thenStmts.append(assignmentOf(pos1,
                                        lit->associatedVar(),
+                                          lookAheadCall));
+        }
+        thenStmts.append(fromInvokation(progressCall));
+        elseStmts.append(gotoOf(pos0, methodOf(idOf(pos0,_ws(L"%المعرب")),
+                                        _ws(L"الجأ.لبديل"))));
+        shared_ptr<BlockStmt> thenPart(new BlockStmt(pos0, thenStmts));
+        shared_ptr<BlockStmt> elsePart(new BlockStmt(pos0, elseStmts));
+        shared_ptr<IfStmt> ifStmt = ifOf(pos0,
+                    conditionCall,
+                    thenPart,
+                    elsePart);
+        result.append(ifStmt);
+    }
+    if(isa<PegCharRange>(expr))
+    {
+
+        // if %parser: lookAtRange(lit)
+        //    associatedVar = %parser: look()
+        //    %parser: progress()
+        // else
+        //     %parser : backtrack()
+        // end
+        shared_ptr<PegCharRange> range = dynamic_pointer_cast<PegCharRange>(expr);
+        Token pos0 = range->getPos();
+        QVector<shared_ptr<Statement> > thenStmts;
+        QVector<shared_ptr<Statement> > elseStmts;
+        Token pos1; // of associated variable
+        if(range->associatedVar())
+        {
+            pos1 = range->associatedVar()->getPos();
+        }
+        shared_ptr<MethodInvokation> lookAheadCall, conditionCall, progressCall;
+
+
+            lookAheadCall = (
+                        methodOf(idOf(pos1, _ws(L"%المعرب")),
+                                 _ws(L"انظر")));
+            progressCall = methodOf(idOf(pos0,_ws(L"%المعرب")),
+                                    _ws(L"تقدم"));
+            conditionCall = methodOf(idOf(pos0, _ws(L"%المعرب")),
+                                     _ws(L"يطل.على.نطاق"),range->value1(), range->value2());
+
+        if(range->associatedVar())
+        {
+            thenStmts.append(assignmentOf(pos1,
+                                       range->associatedVar(),
                                           lookAheadCall));
         }
         thenStmts.append(fromInvokation(progressCall));

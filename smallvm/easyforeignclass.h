@@ -9,6 +9,9 @@
 
 class EasyForeignClass;
 
+#define _method(a, b, c) methodIds[_ws(a)] = b; \
+    methodArities[_ws(a)] = c + 1;
+
 class ForeignMethodProxy : public IForeignMethod
 {
     EasyForeignClass *owner;

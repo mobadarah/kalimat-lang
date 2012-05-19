@@ -1,9 +1,6 @@
 #include "parserengine.h"
 #include "../utils.h"
 
-#define _method(a, b, c) methodIds[_ws(a)] = b; \
-    methodArities[_ws(a)] = c + 1;
-
 ParseResultClass *ParseResultClass::type = new ParseResultClass("ParseResult");
 
 void ParserObj::setSlotValue(QString name, Value *val)
@@ -41,6 +38,28 @@ Value *ParserObj::getSlotValue(QString name)
 
     }
     return Object::getSlotValue(name);
+}
+
+bool ParserObj::hasInfiniteRecursion(int label)
+{
+    // We traverse the stack, top to bottom,
+    // if we meet a frame that is the same label (i.e same rule)
+    // while the input pos hasn't moved
+    // then it's infinite recursion!!
+    // todo: imp: we haven't dealt yet with backtrack points!
+    return false;
+    int n = stack.count() -1;
+    while(n>=0)
+    {
+        const ParseFrame &f = stack.at(n--);
+        if(f.backTrack)
+            continue;
+        if(f.parsePos != this->pos)
+            return false;
+        if(f.continuationLabel == label)
+            return true;
+    }
+    return false;
 }
 
 ParseResultClass::ParseResultClass(QString name)
@@ -115,6 +134,8 @@ ParserClass::ParserClass(QString name, RunWindow *rw)
             18, 2);
     _method(L"كم.نوديت",
             19, 0);
+    _method(L"يطل.على.نطاق",
+            20, 2);
 }
 
 IObject *ParserClass::newValue(Allocator *allocator)
@@ -148,12 +169,14 @@ Value *ParserClass::dispatch(int id, QVector<Value *>args)
         callCount[id] = 0;
     callCount[id]++;
     QStringList strList;
+    QChar c, c1, c2;
+    bool bv;
     switch(id)
     {
 
     case 0: // ادفع.مسار.بديل
         //rw->typeCheck(args[1], BuiltInTypes::IntType);
-        parser->stack.push(ParseFrame(args[1]->unboxInt(), parser->pos));
+        parser->stack.push(ParseFrame(args[1]->unboxInt(), parser->pos, true));
         return NULL;
 
     case 1: // اذهب.مسار.بديل
@@ -221,8 +244,23 @@ Value *ParserClass::dispatch(int id, QVector<Value *>args)
     case 10:     // تفرع
         //rw->typeCheck(args[1], BuiltInTypes::IntType);
         //rw->typeCheck(args[2], BuiltInTypes::IntType);
-        parser->stack.push(ParseFrame(args[2]->unboxInt()));
-        return args[1];
+        if(parser->hasInfiniteRecursion(args[2]->unboxInt()))
+        {
+            {
+                Value *arg0 = args[0];
+                args.clear();
+                args.append(arg0);
+            }
+            // backtrack
+            return dispatch(3, args);
+        }
+        else
+        {
+            parser->stack.push(ParseFrame(args[2]->unboxInt(),
+                                          parser->pos,
+                                          false));
+            return args[1];
+        }
     case 11:    // عد
         return allocator->newInt(parser->stack.pop().continuationLabel);
 
@@ -292,7 +330,25 @@ Value *ParserClass::dispatch(int id, QVector<Value *>args)
             n+= callCount[i];
         }
         strList.append(QString("Total=%1").arg(n));
-        QString s = strList.join("  /  ");
-        return allocator->newString(s);
+        str = strList.join("  /  ");
+        return allocator->newString(str);
+    case 20: // يطل.على.نطاق
+        //rw->typeCheck(parser->data, BuiltInTypes::StringType);
+        //rw->typeCheck(args[1], BuiltInTypes::StringType);
+        str = parser->data->unboxStr();
+        if(parser->pos >= str.length())
+            return allocator->newBool(false);
+
+        c = str.at(parser->pos);
+        c1 = args[1]->unboxStr().at(0);
+        c2 = args[2]->unboxStr().at(0);
+        bv = c >=c1 && c <=c2;
+        return allocator->newBool(bv);
+
+    default:
+        //todo: better error reporting
+        //todo: handle default in all internal dispatch functions
+        throw VMError(NoSuchMethod2).arg(
+                    QString("%1").arg(id).arg("ParserEngine"));
     }
 }

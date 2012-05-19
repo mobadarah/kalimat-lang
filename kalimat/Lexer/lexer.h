@@ -27,6 +27,7 @@ protected:
     Buffer buffer;
     virtual Token accept(TokenType);
 };
+
 class UnexpectedEndOfFileException
 {
 public:

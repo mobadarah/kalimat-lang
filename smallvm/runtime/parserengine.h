@@ -25,16 +25,10 @@ struct ParseFrame
     bool backTrack;
     int continuationLabel;
     int parsePos;
-    ParseFrame() {}
-    ParseFrame(int label)
+    ParseFrame() { continuationLabel = -1; parsePos = -1; }
+    ParseFrame(int label, int parsePos, bool backTrack)
     {
-        backTrack = false;
-        continuationLabel = label;
-        parsePos = -1;
-    }
-    ParseFrame(int label, int parsePos)
-    {
-        backTrack = true;
+        this->backTrack = backTrack;
         this->parsePos = parsePos;
         continuationLabel = label;
     }
@@ -74,6 +68,7 @@ struct ParserObj : public Object
     ParserObj() { valueStackTop = 0;}
     virtual Value *getSlotValue(QString name);
     virtual void setSlotValue(QString name, Value *val);
+    bool hasInfiniteRecursion(int label);
 };
 
 class ParserClass : public EasyForeignClass

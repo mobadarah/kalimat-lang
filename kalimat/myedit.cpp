@@ -94,6 +94,24 @@ void MyEdit::paintEvent(QPaintEvent *e)
     updateLineNumberArea(lineTracker.lineCount());
 }
 
+bool MyEdit::eventFilter(QObject *sender, QEvent *event)
+{
+    // Let the scroll area pos of the text edit
+    // ignore the scroll wheel event if the user is pressing CTRL
+    // in order to pass the event to the MainWindow and thus
+    // let us resize font
+    if(sender != this && event->type() == QEvent::Wheel)
+    {
+        QWheelEvent *ev = (QWheelEvent *) event;
+        if(ev->modifiers() & Qt::ControlModifier)
+        {
+            ev->ignore();
+            return true;
+        }
+    }
+    return QTextEdit::eventFilter(sender, event);
+}
+
 void MyEdit::highlightCurrentLine()
 {
     //QList<QTextEdit::ExtraSelection> extraSelections;

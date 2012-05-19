@@ -24,6 +24,8 @@ public:
     virtual QWidget *CreateEditorWidget() = 0;
 };
 
+typedef void (*DocProc)(CodeDocument *, QWidget *, void *);
+
 class DocumentContainer : public QObject, public RecentFileHandler
 {
     Q_OBJECT
@@ -68,6 +70,8 @@ public:
     CodeDocument *getDocumentFromPath(QString path, bool addIfNeeded);
     int documentCount() { return widgetDocs.count(); }
     void onFileTouched(QString fileName, CodeDocument *doc);
+    void forAll(DocProc, void *);
+    void forAll(DocProc);
 private slots:
     void recentfile_triggered();
 };

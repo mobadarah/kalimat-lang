@@ -2073,7 +2073,7 @@ void VM::DoPushParserBacktrack()
     IObject *receiver = currentFrame()->OperandStack.pop()->unboxObj();
     int arg1 = currentFrame()->OperandStack.pop()->unboxInt();
     ParserObj *parser = dynamic_cast<ParserObj *>(receiver);
-    parser->stack.push(ParseFrame(arg1, parser->pos));
+    parser->stack.push(ParseFrame(arg1, parser->pos, true));
 }
 
 void VM::DoIgnoreParserBacktrack()

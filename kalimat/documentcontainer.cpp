@@ -394,3 +394,16 @@ QString DocumentContainer::OpenExistingFiles(const QStringList& fileNames)
     return dir;
 }
 
+void DocumentContainer::forAll(DocProc proc, void *val)
+{
+    for(QMap<QWidget *, CodeDocument *>::const_iterator i=
+        widgetDocs.begin(); i !=widgetDocs.end(); ++i)
+    {
+        proc(i.value(), i.key(), val);
+    }
+}
+
+void DocumentContainer::forAll(DocProc proc)
+{
+    forAll(proc, NULL);
+}

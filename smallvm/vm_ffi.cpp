@@ -14,7 +14,7 @@ static void offsets(void *data, unsigned n, ffi_type **types, QVector<void *> &o
   {
     unsigned short a = ofs % types[i]->alignment;
     if (a != 0) ofs += types[i]->alignment-a;
-    offsets.append(data+ofs);
+    offsets.append((char *) data+ofs);
     ofs += types[i]->size;
   }
 }

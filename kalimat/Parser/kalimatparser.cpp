@@ -12,6 +12,8 @@
 
 #include "../mainwindow.h" // temp todo: remove
 
+#define _ws(str) QString::fromStdWString(str)
+
 KalimatParser::KalimatParser() : Parser(TokenNameFromId)
 {
 }
@@ -1597,7 +1599,7 @@ shared_ptr<PegExpr> KalimatParser::pegExpr()
 
 bool KalimatParser::LA_first_primary_peg_expression()
 {
-    return LA(IDENTIFIER) || LA(STR_LITERAL);
+    return LA(IDENTIFIER) || LA(STR_LITERAL) || LA(FROM);
 }
 
 shared_ptr<PegExpr> KalimatParser::primaryPegExpression()
@@ -1626,6 +1628,31 @@ shared_ptr<PegExpr> KalimatParser::primaryPegExpression()
         }
         return shared_ptr<PegExpr>(
                    new PegLiteral(lit->getPos(), varName, lit));
+    }
+    else if(LA(FROM))
+    {
+        shared_ptr<Identifier> varName;
+        match(FROM);
+        if(!LA(STR_LITERAL))
+            throw ParserException(fileName, getPos(), _ws(L"Expected a character"));
+        shared_ptr<StrLiteral> lit1 = dynamic_pointer_cast<StrLiteral>(simpleLiteral());
+        if(lit1->value.length() != 1)
+            throw ParserException(fileName, lit1->getPos(), _ws(L"Expected a single character"));
+        match(TO);
+        if(!LA(STR_LITERAL))
+            throw ParserException(fileName, getPos(), _ws(L"Expected a character"));
+        shared_ptr<StrLiteral> lit2 = dynamic_pointer_cast<StrLiteral>(simpleLiteral());
+        if(lit2->value.length() != 1)
+            throw ParserException(fileName, lit2->getPos(), _ws(L"Expected a single character"));
+
+        if(LA(COLON))
+        {
+            match(COLON);
+            varName = identifier();
+        }
+
+        return shared_ptr<PegExpr>(
+                   new PegCharRange(lit1->getPos(), varName, lit1, lit2));
     }
 }
 

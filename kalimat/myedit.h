@@ -52,6 +52,7 @@ public:
     void eraseFromBeginOfLine(LineInfo li, int toErase);
     void deindentLine(int line, int by);
     void updateLineNumberAreaFont();
+    bool eventFilter(QObject *sender, QEvent *event);
 private:
     QWidget *lineNumberArea;
 protected:

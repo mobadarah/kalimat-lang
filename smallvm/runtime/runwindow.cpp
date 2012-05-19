@@ -22,7 +22,7 @@
 //#include <iostream>
 #include <QFileInfo>
 #include <QDir>
-#include <QtConcurrentRun>
+//#include <QtConcurrentRun>
 using namespace std;
 
 QMap<QString, QString> RunWindow::qtMethodTranslations;
@@ -46,6 +46,7 @@ RunWindow::RunWindow(QString pathOfProgramsFile, VMClient *client) :
 void RunWindow::setup(QString pathOfProgramsFile, VMClient *client)
 {
     ui->setupUi(this);
+
     this->pathOfProgramsFile = pathOfProgramsFile;
 
     this->setFixedSize(800, 600);
@@ -56,6 +57,9 @@ void RunWindow::setup(QString pathOfProgramsFile, VMClient *client)
     vm = NULL;
     textLayer.clearText();
     this->client = client;
+    centralWidget()->setAttribute(Qt::WA_TransparentForMouseEvents);
+
+    setMouseTracking(true);
 }
 
 void RunWindow::closeEvent(QCloseEvent *ev)
@@ -207,6 +211,7 @@ void RunWindow::Init(QString program, QMap<QString, QString> stringConstants, QS
         vm->Register("make_parser", new WindowProxyMethod(this, vm, MakeParserProc));
         vm->Register("push_bk_pt", new WindowProxyMethod(this, vm, PushParserBacktrackPointProc));
         vm->Register("ignore_bk_pt", new WindowProxyMethod(this, vm, IgnoreParserBacktrackPointProc));
+        vm->Register("activation_frame", new WindowProxyMethod(this, vm, ActivationFrameProc));
 
         for(int i=0; i<stringConstants.keys().count(); i++)
         {
@@ -266,7 +271,8 @@ void RunWindow::Init(QString program, QMap<QString, QString> stringConstants, QS
         vm->RegisterType(_ws(L"صورة"), new ImageForeignClass(_ws(L"صورة"), this));
         vm->RegisterType(_ws(L"معرب"), new ParserClass(_ws(L"معرب"), this));
         vm->RegisterType(_ws(L"ParseResult"), new ParserClass(_ws(L"ParseResult"), this));
-
+        vm->RegisterType(_ws(L"إطار.تفعيل"), BuiltInTypes::ActivationFrameType);
+        ((FrameClass *) BuiltInTypes::ActivationFrameType)->allocator = &vm->GetAllocator();
 
         InitVMPrelude(vm);
         RegisterQtTypes(vm);
@@ -574,6 +580,11 @@ void RunWindow::mouseReleaseEvent(QMouseEvent *ev)
 
 void RunWindow::mouseMoveEvent(QMouseEvent *ev)
 {
+    if(paintSurface->showCoordinates)
+    {
+        paintSurface->mouseLocationForDemo = ev->pos();
+        redrawWindow();
+    }
     activateMouseEvent(ev, "mousemove");
 }
 
@@ -778,6 +789,12 @@ void RunWindow::clearAllText()
 {
     textLayer.clearText();
     redrawWindow();
+}
+
+void RunWindow::setMouseDemoMode(bool enable)
+{
+    paintSurface->showCoordinates = enable;
+    update();
 }
 
 QString RunWindow::translate_error(VMError err)

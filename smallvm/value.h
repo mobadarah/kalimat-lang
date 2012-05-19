@@ -149,6 +149,7 @@ public:
     static ValueClass *NullType;
     static ValueClass *ChannelType;
     static ValueClass *QObjectType;
+    static IClass *ActivationFrameType;
 
     // For FFI
     static ValueClass *c_int;

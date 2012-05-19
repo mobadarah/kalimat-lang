@@ -60,6 +60,8 @@ public:
     static MainWindow *that;
     QLabel *lblEditorCurrentLine, *lblEditorCurrentColumn;
     bool helpWindowVisible;
+    bool isDemoMode;
+    int editorFontSize;
     MainWindow(QWidget *parent = 0);
     ~MainWindow();
 
@@ -90,6 +92,9 @@ public:
     DocumentContainer *docContainer;
     QMap<int, CodePosition> PositionInfo;
     QStack<QString> pathsOfModuleClients; // must always be absolute paths
+
+    int getEditorFontSize();
+    void setEditorFontSize(int);
 private:
     QActionGroup *speedGroup;
     Ui::MainWindow *ui;
@@ -163,10 +168,14 @@ private slots:
     void on_editor_linkClicked(MyEdit *source, QString href);
     void on_actionParse_with_recovery_triggered();
 
+    void on_action_options_triggered();
+
 protected:
      void dropEvent(QDropEvent *de);
      void dragMoveEvent(QDragMoveEvent *de);
      void dragEnterEvent(QDragEnterEvent *event);
+
+     void wheelEvent(QWheelEvent *);
 };
 
 #endif // MAINWINDOW_H

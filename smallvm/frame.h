@@ -16,9 +16,23 @@
     #include "method.h"
 #endif
 
+#ifndef EASYFOREIGNCLASS_H
+    #include "easyforeignclass.h"
+#endif
+
 #include <QStack>
 #include <QMap>
-struct Frame
+
+struct FrameClass : public EasyForeignClass
+{
+    Allocator *allocator;
+
+    FrameClass(QString className);
+    virtual Value *dispatch(int id, QVector<Value *>args);
+    virtual IObject *newValue(Allocator *allocator);
+};
+
+struct Frame : public IObject
 {
     Frame *caller;
     Method *currentMethod;
@@ -31,5 +45,12 @@ struct Frame
 
     QStack<Value *> OperandStack;
     QMap<QString, Value *> Locals;
+
+    // IObject
+    virtual bool hasSlot(QString name);
+    virtual QList<QString> getSlotNames();
+    virtual Value *getSlotValue(QString name);
+    virtual void setSlotValue(QString name, Value *val);
+    virtual QString toString();
 };
 #endif // FRAME_H

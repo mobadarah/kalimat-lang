@@ -23,7 +23,7 @@
 #include "savechangedfiles.h"
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
-
+#include "settingsdlg.h"
 #include <QMessageBox>
 #include <QFileDialog>
 #include <QInputDialog>
@@ -36,11 +36,14 @@
 #include <QTextEdit>
 #include <QProcess>
 #include <QTextStream>
+#include <QWheelEvent>
+#include <QScrollBar>
+
 MainWindow *MainWindow::that = NULL;
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent),
-    ui(new Ui::MainWindow)
+      ui(new Ui::MainWindow)
 {
     MainWindow::that = this;
 
@@ -48,6 +51,8 @@ MainWindow::MainWindow(QWidget *parent)
     helpSplitter = NULL;
 
     ui->setupUi(this);
+
+    this->editorFontSize = 18;
 
     QToolBar *notice = new QToolBar("");
     notice->addAction(QString::fromStdWString(L"هذه هي النسخة الأولية لشهر مارس 2012. حمل أحدث نسخة من www.kalimat-lang.com"));
@@ -89,6 +94,7 @@ MainWindow::MainWindow(QWidget *parent)
     lastCodeDocToRun = NULL;
 
     setAcceptDrops(true);
+
     ui->editorTabs->setAcceptDrops(true);
     ui->txtSearchString->installEventFilter(this);
     ui->txtReplacementString->installEventFilter(this);
@@ -177,7 +183,7 @@ QWidget *MainWindow::CreateEditorWidget()
     syn = new SyntaxHighlighter(edit->document(), new KalimatLexer());
     edit->textCursor().setVisualNavigation(true);
     QFont font = edit->font();
-    font.setPointSize(18);
+    font.setPointSize(this->editorFontSize);
 
     edit->setFont(font);
     edit->updateLineNumberAreaFont();
@@ -185,6 +191,8 @@ QWidget *MainWindow::CreateEditorWidget()
     // event on the initial display of the text editor, causing the document
     // to be initially 'dirty'.
     edit->setPlainText("");
+    edit->viewport()->installEventFilter(edit);
+
     return edit;
 }
 
@@ -207,13 +215,13 @@ void MainWindow::on_actionLexize_triggered()
         ui->outputView->clear();
         for(int i=0; i<tokens.size(); i++)
         {
-           Token  t = tokens[i];
-           QString lexeme = t.Lexeme;
+            Token  t = tokens[i];
+            QString lexeme = t.Lexeme;
 
-           lexeme = lexeme.replace("\n", "\\n");
-           QString msg = QString("%1/type=%2, line=%3\n").arg(t.Lexeme).arg(TokenNameFromId(t.Type)).arg(t.Line);
+            lexeme = lexeme.replace("\n", "\\n");
+            QString msg = QString("%1/type=%2, line=%3\n").arg(t.Lexeme).arg(TokenNameFromId(t.Type)).arg(t.Line);
 
-           ui->outputView->append(msg);
+            ui->outputView->append(msg);
         }
     }
     catch(UnexpectedCharException ex)
@@ -410,12 +418,12 @@ void MainWindow::saveAll()
 
 void MainWindow::on_mnuProgramRun_triggered()
 {
-    top:
+top:
     CodeDocument *doc = NULL;
     if((currentDebuggerProcess != NULL) && atBreak)
     {
         QMessageBox box(QMessageBox::Information, QString::fromStdWString(L"لا يمكن التنفيذ"),
-                              QString::fromStdWString(L"لا يمكن تنفيذ برنامج جديد بينما نحن في نقطة توقف للبرنامج الحالي"));
+                        QString::fromStdWString(L"لا يمكن تنفيذ برنامج جديد بينما نحن في نقطة توقف للبرنامج الحالي"));
         box.exec();
         return;
     }
@@ -453,6 +461,7 @@ void MainWindow::on_mnuProgramRun_triggered()
         debugInfo = compiler.generator.debugInfo;
 
         RunWindow *rw = new RunWindow(this, path, this);
+        rw->paintSurface->showCoordinates = isDemoMode;
 
         connect(this, SIGNAL(destroyed(QObject*)), rw, SLOT(parentDestroyed(QObject *)));
 
@@ -539,25 +548,25 @@ void MainWindow::on_mnuProgramRun_triggered()
                 }
             }
         }
-       show_error(ex.getMessage());
-       // show_error(QString(L"خطأ في تركيب البرنامج"));
-       if(doc != NULL)
-       {
-           CodeDocument *dc = NULL;
+        show_error(ex.getMessage());
+        // show_error(QString(L"خطأ في تركيب البرنامج"));
+        if(doc != NULL)
+        {
+            CodeDocument *dc = NULL;
 
-           if(ex.source && ex.source->getPos().tag != NULL)
-           {
-               dc = (CodeDocument *) ex.source->getPos().tag;
-           }
-           else
-           {
-               dc = docContainer->getDocumentFromPath(ex.fileName, true);
-           }
-           if(ex.source && dc)
-           {
+            if(ex.source && ex.source->getPos().tag != NULL)
+            {
+                dc = (CodeDocument *) ex.source->getPos().tag;
+            }
+            else
+            {
+                dc = docContainer->getDocumentFromPath(ex.fileName, true);
+            }
+            if(ex.source && dc)
+            {
                 highlightLine(dc->getEditor(), ex.source->getPos().Pos);
-           }
-       }
+            }
+        }
     }
     catch(VMError err)
     {
@@ -567,7 +576,7 @@ void MainWindow::on_mnuProgramRun_triggered()
 
 void MainWindow::highlightLine(QTextEdit *editor, int pos)
 {
-   highlightLine(editor, pos, QColor(Qt::yellow));
+    highlightLine(editor, pos, QColor(Qt::yellow));
 }
 
 void MainWindow::highlightLine(QTextEdit *editor, int pos, QColor color)
@@ -674,12 +683,12 @@ void MainWindow::visualizeCallStack(QStack<Frame> &callStack, QGraphicsView *vie
                 val = val.mid(0, 9) + "-";
 
             QString out = QString("%1  =  %2").arg(var)
-                          .arg(val);
+                    .arg(val);
             frepr +=out;
             if(j<f.Locals.count()-1)
                 frepr += "\n";
         }
-    
+
         QGraphicsTextItem *txt = scene->addText(frepr, ui->graphicsView->font());
 
         QGraphicsRectItem *rct = scene->addRect(txt->boundingRect(), QPen(Qt::black), QBrush(Qt::NoBrush));
@@ -781,7 +790,7 @@ void MainWindow::on_action_open_triggered()
 
 void MainWindow::on_action_save_triggered()
 {
-   docContainer->handleSave();
+    docContainer->handleSave();
 }
 
 void MainWindow::on_action_saveas_triggered()
@@ -1072,7 +1081,7 @@ void MainWindow::on_action_autoFormat_triggered()
         {
             parser.init(program, &lxr, NULL);
             shared_ptr<AST> tree = parser.parse();
-                tree->prettyPrint(&fmt);
+            tree->prettyPrint(&fmt);
             editor->setText(fmt.getOutput());
         }
         catch(UnexpectedCharException ex)
@@ -1364,12 +1373,12 @@ void MainWindow::on_actionMake_exe_triggered()
         QString pascalProgram = QString(" {$APPTYPE GUI} {$LONGSTRINGS ON} \n\
                                         program RunSmallVM;\n\
                 uses FileUtil;\n\
-        procedure RunSmallVMCodeBase64(A:PUnicodeChar;B:PChar);stdcall ;external 'smallvm.dll';\n\
-        procedure SmallVMAddStringConstant(A:PChar; B:PChar); stdcall; external 'smallvm.dll';\n\
-                                        begin\n\
+                procedure RunSmallVMCodeBase64(A:PUnicodeChar;B:PChar);stdcall ;external 'smallvm.dll';\n\
+                procedure SmallVMAddStringConstant(A:PChar; B:PChar); stdcall; external 'smallvm.dll';\n\
+                begin\n\
                 %1\n%2\n\
                 RunSmallVMCodeBase64(PUnicodeChar(SysToUtf8(ParamStr(0))),%3);\n\
-                            end.")
+                end.")
                 .arg(strConstants.join(";\n"))
                 .arg(strConstants.count() >0? ";\n":"")
                 .arg(segments.join("+"));
@@ -1428,13 +1437,13 @@ void MainWindow::on_actionMake_exe_triggered()
         if(!success)
         {
             QMessageBox box(QMessageBox::Information, QString::fromStdWString(L"عمل ملف تنفيذي"),
-                                  QString::fromStdWString(L"خطأ في عمل الملف التنفيذي<i>%1</i>").arg(problem));
+                            QString::fromStdWString(L"خطأ في عمل الملف التنفيذي<i>%1</i>").arg(problem));
             box.exec();
         }
         else
         {
             QMessageBox box(QMessageBox::Information, QString::fromStdWString(L"عمل ملف تنفيذي"),
-                                  QString::fromStdWString(L"تم عمل الملف التنفيذي. لكي يعمل برنامجك يجب أن تضع معه الملفات الموجودة في الفهرس المسمى dll المتفرع من مجلد كلمات على جهازك"));
+                            QString::fromStdWString(L"تم عمل الملف التنفيذي. لكي يعمل برنامجك يجب أن تضع معه الملفات الموجودة في الفهرس المسمى dll المتفرع من مجلد كلمات على جهازك"));
             box.exec();
         }
     }
@@ -1470,17 +1479,17 @@ void MainWindow::on_actionMake_exe_triggered()
     }
     catch(CompilerException ex)
     {
-       show_error(ex.getMessage());
-       // show_error(QString(L"خطأ في تركيب البرنامج"));
-       if(doc != NULL)
-       {
-           CodeDocument *dc = doc;
-           if(ex.source->getPos().tag != NULL)
-           {
-               dc = (CodeDocument *) ex.source->getPos().tag;
-           }
-           highlightLine(dc->getEditor(), ex.source->getPos().Pos);
-       }
+        show_error(ex.getMessage());
+        // show_error(QString(L"خطأ في تركيب البرنامج"));
+        if(doc != NULL)
+        {
+            CodeDocument *dc = doc;
+            if(ex.source->getPos().tag != NULL)
+            {
+                dc = (CodeDocument *) ex.source->getPos().tag;
+            }
+            highlightLine(dc->getEditor(), ex.source->getPos().Pos);
+        }
     }
 
 }
@@ -1488,13 +1497,13 @@ void MainWindow::on_actionMake_exe_triggered()
 void MainWindow::makeDrag()
 {
     QDrag *dr = new QDrag(this);
-     // The data to be transferred by the drag and drop operation is contained in a QMimeData object
-     QMimeData *data = new QMimeData;
-     data->setText("This is a test");
-     // Assign ownership of the QMimeData object to the QDrag object.
-     dr->setMimeData(data);
-     // Start the drag and drop operation
-     dr->start();
+    // The data to be transferred by the drag and drop operation is contained in a QMimeData object
+    QMimeData *data = new QMimeData;
+    data->setText("This is a test");
+    // Assign ownership of the QMimeData object to the QDrag object.
+    dr->setMimeData(data);
+    // Start the drag and drop operation
+    dr->start();
 }
 
 void MainWindow::dragMoveEvent(QDragMoveEvent *de)
@@ -1522,10 +1531,29 @@ void MainWindow::dropEvent(QDropEvent *event)
 void MainWindow::dragEnterEvent(QDragEnterEvent *event)
 {
     // Set the drop action to be the proposed action.
-     if (event->mimeData()->hasUrls())
+    if (event->mimeData()->hasUrls())
         event->acceptProposedAction();
-     else
-         qDebug("Error: Only Files can be dragged to this window");
+    else
+        qDebug("Error: Only Files can be dragged to this window");
+}
+
+void MainWindow::wheelEvent(QWheelEvent *ev)
+{
+    if(ev->modifiers() & Qt::ControlModifier)
+    {
+        float numDegrees = ev->delta() / 8;
+        float numSteps = numDegrees / 15;
+
+        editorFontSize += numSteps*1.5;
+
+        if(editorFontSize < 5)
+            editorFontSize = 5;
+        else if(editorFontSize > 40)
+            editorFontSize = 40;
+
+        setEditorFontSize(editorFontSize);
+        ev->accept();
+    }
 }
 
 void MainWindow::on_editor_linkClicked(MyEdit *source, QString href)
@@ -1567,8 +1595,11 @@ void MainWindow::on_editor_linkClicked(MyEdit *source, QString href)
 
 bool MainWindow::eventFilter(QObject *sender, QEvent *event)
 {
-    if (event->type() == QEvent::KeyPress) {
 
+    // this filter applies to the find/replace
+    // text boxes
+    if (event->type() == QEvent::KeyPress)
+    {
         QKeyEvent *keyEvent = static_cast<QKeyEvent *>(event);
         qDebug("Filter - key pressed !! %d", keyEvent->key());
         if (keyEvent->key() == Qt::Key_Enter || keyEvent->key() == Qt::Key_Return)
@@ -1588,4 +1619,39 @@ bool MainWindow::eventFilter(QObject *sender, QEvent *event)
             return false;
     }
     return false;
+}
+
+void MainWindow::on_action_options_triggered()
+{
+    SettingsDlg s(this);
+    s.init(getEditorFontSize(), isDemoMode);
+    if(s.exec() == QDialog::Accepted)
+    {
+        int fontSize;
+        s.getResult(fontSize, isDemoMode);
+        setEditorFontSize(fontSize);
+    }
+}
+
+int MainWindow::getEditorFontSize()
+{
+    return editorFontSize;
+}
+
+void setAllEditsProc(CodeDocument *, QWidget *edit, void *newFontSize)
+{
+    int nfs = *((int *) newFontSize);
+    QTextEdit *ed = dynamic_cast<QTextEdit *>(edit);
+    if(ed)
+    {
+        QFont f = ed->font();
+        f.setPointSize(nfs);
+        ed->setFont(f);
+    }
+}
+
+void MainWindow::setEditorFontSize(int size)
+{
+    editorFontSize = size;
+    docContainer->forAll(setAllEditsProc, &size);
 }

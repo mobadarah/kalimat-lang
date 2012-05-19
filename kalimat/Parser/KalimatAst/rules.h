@@ -108,6 +108,32 @@ public:
     QString toString() { return _value->toString(); }
 };
 
+class PegCharRange : public PegPrimary
+{
+    shared_ptr<StrLiteral> _value1;
+    shared_ptr<StrLiteral> _value2;
+public:
+    PegCharRange(Token pos,
+                      shared_ptr<Identifier> associatedVar,
+                      shared_ptr<StrLiteral> _value1,
+                      shared_ptr<StrLiteral> _value2)
+        : PegPrimary(pos, associatedVar),
+          _value1(_value1), _value2(_value2)
+    {
+
+    }
+    ~PegCharRange() {}
+    shared_ptr<StrLiteral> value1() { return _value1;}
+    shared_ptr<StrLiteral> value2() { return _value2;}
+    void prettyPrint(CodeFormatter *);
+    QString toString()
+    {
+        return QString::fromStdWString(
+                    L"(من %1 إلى %2)").arg(_value1->toString())
+                .arg(_value2->toString());
+    }
+};
+
 /*
   rep(stmt)
   expr = term:t1 rep(x=t1, "+" term:t2, x=binOp("+", t1,t2)):x

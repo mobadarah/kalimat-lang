@@ -2190,6 +2190,21 @@ void PegLiteral::prettyPrint(CodeFormatter *f)
     }
 }
 
+void PegCharRange::prettyPrint(CodeFormatter *f)
+{
+    f->printKw(L"من");
+    this->value1()->prettyPrint(f);
+    f->space();
+    f->printKw(L"إلى");
+    this->value2()->prettyPrint(f);
+    f->space();
+    if(this->associatedVar())
+    {
+        f->print(":");
+        this->associatedVar()->prettyPrint(f);
+    }
+}
+
 void Has::prettyPrint(CodeFormatter *f)
 {
     f->printKw(L"له");

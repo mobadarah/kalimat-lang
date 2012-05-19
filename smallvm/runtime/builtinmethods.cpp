@@ -33,7 +33,7 @@
 #include <algorithm>
 #include <QPushButton>
 #include <QVariant>
-#include <QtConcurrentRun>
+//#include <QtConcurrentRun>
 #include <QMessageBox>
 #include <iostream>
 #include "../smallvm/vm_ffi.h"
@@ -1303,17 +1303,43 @@ void PushParserBacktrackPointProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
     IObject *receiver = popValue(stack, w, vm)->unboxObj();
     int arg1 = popInt(stack, w, vm);
     ParserObj *parser = dynamic_cast<ParserObj *>(receiver);
-    parser->stack.push(ParseFrame(arg1, parser->pos));
+    parser->stack.push(ParseFrame(arg1, parser->pos, true));
 }
 
 void IgnoreParserBacktrackPointProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 {
+
     IObject *receiver = popValue(stack, w, vm)->unboxObj();
     ParserObj *parser = dynamic_cast<ParserObj *>(receiver);
     ParseFrame f = parser->stack.pop();
     if(!f.backTrack)
         w->assert(false, InternalError1, _ws(L"تجاهل آخر مسار بديل: قمة المكدس (%1) ليست نقطة تراجع").arg(f.continuationLabel));
 }
+
+void ActivationFrameProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
+{
+
+    int n = popIntOrCoercable(stack, w, vm);
+    QStack<Frame> &s = vm->currentProcess()->stack;
+    n++; // skip the frame of this very function, 'activation_frame'
+    n = (s.count() - n)-1;
+    if(n>= 0 && n < s.count())
+    {
+        const Frame &f = s.at(n);
+        // todo: not garbage collected?
+        // we need not only a GCMonitor flag
+        // but "heap objec owns real object" flag
+        // for deletion upon destruction
+        stack.push(vm->GetAllocator().newObject((Frame *) &f, BuiltInTypes::ActivationFrameType, false));
+    }
+    else
+    {
+        throw VMError(InternalError1).arg("Bad frame number");
+    }
+}
+
+
+
 
 void setupChildren(QGridLayout *layout,Value *v, Reference *ref, QString label, int row, VM *vm)
 {
