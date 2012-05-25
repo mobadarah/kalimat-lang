@@ -57,6 +57,8 @@ class MainWindow : public QMainWindow, public DocumentClient, public VMClient
     Q_OBJECT
 
 public:
+    QString settingsOrganizationName;
+    QString settingsApplicationName;
     static MainWindow *that;
     QLabel *lblEditorCurrentLine, *lblEditorCurrentColumn;
     bool helpWindowVisible;
@@ -169,6 +171,8 @@ private slots:
     void on_actionParse_with_recovery_triggered();
 
     void on_action_options_triggered();
+
+    void on_action_about_kalimat_triggered();
 
 protected:
      void dropEvent(QDropEvent *de);

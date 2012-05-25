@@ -13,4 +13,7 @@
         <file>icons/stepParamsIcon.png</file>
         <file>icons/stepCallIcon.png</file>
     </qresource>
+    <qresource prefix="/logo">
+        <file>logo.PNG</file>
+    </qresource>
 </RCC>

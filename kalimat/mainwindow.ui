@@ -224,7 +224,6 @@
     <addaction name="separator"/>
     <addaction name="action_walkthroughs"/>
     <addaction name="action_report_bug"/>
-    <addaction name="action_contact_us"/>
     <addaction name="separator"/>
     <addaction name="action_about_kalimat"/>
    </widget>

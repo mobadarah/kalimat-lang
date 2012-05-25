@@ -499,7 +499,7 @@ shared_ptr<Statement> KalimatParser::forEachStmt()
     }
     else
     {
-        theStep = shared_ptr<Expression>(new NumLiteral(forAllTok,
+        theStep = shared_ptr<Expression>(new NumLiteral(to->getPos(),
                                             downTo?-1:1));
     }
     match(COLON);
@@ -763,6 +763,7 @@ shared_ptr<Statement> KalimatParser::grfxStatement()
         return zoomStmt();
     throw ParserException(fileName, getPos(), ExpectedDrawingStatement);
 }
+
 shared_ptr<Statement> KalimatParser::drawPixelStmt()
 {
     shared_ptr<Expression> x, y;

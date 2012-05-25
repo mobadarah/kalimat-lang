@@ -66,7 +66,8 @@ SOURCES += main.cpp \
     ../smallvm/runtime/parserengine.cpp \
     AutoComplete/completioninfo.cpp \
     AutoComplete/completioninfoloading.cpp \
-    settingsdlg.cpp
+    settingsdlg.cpp \
+    aboutdlg.cpp
 HEADERS += mainwindow.h \
     Lexer/token.h \
     Lexer/statemachine.h \
@@ -116,12 +117,14 @@ HEADERS += mainwindow.h \
     ../smallvm/runtime/parserengine.h \
     AutoComplete/completioninfo.h \
     AutoComplete/completioninfoloading.h \
-    settingsdlg.h
+    settingsdlg.h \
+    aboutdlg.h
 
 FORMS += mainwindow.ui \
     savechangedfiles.ui \
     ../smallvm/runtime/runwindow.ui \
-    settingsdlg.ui
+    settingsdlg.ui \
+    aboutdlg.ui
 
 # QT += testlib
 # CONFIG += qtestlib

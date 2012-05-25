@@ -24,6 +24,7 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 #include "settingsdlg.h"
+#include "aboutdlg.h"
 #include <QMessageBox>
 #include <QFileDialog>
 #include <QInputDialog>
@@ -52,7 +53,11 @@ MainWindow::MainWindow(QWidget *parent)
 
     ui->setupUi(this);
 
-    this->editorFontSize = 18;
+    settingsOrganizationName = "mohamedsamy";
+    settingsApplicationName = "kalimat 1.0";
+
+    QSettings settings(settingsOrganizationName, settingsApplicationName, this);
+    this->editorFontSize = settings.value("editor_font_size", 18).toInt();
 
     QToolBar *notice = new QToolBar("");
     notice->addAction(QString::fromStdWString(L"هذه هي النسخة الأولية لشهر مارس 2012. حمل أحدث نسخة من www.kalimat-lang.com"));
@@ -70,8 +75,8 @@ MainWindow::MainWindow(QWidget *parent)
     ui->statusBar->addWidget(lblEditorCurrentColumn, 0.3);
     lblEditorCurrentLine->show();
     ui->dockSearchReplace->hide();
-    docContainer = new DocumentContainer("mohamedsamy",
-                                         "kalimat 1.0",
+    docContainer = new DocumentContainer(settingsOrganizationName,
+                                         settingsApplicationName,
                                          tr("Kalimat code (*.k *.* *)"),
                                          ui->editorTabs,
                                          this,
@@ -1082,7 +1087,17 @@ void MainWindow::on_action_autoFormat_triggered()
             parser.init(program, &lxr, NULL);
             shared_ptr<AST> tree = parser.parse();
             tree->prettyPrint(&fmt);
-            editor->setText(fmt.getOutput());
+            QString code = fmt.getOutput();
+            // Remove some spurious spaces
+            // todo: fix the pretty printing itself
+            // instead of this
+            QString ac1 = QString::fromStdWString(L" ،");
+            QString ac2 = QString::fromStdWString(L"،");
+            code = code.replace(" ,", ",")
+                    .replace(ac1, ac2)
+                    .replace(" (", "(")
+                    .replace(" )", ")");
+            editor->setText(code);
         }
         catch(UnexpectedCharException ex)
         {
@@ -1629,6 +1644,9 @@ void MainWindow::on_action_options_triggered()
     {
         int fontSize;
         s.getResult(fontSize, isDemoMode);
+        QSettings settings(settingsOrganizationName, settingsApplicationName, this);
+        settings.setValue("editor_font_size", fontSize);
+
         setEditorFontSize(fontSize);
     }
 }
@@ -1654,4 +1672,10 @@ void MainWindow::setEditorFontSize(int size)
 {
     editorFontSize = size;
     docContainer->forAll(setAllEditsProc, &size);
+}
+
+void MainWindow::on_action_about_kalimat_triggered()
+{
+    AboutDlg dlg(this);
+    dlg.exec();
 }
