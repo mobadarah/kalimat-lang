@@ -78,18 +78,23 @@ public:
     shared_ptr<Identifier> _variable;
     shared_ptr<Expression> _from;
     shared_ptr<Expression> _to;
+    shared_ptr<Expression> _step;
     shared_ptr<Statement> _statement;
+    bool downTo;
 
 public:
     ForAllStmt(Token pos,
                shared_ptr<Identifier> variable,
                shared_ptr<Expression> from,
                shared_ptr<Expression> to,
-               shared_ptr<Statement>  statement);
+               shared_ptr<Expression> step,
+               shared_ptr<Statement>  statement,
+               bool downTo);
     ~ForAllStmt();
     shared_ptr<Identifier> variable() { return _variable; }
     shared_ptr<Expression> from() { return _from; }
     shared_ptr<Expression> to() { return _to; }
+    shared_ptr<Expression> step() { return _step; }
     shared_ptr<Statement> statement() { return _statement;}
     QString toString();
     void prettyPrint(CodeFormatter *f);

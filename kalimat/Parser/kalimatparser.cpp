@@ -476,14 +476,32 @@ shared_ptr<Statement> KalimatParser::ifStmt()
 shared_ptr<Statement> KalimatParser::forEachStmt()
 {
     bool multiLineStmt = false;
+    bool downTo = false;
     shared_ptr<Statement> theStmt;
+    shared_ptr<Expression> theStep;
     Token forAllTok = lookAhead;
     match(FORALL);
     shared_ptr<Identifier> id = identifier();
     match(FROM);
     shared_ptr<Expression> from = expression();
+    if(LA(DOWNTO))
+    {
+        match(DOWNTO);
+        downTo = true;
+    }
     match(TO);
     shared_ptr<Expression> to = expression();
+
+    if(LA(STEP))
+    {
+        match(STEP);
+        theStep = expression();
+    }
+    else
+    {
+        theStep = shared_ptr<Expression>(new NumLiteral(forAllTok,
+                                            downTo?-1:1));
+    }
     match(COLON);
     if(LA(NEWLINE))
     {
@@ -499,7 +517,13 @@ shared_ptr<Statement> KalimatParser::forEachStmt()
         theStmt = statement();
     }
     match(CONTINUE);
-    return shared_ptr<Statement>(new ForAllStmt(forAllTok, id, from, to, theStmt));
+    return shared_ptr<Statement>(new ForAllStmt(forAllTok,
+                                                id,
+                                                from,
+                                                to,
+                                                theStep,
+                                                theStmt,
+                                                downTo));
 }
 
 shared_ptr<Statement> KalimatParser::whileStmt()

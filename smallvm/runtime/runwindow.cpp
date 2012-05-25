@@ -582,7 +582,11 @@ void RunWindow::mouseMoveEvent(QMouseEvent *ev)
 {
     if(paintSurface->showCoordinates)
     {
-        paintSurface->mouseLocationForDemo = ev->pos();
+        int x = ev->pos().x(), y = ev->pos().y();
+        paintSurface->TX(x);
+
+        paintSurface->mouseLocationForDemo = QPoint(x,y);
+
         redrawWindow();
     }
     activateMouseEvent(ev, "mousemove");

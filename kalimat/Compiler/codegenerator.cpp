@@ -1719,7 +1719,7 @@ void CodeGenerator::generateWhileStmt(shared_ptr<WhileStmt> stmt)
 void CodeGenerator::generateForAllStmt(shared_ptr<ForAllStmt> stmt)
 {
     /*
-      forall(var, from, to)
+      forall(var, from, to, step)
           stmt
 
       from
@@ -1732,7 +1732,7 @@ void CodeGenerator::generateForAllStmt(shared_ptr<ForAllStmt> stmt)
       label1:
       stmt
       pushl var
-      pushv 1
+      <step>
       add
       popl var
       jmp label0
@@ -1748,7 +1748,10 @@ void CodeGenerator::generateForAllStmt(shared_ptr<ForAllStmt> stmt)
     gen(stmt, testLabel+":");
     gen(stmt->variable(), "pushl "+ stmt->variable()->name);
     generateExpression(stmt->to());
-    gen(stmt, "gt");
+    if(stmt->downTo)
+        gen(stmt, "lt");
+    else
+        gen(stmt, "gt");
     gen(stmt, "if "+endLabel+","+doLabel);
     gen(stmt, doLabel+":");
 
@@ -1756,7 +1759,7 @@ void CodeGenerator::generateForAllStmt(shared_ptr<ForAllStmt> stmt)
 
     generateStatement(stmt->statement());
     gen(stmt, "pushl "+ stmt->variable()->name);
-    gen(stmt, "pushv 1");
+    generateExpression(stmt->step());
     gen(stmt, "add");
     gen(stmt, "popl "+ stmt->variable()->name);
     gen(stmt, "jmp "+testLabel);

@@ -165,12 +165,15 @@ ForAllStmt::ForAllStmt(Token pos,
                        shared_ptr<Identifier> variable,
                        shared_ptr<Expression> from,
                        shared_ptr<Expression> to,
-                       shared_ptr<Statement>  statement)
+                       shared_ptr<Expression> step,
+                       shared_ptr<Statement> statement, bool downTo)
     :Statement(pos),
     _variable(variable),
     _from(from),
     _to(to),
-    _statement(statement)
+    _step(step),
+    _statement(statement),
+    downTo(downTo)
 {
 }
 

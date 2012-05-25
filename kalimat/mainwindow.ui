@@ -145,6 +145,9 @@
    <property name="layoutDirection">
     <enum>Qt::RightToLeft</enum>
    </property>
+   <property name="locale">
+    <locale language="Arabic" country="Egypt"/>
+   </property>
    <widget class="QMenu" name="mnuFile">
     <property name="title">
      <string>ملف</string>
