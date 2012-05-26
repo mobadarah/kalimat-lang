@@ -8,16 +8,18 @@ SettingsDlg::SettingsDlg(QWidget *parent) :
     ui->setupUi(this);
 }
 
-void SettingsDlg::init(int editorFontSize, bool isDemoMode)
+void SettingsDlg::init(int editorFontSize, bool isDemoMode, int codeModelUpdateInterval)
 {
     ui->chkShowXYInRunWindow->setChecked(isDemoMode);
     ui->spnEditorFontSize->setValue(editorFontSize);
+    ui->spnUpdateCodeModel->setValue(codeModelUpdateInterval);
 }
 
-void SettingsDlg::getResult(int &fontSize, bool &isDemoMode)
+void SettingsDlg::getResult(int &fontSize, bool &isDemoMode, int &codeModelUpdateInterval)
 {
     fontSize = ui->spnEditorFontSize->value();
     isDemoMode = ui->chkShowXYInRunWindow->isChecked();
+    codeModelUpdateInterval = ui->spnUpdateCodeModel->value();
 }
 
 SettingsDlg::~SettingsDlg()

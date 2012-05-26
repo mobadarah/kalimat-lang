@@ -74,6 +74,8 @@ public:
     bool functionNavigationComboIsUpdating;
     CompilationUnitInfo functionNavigationInfo;
     void setFunctionNavigationComboSelection(QTextEdit *editor);
+    int codeModelUpdateInterval;
+    int codeModelUpdateTimerId;
 
 
     MainWindow(QWidget *parent = 0);

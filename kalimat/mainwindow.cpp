@@ -58,6 +58,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     QSettings settings(settingsOrganizationName, settingsApplicationName, this);
     this->editorFontSize = settings.value("editor_font_size", 18).toInt();
+    this->codeModelUpdateInterval = settings.value("codemodel_update_interval", 3000).toInt();
 
     QToolBar *notice = new QToolBar("");
     notice->addAction(QString::fromStdWString(L"هذه هي النسخة الأولية لشهر مايو 2012. حمل أحدث نسخة من www.kalimat-lang.com"));
@@ -110,7 +111,8 @@ MainWindow::MainWindow(QWidget *parent)
     ui->functionNavigationToolbar->hide();
     ui->functionNavigationToolbar->addWidget(functionNavigationCombo);
     connect(functionNavigationCombo, SIGNAL(currentIndexChanged(int)), SLOT(on_functionNavigationCombo_currentIndexChanged(int)));
-    startTimer(3000);
+
+    codeModelUpdateTimerId = startTimer(codeModelUpdateInterval);
 }
 
 void MainWindow::outputMsg(QString s)
@@ -1708,15 +1710,17 @@ bool MainWindow::eventFilter(QObject *sender, QEvent *event)
 void MainWindow::on_action_options_triggered()
 {
     SettingsDlg s(this);
-    s.init(getEditorFontSize(), isDemoMode);
+    s.init(getEditorFontSize(), isDemoMode, codeModelUpdateInterval);
     if(s.exec() == QDialog::Accepted)
     {
         int fontSize;
-        s.getResult(fontSize, isDemoMode);
+        s.getResult(fontSize, isDemoMode, codeModelUpdateInterval);
         QSettings settings(settingsOrganizationName, settingsApplicationName, this);
         settings.setValue("editor_font_size", fontSize);
-
+        settings.setValue("codemodel_update_interval", codeModelUpdateInterval);
         setEditorFontSize(fontSize);
+        killTimer(codeModelUpdateTimerId);
+        codeModelUpdateTimerId = startTimer(codeModelUpdateInterval);
     }
 }
 

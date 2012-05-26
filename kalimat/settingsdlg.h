@@ -13,8 +13,8 @@ class SettingsDlg : public QDialog
 
 public:
     explicit SettingsDlg(QWidget *parent = 0);
-    void init(int editorFontSize, bool isDemoMode);
-    void getResult(int &fontSize, bool &isDemoMode);
+    void init(int editorFontSize, bool isDemoMode, int codeModelUpdateInterval);
+    void getResult(int &fontSize, bool &isDemoMode, int &codeModelUpdateInterval);
     ~SettingsDlg();
 
 private:
