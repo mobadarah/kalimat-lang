@@ -564,7 +564,7 @@ void MyEdit::textChangedEvent()
     lineTracker.setText(this->document()->toPlainText());
     lineTracker.lineColumnOfPos(this->textCursor().position(), _line, _column);
     updateLineNumberArea(lineTracker.lineCount());
-    owner->setLineIndicators(_line, _column);
+    owner->setLineIndicators(_line, _column, this);
 }
 
 void MyEdit::mousePressEvent(QMouseEvent *e)
@@ -615,7 +615,7 @@ void MyEdit::selectionChangedEvent()
 {
     lineTracker.lineColumnOfPos(this->textCursor().position(), _line, _column);
     updateLineNumberArea(lineTracker.lineCount());
-    owner->setLineIndicators(_line, _column);
+    owner->setLineIndicators(_line, _column, this);
 }
 
 LineInfo MyEdit::currentLine()

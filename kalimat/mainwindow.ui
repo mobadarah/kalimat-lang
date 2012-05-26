@@ -238,6 +238,7 @@
     <addaction name="actionEvaluate"/>
     <addaction name="actionGo_to_position"/>
     <addaction name="actionParse_with_recovery"/>
+    <addaction name="actionUpdate_code_model"/>
    </widget>
    <widget class="QMenu" name="menu">
     <property name="title">
@@ -439,6 +440,17 @@
      </property>
     </widget>
    </widget>
+  </widget>
+  <widget class="QToolBar" name="functionNavigationToolbar">
+   <property name="windowTitle">
+    <string>toolBar</string>
+   </property>
+   <attribute name="toolBarArea">
+    <enum>TopToolBarArea</enum>
+   </attribute>
+   <attribute name="toolBarBreak">
+    <bool>true</bool>
+   </attribute>
   </widget>
   <action name="actionLexize">
    <property name="text">
@@ -879,6 +891,11 @@
   <action name="actionParse_with_recovery">
    <property name="text">
     <string>Parse with recovery</string>
+   </property>
+  </action>
+  <action name="actionUpdate_code_model">
+   <property name="text">
+    <string>Update code model</string>
    </property>
   </action>
  </widget>

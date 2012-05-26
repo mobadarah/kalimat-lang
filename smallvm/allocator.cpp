@@ -350,6 +350,12 @@ void Allocator::mark()
                 }
             }
         }
+        if(v->tag == RefVal)
+        {
+            Value *v2 = v->unboxRef()->Get();
+            if(!v2->mark)
+                reachable.push(v2);
+        }
         if(v->tag == ObjectVal)
         {
             IObject *obj = v->unboxObj();

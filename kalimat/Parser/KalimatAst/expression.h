@@ -270,10 +270,27 @@ class ObjectCreation : public Expression
 {
 public:
     shared_ptr<Identifier> _className;
+    QVector<shared_ptr<Identifier> > fieldInitNames;
+    QVector<shared_ptr<Expression> > fieldInitValues;
+
 public:
-    ObjectCreation(Token pos, shared_ptr<Identifier> className);
+    ObjectCreation(Token pos,
+                   shared_ptr<Identifier> className,
+                   QVector<shared_ptr<Identifier> > fieldInitNames,
+                   QVector<shared_ptr<Expression> > fieldInitValues
+                   );
     shared_ptr<Identifier> className() { return _className;}
     QString toString();
+    int fieldInitCount() { return fieldInitNames.count(); }
+    shared_ptr<Identifier> fieldInitName(int index)
+    {
+        return fieldInitNames[index];
+    }
+    shared_ptr<Expression> fieldInitValue(int index)
+    {
+        return fieldInitValues[index];
+    }
+
     void prettyPrint(CodeFormatter *f);
 };
 

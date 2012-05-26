@@ -15,4 +15,5 @@ void LoadModuleIntoCompletionInfo(QString path, Module *mod, CompletionInfo &com
         ModuleCompletionInfo &mi = comp.modules();
     }
     */
+
 }

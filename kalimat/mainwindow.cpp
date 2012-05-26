@@ -60,9 +60,9 @@ MainWindow::MainWindow(QWidget *parent)
     this->editorFontSize = settings.value("editor_font_size", 18).toInt();
 
     QToolBar *notice = new QToolBar("");
-    notice->addAction(QString::fromStdWString(L"هذه هي النسخة الأولية لشهر مارس 2012. حمل أحدث نسخة من www.kalimat-lang.com"));
-    addToolBarBreak();
-    addToolBar(Qt::TopToolBarArea, notice);
+    notice->addAction(QString::fromStdWString(L"هذه هي النسخة الأولية لشهر مايو 2012. حمل أحدث نسخة من www.kalimat-lang.com"));
+    insertToolBarBreak(ui->functionNavigationToolbar);
+    insertToolBar(ui->functionNavigationToolbar, notice);
     speedGroup = new QActionGroup(this);
     speedGroup->addAction(ui->actionSpeedFast);
     speedGroup->addAction(ui->actionSpeedMedium);
@@ -105,6 +105,12 @@ MainWindow::MainWindow(QWidget *parent)
     ui->txtReplacementString->installEventFilter(this);
     parserErrorMap = Utils::prepareErrorMap<KalimatParserError>(":/parser_error_map.txt");
 
+    functionNavigationCombo = new QComboBox(this);
+    functionNavigationComboIsUpdating = false;
+    ui->functionNavigationToolbar->hide();
+    ui->functionNavigationToolbar->addWidget(functionNavigationCombo);
+    connect(functionNavigationCombo, SIGNAL(currentIndexChanged(int)), SLOT(on_functionNavigationCombo_currentIndexChanged(int)));
+    startTimer(3000);
 }
 
 void MainWindow::outputMsg(QString s)
@@ -201,10 +207,74 @@ QWidget *MainWindow::CreateEditorWidget()
     return edit;
 }
 
-void MainWindow::setLineIndicators(int line, int column)
+void MainWindow::setLineIndicators(int line, int column, QTextEdit *editor)
 {
     lblEditorCurrentLine->setText(QString::fromStdWString(L"السطر: %1").arg(line));
     lblEditorCurrentColumn->setText(QString::fromStdWString(L"العمود: %1").arg(column));
+
+    setFunctionNavigationComboSelection(editor);
+}
+
+void MainWindow::setFunctionNavigationComboSelection(QTextEdit *editor)
+{
+    int pos = editor->textCursor().position();
+    for(QMap<int, ProcPosRange >::const_iterator i=
+        functionNavigationInfo.rangeOfEachProc.begin();
+        i != functionNavigationInfo.rangeOfEachProc.end(); ++i)
+        {
+
+        if(pos>= i.key())
+        {
+            ProcPosRange range = i.value();
+            if(pos <= range.to)
+            {
+                shared_ptr<ProceduralDecl> proc = range.proc;
+                functionNavigationComboIsUpdating = true;
+                functionNavigationCombo->setCurrentIndex(
+                            functionNavigationCombo->findText(getBeautifulName(proc)));
+                functionNavigationComboIsUpdating = false;
+                break;
+            }
+
+        }
+    }
+}
+
+void MainWindow::timerEvent(QTimerEvent *event)
+{
+    on_actionUpdate_code_model_triggered();
+}
+
+shared_ptr<CompilationUnit> MainWindow::parserCurrentDocumentWithRecovery()
+{
+    KalimatLexer lxr;
+    KalimatParser parser;
+    shared_ptr<CompilationUnit> ret;
+    if(!currentEditor())
+        return ret;
+    try
+    {
+        parser.withRecovery = true;
+        parser.init(currentEditor()->document()->toPlainText(), &lxr, NULL);
+        shared_ptr<AST> tree = parser.parse();
+        ret = dynamic_pointer_cast<CompilationUnit>(
+                    tree);
+
+    }
+    catch(UnexpectedCharException ex)
+    {
+        ui->outputView->append(ex.buildMessage());
+    }
+    catch(UnexpectedEndOfFileException ex)
+    {
+        ui->outputView->append("Unexpected end of file");
+    }
+    catch(ParserException ex)
+    {
+        QString msg = translateParserError(ex);
+        ui->outputView->append(msg);
+    }
+    return ret;
 }
 
 void MainWindow::on_actionLexize_triggered()
@@ -461,7 +531,6 @@ top:
         }
         //ui->outputView->append(output);
 
-
         this->PositionInfo = compiler.generator.getPositionInfo();
         debugInfo = compiler.generator.debugInfo;
 
@@ -563,11 +632,11 @@ top:
             {
                 dc = (CodeDocument *) ex.source->getPos().tag;
             }
-            else
+            else if(ex.source)
             {
                 dc = docContainer->getDocumentFromPath(ex.fileName, true);
             }
-            if(ex.source && dc)
+            if(dc)
             {
                 highlightLine(dc->getEditor(), ex.source->getPos().Pos);
             }
@@ -1678,4 +1747,71 @@ void MainWindow::on_action_about_kalimat_triggered()
 {
     AboutDlg dlg(this);
     dlg.exec();
+}
+
+void MainWindow::on_actionUpdate_code_model_triggered()
+{
+    if(!currentEditor())
+        return;
+
+    shared_ptr<CompilationUnit> cu = parserCurrentDocumentWithRecovery();
+    if(!cu)
+        return;
+    functionNavigationInfo = codeAnalyzer.analyzeCompilationUnit(cu);
+
+    if(functionNavigationInfo .funcNameToAst.count() == 0)
+    {
+        ui->functionNavigationToolbar->hide();
+    }
+    else
+    {
+        functionNavigationCombo->clear();
+        for(QMap<QString, shared_ptr<ProceduralDecl> >::const_iterator i = functionNavigationInfo.funcNameToAst.begin();
+            i != functionNavigationInfo.funcNameToAst.end(); ++i)
+        {
+
+            functionNavigationCombo->addItem(i.key());
+        }
+
+        ui->functionNavigationToolbar->show();
+        functionNavigationCombo->setMinimumWidth(
+                    0.6f * (float) ui->functionNavigationToolbar->width() );
+        setFunctionNavigationComboSelection(currentEditor());
+    }
+
+}
+
+void MainWindow::on_functionNavigationCombo_currentIndexChanged(int index)
+{
+    if(functionNavigationComboIsUpdating)
+        return;
+    if(index == -1)
+        return;
+    if(!currentEditor())
+        return;
+
+    QString funcName = functionNavigationCombo->itemText(index);
+    shared_ptr<ProceduralDecl> proc = functionNavigationInfo.funcNameToAst[funcName];
+    if(proc)
+    {
+        Token pos = proc->getPos();
+        if(pos.Type == TokenNone || pos.Type == TokenInvalid)
+            return;
+        QTextEdit *editor = currentEditor();
+        QTextCursor cursor = editor->textCursor();
+        cursor.setPosition(pos.Pos);
+        editor->setTextCursor(cursor);
+        editor->ensureCursorVisible();
+        cursor = editor->textCursor();
+        QRect r = editor->cursorRect(cursor);
+        if(r.top() > (0.75 *(float )editor->height()))
+        {
+           // int verticalShift = r.top() - (((float) editor->height()) * 0.5);
+            int step = editor->verticalScrollBar()->pageStep();
+            editor->verticalScrollBar()->setPageStep(step /2);
+            editor->verticalScrollBar()->triggerAction(QAbstractSlider::SliderPageStepAdd);
+            editor->verticalScrollBar()->setPageStep(step);
+            editor->setFocus();
+        }
+    }
 }

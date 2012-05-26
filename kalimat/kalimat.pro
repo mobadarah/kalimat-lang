@@ -67,7 +67,8 @@ SOURCES += main.cpp \
     AutoComplete/completioninfo.cpp \
     AutoComplete/completioninfoloading.cpp \
     settingsdlg.cpp \
-    aboutdlg.cpp
+    aboutdlg.cpp \
+    AutoComplete/analyzer.cpp
 HEADERS += mainwindow.h \
     Lexer/token.h \
     Lexer/statemachine.h \
@@ -118,7 +119,8 @@ HEADERS += mainwindow.h \
     AutoComplete/completioninfo.h \
     AutoComplete/completioninfoloading.h \
     settingsdlg.h \
-    aboutdlg.h
+    aboutdlg.h \
+    AutoComplete/analyzer.h
 
 FORMS += mainwindow.ui \
     savechangedfiles.ui \

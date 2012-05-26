@@ -27,11 +27,13 @@
 #include "Lexer/token.h"
 #include "Parser/parserexception.h"
 #include "Parser/KalimatParserError.h"
+#include "AutoComplete/analyzer.h"
 #include <QQueue>
 #include <QGraphicsView>
 #include <QActionGroup>
 #include <QLabel>
 #include <QSplitter>
+#include <QComboBox>
 
 namespace Ui
 {
@@ -64,6 +66,16 @@ public:
     bool helpWindowVisible;
     bool isDemoMode;
     int editorFontSize;
+
+    Analyzer codeAnalyzer;
+    QTimer codeParseTimer;
+    shared_ptr<CompilationUnit> parserCurrentDocumentWithRecovery();
+    QComboBox *functionNavigationCombo;
+    bool functionNavigationComboIsUpdating;
+    CompilationUnitInfo functionNavigationInfo;
+    void setFunctionNavigationComboSelection(QTextEdit *editor);
+
+
     MainWindow(QWidget *parent = 0);
     ~MainWindow();
 
@@ -80,7 +92,7 @@ public:
     void highlightLine(QTextEdit *editor, int pos, QColor color);
     void highlightToken(QTextEdit *editor, int pos, int length);
     void removeLineHighlights(MyEdit *editor, int line);
-    void setLineIndicators(int line, int column);
+    void setLineIndicators(int line, int column, QTextEdit *editor);
     void visualizeCallStacks(QQueue<Process *> &callStacks, QGraphicsView *view);
     void visualizeCallStack(QStack<Frame> &callStack, QGraphicsView *view);
 
@@ -174,12 +186,15 @@ private slots:
 
     void on_action_about_kalimat_triggered();
 
+    void on_actionUpdate_code_model_triggered();
+    void on_functionNavigationCombo_currentIndexChanged(int);
 protected:
      void dropEvent(QDropEvent *de);
      void dragMoveEvent(QDragMoveEvent *de);
      void dragEnterEvent(QDragEnterEvent *event);
 
      void wheelEvent(QWheelEvent *);
+     void timerEvent(QTimerEvent *event); // for code model update
 };
 
 #endif // MAINWINDOW_H

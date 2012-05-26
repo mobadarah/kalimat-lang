@@ -961,9 +961,11 @@ QString MultiDimensionalArrayIndex::toString()
     return QString("%1[%2]").arg(array()->toString(), vector_toString(_indexes));
 }
 
-ObjectCreation::ObjectCreation(Token pos ,shared_ptr<Identifier> className)
+ObjectCreation::ObjectCreation(Token pos ,shared_ptr<Identifier> className, QVector<shared_ptr<Identifier> > fieldInitNames, QVector<shared_ptr<Expression> > fieldInitValues)
     :Expression(pos),
-    _className(className)
+    _className(className),
+      fieldInitNames(fieldInitNames),
+      fieldInitValues(fieldInitValues)
 {
 }
 

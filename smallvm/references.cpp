@@ -24,6 +24,7 @@ void ArrayReference::Set(Value *val)
 {
     array->Elements[index] = val;
 }
+
 Value *ArrayReference::Get()
 {
     return array->Elements[index];
@@ -33,8 +34,24 @@ void MultiDimensionalArrayReference::Set(Value *val)
 {
     array->set(index, val);
 }
+
 Value *MultiDimensionalArrayReference::Get()
 {
     return array->get(index);
 }
 
+VariableRef::VariableRef(Frame *frame, QString varName)
+    :frame(frame), varName(varName)
+{
+
+}
+
+void VariableRef::Set(Value *val)
+{
+    frame->Locals[varName] = val;
+}
+
+Value *VariableRef::Get()
+{
+    return frame->Locals[varName];
+}

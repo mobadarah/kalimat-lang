@@ -19,7 +19,7 @@ public:
     shared_ptr<Identifier> _procName;
         shared_ptr<BlockStmt> _body;
     QVector<shared_ptr<Identifier > > _formals;
-
+    Token endPos;
 //    QVector<shared_ptr<Identifier > > _allReferences;
 
     Token _endingToken;

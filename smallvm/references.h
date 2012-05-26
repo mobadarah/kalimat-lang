@@ -3,6 +3,7 @@
 
 #include "value.h"
 #include "multidimensionalarray.h"
+#include "frame.h"
 
 struct Reference
 {
@@ -35,6 +36,16 @@ struct MultiDimensionalArrayReference : public Reference
     MultiDimensionalArray<Value *> *array;
     QVector<int> index;
 
+    void Set(Value *val);
+    Value *Get();
+};
+
+struct VariableRef : public Reference
+{
+    Frame *frame;
+    QString varName;
+
+    VariableRef(Frame *frame, QString varName);
     void Set(Value *val);
     Value *Get();
 };

@@ -2207,8 +2207,29 @@ shared_ptr<Expression> KalimatParser::primaryExpressionNonInvokation()
         if(LA(NEW))
         {
             Token newTok = lookAhead;
+            QVector<shared_ptr<Identifier> > fieldInitNames;
+            QVector<shared_ptr<Expression> > fieldInitValues;
             match(NEW);
-            ret = shared_ptr<Expression>(new ObjectCreation(newTok, id));
+
+            if(LA(HAS))
+            {
+                match(HAS);
+                fieldInitNames.append(identifier());
+                match(EQ);
+                fieldInitValues.append(expression());
+                while(LA(COMMA))
+                {
+                    match(COMMA);
+                    fieldInitNames.append(identifier());
+                    match(EQ);
+                    fieldInitValues.append(expression());
+                }
+            }
+            ret = shared_ptr<Expression>(new ObjectCreation(newTok,
+                                                            id,
+                                                            fieldInitNames,
+                                                            fieldInitValues));
+
         }
         else if(LA(DOLLAR))
         {

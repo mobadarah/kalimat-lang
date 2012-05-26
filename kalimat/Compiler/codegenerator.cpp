@@ -2772,7 +2772,23 @@ QString CodeGenerator::generateArrayFromValues(shared_ptr<AST> src,
 
 void CodeGenerator::generateObjectCreation(shared_ptr<ObjectCreation> expr)
 {
+
     gen(expr, "new "+expr->className()->name);
+    if(expr->fieldInitCount() > 0)
+    {
+        QString v = _asm.uniqueVariable();
+        gen(expr, "popl " + v);
+        for(int i=0; i<expr->fieldInitCount(); i++)
+        {
+            shared_ptr<Identifier> name = expr->fieldInitName(i);
+            shared_ptr<Expression> value = expr->fieldInitValue(i);
+            gen(value, "pushl " + v);
+            generateExpression(value);
+            gen(name, "setfld " + name->name);
+        }
+        gen(expr, "pushl " + v);
+    }
+
 }
 
 QString CodeGenerator::typeExpressionToAssemblyTypeId(shared_ptr<TypeExpression> expr)
