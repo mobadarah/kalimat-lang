@@ -221,10 +221,8 @@
     </property>
     <addaction name="actionKalimatManual"/>
     <addaction name="action_help_keyboard"/>
-    <addaction name="separator"/>
     <addaction name="action_walkthroughs"/>
     <addaction name="action_report_bug"/>
-    <addaction name="separator"/>
     <addaction name="action_about_kalimat"/>
    </widget>
    <widget class="QMenu" name="mnuTest">
@@ -240,7 +238,7 @@
     <addaction name="actionParse_with_recovery"/>
     <addaction name="actionUpdate_code_model"/>
    </widget>
-   <widget class="QMenu" name="menu">
+   <widget class="QMenu" name="mnuSpecialSymbol">
     <property name="title">
      <string>رمز خاص</string>
     </property>
@@ -255,7 +253,7 @@
    <addaction name="mnuEdit"/>
    <addaction name="mnuPRogram"/>
    <addaction name="mnuTest"/>
-   <addaction name="menu"/>
+   <addaction name="mnuSpecialSymbol"/>
    <addaction name="mnuHelp"/>
   </widget>
   <widget class="QToolBar" name="mainToolBar">
@@ -480,15 +478,24 @@
    <property name="shortcut">
     <string>F1</string>
    </property>
+   <property name="visible">
+    <bool>false</bool>
+   </property>
   </action>
   <action name="action_walkthroughs">
    <property name="text">
     <string>محاضرات عملية</string>
    </property>
+   <property name="visible">
+    <bool>false</bool>
+   </property>
   </action>
   <action name="action_report_bug">
    <property name="text">
     <string>إبلاغ عن خطأ بالبرنامج</string>
+   </property>
+   <property name="visible">
+    <bool>false</bool>
    </property>
   </action>
   <action name="action_contact_us">
@@ -504,6 +511,9 @@
   <action name="action_help_keyboard">
    <property name="text">
     <string>العلامات الخاصة ولوحة المفاتيح</string>
+   </property>
+   <property name="visible">
+    <bool>false</bool>
    </property>
   </action>
   <action name="mnuProgramRun">

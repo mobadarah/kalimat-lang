@@ -76,6 +76,7 @@ MainWindow::MainWindow(QWidget *parent)
     ui->statusBar->addWidget(lblEditorCurrentColumn, 0.3);
     lblEditorCurrentLine->show();
     ui->dockSearchReplace->hide();
+    ui->mnuSpecialSymbol->setVisible(false);
     docContainer = new DocumentContainer(settingsOrganizationName,
                                          settingsApplicationName,
                                          tr("Kalimat code (*.k *.* *)"),
@@ -223,7 +224,7 @@ void MainWindow::setFunctionNavigationComboSelection(QTextEdit *editor)
     for(QMap<int, ProcPosRange >::const_iterator i=
         functionNavigationInfo.rangeOfEachProc.begin();
         i != functionNavigationInfo.rangeOfEachProc.end(); ++i)
-        {
+    {
 
         if(pos>= i.key())
         {
@@ -240,6 +241,7 @@ void MainWindow::setFunctionNavigationComboSelection(QTextEdit *editor)
 
         }
     }
+
 }
 
 void MainWindow::timerEvent(QTimerEvent *event)
@@ -1769,13 +1771,16 @@ void MainWindow::on_actionUpdate_code_model_triggered()
     }
     else
     {
+        functionNavigationComboIsUpdating = true;
         functionNavigationCombo->clear();
+        functionNavigationCombo->addItem(QString::fromStdWString(L"(خارج الإجراءات)"));
         for(QMap<QString, shared_ptr<ProceduralDecl> >::const_iterator i = functionNavigationInfo.funcNameToAst.begin();
             i != functionNavigationInfo.funcNameToAst.end(); ++i)
         {
 
             functionNavigationCombo->addItem(i.key());
         }
+        functionNavigationComboIsUpdating = false;
 
         ui->functionNavigationToolbar->show();
         functionNavigationCombo->setMinimumWidth(
@@ -1795,6 +1800,8 @@ void MainWindow::on_functionNavigationCombo_currentIndexChanged(int index)
         return;
 
     QString funcName = functionNavigationCombo->itemText(index);
+    if(funcName == QString::fromStdWString(L"(خارج الإجراءات)"))
+        return;
     shared_ptr<ProceduralDecl> proc = functionNavigationInfo.funcNameToAst[funcName];
     if(proc)
     {
@@ -1815,7 +1822,7 @@ void MainWindow::on_functionNavigationCombo_currentIndexChanged(int index)
             editor->verticalScrollBar()->setPageStep(step /2);
             editor->verticalScrollBar()->triggerAction(QAbstractSlider::SliderPageStepAdd);
             editor->verticalScrollBar()->setPageStep(step);
-            editor->setFocus();
         }
+        editor->setFocus();
     }
 }

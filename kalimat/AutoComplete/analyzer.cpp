@@ -4,6 +4,7 @@ Analyzer::Analyzer()
 {
 }
 
+
 QString getBeautifulName(shared_ptr<ProceduralDecl> proc)
 {
     shared_ptr<MethodDecl> method = dynamic_pointer_cast<MethodDecl>(proc);
@@ -13,7 +14,12 @@ QString getBeautifulName(shared_ptr<ProceduralDecl> proc)
     }
     else
     {
-        return proc->procName()->name;
+        QString name = proc->procName()->name;
+        if(name == "%main")
+            return QString::fromStdWString(L"(البرنامج الرئيسي)");
+        else
+            return name;
+
     }
 
 }
