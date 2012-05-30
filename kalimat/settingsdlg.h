@@ -13,9 +13,19 @@ class SettingsDlg : public QDialog
 
 public:
     explicit SettingsDlg(QWidget *parent = 0);
-    void init(int editorFontSize, bool isDemoMode, int codeModelUpdateInterval);
-    void getResult(int &fontSize, bool &isDemoMode, int &codeModelUpdateInterval);
+    void init(int editorFontSize,
+              bool isDemoMode,
+              int codeModelUpdateInterval,
+              QString standardModulePath);
+
+    void getResult(int &fontSize,
+                   bool &isDemoMode,
+                   int &codeModelUpdateInterval,
+                   QString &standardModulePath);
     ~SettingsDlg();
+
+private slots:
+    void on_btnSelectStandardLibPath_clicked();
 
 private:
     Ui::settings *ui;

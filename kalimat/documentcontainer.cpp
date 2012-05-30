@@ -136,8 +136,16 @@ CodeDocument *DocumentContainer::getDocumentFromPath(QString path, bool addIfNee
 {
     for(int i=0; i<widgetDocs.values().count(); i++)
     {
-        if(!widgetDocs.values()[i]->isDocNewFile() && widgetDocs.values()[i]->getFileName() == path)
+        /*
+          // this code only returned a CodeDoc if its corresponsing file exists
+          // I removed this contraint, but why did I put it in the first place?
+          // todo: figure that out!
+            if(!widgetDocs.values()[i]->isDocNewFile() && widgetDocs.values()[i]->getFileName() == path)
             return widgetDocs.values()[i];
+           */
+        if(widgetDocs.values()[i]->getFileName() == path)
+            return widgetDocs.values()[i];
+
     }
     if(addIfNeeded)
     {

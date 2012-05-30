@@ -17,9 +17,10 @@
 #include "compiler.h"
 #include "../../smallvm/utils.h"
 
-Compiler::Compiler(DocumentContainer *container)
+Compiler::Compiler(DocumentContainer *container, QString stdModulePath)
 {
     this->documentContainer = container;
+    this->stdModulePath = stdModulePath;
 }
 
 shared_ptr<AST> parseModule(Parser *p)
@@ -27,19 +28,17 @@ shared_ptr<AST> parseModule(Parser *p)
     return ((KalimatParser *) p)->module();
 }
 
-shared_ptr<Program> Compiler::loadProgram(QString path, CodeDocument *doc)
+void Compiler::importModules(shared_ptr<Program> p, QString path, bool allModulesStandard)
 {
-    parser.init(loadFileContents(path), &lexer, doc, path);
-    shared_ptr<Program> p = dynamic_pointer_cast<Program>(parser.parse());
-    if(!p)
-    {
-        throw CompilerException::no_source(CannotRunAModule);
-    }
-
     for(int i=0; i<p->usedModuleCount(); i++)
     {
         QString m2 = p->usedModule(i)->value;
-        QString fullPath = getPathOfModule(m2, path);
+
+        QString fullPath;
+        if(allModulesStandard)
+            fullPath = getPathOfStandardModule(m2);
+            else
+            fullPath = getPathOfModule(m2, path);
         if(!loadedModules.contains(fullPath))
             loadModule(fullPath);
         Module *importedMod = loadedModules[fullPath].get();
@@ -55,6 +54,18 @@ shared_ptr<Program> Compiler::loadProgram(QString path, CodeDocument *doc)
         }
         //*/
     }
+}
+
+shared_ptr<Program> Compiler::loadProgram(QString path, CodeDocument *doc)
+{
+    parser.init(loadFileContents(path), &lexer, doc, path);
+    shared_ptr<Program> p = dynamic_pointer_cast<Program>(parser.parse());
+    if(!p)
+    {
+        throw CompilerException::no_source(CannotRunAModule);
+    }
+
+    importModules(p, path, false);
     return p;
 }
 
@@ -98,8 +109,17 @@ void Compiler::generateAllLoadedModules()
     }
 }
 
+QString Compiler::getPathOfStandardModule(QString name)
+{
+    QString stdMod = combinePath(stdModulePath, name);
+    return stdMod;
+}
+
 QString Compiler::getPathOfModule(QString name, QString pathOfImportingModule)
 {
+    QString stdMod = getPathOfStandardModule(name);
+    if(QFile::exists(stdMod))
+        return stdMod;
     QString directory = directoryFromFullPath(pathOfImportingModule);
     QString ret = combinePath(directory, name);
     return ret;
@@ -120,9 +140,14 @@ QString Compiler::CompileFromCode(QString source, CodeDocument *doc)
     parser.init(source, &lexer, doc);
     shared_ptr<Program> p = dynamic_pointer_cast<Program>(parser.parse());
 
-    if(p->usedModuleCount()!=0)
-        throw CompilerException(doc->getFileName(), p, ProgramsCannotUseExternalModulesWithoutSavingThemFirst);
-
+    for(int i=0; i<p->usedModuleCount(); i++)
+    {
+        QString s = p->usedModule(i)->value;
+        s = getPathOfStandardModule(s);
+        if(!QFile::exists(s))
+            throw CompilerException(doc->getFileName(), p, ProgramsCannotUseExternalModulesWithoutSavingThemFirst);
+    }
+    importModules(p, "", true);
     generator.generate(p, doc->getFileName(), doc);
     return generator.getOutput();
 }

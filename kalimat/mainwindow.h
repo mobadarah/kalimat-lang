@@ -78,6 +78,8 @@ public:
     int codeModelUpdateTimerId;
 
 
+    QString standardModulePath;
+
     MainWindow(QWidget *parent = 0);
     ~MainWindow();
 

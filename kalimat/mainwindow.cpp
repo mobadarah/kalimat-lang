@@ -57,6 +57,10 @@ MainWindow::MainWindow(QWidget *parent)
     settingsApplicationName = "kalimat 1.0";
 
     QSettings settings(settingsOrganizationName, settingsApplicationName, this);
+
+    QString here = QCoreApplication::applicationDirPath() + "/stdlib/";
+    this->standardModulePath = settings.value("standard_module_path",
+                                              here).toString();
     this->editorFontSize = settings.value("editor_font_size", 18).toInt();
     this->codeModelUpdateInterval = settings.value("codemodel_update_interval", 3000).toInt();
 
@@ -385,7 +389,7 @@ void MainWindow::on_actionCompile_triggered()
         ui->tabWidget->setCurrentWidget(ui->outputView);
         ui->outputView->clear();
         doc = docContainer->getCurrentDocument();
-        Compiler compiler(docContainer);
+        Compiler compiler(docContainer, standardModulePath);
 
         QString output;
         if(doc->isDocNewFile() || doc->isFileDirty())
@@ -442,7 +446,7 @@ void MainWindow::on_actionCompile_without_tags_triggered()
         ui->tabWidget->setCurrentWidget(ui->outputView);
         ui->outputView->clear();
         doc = docContainer->getCurrentDocument();
-        Compiler compiler(docContainer);
+        Compiler compiler(docContainer, standardModulePath);
 
         QString output;
         if(doc->isDocNewFile() || doc->isFileDirty())
@@ -512,7 +516,7 @@ top:
         saveAll();
         ui->outputView->clear();
         doc = docContainer->getCurrentDocument();
-        Compiler compiler(docContainer);
+        Compiler compiler(docContainer, standardModulePath);
 
         QString output;
         QString path;
@@ -1411,7 +1415,7 @@ void MainWindow::on_actionMake_exe_triggered()
         saveAll();
         ui->outputView->clear();
         doc = docContainer->getCurrentDocument();
-        Compiler compiler(docContainer);
+        Compiler compiler(docContainer, standardModulePath);
 
         QString output;
 
@@ -1644,17 +1648,32 @@ void MainWindow::wheelEvent(QWheelEvent *ev)
     }
 }
 
+QString combinePath(QString parent, QString child)
+{
+    return QFileInfo(parent, child).absoluteFilePath();
+}
+
 void MainWindow::on_editor_linkClicked(MyEdit *source, QString href)
 {
     CodeDocument *doc = docContainer->getDocumentFromWidget(source);
     if(!doc)
         return;
     if(doc->isDocNewFile())
+    {
+        QString stdMod = combinePath(standardModulePath, href);
+        if(QFile::exists(stdMod))
+        {
+            docContainer->OpenOrSwitch(stdMod);
+        }
         return;
+    }
     QString docPath = doc->getFileName();
     QFileInfo f = QFileInfo(docPath);
     QString dir = f.absoluteDir().absolutePath();
     QString linkedFile = dir + "/" + href;
+    QString stdPath = combinePath(standardModulePath, href);
+    if(QFile::exists(stdPath))
+        linkedFile = stdPath;
     if(!QFile::exists(linkedFile))
     {
         QMessageBox box(QMessageBox::Question,QString::fromStdWString(L"ملف غير موجود"),
@@ -1712,14 +1731,15 @@ bool MainWindow::eventFilter(QObject *sender, QEvent *event)
 void MainWindow::on_action_options_triggered()
 {
     SettingsDlg s(this);
-    s.init(getEditorFontSize(), isDemoMode, codeModelUpdateInterval);
+    s.init(getEditorFontSize(), isDemoMode, codeModelUpdateInterval, standardModulePath);
     if(s.exec() == QDialog::Accepted)
     {
         int fontSize;
-        s.getResult(fontSize, isDemoMode, codeModelUpdateInterval);
+        s.getResult(fontSize, isDemoMode, codeModelUpdateInterval, standardModulePath);
         QSettings settings(settingsOrganizationName, settingsApplicationName, this);
         settings.setValue("editor_font_size", fontSize);
         settings.setValue("codemodel_update_interval", codeModelUpdateInterval);
+        settings.setValue("standard_module_path", standardModulePath);
         setEditorFontSize(fontSize);
         killTimer(codeModelUpdateTimerId);
         codeModelUpdateTimerId = startTimer(codeModelUpdateInterval);
@@ -1801,7 +1821,10 @@ void MainWindow::on_functionNavigationCombo_currentIndexChanged(int index)
 
     QString funcName = functionNavigationCombo->itemText(index);
     if(funcName == QString::fromStdWString(L"(خارج الإجراءات)"))
+    {
+        currentEditor()->setFocus();;
         return;
+    }
     shared_ptr<ProceduralDecl> proc = functionNavigationInfo.funcNameToAst[funcName];
     if(proc)
     {
