@@ -42,6 +42,7 @@ public:
     void clearImage();
     QImage *GetImage();
     QColor GetColor(int color);
+    int colorConstant(QColor color);
     void setTextColor(QColor);
     void resize(int width, int height);
     void resizeImage(QImage *image, const QSize &newSize);

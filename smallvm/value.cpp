@@ -392,16 +392,19 @@ QString ValueClass::getName()
 {
     return name;
 }
+
 bool ValueClass::hasField(QString name)
 {
     return fields.contains(name);
 }
+
 IClass *ValueClass::baseClass()
 {
     if(BaseClasses.count() == 0)
         return NULL;
     return BaseClasses[0];
 }
+
 bool ValueClass::subclassOf(IClass *c)
 {
     if(c == this)
@@ -570,4 +573,3 @@ inline bool operator==(const Value &v1, const Value &v2)
 
     return false;
 }
-

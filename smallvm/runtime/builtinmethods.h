@@ -56,6 +56,8 @@ void KbEventChanProc(QStack<Value *> &stack, RunWindow *w, VM *vm);
 void ClsProc(QStack<Value *> &stack, RunWindow *, VM *w);
 void ClearTextProc(QStack<Value *> &stack, RunWindow *w, VM *vm);
 void SetTextColorProc(QStack<Value *> &stack, RunWindow *, VM *w);
+void PointAtProc(QStack<Value *> &stack, RunWindow *w, VM *vm);
+void PointRgbAtProc(QStack<Value *> &stack, RunWindow *w, VM *vm);
 void BuiltInConstantProc(QStack<Value *> &stack, RunWindow *, VM *vm);
 void StringIsNumericProc(QStack<Value *> &stack, RunWindow *w, VM *vm);
 void StringIsAlphabeticProc(QStack<Value *> &stack, RunWindow *w, VM *vm);

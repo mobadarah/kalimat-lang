@@ -66,6 +66,7 @@ public:
     bool helpWindowVisible;
     bool isDemoMode;
     int editorFontSize;
+    QFont editorFont;
 
     Analyzer codeAnalyzer;
     QTimer codeParseTimer;
@@ -112,7 +113,9 @@ public:
     QStack<QString> pathsOfModuleClients; // must always be absolute paths
 
     int getEditorFontSize();
+    void setEditorFont(QFont font);
     void setEditorFontSize(int);
+    void insertInEditor(QString);
 private:
     QActionGroup *speedGroup;
     Ui::MainWindow *ui;
@@ -192,6 +195,19 @@ private slots:
 
     void on_actionUpdate_code_model_triggered();
     void on_functionNavigationCombo_currentIndexChanged(int);
+    void on_goto_kalimatlangdotcom_triggered();
+    void on_actionSpecialSymbol_dot_triggered();
+
+    void on_action_SpecialSymbol_comma_triggered();
+
+    void on_action_SpecialSymbol_openBracket_triggered();
+
+    void on_action_SpecialSymbol_closeBracket_triggered();
+
+    void on_action_SpecialSymbol_openBrace_triggered();
+
+    void on_action_SpecialSymbol_closeBrace_triggered();
+
 protected:
      void dropEvent(QDropEvent *de);
      void dragMoveEvent(QDragMoveEvent *de);

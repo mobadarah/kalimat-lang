@@ -33,6 +33,7 @@
 #include <algorithm>
 #include <QPushButton>
 #include <QVariant>
+#include <QRgb>
 //#include <QtConcurrentRun>
 #include <QMessageBox>
 #include <iostream>
@@ -862,6 +863,72 @@ void SetTextColorProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
     w->assert(color>=0 && color <=15, ArgumentError, "Color value must be from 0 to 15");
     w->paintSurface->setTextColor(w->paintSurface->GetColor(color));
     w->redrawWindow();
+}
+
+void PointAtProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
+{
+    int x = popIntOrCoercable(stack, w, vm);
+    int y = popIntOrCoercable(stack, w, vm);
+    w->paintSurface->TX(x);
+    int color = 15;
+    /*
+    w->assert(x>=0 && x <w->paintSurface->GetImage()->width(), ArgumentError,
+              _ws(L"قيمة س لابد ان تكون من 0 إلى %1")
+              .arg(w->paintSurface->GetImage()->width())
+              );
+
+    w->assert(y>=0 && y <w->paintSurface->GetImage()->height(), ArgumentError,
+              _ws(L"قيمة ص لابد ان تكون من 0 إلى %1")
+              .arg(w->paintSurface->GetImage()->height())
+              );
+    */
+    if(x>=0 && y >=0 &&
+            x<w->paintSurface->GetImage()->width() &&
+            y < w->paintSurface->GetImage()->height())
+    {
+        // todo: implement colorConstant that takes
+        // QRgb to save time converting QRgb->QColor
+
+        color = w->paintSurface->colorConstant(QColor(w->paintSurface->GetImage()->pixel(x, y)));
+    }
+
+
+    stack.push(vm->GetAllocator().newInt(color));
+}
+
+void PointRgbAtProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
+{
+    int x = popIntOrCoercable(stack, w, vm);
+    int y = popIntOrCoercable(stack, w, vm);
+    w->paintSurface->TX(x);
+    QRgb color = qRgb(255,255,255);
+
+    /*
+    w->assert(x>=0 && x <w->paintSurface->GetImage()->width(), ArgumentError,
+              _ws(L"قيمة س لابد ان تكون من 0 إلى %1")
+              .arg(w->paintSurface->GetImage()->width())
+              );
+
+    w->assert(y>=0 && y <w->paintSurface->GetImage()->height(), ArgumentError,
+              _ws(L"قيمة ص لابد ان تكون من 0 إلى %1")
+              .arg(w->paintSurface->GetImage()->height())
+              );
+    */
+    if(x>=0 && y >=0 &&
+            x<w->paintSurface->GetImage()->width() &&
+            y < w->paintSurface->GetImage()->height())
+    {
+        color = w->paintSurface->GetImage()->pixel(x, y);
+    }
+
+
+    Allocator &a = vm->GetAllocator();
+    Value *arr = a.newArray(3);
+    arr->v.arrayVal->set(a.newInt(1), a.newInt(qRed(color)));
+    arr->v.arrayVal->set(a.newInt(2), a.newInt(qGreen(color)));
+    arr->v.arrayVal->set(a.newInt(3), a.newInt(qBlue(color)));
+
+    stack.push(arr);
 }
 
 void BuiltInConstantProc(QStack<Value *> &stack, RunWindow *w, VM *vm)

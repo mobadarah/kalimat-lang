@@ -242,12 +242,12 @@
     <property name="title">
      <string>رمز خاص</string>
     </property>
-    <addaction name="action_7"/>
-    <addaction name="action"/>
-    <addaction name="action_4"/>
-    <addaction name="action_3"/>
-    <addaction name="action_6"/>
-    <addaction name="action_5"/>
+    <addaction name="actionSpecialSymbol_dot"/>
+    <addaction name="action_SpecialSymbol_comma"/>
+    <addaction name="action_SpecialSymbol_openBracket"/>
+    <addaction name="action_SpecialSymbol_closeBracket"/>
+    <addaction name="action_SpecialSymbol_openBrace"/>
+    <addaction name="action_SpecialSymbol_closeBrace"/>
    </widget>
    <addaction name="mnuFile"/>
    <addaction name="mnuEdit"/>
@@ -759,7 +759,7 @@
     <string>خارق</string>
    </property>
   </action>
-  <action name="action_7">
+  <action name="actionSpecialSymbol_dot">
    <property name="text">
     <string>.</string>
    </property>
@@ -767,7 +767,7 @@
     <string>Ctrl+.</string>
    </property>
   </action>
-  <action name="action">
+  <action name="action_SpecialSymbol_comma">
    <property name="text">
     <string>,</string>
    </property>
@@ -775,7 +775,7 @@
     <string>Ctrl+,</string>
    </property>
   </action>
-  <action name="action_3">
+  <action name="action_SpecialSymbol_closeBracket">
    <property name="text">
     <string>[</string>
    </property>
@@ -783,7 +783,7 @@
     <string>Ctrl+[</string>
    </property>
   </action>
-  <action name="action_4">
+  <action name="action_SpecialSymbol_openBracket">
    <property name="text">
     <string>]</string>
    </property>
@@ -791,14 +791,20 @@
     <string>Ctrl+]</string>
    </property>
   </action>
-  <action name="action_5">
+  <action name="action_SpecialSymbol_closeBrace">
    <property name="text">
     <string>{</string>
    </property>
+   <property name="shortcut">
+    <string>Ctrl+Alt+[, Ctrl+S, Ctrl+Shift+B</string>
+   </property>
   </action>
-  <action name="action_6">
+  <action name="action_SpecialSymbol_openBrace">
    <property name="text">
     <string>}</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Alt+]</string>
    </property>
   </action>
   <action name="action_copy_as_html">

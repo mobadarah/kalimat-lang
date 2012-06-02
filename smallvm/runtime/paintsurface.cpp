@@ -145,6 +145,31 @@ QColor PaintSurface::GetColor(int color)
     }
 }
 
+int PaintSurface::colorConstant(QColor color)
+{
+    int minDiff = -1;
+    int minIndex = -1;
+    for(int i=0; i<16; i++)
+    {
+        QColor base = GetColor(i);
+        int red = color.red();
+        int green = color.green();
+        int blue = color.blue();
+        const int rdiff = color.red() - base.red();
+        const int gdiff = color.green() - base.green();
+        const int bdiff = color.blue() - base.blue();
+        const int diff = rdiff*rdiff + gdiff*gdiff + bdiff * bdiff;
+        if(i==0)
+            minDiff = diff;
+        else if(diff < minDiff)
+        {
+            minDiff = diff;
+            minIndex = i;
+        }
+    }
+    return minIndex;
+}
+
 void PaintSurface::zoom(int x1, int y1, int x2, int y2)
 {
 

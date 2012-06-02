@@ -39,6 +39,8 @@
 #include <QTextStream>
 #include <QWheelEvent>
 #include <QScrollBar>
+#include <QDesktopServices>
+#include <QtConcurrentRun>
 
 MainWindow *MainWindow::that = NULL;
 
@@ -61,11 +63,23 @@ MainWindow::MainWindow(QWidget *parent)
     QString here = QCoreApplication::applicationDirPath() + "/stdlib/";
     this->standardModulePath = settings.value("standard_module_path",
                                               here).toString();
+
+    QString editorFontName = settings.value("editor_font_name",
+                                        this->font().family()).toString();
+
     this->editorFontSize = settings.value("editor_font_size", 18).toInt();
+
+    editorFont = QFont(editorFontName, editorFontSize);
     this->codeModelUpdateInterval = settings.value("codemodel_update_interval", 3000).toInt();
 
+    this->isDemoMode = settings.value("is_demo_mode", false).toBool();
+
     QToolBar *notice = new QToolBar("");
-    notice->addAction(QString::fromStdWString(L"هذه هي النسخة الأولية لشهر مايو 2012. حمل أحدث نسخة من www.kalimat-lang.com"));
+    notice->addAction(
+                QString::fromStdWString(L"هذه هي النسخة الأولية لشهر يونيو 2012. حمل أحدث نسخة من www.kalimat-lang.com"),
+                this,
+                SLOT(on_goto_kalimatlangdotcom_triggered())
+                );
     insertToolBarBreak(ui->functionNavigationToolbar);
     insertToolBar(ui->functionNavigationToolbar, notice);
     speedGroup = new QActionGroup(this);
@@ -200,10 +214,8 @@ QWidget *MainWindow::CreateEditorWidget()
 
     syn = new SyntaxHighlighter(edit->document(), new KalimatLexer());
     edit->textCursor().setVisualNavigation(true);
-    QFont font = edit->font();
-    font.setPointSize(this->editorFontSize);
 
-    edit->setFont(font);
+    edit->setFont(editorFont);
     edit->updateLineNumberAreaFont();
     // If the next line wasn't there, the syntaxhilighter sends a document modified
     // event on the initial display of the text editor, causing the document
@@ -1731,16 +1743,19 @@ bool MainWindow::eventFilter(QObject *sender, QEvent *event)
 void MainWindow::on_action_options_triggered()
 {
     SettingsDlg s(this);
-    s.init(getEditorFontSize(), isDemoMode, codeModelUpdateInterval, standardModulePath);
+    s.init(getEditorFontSize(), editorFont, isDemoMode, codeModelUpdateInterval, standardModulePath);
     if(s.exec() == QDialog::Accepted)
     {
         int fontSize;
-        s.getResult(fontSize, isDemoMode, codeModelUpdateInterval, standardModulePath);
+        s.getResult(fontSize, editorFont, isDemoMode, codeModelUpdateInterval, standardModulePath);
         QSettings settings(settingsOrganizationName, settingsApplicationName, this);
         settings.setValue("editor_font_size", fontSize);
+        settings.setValue("editor_font_name", editorFont.family());
         settings.setValue("codemodel_update_interval", codeModelUpdateInterval);
         settings.setValue("standard_module_path", standardModulePath);
-        setEditorFontSize(fontSize);
+        settings.setValue("is_demo_mode", isDemoMode);
+        editorFont.setPointSize(fontSize);
+        setEditorFont(editorFont);
         killTimer(codeModelUpdateTimerId);
         codeModelUpdateTimerId = startTimer(codeModelUpdateInterval);
     }
@@ -1751,22 +1766,46 @@ int MainWindow::getEditorFontSize()
     return editorFontSize;
 }
 
-void setAllEditsProc(CodeDocument *, QWidget *edit, void *newFontSize)
+struct NameSize
 {
-    int nfs = *((int *) newFontSize);
-    QTextEdit *ed = dynamic_cast<QTextEdit *>(edit);
+    QString name;
+    int size;
+};
+
+void setAllEditsProc(CodeDocument *, QWidget *edit, void *newFont)
+{
+    QFont *font = ((QFont *) newFont);
+    MyEdit *ed = dynamic_cast<MyEdit *>(edit);
+    if(ed)
+    {
+        ed->setFont(*font);
+        ed->updateLineNumberAreaFont();
+    }
+}
+
+void setAllEditsSizeProc(CodeDocument *, QWidget *edit, void *fp)
+{
+    int *size = *((int *) fp);
+    MyEdit *ed = dynamic_cast<MyEdit *>(edit);
     if(ed)
     {
         QFont f = ed->font();
-        f.setPointSize(nfs);
+        f.setPointSize(size);
         ed->setFont(f);
+        ed->updateLineNumberAreaFont();
     }
+}
+
+void MainWindow::setEditorFont(QFont font)
+{
+    editorFontSize = font.pointSize();
+    docContainer->forAll(setAllEditsProc, &font);
 }
 
 void MainWindow::setEditorFontSize(int size)
 {
     editorFontSize = size;
-    docContainer->forAll(setAllEditsProc, &size);
+    docContainer->forAll(setAllEditsSizeProc, &size);
 }
 
 void MainWindow::on_action_about_kalimat_triggered()
@@ -1807,7 +1846,6 @@ void MainWindow::on_actionUpdate_code_model_triggered()
                     0.6f * (float) ui->functionNavigationToolbar->width() );
         setFunctionNavigationComboSelection(currentEditor());
     }
-
 }
 
 void MainWindow::on_functionNavigationCombo_currentIndexChanged(int index)
@@ -1848,4 +1886,52 @@ void MainWindow::on_functionNavigationCombo_currentIndexChanged(int index)
         }
         editor->setFocus();
     }
+}
+
+void launchKalimatSite()
+{
+    QDesktopServices::openUrl(QUrl("http://www.kalimat-lang.com", QUrl::TolerantMode));
+}
+
+void MainWindow::on_goto_kalimatlangdotcom_triggered()
+{
+    QtConcurrent::run(launchKalimatSite);
+}
+
+void MainWindow::insertInEditor(QString s)
+{
+    QTextEdit *editor = currentEditor();
+    if(!editor)
+        return;
+    editor->textCursor().insertText(s);
+}
+
+void MainWindow::on_actionSpecialSymbol_dot_triggered()
+{
+    insertInEditor(".");
+}
+
+void MainWindow::on_action_SpecialSymbol_comma_triggered()
+{
+    insertInEditor(QString::fromStdWString(L"، "));
+}
+
+void MainWindow::on_action_SpecialSymbol_openBracket_triggered()
+{
+    insertInEditor("[");
+}
+
+void MainWindow::on_action_SpecialSymbol_closeBracket_triggered()
+{
+    insertInEditor("]");
+}
+
+void MainWindow::on_action_SpecialSymbol_openBrace_triggered()
+{
+    insertInEditor("{");
+}
+
+void MainWindow::on_action_SpecialSymbol_closeBrace_triggered()
+{
+    insertInEditor("}");
 }

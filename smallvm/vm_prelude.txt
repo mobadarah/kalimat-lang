@@ -279,6 +279,16 @@ callex settextcolor
 ret
 .endmethod
 
+.method النقطة.في 2 1
+callex pointat
+ret
+.endmethod
+
+.method النقطة.حخز.في 2 1
+callex pointrgbat
+ret
+.endmethod
+
 .method الثابت 1 1
 callex builtinconstant
 ret

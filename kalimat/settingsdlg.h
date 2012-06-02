@@ -14,11 +14,12 @@ class SettingsDlg : public QDialog
 public:
     explicit SettingsDlg(QWidget *parent = 0);
     void init(int editorFontSize,
+              QFont editorFont,
               bool isDemoMode,
-              int codeModelUpdateInterval,
-              QString standardModulePath);
+              int codeModelUpdateInterval, QString standardModulePath);
 
     void getResult(int &fontSize,
+                   QFont & editorFontName,
                    bool &isDemoMode,
                    int &codeModelUpdateInterval,
                    QString &standardModulePath);
