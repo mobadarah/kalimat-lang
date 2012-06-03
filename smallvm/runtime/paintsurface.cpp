@@ -16,6 +16,7 @@ PaintSurface::PaintSurface(QSize size, QFont font)
     image = im;
     finalImg = QImage(image.size(), image.format());
     textFont = font;
+    cursorTimerPoint = -1;
 }
 
 void PaintSurface::paint(QPainter &painter, TextLayer &textLayer, SpriteLayer &spriteLayer)
@@ -72,13 +73,33 @@ void PaintSurface::drawTextLayer(QPainter &imgPainter, TextLayer &textLayer)
     for(int i=0; i<textLayer.lines().count(); i++)
     {
         QRect rct(0, i* textFont.pixelSize(), image.width()-1, image.height());
+        rct.adjust(-2, 0, -2, 0);
         imgPainter.drawText(rct, textLayer.lines()[i], options);
     }
     imgPainter.setPen(oldPen);
     if(textLayer.inputState())
     {
-        QRect cur = textCursor(textLayer);
-        imgPainter.drawLine(cur.topRight(), cur.bottomRight());
+        if(cursorTimerPoint == -1)
+        {
+            cursorTimerPoint = clock();
+            cursorTimeSoFar = 0.0;
+        }
+        else
+        {
+            long t = clock();
+            cursorTimeSoFar += t - cursorTimerPoint;
+            cursorTimerPoint = t;
+        }
+        if(cursorTimeSoFar < (CLOCKS_PER_SEC /2))
+        {
+            QRect cur = textCursor(textLayer);
+            cur.adjust(-2, 0, -2, 0);
+            imgPainter.drawLine(cur.topRight(), cur.bottomRight());
+        }
+        else if(cursorTimeSoFar > CLOCKS_PER_SEC)
+        {
+            cursorTimeSoFar = 0;
+        }
     }
 }
 
@@ -152,9 +173,6 @@ int PaintSurface::colorConstant(QColor color)
     for(int i=0; i<16; i++)
     {
         QColor base = GetColor(i);
-        int red = color.red();
-        int green = color.green();
-        int blue = color.blue();
         const int rdiff = color.red() - base.red();
         const int gdiff = color.green() - base.green();
         const int bdiff = color.blue() - base.blue();
@@ -179,7 +197,6 @@ void PaintSurface::clearImage()
 {
     QPainter p(GetImage());
     p.fillRect(0,0,GetImage()->width(), GetImage()->height(), Qt::white);
-
 }
 
 void PaintSurface::TX(int &x)
@@ -191,7 +208,6 @@ void PaintSurface::setTextColor(QColor color)
 {
     textColor = color;
 }
-
 
 QRect PaintSurface::textCursor(TextLayer &textLayer)
 {

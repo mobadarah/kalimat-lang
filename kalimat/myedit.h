@@ -35,6 +35,7 @@ class MyEdit : public QTextEdit
 public:
     MyEdit(MainWindow *owner);
     void setRtl();
+    void centerCursorVerticallyIfNeeded();
     int line();
     int column();
 

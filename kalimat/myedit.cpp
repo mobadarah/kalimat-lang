@@ -12,6 +12,7 @@
 #include "linenumberarea.h"
 
 #include <QComboBox>
+#include <QScrollBar>
 
 bool isAfterNumber(QTextEdit *edit)
 {
@@ -144,6 +145,21 @@ void MyEdit::setRtl()
     document()->setDefaultTextOption(opt);
 }
 
+void MyEdit::centerCursorVerticallyIfNeeded()
+{
+    this->ensureCursorVisible();
+    QTextCursor cursor = this->textCursor();
+    QRect r = this->cursorRect(cursor);
+    if(r.top() > (0.75 *(float )this->height()))
+    {
+       // int verticalShift = r.top() - (((float) editor->height()) * 0.5);
+        int step = this->verticalScrollBar()->pageStep();
+        this->verticalScrollBar()->setPageStep(step /2);
+        this->verticalScrollBar()->triggerAction(QAbstractSlider::SliderPageStepAdd);
+        this->verticalScrollBar()->setPageStep(step);
+    }
+}
+
 void MyEdit::keyPressEvent(QKeyEvent *ev)
 {
     static QString arabComma = QString::fromWCharArray(L"،");
@@ -217,7 +233,6 @@ void MyEdit::keyPressEvent(QKeyEvent *ev)
 void MyEdit::tabBehavior()
 {
     this->insertPlainText("    ");
-
 }
 
 void MyEdit::shiftTabBehavior()
@@ -439,10 +454,10 @@ void MyEdit::enterKeyBehavior(QKeyEvent *ev)
     textCursor().endEditBlock();
     if(indented)
     {
-        QTextCursor c = textCursor();
-        moveCursor(QTextCursor::Down);
-        ensureCursorVisible();
-        setTextCursor(c );
+        //QTextCursor c = textCursor();
+        //moveCursor(QTextCursor::Down);
+        //setTextCursor(c);
+        this->centerCursorVerticallyIfNeeded();
     }
     if(end)
     {
@@ -454,6 +469,7 @@ void MyEdit::enterKeyBehavior(QKeyEvent *ev)
         c = textCursor();
         c.setPosition(oldpos);
         setTextCursor(c);
+        this->centerCursorVerticallyIfNeeded();
     }
 }
 

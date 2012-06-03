@@ -1881,21 +1881,11 @@ void MainWindow::on_functionNavigationCombo_currentIndexChanged(int index)
         Token pos = proc->getPos();
         if(pos.Type == TokenNone || pos.Type == TokenInvalid)
             return;
-        QTextEdit *editor = currentEditor();
+        MyEdit *editor = dynamic_cast<MyEdit *>(currentEditor());
         QTextCursor cursor = editor->textCursor();
         cursor.setPosition(pos.Pos);
         editor->setTextCursor(cursor);
-        editor->ensureCursorVisible();
-        cursor = editor->textCursor();
-        QRect r = editor->cursorRect(cursor);
-        if(r.top() > (0.75 *(float )editor->height()))
-        {
-           // int verticalShift = r.top() - (((float) editor->height()) * 0.5);
-            int step = editor->verticalScrollBar()->pageStep();
-            editor->verticalScrollBar()->setPageStep(step /2);
-            editor->verticalScrollBar()->triggerAction(QAbstractSlider::SliderPageStepAdd);
-            editor->verticalScrollBar()->setPageStep(step);
-        }
+        editor->centerCursorVerticallyIfNeeded();
         editor->setFocus();
     }
 }
