@@ -194,14 +194,20 @@ Value *Allocator::newMultiDimensionalArray(QVector<int>dimensions)
     return ret;
 }
 
-Value *Allocator::newString(QString str)
+Value *Allocator::newString(QString str, bool gcMonitor)
 {
-    Value *ret = allocateNewValue();
+    Value *ret = allocateNewValue(gcMonitor);
     ret->tag = StringVal;
     ret->type = BuiltInTypes::StringType;
     ret->vstrVal = str;
     return ret;
 }
+
+Value *Allocator::newString(QString str)
+{
+    return newString(str, true);
+}
+
 Value *Allocator::newRaw(void *ptr, IClass *_class)
 {
     Value *ret = allocateNewValue();

@@ -131,6 +131,7 @@ MainWindow::MainWindow(QWidget *parent)
     ui->functionNavigationToolbar->addWidget(functionNavigationCombo);
     connect(functionNavigationCombo, SIGNAL(currentIndexChanged(int)), SLOT(on_functionNavigationCombo_currentIndexChanged(int)));
 
+    generatingProgramModel = false;
     codeModelUpdateTimerId = startTimer(codeModelUpdateInterval);
 }
 
@@ -1816,12 +1817,22 @@ void MainWindow::on_action_about_kalimat_triggered()
 
 void MainWindow::on_actionUpdate_code_model_triggered()
 {
-    if(!currentEditor())
+    if(generatingProgramModel)
         return;
+    generatingProgramModel = true;
+    if(!currentEditor())
+    {
+        generatingProgramModel = false;
+        return;
+    }
 
     shared_ptr<CompilationUnit> cu = parserCurrentDocumentWithRecovery();
     if(!cu)
+    {
+        generatingProgramModel = false;
         return;
+    }
+
     functionNavigationInfo = codeAnalyzer.analyzeCompilationUnit(cu);
 
     if(functionNavigationInfo .funcNameToAst.count() == 0)
@@ -1846,6 +1857,7 @@ void MainWindow::on_actionUpdate_code_model_triggered()
                     0.6f * (float) ui->functionNavigationToolbar->width() );
         setFunctionNavigationComboSelection(currentEditor());
     }
+    generatingProgramModel = false;
 }
 
 void MainWindow::on_functionNavigationCombo_currentIndexChanged(int index)

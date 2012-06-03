@@ -73,6 +73,7 @@ void Lexer::tokenize(bool ignoreUnexpectedChar)
             else
             {
                 int l,c,p;
+                buffer.read();
                 buffer.accept(l,c,p);
                 state = 0;
             }

@@ -901,6 +901,8 @@ void VM::Load(QString assemblyCode)
                     {
                         QString key = kv[0];
                         QString val = kv[1];
+                        //todo: make sure GC doesn't erase this
+                        //when it's still needed
                         curClass->fieldAttributes[key] = allocator.newString(val);
                     }
                 }
@@ -1153,7 +1155,12 @@ void VM::Load(QString assemblyCode)
             QStringList ev_and_proc = arg.split(",", QString::SkipEmptyParts, Qt::CaseInsensitive);
             QString evName = ev_and_proc[0].trimmed();
             QString procSymRef = ev_and_proc[1].trimmed();
-            Value *name = allocator.newString(evName);
+
+            // evName is allocated but not referenced in the
+            // constant pool, therefore it doesn't exist in the
+            // root, and could be GC'd, hence we allocate
+            // it with gcMonitor=false
+            Value *name = allocator.newString(evName, false);
             Instruction i = Instruction(RegisterEvent)
                     .wArg(name)
                     .wRef(procSymRef, constantPoolLabeller);

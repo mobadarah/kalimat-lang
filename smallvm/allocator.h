@@ -62,6 +62,7 @@ public:
     Value *newBool(bool b);
     Value *newBool(bool b, bool gcMonitor);
     Value *newObject(IClass *);
+    Value *newString(QString, bool gcMonitor);
     Value *newString(QString);
     Value *newObject(IObject *, IClass *, bool gcMonitor = true);
     Value *newArray(int size);

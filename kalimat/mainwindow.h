@@ -77,6 +77,7 @@ public:
     void setFunctionNavigationComboSelection(QTextEdit *editor);
     int codeModelUpdateInterval;
     int codeModelUpdateTimerId;
+    bool generatingProgramModel;
 
 
     QString standardModulePath;
