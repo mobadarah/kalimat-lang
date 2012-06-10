@@ -65,7 +65,6 @@ void PaintSurface::drawTextLayer(QPainter &imgPainter, TextLayer &textLayer)
     options.setTextDirection(Qt::RightToLeft);
 
     textFont.setPixelSize(image.height()/25);
-    //textFont.setRawName("Simplified Arabic Fixed");
     imgPainter.setFont(textFont);
 
     QPen oldPen = imgPainter.pen();

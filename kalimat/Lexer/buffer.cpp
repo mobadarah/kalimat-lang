@@ -85,12 +85,17 @@ QChar Buffer::read()
 
 void Buffer::updateStartOfLine(int pos)
 {
-        QChar c = buffer.at(pos);
-        if(c=='\n' && !eof())
-                startOfLine = true;
-        else
-                startOfLine = false;
+    if(eof())
+    {
+        startOfLine = false;
+        return;
+    }
 
+    QChar c = buffer.at(pos);
+    if(c=='\n')
+        startOfLine = true;
+    else
+        startOfLine = false;
 }
 
 void Buffer::updateStartOfLine()

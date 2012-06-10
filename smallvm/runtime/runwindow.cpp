@@ -779,8 +779,8 @@ void RunWindow::beginInput()
 void RunWindow::onCollision(Sprite *s1, Sprite *s2)
 {
     QVector<Value *> args;
-    args.append(vm->GetAllocator().newRaw(s1, BuiltInTypes::SpriteType));
-    args.append(vm->GetAllocator().newRaw(s2, BuiltInTypes::SpriteType));
+    args.append((Value *) s1->extraValue);
+    args.append((Value *) s2->extraValue);
     vm->ActivateEvent("collision", args);
 }
 

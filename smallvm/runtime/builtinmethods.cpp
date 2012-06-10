@@ -34,6 +34,7 @@
 #include <QPushButton>
 #include <QVariant>
 #include <QRgb>
+#include <QtDebug>
 //#include <QtConcurrentRun>
 #include <QMessageBox>
 #include <iostream>
@@ -638,7 +639,8 @@ void LoadSpriteProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
     }
     Sprite *sprite = new Sprite(fname);
     w->spriteLayer.AddSprite(sprite);
-    stack.push(vm->GetAllocator().newRaw(sprite, BuiltInTypes::SpriteType));
+
+    stack.push(MakeSpriteValue(sprite, &vm->GetAllocator()));
 }
 
 void SpriteFromImageProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
@@ -652,7 +654,28 @@ void SpriteFromImageProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 
     Sprite *sprite = new Sprite(QPixmap::fromImage(*handle));
     w->spriteLayer.AddSprite(sprite);
-    stack.push(vm->GetAllocator().newRaw(sprite, BuiltInTypes::SpriteType));
+
+    stack.push(MakeSpriteValue(sprite, &vm->GetAllocator()));
+}
+
+Sprite *GetSpriteFromValue(Value * v)
+{
+    IObject *obj = v->unboxObj();
+    Value *rawSpr = obj->getSlotValue("_handle");
+    Sprite *spr = (Sprite *) rawSpr->unboxRaw();
+    return spr;
+}
+
+Value *MakeSpriteValue(Sprite *sprite, Allocator *alloc)
+{
+    Value *spriteHandle = alloc->newRaw(sprite, BuiltInTypes::ObjectType);
+    IObject *spriteObj = BuiltInTypes::SpriteType->newValue(alloc);
+    spriteObj->setSlotValue("_handle", spriteHandle);
+    Value *spriteVal = alloc->newObject(
+                spriteObj,
+                BuiltInTypes::SpriteType);
+    sprite->extraValue = spriteVal;
+    return spriteVal;
 }
 
 void DrawImageProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
@@ -681,8 +704,7 @@ void DrawImageProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 void DrawSpriteProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 {
     w->typeCheck(stack.top(), BuiltInTypes::SpriteType);
-    void *rawVal = stack.pop()->unboxRaw();
-    Sprite  *sprite = (Sprite *) rawVal;
+    Sprite  *sprite = GetSpriteFromValue(stack.pop());
 
     int x = popIntOrCoercable(stack, w , vm);
     int y = popIntOrCoercable(stack, w , vm);
@@ -699,8 +721,7 @@ void DrawSpriteProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 void ShowSpriteProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 {
     w->typeCheck(stack.top(), BuiltInTypes::SpriteType);
-    void *rawVal = stack.pop()->unboxRaw();
-    Sprite  *sprite = (Sprite *) rawVal;
+    Sprite  *sprite = GetSpriteFromValue(stack.pop());
 
     sprite->visible = true;
     w->spriteLayer.showSprite(sprite);
@@ -711,8 +732,7 @@ void ShowSpriteProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 void HideSpriteProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 {
     w->typeCheck(stack.top(), BuiltInTypes::SpriteType);
-    void *rawVal = stack.pop()->unboxRaw();
-    Sprite  *sprite = (Sprite *) rawVal;
+    Sprite  *sprite = GetSpriteFromValue(stack.pop());
 
     sprite->visible = false;
     w->spriteLayer.hideSprite(sprite);
@@ -721,8 +741,7 @@ void HideSpriteProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 void GetSpriteLeftProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 {
     w->typeCheck(stack.top(), BuiltInTypes::SpriteType);
-    void *rawVal = stack.pop()->unboxRaw();
-    Sprite  *sprite = (Sprite *) rawVal;
+    Sprite  *sprite = GetSpriteFromValue(stack.pop());
 
     int ret = sprite->boundingRect().left();
     w->paintSurface->TX(ret);
@@ -732,8 +751,7 @@ void GetSpriteLeftProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 void GetSpriteRightProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 {
     w->typeCheck(stack.top(), BuiltInTypes::SpriteType);
-    void *rawVal = stack.pop()->unboxRaw();
-    Sprite  *sprite = (Sprite *) rawVal;
+    Sprite  *sprite = GetSpriteFromValue(stack.pop());
 
     int ret = sprite->boundingRect().right();
     w->paintSurface->TX(ret);
@@ -743,8 +761,7 @@ void GetSpriteRightProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 void GetSpriteTopProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 {
     w->typeCheck(stack.top(), BuiltInTypes::SpriteType);
-    void *rawVal = stack.pop()->unboxRaw();
-    Sprite  *sprite = (Sprite *) rawVal;
+    Sprite  *sprite = GetSpriteFromValue(stack.pop());
 
     int ret = sprite->boundingRect().top();
     stack.push(vm->GetAllocator().newInt(ret));
@@ -753,8 +770,7 @@ void GetSpriteTopProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 void GetSpriteBottomProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 {
     w->typeCheck(stack.top(), BuiltInTypes::SpriteType);
-    void *rawVal = stack.pop()->unboxRaw();
-    Sprite  *sprite = (Sprite *) rawVal;
+    Sprite  *sprite = GetSpriteFromValue(stack.pop());
 
     int ret = sprite->boundingRect().bottom();
     stack.push(vm->GetAllocator().newInt(ret));
@@ -763,8 +779,7 @@ void GetSpriteBottomProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 void GetSpriteWidthProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 {
     w->typeCheck(stack.top(), BuiltInTypes::SpriteType);
-    void *rawVal = stack.pop()->unboxRaw();
-    Sprite  *sprite = (Sprite *) rawVal;
+    Sprite  *sprite = GetSpriteFromValue(stack.pop());
 
     int ret = sprite->boundingRect().width();
     stack.push(vm->GetAllocator().newInt(ret));
@@ -773,8 +788,7 @@ void GetSpriteWidthProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 void GetSpriteHeightProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 {
     w->typeCheck(stack.top(), BuiltInTypes::SpriteType);
-    void *rawVal = stack.pop()->unboxRaw();
-    Sprite  *sprite = (Sprite *) rawVal;
+    Sprite  *sprite = GetSpriteFromValue(stack.pop());
 
     int ret = sprite->boundingRect().height();
     stack.push(vm->GetAllocator().newInt(ret));
@@ -783,8 +797,7 @@ void GetSpriteHeightProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 void GetSpriteImageProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 {
     w->typeCheck(stack.top(), BuiltInTypes::SpriteType);
-    void *rawVal = stack.pop()->unboxRaw();
-    Sprite  *sprite = (Sprite *) rawVal;
+    Sprite  *sprite = GetSpriteFromValue(stack.pop());
 
     QString clsName = QString::fromStdWString(L"صورة");
     QImage *img = new QImage(sprite->image.toImage());
@@ -803,8 +816,7 @@ void SetSpriteImageProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
             (vm->GetType(clsName)->unboxObj());
 
     w->typeCheck(stack.top(), BuiltInTypes::SpriteType);
-    void *rawVal = stack.pop()->unboxRaw();
-    Sprite  *sprite = (Sprite *) rawVal;
+    Sprite  *sprite = GetSpriteFromValue(stack.pop());
 
     w->typeCheck(stack.top(), imgClass);
     IObject *imgObj = stack.pop()->unboxObj();

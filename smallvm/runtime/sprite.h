@@ -20,6 +20,8 @@ public:
     QPixmap mask;
     QPoint location;
     bool visible;
+    void *extraValue; // for attaching anything to the sprite
+                      // useful during handling collisions
 public:
     Sprite(QString filename);
     Sprite(QPixmap img);

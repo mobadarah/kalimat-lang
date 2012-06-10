@@ -70,8 +70,6 @@ private slots:
     void updateLineNumberAreaWidth(int newBlockCount);
     void highlightCurrentLine();
     void updateLineNumberArea(int lineCount);
-
-
 };
 
 #endif // MYEDIT_H

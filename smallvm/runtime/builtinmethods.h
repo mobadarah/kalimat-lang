@@ -15,6 +15,9 @@ class RunWindow;
 #include "../smallvm/vm.h"
 #endif
 
+Sprite *GetSpriteFromValue(Value * v);
+Value *MakeSpriteValue(Sprite *sprite, Allocator *alloc);
+
 typedef void (*VM_PROC)(QStack<Value *> &, RunWindow *, VM *);
 
 void PrintProc(QStack<Value *> &, RunWindow *, VM *);

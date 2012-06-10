@@ -70,7 +70,7 @@ public:
 
     Analyzer codeAnalyzer;
     QTimer codeParseTimer;
-    shared_ptr<CompilationUnit> parserCurrentDocumentWithRecovery();
+    shared_ptr<CompilationUnit> parseCurrentDocumentWithRecovery();
     QComboBox *functionNavigationCombo;
     bool functionNavigationComboIsUpdating;
     CompilationUnitInfo functionNavigationInfo;

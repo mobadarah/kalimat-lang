@@ -796,7 +796,7 @@
     <string>{</string>
    </property>
    <property name="shortcut">
-    <string>Ctrl+Alt+[, Ctrl+S, Ctrl+Shift+B</string>
+    <string>Ctrl+Alt+[</string>
    </property>
   </action>
   <action name="action_SpecialSymbol_openBrace">

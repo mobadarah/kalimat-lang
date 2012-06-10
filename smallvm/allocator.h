@@ -51,6 +51,7 @@ public:
               QQueue<Process *> *processes);
 
     void addOtherFrameAsRoot(Frame *f) { otherFrames.insert(f); }
+    void makeGcMonitored(Value *v);
     void gc();
 
     Value *newInt(int i);

@@ -255,10 +255,8 @@ void MainWindow::setFunctionNavigationComboSelection(QTextEdit *editor)
                 functionNavigationComboIsUpdating = false;
                 break;
             }
-
         }
     }
-
 }
 
 void MainWindow::timerEvent(QTimerEvent *event)
@@ -266,7 +264,7 @@ void MainWindow::timerEvent(QTimerEvent *event)
     on_actionUpdate_code_model_triggered();
 }
 
-shared_ptr<CompilationUnit> MainWindow::parserCurrentDocumentWithRecovery()
+shared_ptr<CompilationUnit> MainWindow::parseCurrentDocumentWithRecovery()
 {
     KalimatLexer lxr;
     KalimatParser parser;
@@ -1817,6 +1815,7 @@ void MainWindow::on_action_about_kalimat_triggered()
 
 void MainWindow::on_actionUpdate_code_model_triggered()
 {
+
     if(generatingProgramModel)
         return;
     generatingProgramModel = true;
@@ -1826,7 +1825,7 @@ void MainWindow::on_actionUpdate_code_model_triggered()
         return;
     }
 
-    shared_ptr<CompilationUnit> cu = parserCurrentDocumentWithRecovery();
+    shared_ptr<CompilationUnit> cu = parseCurrentDocumentWithRecovery();
     if(!cu)
     {
         generatingProgramModel = false;
@@ -1844,6 +1843,7 @@ void MainWindow::on_actionUpdate_code_model_triggered()
         functionNavigationComboIsUpdating = true;
         functionNavigationCombo->clear();
         functionNavigationCombo->addItem(QString::fromStdWString(L"(خارج الإجراءات)"));
+
         for(QMap<QString, shared_ptr<ProceduralDecl> >::const_iterator i = functionNavigationInfo.funcNameToAst.begin();
             i != functionNavigationInfo.funcNameToAst.end(); ++i)
         {
@@ -1857,6 +1857,7 @@ void MainWindow::on_actionUpdate_code_model_triggered()
                     0.6f * (float) ui->functionNavigationToolbar->width() );
         setFunctionNavigationComboSelection(currentEditor());
     }
+    done:
     generatingProgramModel = false;
 }
 

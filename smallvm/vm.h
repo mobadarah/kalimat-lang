@@ -244,7 +244,7 @@ public:
     void CallImpl(QString sym, int SymRefLabel, bool wantValueNotRef, int arity, CallStyle callStyle);
     void CallSpecialMethod(IMethod *method, QVector<Value *> args);
     void test(bool, QString, QString);
-    void coercion(Value *&v1, Value *&v2);
+    bool coercion(Value *v1, Value *v2, Value *&newV1, Value *&newV2);
     Value *_div(Value *, Value *);
     void Pop_Md_Arr_and_indexes(MultiDimensionalArray<Value *> *&theArray, QVector<int> &indexes);
 

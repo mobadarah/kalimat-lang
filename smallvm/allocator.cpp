@@ -52,8 +52,7 @@ Value *Allocator::allocateNewValue(bool gcMonitor)
     {
         if(gcMonitor)
         {
-            heap.insert(ret);
-            currentAllocationInBytes += sizeof(Value);
+            makeGcMonitored(ret);
         }
     }
     else
@@ -270,6 +269,12 @@ Value *Allocator::newQObject(QObject *qobj)
     ret->type = BuiltInTypes::QObjectType;
     ret->v.qobjVal = qobj;
     return ret;
+}
+
+void Allocator::makeGcMonitored(Value *v)
+{
+    heap.insert(v);
+    currentAllocationInBytes += sizeof(Value);
 }
 
 void Allocator::gc()

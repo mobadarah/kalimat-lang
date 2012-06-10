@@ -139,7 +139,7 @@ public:
     static ValueClass *ArrayType;
     static ValueClass *MapType;
     static ValueClass *StringType;
-    static ValueClass *SpriteType;
+    static IClass *SpriteType;
     static ValueClass *FileType;
     static ValueClass *RawFileType;
     static ValueClass *WindowType;

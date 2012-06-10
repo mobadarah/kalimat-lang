@@ -16,6 +16,7 @@
 #include <time.h>
 #include "qobjectforeignclass.h"
 #include "runtime/parserengine.h"
+#include <QtDebug>
 
 using namespace std;
 #define QSTR(x) QString::fromStdWString(x)
@@ -167,16 +168,24 @@ void VM::makeItSleep(Process *proc, int ms)
     proc->timeToWake = clock() + ms * CLOCKS_PER_SEC / 1000;
 
     bool added = false;
+    QVector<Process *> toAdd;
+    int posToInsertAt= 0;
+
+    // We now want to insert proc just before the proc
+    // with least timeToWake that is larger than
+    // proc's timeToWake
     for(int i=0; i<timerWaiting.count(); i++)
     {
         if(timerWaiting[i]->timeToWake > proc->timeToWake)
         {
-            timerWaiting.insert(i, proc);
+            posToInsertAt = i;
             added = true;
         }
     }
     if(!added)
         timerWaiting.append(proc);
+    else
+        timerWaiting.insert(posToInsertAt, proc);
 }
 
 bool VM::hasRegisteredEventHandler(QString evName)
@@ -508,11 +517,80 @@ void VM::RunStep(bool singleInstruction)
     _isRunning = !processes.empty();
 }
 
+QString InstructionToString(Instruction i)
+{
+    switch(i.opcode)
+    {
+    case PushV: return "PushV";
+    case PushLocal: return "PushLocal";
+    case PopLocal: return "PopLocal";
+    case PushGlobal: return "PushGlobal";
+    case PopGlobal: return "PopGlobal";
+    case PushNull: return "PushNull";
+    case GetRef: return "GetRef";
+    case SetRef: return "SetRef";
+    case Add: return "Add";
+    case Sub: return "Sub";
+    case Mul: return "Mul";
+    case Div: return "Div";
+    case And: return "And";
+    case Or: return "Or";
+    case Not: return "Not";
+    case Jmp: return "Jmp";
+    case JmpVal: return "JmpVal";
+    case If: return "If";
+    case Lt: return "Lt";
+    case Gt: return "Gt";
+    case Eq: return "Eq";
+    case Ne: return "Ne";
+    case Le: return "Le";
+    case Ge: return "Ge";
+    case Tail: return "Tail";
+    case Call: return "Call";
+    case CallMethod: return "CallMethod";
+    case CallRef: return "CallRef";
+    case Ret: return "Ret";
+    case CallExternal: return QString("CallExternal: %1").arg(i.SymRef);
+    case Nop: return "Nop";
+    case SetField: return "SetField";
+    case GetField: return "GetField";
+    case GetFieldRef: return "GetFieldRef";
+    case GetArr: return "GetArr";
+    case SetArr: return "SetArr";
+    case GetArrRef: return "GetArrRef";
+    case New: return "New";
+    case NewArr: return "NewArr";
+    case ArrLength: return "ArrLength";
+    case New_MD_Arr: return "New_MD_Arr";
+    case Get_MD_Arr: return "Get_MD_Arr";
+    case Set_MD_Arr: return "Set_MD_Arr";
+    case Get_MD_ArrRef: return "Get_MD_ArrRef";
+    case MD_ArrDimensions: return "MD_ArrDimensions";
+    case PushConstant: return "PushConstant";
+    case Neg: return "Neg";
+    case RegisterEvent: return "RegisterEvent";
+    case Isa: return "Isa";
+    case Send: return "Send";
+    case Receive: return "Receive";
+    case Select: return "Select";
+    case Break: return "Break";
+    case Tick: return "Tick";
+    default: return "[Unknown]";
+    }
+}
+
 void VM::RunSingleInstruction(Process *process)
 {
     Frame &frame = process->stack.top();
     Instruction i = frame.currentMethod->Get(frame.ip);
 
+    /*
+    qDebug() << QString("Running '%1', IP=%2, method=%3, process=%4\n")
+             .arg(InstructionToString(i))
+             .arg(frame.ip)
+             .arg(frame.currentMethod->getName())
+             .arg((long) process);
+    //*/
     frame.ip++;
 
     Value *Arg;
@@ -1414,7 +1492,8 @@ void VM::DoNeg()
     Value *v1 = currentFrame()->OperandStack.pop();
     Value *v2 = NULL;
 
-    assert(v1->tag == Int || v1->tag == Long || v1->tag == Double, NumericOperationOnNonNumber1, "-");
+    assert(v1->tag == Int || v1->tag == Long || v1->tag == Double,
+           NumericOperationOnNonNumber2, "-",v1->type->toString());
     if(v1->tag == Int)
         v2 = allocator.newInt(-v1->unboxInt());
     if(v1->tag == Long)
@@ -2116,33 +2195,78 @@ void VM::test(bool cond, QString trueLabel, QString falseLabel)
     currentFrame()->ip = newIp;
 }
 
-void VM::coercion(Value *&v1, Value *&v2)
+bool VM::coercion(Value *v1, Value *v2, Value *&newV1, Value *&newV2)
 {
+    bool ret = false;
     //todo: corecion leaks
     if (v1->tag == Int && v2->tag == Double)
     {
-        v1 = allocator.newDouble(v1->v.intVal);
+        // Why do we allocate a new value instead of just
+        // reusing the pointer in v2? Because the call
+        // to the allocator could GC v2, and thus we return an invalid
+        // pointer!
+        // todo: we need to make sure any call to allocation
+        // is not followed by code that makes use of values
+        // that are not guaranteed reachable!
+
+        // notice how we quickly save the old
+        // unboxed values before any call to allocation
+        int oldv1 = v1->unboxInt();
+        double oldv2 = v2->unboxDouble();
+
+        // We first make newV1 not gcMonitored until
+        // newV2 is allocated, because otherwise
+        // the allocation of newV2 might GC newV1
+        newV1 = allocator.newDouble(oldv1,false);
+        newV2 = allocator.newDouble(oldv2);
+        allocator.makeGcMonitored(newV2);
+        ret = true;
     }
     else if(v1->tag == Int && v2->tag == Long)
     {
-        v1 = allocator.newLong(v1->v.intVal);
+        int oldv1 = v1->unboxInt();
+        long oldv2 = v2->unboxLong();
+        newV1 = allocator.newLong(oldv1);
+        newV2 = allocator.newLong(oldv2);
+        ret = true;
     }
     else if(v1->tag == Long && v2->tag == Double)
     {
-        v1 = allocator.newDouble(v1->v.longVal);
+        long oldv1 = v1->unboxLong();
+        double oldv2 = v2->unboxDouble();
+        newV1 = allocator.newDouble(oldv1, false);
+        newV2 = allocator.newDouble(oldv2);
+        allocator.makeGcMonitored(newV2);
+        ret = true;
     }
     else if(v1->tag == Long && v2->tag == Int)
     {
-        v2 = allocator.newLong(v2->v.intVal);
+        long oldv1 = v1->unboxLong();
+        int oldv2 = v2->unboxInt();
+        newV1 = allocator.newLong(oldv1, false);
+        newV2 = allocator.newLong(oldv2);
+        allocator.makeGcMonitored(newV2);
+        ret = true;
     }
     else if(v1->tag == Double && v2->tag == Long)
     {
-        v2 = allocator.newDouble(v2->v.longVal);
+        double oldv1 = v1->unboxDouble();
+        long oldv2 = v2->unboxLong();
+        newV1 = allocator.newDouble(oldv1, false);
+        newV2 = allocator.newDouble(oldv2);
+        allocator.makeGcMonitored(newV2);
+        ret = true;
     }
     else if(v1->tag == Double && v2->tag == Int)
     {
-        v2 = allocator.newDouble(v2->v.intVal);
+        double oldv1 = v1->unboxDouble();
+        int oldv2 = v2->unboxInt();
+        newV1 = allocator.newDouble(oldv1, false);
+        newV2 = allocator.newDouble(oldv2);
+        allocator.makeGcMonitored(newV2);
+        ret = true;
     }
+    return ret;
 }
 
 void VM::BuiltInAddOp(int (*intFunc)(int,int),
@@ -2154,7 +2278,12 @@ void VM::BuiltInAddOp(int (*intFunc)(int,int),
     Value *v2 = currentFrame()->OperandStack.pop();
     Value *v1 = currentFrame()->OperandStack.pop();
 
-    coercion(v1, v2);
+    Value *newV1, *newV2;
+    if(coercion(v1, v2, newV1, newV2))
+    {
+        v1 = newV1;
+        v2 = newV2;
+    }
 
     assert( v1->tag == v2->tag &&
             (v1->tag == Double || v1->tag == Long || v1->tag == Int || v1->tag == StringVal
@@ -2192,9 +2321,16 @@ void VM::BuiltInArithmeticOp(QString opName,
     Value *v2 = currentFrame()->OperandStack.pop();
     Value *v1 = currentFrame()->OperandStack.pop();
 
-    coercion(v1, v2);
+    Value *newV1, *newV2;
+    if(coercion(v1, v2, newV1, newV2))
+    {
+        v1 = newV1;
+        v2 = newV2;
+    }
 
-    assert((v1->tag == v2->tag) && (v1->tag == Int || v1->tag == Long || v1->tag == Double), NumericOperationOnNonNumber1 , opName);
+    assert((v1->tag == v2->tag) &&
+           (v1->tag == Int || v1->tag == Long || v1->tag == Double),
+           NumericOperationOnNonNumber3 , opName, v1->type->toString(), v2->type->toString());
 
     Value *v3 = NULL;
 
@@ -2218,7 +2354,13 @@ void VM::BuiltInComparisonOp(bool (*intFunc)(int,int),
     Value *v2 = currentFrame()->OperandStack.pop();
     Value *v1 = currentFrame()->OperandStack.pop();
 
-    coercion(v1, v2);
+    Value *newV1, *newV2;
+
+    if(coercion(v1, v2, newV1, newV2))
+    {
+        v1 = newV1;
+        v2 = newV2;
+    }
 
     assert(v1->tag == v2->tag && (v1->tag == Int || v1->tag== Long || v1->tag == Double || v1->tag == StringVal), BuiltInOperationOnNonBuiltn);
 
@@ -2251,7 +2393,13 @@ void VM::EqualityRelatedOp(bool(*intFunc)(int, int),
     Value *v2 = currentFrame()->OperandStack.pop();
     Value *v1 = currentFrame()->OperandStack.pop();
 
-    coercion(v1, v2);
+    Value *newV1, *newV2;
+
+    if(coercion(v1, v2, newV1, newV2))
+    {
+        v1 = newV1;
+        v2 = newV2;
+    }
 
     Value *v3 = NULL;
     bool result = false;
@@ -2312,9 +2460,23 @@ void VM::UnaryLogicOp(bool(*boolFunc)(bool))
 
 Value *VM::_div(Value *v1, Value *v2)
 {
-    coercion(v1, v2);
+    Tag oldV1Tag = v1->tag;
+    Tag oldV2Tag = v2->tag;
 
-    assert((v1->tag == v2->tag) &&( v1->tag == Double || v1->tag == Long || v1->tag == Int ), NumericOperationOnNonNumber1, QSTR(L"قسمة"));
+    Value *newV1 = NULL, *newV2 = NULL;
+    Value *oldv1 = NULL, *oldv2 = NULL;
+
+    if(coercion(v1, v2, newV1, newV2))
+    {
+        oldv1 = v1;
+        oldv2 = v2;
+        v1 = newV1;
+        v2 = newV2;
+    }
+
+    assert((v1->tag == v2->tag) &&
+           ( v1->tag == Double || v1->tag == Long || v1->tag == Int ),
+           NumericOperationOnNonNumber3, QSTR(L"قسمة"), v1->type->toString(), v2->type->toString());
 
     if(v1->tag == Int && v2->tag == Int)
     {

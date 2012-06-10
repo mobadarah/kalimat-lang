@@ -16,6 +16,7 @@
 #include "references.h"
 #include "vmerror.h"
 #include "vmutils.h"
+#include "runtime/spriteclass.h"
 
 #define QSTR(x) QString::fromStdWString(x)
 
@@ -33,7 +34,7 @@ ValueClass *BuiltInTypes::IndexableType = new ValueClass(QSTR(L"مفهرس"), Bu
 ValueClass *BuiltInTypes::ArrayType = new ValueClass(QSTR(L"مصفوفة.قيم"), BuiltInTypes::IndexableType);
 ValueClass *BuiltInTypes::MapType = new ValueClass(QSTR(L"قاموس.قيم"), BuiltInTypes::IndexableType);
 ValueClass *BuiltInTypes::StringType = new ValueClass(QSTR(L"نص"), BuiltInTypes::IndexableType);
-ValueClass *BuiltInTypes::SpriteType = new ValueClass(QSTR(L"طيف"), BuiltInTypes::ObjectType);
+IClass *BuiltInTypes::SpriteType = new SpriteClass(QSTR(L"طيف"));
 ValueClass *BuiltInTypes::FileType = NULL;
 ValueClass *BuiltInTypes::RawFileType = new ValueClass("RawFile", BuiltInTypes::ObjectType);
 ValueClass *BuiltInTypes::WindowType = new ValueClass("Window", BuiltInTypes::ObjectType);

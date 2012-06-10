@@ -41,7 +41,8 @@ SOURCES += main.cpp \
     runtime/guieditwidgethandler.cpp \
     debuginfo.cpp \
     qobjectforeignclass.cpp \
-    runtime/parserengine.cpp
+    runtime/parserengine.cpp \
+    runtime/spriteclass.cpp
 
 HEADERS += \
     value.h \
@@ -79,7 +80,8 @@ HEADERS += \
     runtime/vmclient.h \
     runtime/guieditwidgethandler.h \
     qobjectforeignclass.h \
-    runtime/parserengine.h
+    runtime/parserengine.h \
+    runtime/spriteclass.h
 FORMS +=  runtime/runwindow.ui
 
 RESOURCES += \
