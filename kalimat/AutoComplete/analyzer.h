@@ -23,6 +23,8 @@ struct CompilationUnitInfo
 
     // startPos -> {range}
     QMap<int, ProcPosRange> rangeOfEachProc;
+    //QMap<Identifier *, shared_ptr<Declaration> >
+    //    functionNameToDefinition;
 };
 
 class Analyzer

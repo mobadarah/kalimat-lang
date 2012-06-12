@@ -992,6 +992,16 @@ ProceduralDecl::ProceduralDecl(Token pos,
     */
 }
 
+QString ProceduralDecl::getTooltip()
+{
+    QStringList argz;
+    for(int i=0; i<formalCount(); i++)
+        argz.append(formal(i)->toString());
+    return QString("%1(%2)")
+            .arg(procName()->name)
+            .arg(argz.join(", "));
+}
+
 QVector<shared_ptr<Identifier> > ProceduralDecl::getIntroducedVariables()
 {
     return _formals;

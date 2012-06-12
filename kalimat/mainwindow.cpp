@@ -25,6 +25,8 @@
 #include "ui_mainwindow.h"
 #include "settingsdlg.h"
 #include "aboutdlg.h"
+
+#include "mytooltip.h"
 #include <QMessageBox>
 #include <QFileDialog>
 #include <QInputDialog>
@@ -41,6 +43,7 @@
 #include <QScrollBar>
 #include <QDesktopServices>
 #include <QtConcurrentRun>
+#include <QToolTip>
 
 MainWindow *MainWindow::that = NULL;
 
@@ -110,7 +113,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     this->setWindowTitle(QString::fromWCharArray(L"كلمات"));
     this->showMaximized();
-
+    shouldHideFunctionTooltip = false;
     docContainer->addInitialEmptyDocument();
 
     stoppedRunWindow = NULL;
@@ -193,7 +196,10 @@ QWidget *MainWindow::GetParentWindow()
 
 QTextEdit *MainWindow::currentEditor()
 {
-    return docContainer->getCurrentDocument()->getEditor();
+    CodeDocument *doc = docContainer->getCurrentDocument();
+    if(doc == NULL)
+        return NULL;
+    return doc->getEditor();
 }
 
 void MainWindow::LoadDocIntoWidget(CodeDocument *doc, QWidget *widget)
@@ -232,7 +238,64 @@ void MainWindow::setLineIndicators(int line, int column, QTextEdit *editor)
     lblEditorCurrentLine->setText(QString::fromStdWString(L"السطر: %1").arg(line));
     lblEditorCurrentColumn->setText(QString::fromStdWString(L"العمود: %1").arg(column));
 
+    int index;
+    MyEdit *ed = (MyEdit *) editor;
+
     setFunctionNavigationComboSelection(editor);
+    //if(!QToolTip::isVisible())
+    //    shouldHideFunctionTooltip = false;
+    if(shouldHideFunctionTooltip)
+    {
+        bool success = false;
+        Token t2;
+        Token t1 = ed->getMatchingParen(funcToolTipParenTokenIndex,t2);
+        int minz;
+        int maxz;
+        if(!isOpenParen(t2.Lexeme))
+        {
+            // Actually no open paren under cursor,
+            // so no func(
+            // so no need to show tooltip
+            success = true;
+        }
+        // if t1 is invalid, the function call still has no
+        // closing paren: it is func(...
+        // we will keep the tooltip as long as the cursor is
+        // between the ( and the end of document
+        else if(t1.Type == TokenInvalid)
+        {
+            minz = t2.Pos;
+            maxz = ed->document()->toPlainText().length()-1;
+            int pos = ed->textCursor().position();
+            if(pos+1 >maxz
+                    || pos <=minz)
+            {
+                success = true;
+            }
+        }
+        else if(t1.Type != TokenInvalid)
+        {
+            // there's a matching paren, check if
+            // cursor's not within range
+            minz = min(t1.Pos, t2.Pos);
+            maxz = max(t1.Pos + t1.Lexeme.count(),
+                          t2.Pos + t2.Lexeme.count());
+            int pos = ed->textCursor().position();
+            // pos+1 because the closing )
+            // hasn't been entered yet
+
+            if(pos+1>maxz
+                    || pos <=minz)
+            {
+                success = true;
+            }
+        }
+        if(success)
+        {
+            MyToolTip::hideText();
+            shouldHideFunctionTooltip = false;
+        }
+    }
 }
 
 void MainWindow::setFunctionNavigationComboSelection(QTextEdit *editor)
@@ -261,6 +324,7 @@ void MainWindow::setFunctionNavigationComboSelection(QTextEdit *editor)
 
 void MainWindow::timerEvent(QTimerEvent *event)
 {
+
     on_actionUpdate_code_model_triggered();
 }
 
@@ -1876,19 +1940,104 @@ void MainWindow::on_functionNavigationCombo_currentIndexChanged(int index)
         currentEditor()->setFocus();;
         return;
     }
-    shared_ptr<ProceduralDecl> proc = functionNavigationInfo.funcNameToAst[funcName];
+    jumpToFunctionNamed(funcName, (MyEdit *) currentEditor());
+}
+Token MainWindow::getTokenUnderCursor(MyEdit *editor, TokenType type, bool ignoreTypeFilter)
+{
+    int index;
+    return getTokenUnderCursor(editor, type, index, ignoreTypeFilter);
+}
+
+Token MainWindow::getTokenUnderCursor(MyEdit *editor, TokenType type, int &index, bool ignoreTypeFilter)
+{
+    KalimatLexer lxr;
+    int cursorPos = editor->textCursor().position();
+    try
+    {
+        lxr.init(currentEditor()->document()->toPlainText());
+        lxr.tokenize(true);
+        QVector<Token> tokens = lxr.getTokens();
+
+        for(int i=0; i<tokens.count(); i++)
+        {
+            Token t = tokens[i];
+            if(t.Pos > cursorPos)
+                continue;
+            if(!ignoreTypeFilter && t.Type != type)
+                continue;
+            if(t.Pos + t.Lexeme.length() >= cursorPos)
+            {
+                index = i;
+                return t;
+            }
+        }
+    }
+    catch(UnexpectedCharException ex)
+    {
+        ui->outputView->append(ex.buildMessage());
+    }
+    catch(UnexpectedEndOfFileException ex)
+    {
+        ui->outputView->append("Unexpected end of file");
+    }
+    return Token();
+}
+
+void MainWindow::jumpToFunctionNamed(QString name, MyEdit *editor)
+{
+    if(!functionNavigationInfo.funcNameToAst.contains(name))
+        return;
+    shared_ptr<ProceduralDecl> proc = functionNavigationInfo.funcNameToAst[name];
     if(proc)
     {
         Token pos = proc->getPos();
         if(pos.Type == TokenNone || pos.Type == TokenInvalid)
             return;
-        MyEdit *editor = dynamic_cast<MyEdit *>(currentEditor());
         QTextCursor cursor = editor->textCursor();
         cursor.setPosition(pos.Pos);
         editor->setTextCursor(cursor);
         editor->centerCursorVerticallyIfNeeded();
         editor->setFocus();
     }
+}
+
+void MainWindow::on_action_go_to_definition_triggered()
+{
+    if(!currentEditor())
+        return;
+
+    MyEdit *editor = dynamic_cast<MyEdit *>(currentEditor());
+    Token t = getTokenUnderCursor(editor, IDENTIFIER);
+    if(t.Type != TokenInvalid)
+    {
+        QString funcName = t.Lexeme;
+        jumpToFunctionNamed(funcName, editor);
+    }
+}
+
+void MainWindow::triggerFunctionTips(MyEdit *editor)
+{
+    int indexOfTok;
+    Token t = getTokenUnderCursor(editor, IDENTIFIER, indexOfTok);
+
+    if(t.Type == TokenInvalid)
+        return;
+    QString funcName = t.Lexeme;
+
+    if(!functionNavigationInfo.funcNameToAst.contains(funcName))
+        return;
+
+    shared_ptr<ProceduralDecl> proc =
+            functionNavigationInfo.funcNameToAst[funcName];
+    QString tip = proc->getTooltip();
+    QRect cr = editor->cursorRect();
+    toolTipPoint = editor->mapToGlobal(cr.topRight());
+
+    MyToolTip::showText(toolTipPoint, tip, editor, QRect(), false);
+    toolTipEditor = editor;
+    shouldHideFunctionTooltip = true;
+
+    funcToolTipParenTokenIndex = indexOfTok + 1;
 }
 
 void launchKalimatSite()

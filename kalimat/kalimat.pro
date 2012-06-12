@@ -69,7 +69,9 @@ SOURCES += main.cpp \
     settingsdlg.cpp \
     aboutdlg.cpp \
     AutoComplete/analyzer.cpp \
-    ../smallvm/runtime/spriteclass.cpp
+    ../smallvm/runtime/spriteclass.cpp \
+    mytooltip.cpp \
+    mytiplabel.cpp
 HEADERS += mainwindow.h \
     Lexer/token.h \
     Lexer/statemachine.h \
@@ -122,7 +124,9 @@ HEADERS += mainwindow.h \
     settingsdlg.h \
     aboutdlg.h \
     AutoComplete/analyzer.h \
-    ../smallvm/runtime/spriteclass.h
+    ../smallvm/runtime/spriteclass.h \
+    mytooltip.h \
+    mytiplabel.h
 
 FORMS += mainwindow.ui \
     savechangedfiles.ui \

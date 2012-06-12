@@ -887,6 +887,7 @@ void CodeGenerator::generateRulesDeclaration(shared_ptr<RulesDecl> decl)
     shared_ptr<FunctionDecl> func(
             new FunctionDecl(decl->getPos(), decl->getPos(),
                              decl->name(), formals, body, true));
+    /*
     QFile f("pargen_debug.txt");
     f.open(QFile::Text | QFile::WriteOnly | QFile::Truncate);
     QTextStream out(&f);
@@ -896,6 +897,7 @@ void CodeGenerator::generateRulesDeclaration(shared_ptr<RulesDecl> decl)
     func->prettyPrint(&fmt);
     out << fmt.getOutput();
     f.close();
+    //*/
     pushProcedureScope(func);
     generateFunctionDeclaration(func);
     popProcedureScope();

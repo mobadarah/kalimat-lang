@@ -9,10 +9,16 @@
 #define MYEDIT_H
 
 #include "linetracker.h"
-
+#include "Lexer/lexer_incl.h"
+#include "Lexer/kalimatlexer.h"
 #include <QTextEdit>
 #include <QKeyEvent>
 class MainWindow;
+
+bool isParen(QString s );
+bool isOpenParen(QString s );
+bool isClosedParen(QString s );
+
 class MyEdit : public QTextEdit
 {
     Q_OBJECT
@@ -54,6 +60,9 @@ public:
     void deindentLine(int line, int by);
     void updateLineNumberAreaFont();
     bool eventFilter(QObject *sender, QEvent *event);
+
+    const QVector<Token> lexizeWithRecovery();
+    Token getMatchingParen(int indexOfTok, Token &tok);
 private:
     QWidget *lineNumberArea;
 protected:

@@ -79,6 +79,14 @@ public:
     int codeModelUpdateTimerId;
     bool generatingProgramModel;
 
+    Token getTokenUnderCursor(MyEdit *editor, TokenType type, bool ignoreTypeFilter=false);
+    Token getTokenUnderCursor(MyEdit *editor, TokenType type, int &index, bool ignoreTypeFilter=false);
+    void jumpToFunctionNamed(QString name, MyEdit *editor);
+    void triggerFunctionTips(MyEdit *editor);
+    bool shouldHideFunctionTooltip;
+    int funcToolTipParenTokenIndex;
+    QPoint toolTipPoint;
+    MyEdit *toolTipEditor;
 
     QString standardModulePath;
 
@@ -208,6 +216,8 @@ private slots:
     void on_action_SpecialSymbol_openBrace_triggered();
 
     void on_action_SpecialSymbol_closeBrace_triggered();
+
+    void on_action_go_to_definition_triggered();
 
 protected:
      void dropEvent(QDropEvent *de);

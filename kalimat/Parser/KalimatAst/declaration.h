@@ -38,6 +38,7 @@ public:
     shared_ptr<BlockStmt> body() {return _body;}
     void body(shared_ptr<BlockStmt> stmt) { _body = stmt;}
     virtual QVector<shared_ptr<Identifier> > getIntroducedVariables();
+    virtual QString getTooltip();
 };
 
 class IProcedure

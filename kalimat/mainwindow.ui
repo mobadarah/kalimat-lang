@@ -208,6 +208,8 @@
     <addaction name="action_step_parameters"/>
     <addaction name="separator"/>
     <addaction name="actionMake_exe"/>
+    <addaction name="separator"/>
+    <addaction name="action_go_to_definition"/>
    </widget>
    <widget class="QMenu" name="mnuHelp">
     <property name="tearOffEnabled">
@@ -912,6 +914,14 @@
   <action name="actionUpdate_code_model">
    <property name="text">
     <string>Update code model</string>
+   </property>
+  </action>
+  <action name="action_go_to_definition">
+   <property name="text">
+    <string>ذهاب لتعريف</string>
+   </property>
+   <property name="shortcut">
+    <string>F2</string>
    </property>
   </action>
  </widget>

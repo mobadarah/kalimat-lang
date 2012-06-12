@@ -6,8 +6,6 @@
 **************************************************************************/
 
 #include "myedit.h"
-#include "Lexer/lexer_incl.h"
-#include "Lexer/kalimatlexer.h"
 #include "mainwindow.h"
 #include "linenumberarea.h"
 
@@ -81,6 +79,105 @@ void MyEdit::updateLineNumberArea(int lineCount)
     LineNumberArea *lna = dynamic_cast<LineNumberArea *>(lineNumberArea);
     lna->highest_line = lineCount;
     updateLineNumberAreaWidth(0);
+}
+
+const QVector<Token> MyEdit::lexizeWithRecovery()
+{
+    KalimatLexer lxr;
+    QVector<Token> tokens;
+    try
+    {
+        lxr.init(document()->toPlainText());
+        lxr.tokenize(true);
+        tokens = lxr.getTokens();
+        return tokens;
+    }
+    catch(UnexpectedCharException ex)
+    {
+    }
+    catch(UnexpectedEndOfFileException ex)
+    {
+    }
+    return tokens;
+}
+
+
+QString oppositeOf(QString p)
+{
+    if(p == "(")
+        return ")";
+    if(p == ")")
+        return "(";
+    if(p == "[")
+        return "]";
+    if(p == "]")
+        return "[";
+    if(p == "{")
+        return "}";
+    if(p == "}")
+        return "{";
+    return "<unknown paren type>";
+}
+
+bool isParen(QString s )
+{
+    return s == "(" || s == ")"
+            || s == "[" || s == "]"
+            || s == "{" || s == "}";
+}
+
+bool isOpenParen(QString s )
+{
+    return s == "("
+            || s == "["
+            || s == "{";
+}
+
+bool isClosedParen(QString s )
+{
+    return   s == ")"
+            || s == "]"
+            || s == "}";
+}
+
+Token MyEdit::getMatchingParen(int indexOfTok, Token &tok)
+{
+    QVector<Token> tokens = lexizeWithRecovery();
+    QStack<int> stack;
+    QMap<int, int> indexOfClosing;
+
+    if(indexOfTok >= tokens.count())
+        return Token();
+
+    Token firstParen = tokens[indexOfTok];
+    tok = firstParen;
+    if(!isParen(firstParen.Lexeme))
+        return Token();
+
+
+    for(int i=0; i<tokens.count(); i++)
+    {
+        Token t = tokens[i];
+        if(isOpenParen(t.Lexeme))
+            stack.push(i);
+        else if(isClosedParen(t.Lexeme))
+        {
+            while(!stack.empty())
+            {
+                int otherIndex = stack.pop();
+                Token other = tokens[otherIndex];
+                if(other.Lexeme == oppositeOf(t.Lexeme))
+                {
+                    indexOfClosing[i] = otherIndex;
+                    indexOfClosing[otherIndex] = i;
+                    break;
+                }
+            }
+        }
+    }
+    if(indexOfClosing.contains(indexOfTok))
+        return tokens[indexOfClosing[indexOfTok]];
+    return Token();
 }
 
 void MyEdit::resizeEvent(QResizeEvent *e)
@@ -218,6 +315,11 @@ void MyEdit::keyPressEvent(QKeyEvent *ev)
         colonBehavior(ev);
         lastInputChar = ":";
         lastInputLine = this->line();
+    }
+    else if(ev->text() == "(")
+    {
+        owner->triggerFunctionTips(this);
+        QTextEdit::keyPressEvent(ev);
     }
     else
     {
