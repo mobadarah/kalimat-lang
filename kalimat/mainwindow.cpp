@@ -2109,11 +2109,13 @@ void MainWindow::showCompletionCombo(MyEdit *editor, VarInfo vi)
     if(cd->methodCount() == 0)
         return;
 
-    QComboBox *autoCompleteCombo = new QComboBox(editor);
+    autoCompleteCombo = new QComboBox(editor);
+
+    autoCompleteCombo->setStyleSheet("QComboBox { border-size: 3; border-color:blue }");
     for(int i=0; i<cd->methodCount();i++)
     {
         shared_ptr<MethodDecl> md = cd->method(i);
-        autoCompleteCombo->addItem(md->getTooltip());
+        autoCompleteCombo->addItem(md->getTooltip(), md->procName()->name);
     }
 
     autoCompleteCombo->setWindowOpacity(0.8);
@@ -2123,8 +2125,21 @@ void MainWindow::showCompletionCombo(MyEdit *editor, VarInfo vi)
     int y = editor->cursorRect().topLeft().y();
     autoCompleteCombo->move(x - autoCompleteCombo->width(),
                             y);
+    connect(autoCompleteCombo, SIGNAL(activated(int)),SLOT(autoCompleteBoxActivated(int)));
+
 
     autoCompleteCombo->showPopup();
+}
+
+void MainWindow::autoCompleteBoxActivated(int index)
+{
+    if(index == -1)
+        return;
+    QString sel = autoCompleteCombo->itemText(index);
+    QString methodName = autoCompleteCombo->itemData(index)
+            .toString() + "(";
+    if(sel.trimmed() !="" && currentEditor() != NULL)
+        currentEditor()->textCursor().insertText(methodName);
 }
 
 void MainWindow::triggerFunctionTips(MyEdit *editor)

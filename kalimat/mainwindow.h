@@ -80,6 +80,8 @@ public:
 
     shared_ptr<CompilationUnit> parseCurrentDocumentWithRecovery();
     QComboBox *functionNavigationCombo;
+    QComboBox *autoCompleteCombo; // todo:allocated on each
+                                 // autocompletion. Does this leak?
     bool functionNavigationComboIsUpdating;
     CompilationUnitInfo functionNavigationInfo;
     void setFunctionNavigationComboSelection(QTextEdit *editor);
@@ -234,6 +236,7 @@ private slots:
     void on_action_SpecialSymbol_closeBrace_triggered();
 
     void on_action_go_to_definition_triggered();
+    void autoCompleteBoxActivated(int);
 
 protected:
      void dropEvent(QDropEvent *de);

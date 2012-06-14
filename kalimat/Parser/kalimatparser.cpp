@@ -2109,20 +2109,36 @@ shared_ptr<Expression> KalimatParser::primaryExpression()
             {
                 match(COLON);
                 tok = lookAhead;
-                shared_ptr<Identifier> methodName = identifier();
-                QVector<shared_ptr<Expression> > args;
-                match(LPAREN);
-                if(!LA(RPAREN))
+                if(withRecovery && !LA(IDENTIFIER))
                 {
-                    args.append(expression());
-                    while(LA(COMMA))
-                    {
-                        match(COMMA);
-                        args.append(expression());
-                    }
+                    // if we are parsing for autocomplete information
+                    // and we entered x :
+                    // we need the identifier x to be in the AST
+                    // so that it's type be determined by the analyzer
+                    // in that case we'll make the whole expression
+                    // some special AST type
+                    ret = shared_ptr<ForAutocomplete>(new
+                                                      ForAutocomplete(ret->getPos(),
+                                                                      ret)
+                                );
                 }
-                match(RPAREN);
-                ret = shared_ptr<Expression>(new MethodInvokation(tok, ret, methodName, args));
+                else
+                {
+                    shared_ptr<Identifier> methodName = identifier();
+                    QVector<shared_ptr<Expression> > args;
+                    match(LPAREN);
+                    if(!LA(RPAREN))
+                    {
+                        args.append(expression());
+                        while(LA(COMMA))
+                        {
+                            match(COMMA);
+                            args.append(expression());
+                        }
+                    }
+                    match(RPAREN);
+                    ret = shared_ptr<Expression>(new MethodInvokation(tok, ret, methodName, args));
+                }
             }
             catch(ParserException ex)
             {

@@ -1920,6 +1920,10 @@ void CodeGenerator::generateInvokationStmt(shared_ptr<InvokationStmt> stmt)
         generateMethodInvokation(dynamic_pointer_cast<MethodInvokation>(expr), ProcedureInvokationContext);
         return;
     }
+    if(isa<ForAutocomplete>(expr))
+    {
+        generateExpression(expr);
+    }
     else
     {
         error(CompilerException(currentFileName,stmt, UnimplementedInvokationForm).arg(expr->toString()));
@@ -2158,6 +2162,13 @@ void CodeGenerator::generateExpression(shared_ptr<Expression> expr)
         generateIdentifier(dynamic_pointer_cast<Identifier>(expr));
         return;
     }
+    if(isa<ForAutocomplete>(expr))
+    {
+        generateExpression(dynamic_pointer_cast<ForAutocomplete>(expr)
+                           ->toBeCompleted);
+        return;
+    }
+
     if(isa<NumLiteral>(expr))
     {
         generateNumLiteral(dynamic_pointer_cast<NumLiteral>(expr));

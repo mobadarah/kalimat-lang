@@ -212,6 +212,24 @@ public:
     void prettyPrint(CodeFormatter *f);
 };
 
+class ForAutocomplete : public IInvokation
+{
+public:
+    shared_ptr<Expression> toBeCompleted;
+public:
+    ForAutocomplete(Token pos, shared_ptr<Expression> toBeCompleted)
+        :IInvokation(pos),toBeCompleted(toBeCompleted)
+    {
+
+    }
+    ~ForAutocomplete() {}
+    QString toString() { return toBeCompleted->toString();}
+    void prettyPrint(CodeFormatter *f)
+    {
+        toBeCompleted->prettyPrint(f);
+    }
+};
+
 class TimingExpression : public Expression
 {
 public:
