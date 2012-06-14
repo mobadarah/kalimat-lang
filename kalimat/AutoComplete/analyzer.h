@@ -2,10 +2,13 @@
 #define ANALYZER_H
 
 #include <QMap>
+#include <functional>
 #include "../Parser/KalimatAst/declaration.h"
 #include "../Parser/KalimatAst/expression.h"
 
 QString getBeautifulName(shared_ptr<ProceduralDecl> proc);
+QString methodDeclarationForCompletion(shared_ptr<MethodDecl> md);
+
 struct ProcPosRange
 {
     int from, to;
@@ -17,14 +20,23 @@ struct ProcPosRange
     }
 };
 
+struct ClassInfo
+{
+    QVector<QString *> baseClasses;
+    // All methods, here or inherited
+    // if inheritance overides a function with differently
+    // names parameters, use new names
+    QMap<QString, shared_ptr<MethodDecl> > methods;
+};
+
 struct CompilationUnitInfo
 {
     QMap<QString, shared_ptr<ProceduralDecl> > funcNameToAst;
 
     // startPos -> {range}
     QMap<int, ProcPosRange> rangeOfEachProc;
-    //QMap<Identifier *, shared_ptr<Declaration> >
-    //    functionNameToDefinition;
+    QMap<QString, ClassInfo> classInfo;
+    QMap<Identifier *, QString> varTypes;
 };
 
 class Analyzer
@@ -32,6 +44,11 @@ class Analyzer
 public:
     Analyzer();
     CompilationUnitInfo analyzeCompilationUnit(shared_ptr<CompilationUnit>);
+    void analyzeFunctionDeclarations(shared_ptr<CompilationUnit> cu,
+                                     CompilationUnitInfo &ret);
+    void analyzeClassDeclarations(shared_ptr<CompilationUnit> cu,
+                                     CompilationUnitInfo &ret);
+    void forEachDecl(shared_ptr<CompilationUnit> cu, std::function<void(shared_ptr<Declaration>)>);
 };
 
 #endif // ANALYZER_H

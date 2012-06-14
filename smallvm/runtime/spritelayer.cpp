@@ -32,6 +32,8 @@ void SpriteLayer::checkCollision(Sprite *s, CollisionListener *callback)
     for(QSet<Sprite *>::iterator i = _visibleSprites.begin(); i!=_visibleSprites.end(); ++i)
     {
         Sprite *s2 = *i;
+        if(!s2->collides)
+            continue;
         if(s != s2)
         {
             if(s->boundingRect().intersects(s2->boundingRect()))

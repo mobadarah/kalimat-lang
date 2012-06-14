@@ -19,6 +19,58 @@
 #include <memory>
 using namespace std;
 
+enum CompilerError
+{
+ASTMustBeStatementOrDeclaration,
+ClassAlreadyExists,
+AncestorClassXforClassYdoesntExist,
+MethodDefinedForNotYetExistingClass,
+MethodCalledXwasAlreadyDefinedForClassY,
+MethodXwasNotDeclaredInClassY,
+MethodXwasDeclaredWithDifferentArityInClassY,
+MethodXwasDeclaredAfunctionButImplementedAsProcedureInClassY,
+MethodXwasDeclaredAprocedureButImplementedAsFunctionInClassY,
+ReadFromCannotContainAPrompt,
+ReadFromCanReadOnlyOneVariable,
+TargetOfLabelMustBeNumberOrIdentifier,
+DuplicateLabel,
+ReturnCanBeUsedOnlyInFunctions,
+CannotCallProcedureInExpression1,
+UndefinedVariable,
+UnacceptableNumberLiteral,
+DeclarationNotSupported,
+LValueFormNotImplemented,
+UnimplementedExpressionForm,
+UnimplementedStatementForm,
+UnimplementedInvokationForm,
+UnimplementedTypeForm,
+UnimplementedPatternForm,
+ProgramsCannotUseExternalModulesWithoutSavingThemFirst,
+InternalCompilerErrorInFunc,
+CannotRunAModule,
+RuleAlreadyDefined,
+InvokingUndefinedRule,
+ModuleDoesntExist
+};
+
+class CompilerException
+{
+    QString message;
+    QStringList args;
+    CompilerError error;
+    static QMap<CompilerError, QString> errorMap;
+    QString translateErrorMessage(CompilerError error);
+public:
+    shared_ptr<AST> source;
+    QString fileName;
+public:
+    CompilerException(QString fileName, shared_ptr<AST> source, CompilerError error);
+    static CompilerException no_source(CompilerError error);
+    CompilerException &arg(QString);
+    CompilerError getError() {return error;}
+    QString getMessage();
+};
+
 enum MethodCallStyle
 {
     NonTailCallStyle,
@@ -26,11 +78,42 @@ enum MethodCallStyle
     LaunchProcessStyle
 };
 
+struct VarInfo
+{
+    shared_ptr<Identifier> pointOfDeclaration;
+    QString type;
+
+    VarInfo(shared_ptr<Identifier> pointOfDeclaration, QString type)
+        :pointOfDeclaration(pointOfDeclaration), type(type)
+    {
+
+    }
+    VarInfo(shared_ptr<Identifier> pointOfDeclaration)
+        :pointOfDeclaration(pointOfDeclaration)
+    {
+
+    }
+    VarInfo(const VarInfo &other)
+        :pointOfDeclaration(other.pointOfDeclaration),
+          type(other.type)
+    {
+
+    }
+
+    VarInfo() {}
+    VarInfo &operator =(const VarInfo &other)
+    {
+        pointOfDeclaration = other.pointOfDeclaration;
+        type = other.type;
+    }
+};
+
 struct Context
 {
     shared_ptr<ProceduralDecl>  proc;
     QSet<QString> bindings;
     QSet<QString> labels;
+    QMap<QString, shared_ptr<Identifier> > declarationOf;
     int instructionCount;
 };
 
@@ -44,9 +127,16 @@ enum InvokationContext
     ProcedureInvokationContext, FunctionInvokationContext
 };
 
+enum CodeGenerationMode
+{
+    CompilationMode,
+    AnalysisMode
+};
+
 class CodeGenerator
 {
     SmallVMCodeGenerator _asm;
+public:
     QSet<QString> declaredGlobalVariables; // these are declared by the programmer
     QSet<shared_ptr<Identifier> > freeVariables; // and those are references to global variables from within functions
     QMap<QString, shared_ptr<ClassDecl> > allClasses;
@@ -59,6 +149,10 @@ class CodeGenerator
 
     int codePosKeyCount;
 public:
+    CodeGenerationMode mode;
+    // from position of token of identifier
+    // to its varinfo
+    QMap<int, VarInfo> varInfos;
     DebugInfo debugInfo;
     QMap<int, CodePosition> PositionInfo;
     CodeDocument *currentCodeDoc;
@@ -72,6 +166,7 @@ public:
     QString getOutput();
     void compileModule(shared_ptr<Module> module, QString fileName, CodeDocument *curDoc);
     QString getStringConstantsAsOpCodes();
+    void error(CompilerException );
 private:
 
     void generateEntryPoint(QVector<shared_ptr<Statement> > statements);
@@ -173,7 +268,10 @@ private:
     void thirdPass(shared_ptr<Declaration> decl);
     void checkInheritanceCycles();
     void generateStringConstant(shared_ptr<AST> src, QString str);
-    void defineInCurrentScope(QString);
+
+    void defineInCurrentScopeNoSource(QString);
+    void defineInCurrentScope(QString, shared_ptr<Identifier> defPoint);
+    void defineInCurrentScope(QString var, shared_ptr<Identifier> defPoint, QString type);
     bool isBountInCurrentScope(QString);
     bool currentScopeFuncNotProc();
 
@@ -191,55 +289,5 @@ private:
     QString getCurrentFunctionNameFormatted();
 
 };
-enum CompilerError
-{
-ASTMustBeStatementOrDeclaration,
-ClassAlreadyExists,
-AncestorClassXforClassYdoesntExist,
-MethodDefinedForNotYetExistingClass,
-MethodCalledXwasAlreadyDefinedForClassY,
-MethodXwasNotDeclaredInClassY,
-MethodXwasDeclaredWithDifferentArityInClassY,
-MethodXwasDeclaredAfunctionButImplementedAsProcedureInClassY,
-MethodXwasDeclaredAprocedureButImplementedAsFunctionInClassY,
-ReadFromCannotContainAPrompt,
-ReadFromCanReadOnlyOneVariable,
-TargetOfLabelMustBeNumberOrIdentifier,
-DuplicateLabel,
-ReturnCanBeUsedOnlyInFunctions,
-CannotCallProcedureInExpression1,
-UndefinedVariable,
-UnacceptableNumberLiteral,
-DeclarationNotSupported,
-LValueFormNotImplemented,
-UnimplementedExpressionForm,
-UnimplementedStatementForm,
-UnimplementedInvokationForm,
-UnimplementedTypeForm,
-UnimplementedPatternForm,
-ProgramsCannotUseExternalModulesWithoutSavingThemFirst,
-InternalCompilerErrorInFunc,
-CannotRunAModule,
-RuleAlreadyDefined,
-InvokingUndefinedRule,
-ModuleDoesntExist
-};
 
-class CompilerException
-{
-    QString message;
-    QStringList args;
-    CompilerError error;
-    static QMap<CompilerError, QString> errorMap;
-    QString translateErrorMessage(CompilerError error);
-public:
-    shared_ptr<AST> source;
-    QString fileName;
-public:
-    CompilerException(QString fileName, shared_ptr<AST> source, CompilerError error);
-    static CompilerException no_source(CompilerError error);
-    CompilerException &arg(QString);
-    CompilerError getError() {return error;}
-    QString getMessage();
-};
 #endif // COMPILER_H

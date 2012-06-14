@@ -11,13 +11,16 @@ Sprite::Sprite(QString filename)
     :image(filename)
 {
     visible = false;
+    collides = true;
     prepareMask(image);
+
 }
 
 Sprite::Sprite(QPixmap img)
     :image(img)
 {
     visible = false;
+    collides = true;
     prepareMask(image);
 }
 
@@ -37,4 +40,9 @@ void Sprite::prepareMask(QPixmap image)
 QRect Sprite::boundingRect()
 {
     return QRect(location, image.size());
+}
+
+void Sprite::enableColission(bool enable)
+{
+    collides = enable;
 }

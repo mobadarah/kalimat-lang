@@ -109,7 +109,7 @@ void RunWindow::Init(QString program, QMap<QString, QString> stringConstants, QS
         mouseDownEventChannel = vm->GetAllocator().newChannel(false);
         mouseUpEventChannel = vm->GetAllocator().newChannel(false);
         kbEventChannel = vm->GetAllocator().newChannel(false);
-
+        vm->registerProcessAdministrator("eventQueue");
         vm->DefineStringConstant("new_line", "\n");
         vm->Register("print", new WindowProxyMethod(this, vm, PrintProc));
         vm->Register("input", readMethod);
@@ -778,9 +778,16 @@ void RunWindow::beginInput()
 
 void RunWindow::onCollision(Sprite *s1, Sprite *s2)
 {
+    Value *v1 = reinterpret_cast<Value *>(s1->extraValue);
+    Value *v2 = reinterpret_cast<Value *>(s2->extraValue);
+    if(v1->type != BuiltInTypes::SpriteType || v2->type
+            != BuiltInTypes::SpriteType)
+    {
+        int breakPoint = 0;
+    }
     QVector<Value *> args;
-    args.append((Value *) s1->extraValue);
-    args.append((Value *) s2->extraValue);
+    args.append(v1);
+    args.append(v2);
     vm->ActivateEvent("collision", args);
 }
 

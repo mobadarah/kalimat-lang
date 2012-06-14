@@ -241,6 +241,7 @@ public:
     shared_ptr<MethodDecl> method(QString name);
     shared_ptr<MethodDecl> method(int i) { return _methods.values().at(i);}
     MethodInfo methodPrototype(QString name);
+
     int prototypeCount() { return _methodPrototypes.count();}
     shared_ptr<Identifier> ancestor() { return _ancestorName;}
     bool fieldHasMarshalType(QString fieldName) { return _fieldMarshallAs.contains(fieldName); }
@@ -280,6 +281,7 @@ public:
     shared_ptr<Identifier> className() { return _className;}
     shared_ptr<Identifier> receiverName() { return _receiverName;}
     QString toString();
+    QString getTooltip();
     void prettyPrint(CodeFormatter *f);
 };
 

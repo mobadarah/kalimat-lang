@@ -669,11 +669,23 @@ Sprite *GetSpriteFromValue(Value * v)
 Value *MakeSpriteValue(Sprite *sprite, Allocator *alloc)
 {
     Value *spriteHandle = alloc->newRaw(sprite, BuiltInTypes::ObjectType);
+    alloc->stopGcMonitoring(spriteHandle);
+
+    //todo: we stopGcMonitoring each thing we allocate since
+    // possible GC in the next allocation could erase it
+    // the return GcMonitoring after each allocation.
+    // but the problem is we don't have access to whatever objects
+    // allocated internally by SpriteType.newValue (luckily
+    // nothing is actually allocated there now), so we can't do this
+    // we really need atomic allocation of multiple values
+
     IObject *spriteObj = BuiltInTypes::SpriteType->newValue(alloc);
+
     spriteObj->setSlotValue("_handle", spriteHandle);
     Value *spriteVal = alloc->newObject(
                 spriteObj,
                 BuiltInTypes::SpriteType);
+    alloc->makeGcMonitored(spriteHandle);
     sprite->extraValue = spriteVal;
     return spriteVal;
 }
@@ -704,27 +716,44 @@ void DrawImageProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 void DrawSpriteProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 {
     w->typeCheck(stack.top(), BuiltInTypes::SpriteType);
-    Sprite  *sprite = GetSpriteFromValue(stack.pop());
+    Value *spriteVal =stack.pop();
+    Sprite  *sprite = GetSpriteFromValue(spriteVal);
 
+    Object *spriteObj = dynamic_cast<Object *>(
+                spriteVal->unboxObj());
     int x = popIntOrCoercable(stack, w , vm);
     int y = popIntOrCoercable(stack, w , vm);
 
     w->paintSurface->TX(x);
-    x-= sprite->image.width();
     sprite->location = QPoint(x,y);
     sprite->visible = true;
-    w->checkCollision(sprite);
+
+    vm->GetAllocator().stopGcMonitoring(spriteVal);
     w->spriteLayer.showSprite(sprite);
+
+    // If a sprite is visible on the screen, we don't want to GC
+    // it, since a collision function that might use it
+    // could be called. A sprite can be GC'd only if it is
+    // both unreachable and invisible
+
+    w->checkCollision(sprite);
     w->redrawWindow();
 }
 
 void ShowSpriteProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 {
     w->typeCheck(stack.top(), BuiltInTypes::SpriteType);
-    Sprite  *sprite = GetSpriteFromValue(stack.pop());
+    Value *spriteVal =stack.pop();
+    Sprite  *sprite = GetSpriteFromValue(spriteVal);
 
     sprite->visible = true;
+    vm->GetAllocator().stopGcMonitoring(spriteVal);
     w->spriteLayer.showSprite(sprite);
+    // If a sprite is visible on the screen, we don't want to GC
+    // it, since a collision function that might use it
+    // could be called. A sprite can be GC'd only if it is
+    // both unreachable and invisible
+
     w->checkCollision(sprite);
     w->redrawWindow();
 }
@@ -732,10 +761,14 @@ void ShowSpriteProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 void HideSpriteProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 {
     w->typeCheck(stack.top(), BuiltInTypes::SpriteType);
-    Sprite  *sprite = GetSpriteFromValue(stack.pop());
+    Value *spriteVal = stack.pop();
+    Sprite  *sprite = GetSpriteFromValue(spriteVal);
 
     sprite->visible = false;
     w->spriteLayer.hideSprite(sprite);
+    // See ShowSpriteProc and DrawSpriteProc
+    // for why the sprite was not GC monitored when visible
+    //vm->GetAllocator().makeGcMonitored(spriteVal);
     w->redrawWindow();
 }
 void GetSpriteLeftProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
@@ -779,7 +812,8 @@ void GetSpriteBottomProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 void GetSpriteWidthProc(QStack<Value *> &stack, RunWindow *w, VM *vm)
 {
     w->typeCheck(stack.top(), BuiltInTypes::SpriteType);
-    Sprite  *sprite = GetSpriteFromValue(stack.pop());
+    Value *spriteVal = stack.pop();
+    Sprite  *sprite = GetSpriteFromValue(spriteVal);
 
     int ret = sprite->boundingRect().width();
     stack.push(vm->GetAllocator().newInt(ret));

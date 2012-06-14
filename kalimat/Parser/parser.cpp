@@ -80,6 +80,17 @@ bool Parser::LA(TokenType tokenId)
     return lookAhead.Type == tokenId;
 }
 
+bool Parser::LA(QSet<TokenType> tokenIds)
+{
+    foreach(TokenType t, tokenIds)
+    {
+        if(LA(t))
+            return true;
+    }
+
+    return false;
+}
+
 bool Parser::LA2(TokenType tokenId, TokenType followingTokenId)
 {
     // Make sure we have at least 2 more tokens

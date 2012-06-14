@@ -273,8 +273,16 @@ Value *Allocator::newQObject(QObject *qobj)
 
 void Allocator::makeGcMonitored(Value *v)
 {
-    heap.insert(v);
-    currentAllocationInBytes += sizeof(Value);
+//    if(!heap.contains(v))
+//        currentAllocationInBytes += sizeof(Value);
+    protectedValues.remove(v);
+}
+
+void Allocator::stopGcMonitoring(Value *v)
+{
+//    if(heap.contains(v))
+//        currentAllocationInBytes -= sizeof(Value);
+    protectedValues.insert(v);
 }
 
 void Allocator::gc()
@@ -293,7 +301,11 @@ void Allocator::mark()
         Value * v = i.value();
         reachable.push(v);
     }
-
+    for(QSet<Value *>::const_iterator i=protectedValues.begin(); i != protectedValues.end(); ++i)
+    {
+        Value *v = *i;
+        reachable.push(v);
+    }
 
     for(QSet<Frame *>::const_iterator it= otherFrames.begin(); it != otherFrames.end(); ++it)
     {

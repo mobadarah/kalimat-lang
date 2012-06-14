@@ -70,6 +70,14 @@ public:
 
     Analyzer codeAnalyzer;
     QTimer codeParseTimer;
+
+    // Info on all variables: declaration point & type if available
+    // generated frequently for autocomplete
+    // maps from position of token of identifier
+    // to its varinfo
+    QMap<int, VarInfo> varInfos;
+    QMap<QString, shared_ptr<ClassDecl> > classInfoData;
+
     shared_ptr<CompilationUnit> parseCurrentDocumentWithRecovery();
     QComboBox *functionNavigationCombo;
     bool functionNavigationComboIsUpdating;
@@ -81,7 +89,15 @@ public:
 
     Token getTokenUnderCursor(MyEdit *editor, TokenType type, bool ignoreTypeFilter=false);
     Token getTokenUnderCursor(MyEdit *editor, TokenType type, int &index, bool ignoreTypeFilter=false);
+
+    Token getTokenBeforeCursor(MyEdit *editor, TokenType type, bool ignoreTypeFilter=false);
+    Token getTokenBeforeCursor(MyEdit *editor, TokenType type, int &index, bool ignoreTypeFilter=false);
+
+    void analyzeForAutocomplete();
+
     void jumpToFunctionNamed(QString name, MyEdit *editor);
+    void triggerAutocomplete(MyEdit *editor);
+    void showCompletionCombo(MyEdit *editor, VarInfo vi);
     void triggerFunctionTips(MyEdit *editor);
     bool shouldHideFunctionTooltip;
     int funcToolTipParenTokenIndex;

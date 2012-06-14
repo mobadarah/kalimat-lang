@@ -20,6 +20,7 @@ public:
     QPixmap mask;
     QPoint location;
     bool visible;
+    bool collides;
     void *extraValue; // for attaching anything to the sprite
                       // useful during handling collisions
 public:
@@ -27,6 +28,7 @@ public:
     Sprite(QPixmap img);
     void setImage(QPixmap image);
     QRect boundingRect();
+    void enableColission(bool enable);
 private:
     void prepareMask(QPixmap image);
 };

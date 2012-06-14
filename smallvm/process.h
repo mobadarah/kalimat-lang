@@ -37,6 +37,7 @@ struct Process
     int nsend;
     VM *owner;
     clock_t timeToWake;
+    QString administrator;
 public:
     Process(VM *owner);
     void awaken();

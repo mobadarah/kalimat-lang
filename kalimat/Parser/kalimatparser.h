@@ -90,7 +90,8 @@ private:
     shared_ptr<FFIProceduralDecl> ffiFunctionDecl();
     shared_ptr<FFIProceduralDecl> ffiProcDecl();
 
-    shared_ptr<BlockStmt> block();
+    // blockTerminator is needed for recovery
+    shared_ptr<BlockStmt> block(QSet<TokenType> blockTerminators);
 
     bool LA_first_expression();
     shared_ptr<Expression> expression();

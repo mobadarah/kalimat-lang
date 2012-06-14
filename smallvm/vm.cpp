@@ -56,12 +56,44 @@ void VM::Init()
 
 Frame *VM::launchProcess(Method *method)
 {
+    Process *dummy;
+    launchProcess(method, dummy);
+}
+
+Frame *VM::launchProcess(Method *method, Process *&proc)
+{
     Process *p = new Process(this);
     p->stack.push(Frame(method, NULL));
     processes.push_back(p);
     newProcesses.push_back(p);
     Frame *ret = &p->stack.top();
     return ret;
+}
+
+
+Frame *VM::launchAdministeredProcess(Method *method, QString administrator)
+{
+    Process *proc;
+    Frame *ret = launchProcess(method, proc);
+
+    if(!processAdministrators.contains(administrator))
+        signal(InternalError1, QString("launchAdministeredProcess: no registered administrator '%1'")
+               .arg(administrator));
+
+    QQueue<Process *> &queue = processAdministrators[administrator];
+    if(!queue.empty())
+    {
+        proc->sleep();
+        processAdministrators[administrator].push_back(proc);
+        proc->administrator = administrator;
+    }
+
+    return ret;
+}
+
+void VM::registerProcessAdministrator(QString name)
+{
+    processAdministrators[name] = QQueue<Process *>();
 }
 
 void VM::assert(bool cond, VMErrorType toSignal)
@@ -277,8 +309,8 @@ void VM::ActivateEvent(QString evName, QVector<Value *>args)
     Method *method = (Method *) constantPool[procLabel]->unboxObj();
     assert(args.count() == method->Arity(), WrongNumberOfArguments);
 
+    //Frame *newFrame = launchAdministeredProcess(method, "evQ");
     Frame *newFrame = launchProcess(method);
-
     for(int i=args.count()-1; i>=0; i--)
     {
         newFrame->OperandStack.push(args[i]);
@@ -512,6 +544,19 @@ void VM::RunStep(bool singleInstruction)
     else if(!pIsRunning)
     {
         processes.removeOne(runningNow);
+        /*
+        if(runningNow->administrator != "")
+        {
+            QQueue<Process *> admin = processAdministrators
+                    [runningNow->administrator];
+            if(!admin.empty())
+            {
+                Process *next = admin.front();
+                admin.pop_front();
+                next->awaken();
+            }
+        }
+        */
         delete runningNow; // since it will not return to the queue
     }
     _isRunning = !processes.empty();
@@ -2219,15 +2264,16 @@ bool VM::coercion(Value *v1, Value *v2, Value *&newV1, Value *&newV2)
         // the allocation of newV2 might GC newV1
         newV1 = allocator.newDouble(oldv1,false);
         newV2 = allocator.newDouble(oldv2);
-        allocator.makeGcMonitored(newV2);
+        allocator.makeGcMonitored(newV1);
         ret = true;
     }
     else if(v1->tag == Int && v2->tag == Long)
     {
         int oldv1 = v1->unboxInt();
         long oldv2 = v2->unboxLong();
-        newV1 = allocator.newLong(oldv1);
+        newV1 = allocator.newLong(oldv1,false);
         newV2 = allocator.newLong(oldv2);
+        allocator.makeGcMonitored(newV1);
         ret = true;
     }
     else if(v1->tag == Long && v2->tag == Double)
@@ -2236,7 +2282,7 @@ bool VM::coercion(Value *v1, Value *v2, Value *&newV1, Value *&newV2)
         double oldv2 = v2->unboxDouble();
         newV1 = allocator.newDouble(oldv1, false);
         newV2 = allocator.newDouble(oldv2);
-        allocator.makeGcMonitored(newV2);
+        allocator.makeGcMonitored(newV1);
         ret = true;
     }
     else if(v1->tag == Long && v2->tag == Int)
@@ -2245,7 +2291,7 @@ bool VM::coercion(Value *v1, Value *v2, Value *&newV1, Value *&newV2)
         int oldv2 = v2->unboxInt();
         newV1 = allocator.newLong(oldv1, false);
         newV2 = allocator.newLong(oldv2);
-        allocator.makeGcMonitored(newV2);
+        allocator.makeGcMonitored(newV1);
         ret = true;
     }
     else if(v1->tag == Double && v2->tag == Long)
@@ -2254,7 +2300,7 @@ bool VM::coercion(Value *v1, Value *v2, Value *&newV1, Value *&newV2)
         long oldv2 = v2->unboxLong();
         newV1 = allocator.newDouble(oldv1, false);
         newV2 = allocator.newDouble(oldv2);
-        allocator.makeGcMonitored(newV2);
+        allocator.makeGcMonitored(newV1);
         ret = true;
     }
     else if(v1->tag == Double && v2->tag == Int)
@@ -2263,7 +2309,7 @@ bool VM::coercion(Value *v1, Value *v2, Value *&newV1, Value *&newV2)
         int oldv2 = v2->unboxInt();
         newV1 = allocator.newDouble(oldv1, false);
         newV2 = allocator.newDouble(oldv2);
-        allocator.makeGcMonitored(newV2);
+        allocator.makeGcMonitored(newV1);
         ret = true;
     }
     return ret;

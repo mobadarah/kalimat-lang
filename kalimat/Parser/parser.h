@@ -9,6 +9,7 @@
 #define PARSER_H
 
 #include <memory>
+#include <QSet>
 using namespace std;
 
 struct ParserState
@@ -53,6 +54,7 @@ protected:
     bool eof();
     void initLookAhead();
     bool LA(TokenType tokenId);
+    bool LA(QSet<TokenType> tokenIds);
     bool LA2(TokenType tokenId, TokenType followingTokenId);
     bool expect(TokenType tokenType);
     bool match(int TokenType);

@@ -68,6 +68,20 @@ class VM
     QQueue<Process *> timerWaiting;
     QQueue<Process *> newProcesses;
 
+
+    /* An 'administrator' is a special process queue
+       that can be used to run processes in sequence (each of them
+       must wait for the previous one to finish. If you call
+       launchAdministeredProcess with a name of an administrator,
+       the VM scheduler would lauch the process as suspended
+       (except if the queue is empty) and resume the next process
+       in the queue once the current is done.
+
+       You must register an administrator with
+       "registerProcessAdministrator" before using it.
+       */
+    QMap<QString, QQueue<Process *> > processAdministrators;
+
     // The allocator must be declared after the 'constantPool' and 'stack'
     // members, since it's initialized with them in VMs constructor initializer list!!
     Allocator allocator;
@@ -106,6 +120,8 @@ public:
     void Register(QString symRef, ExternalMethod *method);
     void RegisterType(QString typeName, IClass *type);
     void DefineStringConstant(QString symRef, QString strValue);
+
+    void registerProcessAdministrator(QString name);
     Value *GetType(QString symref);
 
     /*
@@ -130,6 +146,8 @@ public:
     void gc();
 
     Frame *launchProcess(Method *method);
+    Frame *launchProcess(Method *method, Process *&proc);
+    Frame *launchAdministeredProcess(Method *method, QString administrator);
     bool hasRunningInstruction();
     inline bool processIsFinished(Process *process)
     {

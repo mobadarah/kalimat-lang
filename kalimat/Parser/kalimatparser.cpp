@@ -409,7 +409,11 @@ shared_ptr<Statement> KalimatParser::ifStmt()
 
         if(newLine)
         {
-            thenPart = block();
+            //todo:slow
+            QSet<TokenType> terms;
+            terms.insert(ELSE);
+            terms.insert(DONE);
+            thenPart = block(terms);
             //match(NEWLINE);
         }
         else
@@ -432,7 +436,12 @@ shared_ptr<Statement> KalimatParser::ifStmt()
             if(newLine)
             {
                 match(NEWLINE);
-                otherPart = block();
+
+                //todo:slow
+                QSet<TokenType> terms;
+                terms.insert(ELSE);
+                terms.insert(DONE);
+                otherPart = block(terms);
             }
             else
             {
@@ -452,7 +461,10 @@ shared_ptr<Statement> KalimatParser::ifStmt()
 
             if(newLine)
             {
-                elsePart = block();
+                //todo:slow
+                QSet<TokenType> terms;
+                terms.insert(DONE);
+                elsePart = block(terms);
                 //     match(NEWLINE);
             }
             else
@@ -510,7 +522,10 @@ shared_ptr<Statement> KalimatParser::forEachStmt()
     }
     if(multiLineStmt)
     {
-        theStmt = block();
+        //todo:slow
+        QSet<TokenType> terms;
+        terms.insert(CONTINUE);
+        theStmt = block(terms);
     }
     else
     {
@@ -541,7 +556,10 @@ shared_ptr<Statement> KalimatParser::whileStmt()
     }
     if(multiLineStmt)
     {
-        theStmt = block();
+        //todo:slow
+        QSet<TokenType> terms;
+        terms.insert(CONTINUE);
+        theStmt = block(terms);
     }
     else
     {
@@ -1084,7 +1102,13 @@ shared_ptr<Statement> KalimatParser::selectStmt()
         multilineStatement = true;
     }
     if(multilineStatement)
-        actions.append(block());
+    {
+        //todo:slow
+        QSet<TokenType> terms;
+        terms.insert(OR);
+        terms.insert(DONE);
+        actions.append(block(terms));
+    }
     else
         actions.append(statement());
 
@@ -1106,7 +1130,12 @@ shared_ptr<Statement> KalimatParser::selectStmt()
         match(COLON);
 
         if(multilineStatement)
-            actions.append(block());
+        {
+            //todo:slow
+            QSet<TokenType> terms;
+            terms.insert(DONE);
+            actions.append(block(terms));
+        }
         else
             actions.append(statement());
     }
@@ -1114,7 +1143,7 @@ shared_ptr<Statement> KalimatParser::selectStmt()
     return shared_ptr<Statement>(new SelectStmt(tok, conditions, actions));
 }
 
-shared_ptr<BlockStmt> KalimatParser::block()
+shared_ptr<BlockStmt> KalimatParser::block(QSet<TokenType> blockTerminators)
 {
     QVector<shared_ptr<Statement> > stmts;
     Token tok = lookAhead;
@@ -1140,10 +1169,14 @@ shared_ptr<BlockStmt> KalimatParser::block()
             {
                 if(eof())
                     break;
+                if(LA(blockTerminators))
+                    break;
                 if(lineStart && (LA_first_statement()))
                 {
                     goto recover;
                 }
+                if(LA(blockTerminators))
+                    break;
                 lineStart = lookAhead.Is(NEWLINE);
                 match(lookAhead.Type);
             }
@@ -1189,7 +1222,11 @@ shared_ptr<Declaration> KalimatParser::procedureDecl()
                                                     true));
 
     varContext.push(ret);
-    shared_ptr<BlockStmt> body = block();
+
+    //todo:slow
+    QSet<TokenType> terms;
+    terms.insert(END);
+    shared_ptr<BlockStmt> body = block(terms);
     varContext.pop();
 
     expect(END);
@@ -1212,7 +1249,10 @@ shared_ptr<Declaration> KalimatParser::functionDecl()
     shared_ptr<FunctionDecl> ret(new FunctionDecl(tok, Token(), procName, formals, shared_ptr<BlockStmt>(), true));
 
     varContext.push(ret);
-    shared_ptr<BlockStmt> body = block();
+    //todo:slow
+    QSet<TokenType> terms;
+    terms.insert(END);
+    shared_ptr<BlockStmt> body = block(terms);
     varContext.pop();
 
     expect(END);
@@ -1478,7 +1518,10 @@ shared_ptr<Declaration> KalimatParser::methodDecl()
                                               isFunctionNotProcedure));
 
     varContext.push(ret);
-    shared_ptr<BlockStmt> body = block();
+    //todo:slow
+    QSet<TokenType> terms;
+    terms.insert(END);
+    shared_ptr<BlockStmt> body = block(terms);
     varContext.pop();
     ret->body(body);
 

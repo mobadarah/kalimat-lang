@@ -3,7 +3,7 @@
 # -------------------------------------------------
 TARGET = kalimat
 TEMPLATE = app
-QMAKE_CXXFLAGS += -fpermissive
+QMAKE_CXXFLAGS += -fpermissive -std=gnu++0x
 
 SOURCES += main.cpp \
     mainwindow.cpp \
@@ -141,7 +141,6 @@ RESOURCES += keywords.qrc \
     icons.qrc \
     ../smallvm/messages.qrc
 OTHER_FILES += 
-QMAKE_CXXFLAGS += -std=gnu++0x
 RC_FILE = kalimat.rc
 
 win32:LIBS += -L"$$_PRO_FILE_PWD_/../smallvm/libffi/" -llibffi

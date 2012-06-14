@@ -1371,6 +1371,17 @@ QString MethodDecl::toString()
             .arg(vector_toString(_formals))
             .arg(body()->toString());
 }
+
+QString MethodDecl::getTooltip()
+{
+    QStringList argz;
+    for(int i=1; i<formalCount(); i++)
+        argz.append(formal(i)->toString());
+    return QString("%1(%2)")
+            .arg(procName()->name)
+            .arg(argz.join(", "));
+}
+
 // Pretty printing
 void Program::prettyPrint(CodeFormatter *f)
 {

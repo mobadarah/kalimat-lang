@@ -34,6 +34,8 @@ const int NORMAL_MAX_HEAP = 1*MEGA;
 class Allocator
 {
     QSet<Value *> heap;
+    QSet<Value *> protectedValues; // if it's here, it's reachable
+                                   // the GC can't do nothin'
     int objsDeleted;
     unsigned int currentAllocationInBytes;
     unsigned int maxAllocationInBytes;
@@ -52,6 +54,7 @@ public:
 
     void addOtherFrameAsRoot(Frame *f) { otherFrames.insert(f); }
     void makeGcMonitored(Value *v);
+    void stopGcMonitoring(Value *v);
     void gc();
 
     Value *newInt(int i);

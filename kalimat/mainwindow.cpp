@@ -368,9 +368,13 @@ void MainWindow::on_actionLexize_triggered()
     try
     {
         ui->tabWidget->setCurrentWidget(ui->outputView);
+        clock_t t1 = clock();
         lxr.tokenize();
         QVector<Token> tokens = lxr.getTokens();
         ui->outputView->clear();
+        clock_t t2 = clock();
+        double secs = (double)(t2-t1) / CLOCKS_PER_SEC;
+        ui->outputView->append(QString("Compiled in %1 seconds.").arg(secs));
         for(int i=0; i<tokens.size(); i++)
         {
             Token  t = tokens[i];
@@ -405,8 +409,12 @@ void MainWindow::on_actionParse_triggered()
     try
     {
         ui->tabWidget->setCurrentWidget(ui->outputView);
+        clock_t t1= clock();
         parser.init(currentEditor()->document()->toPlainText(), &lxr, NULL);
         shared_ptr<AST> tree = parser.parse();
+        clock_t t2 = clock();
+        double secs = (double)(t2-t1) / CLOCKS_PER_SEC;
+        ui->outputView->append(QString("Compiled in %1 seconds.").arg(secs));
         //ui->outputView->clear();
         ui->outputView->append(tree->toString());
     }
@@ -433,12 +441,18 @@ void MainWindow::on_actionParse_with_recovery_triggered()
     try
     {
         ui->tabWidget->setCurrentWidget(ui->outputView);
+        clock_t t1 = clock();
         parser.withRecovery = true;
         parser.init(currentEditor()->document()->toPlainText(), &lxr, NULL);
+
         shared_ptr<AST> tree = parser.parse();
         //ui->outputView->clear();
+        clock_t t2 = clock();
+        double secs = (double)(t2-t1) / CLOCKS_PER_SEC;
+        ui->outputView->append(QString("Compiled in %1 seconds.").arg(secs));
         ui->outputView->append(tree->toString());
     }
+
     catch(UnexpectedCharException ex)
     {
         ui->outputView->append(ex.buildMessage());
@@ -464,14 +478,18 @@ void MainWindow::on_actionCompile_triggered()
         ui->tabWidget->setCurrentWidget(ui->outputView);
         ui->outputView->clear();
         doc = docContainer->getCurrentDocument();
+        clock_t t1 = clock();
         Compiler compiler(docContainer, standardModulePath);
 
         QString output;
+
         if(doc->isDocNewFile() || doc->isFileDirty())
             output = compiler.CompileFromCode(doc->getEditor()->document()->toPlainText(), doc);
         else
             output = compiler.CompileFromFile(doc->getFileName(), NULL);
-
+        clock_t t2 = clock();
+        double secs = (double)(t2-t1) / CLOCKS_PER_SEC;
+        ui->outputView->append(QString("Compiled in %1 seconds.").arg(secs));
         ui->outputView->append(output);
     }
     catch(UnexpectedCharException ex)
@@ -1982,6 +2000,60 @@ Token MainWindow::getTokenUnderCursor(MyEdit *editor, TokenType type, int &index
     }
     return Token();
 }
+Token MainWindow::getTokenBeforeCursor(MyEdit *editor, TokenType type, bool ignoreTypeFilter)
+{
+    int index;
+    return getTokenBeforeCursor(editor, type, index, ignoreTypeFilter);
+}
+
+Token MainWindow::getTokenBeforeCursor(MyEdit *editor, TokenType type, int &index, bool ignoreTypeFilter)
+{
+    KalimatLexer lxr;
+    int cursorPos = editor->textCursor().position();
+    cursorPos --;
+    try
+    {
+        lxr.init(currentEditor()->document()->toPlainText());
+        lxr.tokenize(true);
+        QVector<Token> tokens = lxr.getTokens();
+
+        for(int i=0; i<tokens.count(); i++)
+        {
+            Token t = tokens[i];
+            if(t.Pos < cursorPos)
+            {
+                if((i+1)< tokens.count())
+                {
+                    Token t2 = tokens[i+1];
+                    if(t2.Pos>=cursorPos)
+                    {
+                        if(t.Type == type)
+                            return t;
+                        else
+                            return t;
+                    }
+                }
+                else
+                {
+                    if(t.Type == type)
+                        return t;
+                    else
+                        return t;
+                }
+            }
+
+        }
+    }
+    catch(UnexpectedCharException ex)
+    {
+        ui->outputView->append(ex.buildMessage());
+    }
+    catch(UnexpectedEndOfFileException ex)
+    {
+        ui->outputView->append("Unexpected end of file");
+    }
+    return Token();
+}
 
 void MainWindow::jumpToFunctionNamed(QString name, MyEdit *editor)
 {
@@ -2015,6 +2087,46 @@ void MainWindow::on_action_go_to_definition_triggered()
     }
 }
 
+void MainWindow::triggerAutocomplete(MyEdit *editor)
+{
+    analyzeForAutocomplete();
+    int indexOfTok;
+    Token t = getTokenBeforeCursor(editor, IDENTIFIER, indexOfTok);
+
+    if(t.Type == TokenInvalid)
+        return;
+    QString varName = t.Lexeme;
+    VarInfo vi = varInfos[t.Pos];
+    showCompletionCombo(editor, vi);
+
+}
+
+void MainWindow::showCompletionCombo(MyEdit *editor, VarInfo vi)
+{
+    if(!classInfoData.contains(vi.type))
+        return;
+    shared_ptr<ClassDecl> cd = classInfoData[vi.type];
+    if(cd->methodCount() == 0)
+        return;
+
+    QComboBox *autoCompleteCombo = new QComboBox(editor);
+    for(int i=0; i<cd->methodCount();i++)
+    {
+        shared_ptr<MethodDecl> md = cd->method(i);
+        autoCompleteCombo->addItem(md->getTooltip());
+    }
+
+    autoCompleteCombo->setWindowOpacity(0.8);
+    autoCompleteCombo->setSizeAdjustPolicy(QComboBox::AdjustToContents);
+    autoCompleteCombo->setLayoutDirection(Qt::RightToLeft);
+    int x = editor->cursorRect().topLeft().x();
+    int y = editor->cursorRect().topLeft().y();
+    autoCompleteCombo->move(x - autoCompleteCombo->width(),
+                            y);
+
+    autoCompleteCombo->showPopup();
+}
+
 void MainWindow::triggerFunctionTips(MyEdit *editor)
 {
     int indexOfTok;
@@ -2038,6 +2150,78 @@ void MainWindow::triggerFunctionTips(MyEdit *editor)
     shouldHideFunctionTooltip = true;
 
     funcToolTipParenTokenIndex = indexOfTok + 1;
+}
+
+void MainWindow::analyzeForAutocomplete()
+{
+    KalimatLexer lxr;
+    KalimatParser parser;
+    CodeDocument *doc = NULL;
+    try
+    {
+        ui->tabWidget->setCurrentWidget(ui->outputView);
+        ui->outputView->clear();
+        doc = docContainer->getCurrentDocument();
+        if(doc == NULL)
+            return;
+        QString code = doc->getEditor()->document()->toPlainText();
+        parser.withRecovery = true;
+        parser.init(code, &lxr, NULL);
+        shared_ptr<AST> tree = parser.parse();
+        shared_ptr<Module> mod = dynamic_pointer_cast<Module>(
+                    tree);
+
+        CodeGenerator gen;
+        gen.Init();
+        gen.mode = AnalysisMode;
+        if(mod)
+        {
+            gen.compileModule(mod, "", doc);
+        }
+        shared_ptr<Program> prog = dynamic_pointer_cast<Program>(
+                    tree);
+        if(prog)
+        {
+            gen.generate(prog, "", doc);
+        }
+        varInfos = gen.varInfos;
+        classInfoData = gen.allClasses;
+    }
+    catch(UnexpectedCharException ex)
+    {
+        ui->outputView->append(ex.buildMessage());
+    }
+    catch(UnexpectedEndOfFileException ex)
+    {
+        ui->outputView->append("Unexpected end of file");
+    }
+    catch(ParserException ex)
+    {
+        QString fn;
+        if(ex.pos.tag!= NULL)
+        {
+            fn = ((CodeDocument *) ex.pos.tag)->getFileName();
+        }
+        QString msg = translateParserError(ex);
+
+        ui->outputView->append(QString("File %1:\t%2").arg(fn).arg(msg));
+    }
+    catch(CompilerException ex)
+    {
+        ui->outputView->append(ex.getMessage());
+        if(doc != NULL)
+        {
+            CodeDocument *dc = doc;
+            if(ex.source)
+            {
+                if(ex.source->getPos().tag != NULL)
+                {
+                    dc = (CodeDocument *) ex.source->getPos().tag;
+                }
+                highlightLine(dc->getEditor(), ex.source->getPos().Pos);
+            }
+        }
+    }
 }
 
 void launchKalimatSite()

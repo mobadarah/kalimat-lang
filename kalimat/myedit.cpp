@@ -577,21 +577,7 @@ void MyEdit::enterKeyBehavior(QKeyEvent *ev)
 
 void MyEdit::colonBehavior(QKeyEvent *ev)
 {
-    /*
-    QComboBox *autoCompleteCombo = new QComboBox(this);
-    autoCompleteCombo->addItem(QString::fromStdWString(L"اطبع"));
-    autoCompleteCombo->addItem(QString::fromStdWString(L"اضف"));
-    autoCompleteCombo->addItem(QString::fromStdWString(L"حدد.لونه"));
-    autoCompleteCombo->setSizeAdjustPolicy(QComboBox::AdjustToContents);
-    autoCompleteCombo->setLayoutDirection(Qt::RightToLeft);
-    int x = this->cursorRect().topLeft().x();
-    int y = this->cursorRect().topLeft().y();
-    autoCompleteCombo->move(x - autoCompleteCombo->width(),
-                            y);
 
-    autoCompleteCombo->showPopup();
-    //ev->setAccepted(false);
-    */
     int elsePart[] = { ELSE, COLON };
     int elseIfStart[] = { ELSE, IF }, elseIfEnd[] = { COLON };
 
@@ -603,7 +589,7 @@ void MyEdit::colonBehavior(QKeyEvent *ev)
     textCursor().beginEditBlock();
     textCursor().insertText(":");
     textChangedEvent();
-
+    bool deindenting = false;
     try
     {
         LineInfo li = currentLine();
@@ -632,6 +618,7 @@ void MyEdit::colonBehavior(QKeyEvent *ev)
                 QTextCursor c = textCursor();
                 c.movePosition(QTextCursor::EndOfLine, QTextCursor::MoveAnchor);
                 setTextCursor(c);
+                deindenting = true;
             }
         }
     }
@@ -646,6 +633,10 @@ void MyEdit::colonBehavior(QKeyEvent *ev)
     }
 
     textCursor().endEditBlock();
+    if(!deindenting)
+    {
+        owner->triggerAutocomplete(this);
+    }
 }
 
 void MyEdit::indentAndTerminate(LineInfo prevLine, QString termination)

@@ -598,11 +598,19 @@
 	]
 },
 
-
-struct ClassInternalDecl : public PrettyPrintable
 {
-    virtual void prettyPrint(CodeFormatter *f) = 0;
-};
+	"type": "ClassInternalDecl",
+	"arabic" : "إعلان.داخل.الفصيلة",
+	"struct" : true,
+	"nodes" :[ ]
+},
+
+{
+	"type": "ClassInternalDecl",
+	"arabic" : "إعلان.داخل.الفصيلة",
+	"struct" : true,
+	"nodes" :[ ]
+},
 
 struct MethodInfo
 {
