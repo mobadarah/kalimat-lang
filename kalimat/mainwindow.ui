@@ -153,6 +153,9 @@
      <string>ملف</string>
     </property>
     <widget class="QMenu" name="mnuRecentFiles_2">
+     <property name="layoutDirection">
+      <enum>Qt::RightToLeft</enum>
+     </property>
      <property name="title">
       <string>ملفات سابقة</string>
      </property>

@@ -977,10 +977,19 @@ QString ObjectCreation::toString()
     return QString("جديد(%1)").arg(className()->name);
 }
 
+QString FormalParam::toString()
+{
+    if(type)
+        return QString::fromStdWString(L"%1 هو %2")
+                .arg(name->toString(), type->toString());
+    else
+        return name->toString();
+}
+
 ProceduralDecl::ProceduralDecl(Token pos,
                                Token endingToken,
                                shared_ptr<Identifier> procName,
-                               QVector<shared_ptr<Identifier> > formals,
+                               QVector<shared_ptr<FormalParam> > formals,
                                shared_ptr<BlockStmt> body,
                                bool isPublic)
     :Declaration(pos, isPublic),
@@ -1007,13 +1016,18 @@ QString ProceduralDecl::getTooltip()
 
 QVector<shared_ptr<Identifier> > ProceduralDecl::getIntroducedVariables()
 {
-    return _formals;
+    QVector<shared_ptr<Identifier> > ret;
+    for(auto i=_formals.begin(); i!=_formals.end(); ++i)
+    {
+        ret.append((*i)->name);
+    }
+    return ret;
 }
 
 ProcedureDecl::ProcedureDecl(Token pos,
                              Token endingToken,
                              shared_ptr<Identifier> procName,
-                             QVector<shared_ptr<Identifier> >formals,
+                             QVector<shared_ptr<FormalParam> > formals,
                              shared_ptr<BlockStmt> body,
                              bool isPublic)
     :ProceduralDecl(pos, endingToken, procName, formals, body, isPublic)
@@ -1037,7 +1051,7 @@ QString ProcedureDecl::toString()
 FunctionDecl::FunctionDecl(Token pos,
                            Token endingToken,
                            shared_ptr<Identifier> procName,
-                           QVector<shared_ptr<Identifier> > formals,
+                           QVector<shared_ptr<FormalParam> > formals,
                            shared_ptr<BlockStmt> body,
                            bool isPublic)
     :ProceduralDecl(pos, endingToken, procName, formals, body, isPublic)
@@ -1352,7 +1366,7 @@ MethodDecl::MethodDecl(Token pos,
                        shared_ptr<Identifier> className,
                        shared_ptr<Identifier> receiverName,
                        shared_ptr<Identifier> methodName,
-                       QVector<shared_ptr<Identifier> > formals,
+                       QVector<shared_ptr<FormalParam> > formals,
                        shared_ptr<BlockStmt> body,
                        bool isFunctionNotProcedure)
 
@@ -1361,7 +1375,14 @@ MethodDecl::MethodDecl(Token pos,
        _receiverName(receiverName),
        isFunctionNotProcedure(isFunctionNotProcedure)
 {
-    this->_formals.prepend(receiverName);
+    this->_formals.prepend(
+                shared_ptr<FormalParam>(
+                    new FormalParam(receiverName,
+                                    shared_ptr<TypeIdentifier>
+                                    (new TypeIdentifier
+                                     (className->getPos(), className->name)
+                                     )
+                                    )));
 }
 
 QString MethodDecl::toString()
@@ -2048,6 +2069,14 @@ void ObjectCreation::prettyPrint(CodeFormatter *f)
     className()->prettyPrint(f);
     f->space();
     f->printKw(L"جديد");
+}
+
+void FormalParam::prettyPrint(CodeFormatter *f)
+{
+    name->prettyPrint(f);
+    f->space();
+    f->printKw(L"هو");
+    type->prettyPrint(f);
 }
 
 void ProcedureDecl::prettyPrint(CodeFormatter *f)

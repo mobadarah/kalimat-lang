@@ -351,7 +351,13 @@ void CodeGenerator::pushProcedureScope(shared_ptr<ProceduralDecl> pd)
     c.instructionCount = 0;
     scopeStack.push(c);
     for(int i=0; i<pd->formalCount(); i++)
-        defineInCurrentScope(pd->formal(i)->name, pd->formal(i));
+    {
+        shared_ptr<TypeExpression> type = pd->formal(i)->type;
+        QString typeName = type? typeExpressionToAssemblyTypeId(type) : "";
+        defineInCurrentScope(pd->formal(i)->name->name,
+                             pd->formal(i)->name,
+                             typeName);
+    }
 }
 void CodeGenerator::popProcedureScope()
 {
@@ -363,7 +369,7 @@ void CodeGenerator::generateProcedureDeclaration(shared_ptr<ProcedureDecl> decl)
     gen(decl, QString(".method %1 %2 0").arg(decl->procName()->name).arg(decl->formalCount()));
     for(int i=0; i<decl->formalCount(); i++)
     {
-        gen(decl, "popl " + decl->formal(i)->name);
+        gen(decl, "popl " + decl->formal(i)->name->name);
     }
     generateStatement(decl->body());
     debugInfo.setInstructionForLine(currentCodeDoc, decl->_endingToken.Line,
@@ -377,7 +383,7 @@ void CodeGenerator::generateFunctionDeclaration(shared_ptr<FunctionDecl> decl)
     gen(decl, QString(".method %1 %2 1").arg(decl->procName()->name).arg(decl->formalCount()));
     for(int i=0; i<decl->formalCount(); i++)
     {
-        gen(decl, "popl " + decl->formal(i)->name);
+        gen(decl, "popl " + decl->formal(i)->name->name);
     }
 
     generateStatement(decl->body());
@@ -470,7 +476,7 @@ void CodeGenerator::generateFFIProceduralDeclaration(shared_ptr<FFIProceduralDec
     pushProcedureScope(shared_ptr<FunctionDecl>(new FunctionDecl(decl->getPos(),
                                         decl->getPos(),
                                         shared_ptr<Identifier>(new Identifier(decl->getPos(),decl->procName)),
-                                        QVector<shared_ptr<Identifier> >(),
+                                        QVector<shared_ptr<FormalParam> >(),
                                         shared_ptr<BlockStmt>(new BlockStmt(decl->getPos(), QVector<shared_ptr<Statement > >())),
                                         false
                                         )));
@@ -919,8 +925,9 @@ void CodeGenerator::generateRulesDeclaration(shared_ptr<RulesDecl> decl)
     stmts.append(returnErr);
     shared_ptr<BlockStmt> body(
             new BlockStmt(decl->getPos(), stmts));
-    QVector<shared_ptr<Identifier> > formals;
-    formals.append(idOf(Token(), _ws(L"%المدخل")));
+    QVector<shared_ptr<FormalParam> > formals;
+    formals.append(shared_ptr<FormalParam>(
+                       new FormalParam(idOf(Token(), _ws(L"%المدخل")))));
     shared_ptr<FunctionDecl> func(
             new FunctionDecl(decl->getPos(), decl->getPos(),
                              decl->name(), formals, body, true));
@@ -1232,13 +1239,13 @@ void CodeGenerator::generateGlobalDeclaration(shared_ptr<GlobalDecl> decl)
 void CodeGenerator::generateMethodDeclaration(shared_ptr<MethodDecl> decl)
 {
     QString name = decl->procName()->name;
-    varTypeInfo[decl->receiverName()->getPos().Pos]
-            = decl->className()->name;
+    //varTypeInfo[decl->receiverName()->getPos().Pos]
+    //        = decl->className()->name;
     int numRet = decl->isFunctionNotProcedure? 1: 0;
     gen(decl, QString(".method %1 %2 %3").arg(name).arg(decl->formalCount()).arg(numRet));
     for(int i=0; i<decl->formalCount(); i++)
     {
-        gen(decl, "popl " + decl->formal(i)->name);
+        gen(decl, "popl " + decl->formal(i)->name->name);
     }
     generateStatement(decl->body());
     debugInfo.setInstructionForLine(currentCodeDoc, decl->_endingToken.Line,

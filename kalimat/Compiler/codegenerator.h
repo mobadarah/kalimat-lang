@@ -98,6 +98,7 @@ struct VarUsageInfo
     VarUsageInfo &operator =(const VarUsageInfo &other)
     {
         pointOfDeclaration = other.pointOfDeclaration;
+        return *this;
     }
 };
 

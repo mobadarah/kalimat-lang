@@ -1,12 +1,12 @@
 #ifndef FORMATMAKER_H
 #define FORMATMAKER_H
 
-template<typename V> QString vector_toString(V vector)
+template<typename V> QString vector_toString(QVector<V> vector)
 {
     QStringList lst;
     for(int i=0; i<vector.count(); i++)
     {
-        shared_ptr<AST> ast = vector[i];
+        V ast = vector[i];
         lst.append(ast->toString());
     }
     return lst.join(", ");

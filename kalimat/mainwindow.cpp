@@ -44,7 +44,7 @@
 #include <QDesktopServices>
 #include <QtConcurrentRun>
 #include <QToolTip>
-
+#include <QIcon>
 MainWindow *MainWindow::that = NULL;
 
 MainWindow::MainWindow(QWidget *parent)
@@ -2121,12 +2121,16 @@ void MainWindow::showCompletionCombo(MyEdit *editor, VarUsageInfo vi)
         return;
 
     autoCompleteCombo = new QComboBox(editor);
-
-    autoCompleteCombo->setStyleSheet("QComboBox { border-size: 3; border-color:blue }");
+    //autoCompleteCombo->setIconSize(QSize(32,32));
     for(int i=0; i<cd->methodCount();i++)
     {
         shared_ptr<MethodDecl> md = cd->method(i);
-        autoCompleteCombo->addItem(md->getTooltip(), md->procName()->name);
+        QIcon icon;
+        if(md->isFunctionNotProcedure)
+            icon = QIcon(":/icons/icons/response.bmp");
+        else
+            icon = QIcon(":/icons/icons/reply.bmp");
+        autoCompleteCombo->addItem(icon, md->getTooltip(), md->procName()->name);
     }
 
     autoCompleteCombo->setWindowOpacity(0.8);
@@ -2137,7 +2141,6 @@ void MainWindow::showCompletionCombo(MyEdit *editor, VarUsageInfo vi)
     autoCompleteCombo->move(x - autoCompleteCombo->width(),
                             y);
     connect(autoCompleteCombo, SIGNAL(activated(int)),SLOT(autoCompleteBoxActivated(int)));
-
 
     autoCompleteCombo->showPopup();
 }

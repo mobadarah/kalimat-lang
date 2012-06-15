@@ -12,6 +12,8 @@
         <file>icons/stepIcon.png</file>
         <file>icons/stepParamsIcon.png</file>
         <file>icons/stepCallIcon.png</file>
+        <file>icons/response.bmp</file>
+        <file>icons/reply.bmp</file>
     </qresource>
     <qresource prefix="/logo">
         <file>logo.PNG</file>

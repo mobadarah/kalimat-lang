@@ -75,7 +75,7 @@ private:
     shared_ptr<ReceiveStmt> receiveStmt();
     shared_ptr<Statement> selectStmt();
 
-    QVector<shared_ptr<Identifier> > formalParamList();
+    QVector<shared_ptr<FormalParam> > formalParamList();
     shared_ptr<Declaration> procedureDecl();
     shared_ptr<Declaration> functionDecl();
     shared_ptr<Declaration> classDecl();
@@ -126,11 +126,11 @@ private:
     QString getOperation(Token token);
     void addPropertySetter(Token pos,
                            shared_ptr<Identifier> methodName,
-                           QVector<shared_ptr<Identifier> > formals,
+                           QVector<shared_ptr<FormalParam> > formals,
                            QMap<QString, PropInfo> &propertyInfo);
     void addPropertyGetter(Token pos,
                            shared_ptr<Identifier> methodName,
-                           QVector<shared_ptr<Identifier> > formals,
+                           QVector<shared_ptr<FormalParam> > formals,
                                           QMap<QString, PropInfo> &propertyInfo);
     void newLines();
 };

@@ -143,7 +143,7 @@ recoveryLogic:
     entryPoint = shared_ptr<ProceduralDecl>(new ProcedureDecl(Token(),
                                                               Token(),
                                                               shared_ptr<Identifier>(new Identifier(Token(), "%main")),
-                                                              QVector<shared_ptr<Identifier> >(),
+                                                              QVector<shared_ptr<FormalParam> >(),
                                                               shared_ptr<BlockStmt>(new BlockStmt(Token(),topLevelStatements)),
                                                               true));
     elements.append(entryPoint);
@@ -1212,18 +1212,33 @@ shared_ptr<BlockStmt> KalimatParser::block(QSet<TokenType> blockTerminators)
     return shared_ptr<BlockStmt>(new BlockStmt(tok, stmts));
 }
 
-QVector<shared_ptr<Identifier> > KalimatParser::formalParamList()
+QVector<shared_ptr<FormalParam> > KalimatParser::formalParamList()
 {
-    QVector<shared_ptr<Identifier> > formals;
+    QVector<shared_ptr<FormalParam> > formals;
 
     match(LPAREN);
     if(LA(IDENTIFIER))
     {
-        formals.append(identifier());
+        shared_ptr<Identifier> pname = identifier();
+        shared_ptr<TypeExpression> ptype;
+
+        if(LA(IS))
+        {
+            match(IS);
+            ptype = typeExpression();
+        }
+        formals.append(shared_ptr<FormalParam>(new FormalParam(pname, ptype)));
         while(LA(COMMA))
         {
             match(COMMA);
-            formals.append(identifier());
+            pname = identifier();
+            ptype = shared_ptr<TypeExpression>();
+            if(LA(IS))
+            {
+                match(IS);
+                ptype = typeExpression();
+            }
+            formals.append(shared_ptr<FormalParam>(new FormalParam(pname, ptype)));
         }
     }
     match(RPAREN);
@@ -1235,7 +1250,7 @@ shared_ptr<Declaration> KalimatParser::procedureDecl()
     match(PROCEDURE);
     Token tok  = lookAhead;
     shared_ptr<Identifier> procName = identifier();
-    QVector<shared_ptr<Identifier> > formals = formalParamList();
+    QVector<shared_ptr<FormalParam> > formals = formalParamList();
 
     match(COLON);
     match(NEWLINE);
@@ -1269,7 +1284,7 @@ shared_ptr<Declaration> KalimatParser::functionDecl()
     match(FUNCTION);
     Token tok  = lookAhead;
     shared_ptr<Identifier> procName = identifier();
-    QVector<shared_ptr<Identifier> > formals = formalParamList();
+    QVector<shared_ptr<FormalParam> > formals = formalParamList();
     match(COLON);
     match(NEWLINE);
     shared_ptr<FunctionDecl> ret(new FunctionDecl(tok, Token(), procName, formals, shared_ptr<BlockStmt>(), true));
@@ -1292,7 +1307,7 @@ shared_ptr<Declaration> KalimatParser::functionDecl()
 
 void KalimatParser::addPropertySetter(Token pos,
                                       shared_ptr<Identifier> methodName,
-                                      QVector<shared_ptr<Identifier> > formals,
+                                      QVector<shared_ptr<FormalParam> > formals,
                                       QMap<QString, PropInfo> &propertyInfo)
 {
     // Since this is 'responds', the property has to be a setter
@@ -1315,7 +1330,7 @@ void KalimatParser::addPropertySetter(Token pos,
 
 void KalimatParser::addPropertyGetter(Token pos,
                                       shared_ptr<Identifier> methodName,
-                                      QVector<shared_ptr<Identifier> > formals,
+                                      QVector<shared_ptr<FormalParam> > formals,
                                       QMap<QString, PropInfo> &propertyInfo)
 {
     // Since this is 'replies', the property has to be a getter
@@ -1385,11 +1400,11 @@ shared_ptr<Declaration> KalimatParser::classDecl()
             match(UPON);
 
             shared_ptr<Identifier> methodName = identifier();
-            QVector<shared_ptr<Identifier> > formals = formalParamList();
+            QVector<shared_ptr<FormalParam> > formals = formalParamList();
             shared_ptr<RespondsTo> rt(new RespondsTo(false));
 
             shared_ptr<ConcreteResponseInfo> ri(new ConcreteResponseInfo(methodName));
-            for(QVector<shared_ptr<Identifier> >::const_iterator i=formals.begin(); i!= formals.end(); ++i)
+            for(QVector<shared_ptr<FormalParam> >::const_iterator i=formals.begin(); i!= formals.end(); ++i)
                 ri->add(*i);
 
             rt->add(ri);
@@ -1405,9 +1420,9 @@ shared_ptr<Declaration> KalimatParser::classDecl()
             {
                 match(COMMA);
                 shared_ptr<Identifier> methodName = identifier();
-                QVector<shared_ptr<Identifier> > formals= formalParamList();
+                QVector<shared_ptr<FormalParam> > formals= formalParamList();
                 shared_ptr<ConcreteResponseInfo> ri(new ConcreteResponseInfo(methodName));
-                for(QVector<shared_ptr<Identifier> >::const_iterator i=formals.begin(); i!= formals.end(); ++i)
+                for(QVector<shared_ptr<FormalParam> >::const_iterator i=formals.begin(); i!= formals.end(); ++i)
                     ri->add(*i);
                 rt->add(ri);
                 if(LA(PROPERTY))
@@ -1427,10 +1442,10 @@ shared_ptr<Declaration> KalimatParser::classDecl()
             match(ON);
 
             shared_ptr<Identifier> methodName = identifier();
-            QVector<shared_ptr<Identifier> > formals = formalParamList();
+            QVector<shared_ptr<FormalParam> > formals = formalParamList();
             shared_ptr<RespondsTo> rt(new RespondsTo(true));
             shared_ptr<ConcreteResponseInfo> ri(new ConcreteResponseInfo(methodName));
-            for(QVector<shared_ptr<Identifier> >::const_iterator i=formals.begin(); i!= formals.end(); ++i)
+            for(QVector<shared_ptr<FormalParam> >::const_iterator i=formals.begin(); i!= formals.end(); ++i)
                 ri->add(*i);
             rt->add(ri);
             if(LA(PROPERTY))
@@ -1445,9 +1460,9 @@ shared_ptr<Declaration> KalimatParser::classDecl()
             {
                 match(COMMA);
                 shared_ptr<Identifier> methodName = identifier();
-                QVector<shared_ptr<Identifier> > formals= formalParamList();
+                QVector<shared_ptr<FormalParam> > formals= formalParamList();
                 shared_ptr<ConcreteResponseInfo> ri(new ConcreteResponseInfo(methodName));
-                for(QVector<shared_ptr<Identifier> >::const_iterator i=formals.begin(); i!= formals.end(); ++i)
+                for(QVector<shared_ptr<FormalParam> >::const_iterator i=formals.begin(); i!= formals.end(); ++i)
                     ri->add(*i);
                 rt->add(ri);
                 if(LA(PROPERTY))
@@ -1497,7 +1512,7 @@ shared_ptr<Declaration> KalimatParser::methodDecl()
     shared_ptr<Identifier> receiverName;
     shared_ptr<Identifier> methodName;
 
-    QVector<shared_ptr<Identifier> > formals;
+    QVector<shared_ptr<FormalParam> > formals;
     if(LA(RESPONSEOF))
     {
         isFunctionNotProcedure = false;

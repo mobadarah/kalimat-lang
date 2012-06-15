@@ -13,12 +13,41 @@ public:
     bool isPublic();
 };
 
+struct FormalParam : public PrettyPrintable
+{
+    shared_ptr<Identifier> name;
+    shared_ptr<TypeExpression> type;
+    FormalParam(shared_ptr<Identifier> name,
+                shared_ptr<TypeExpression> type)
+        :name(name), type(type){}
+    FormalParam(shared_ptr<Identifier> name)
+        :name(name)
+    {
+
+    }
+
+    FormalParam(const FormalParam & other)
+    {
+        name = other.name;
+        type = other.type;
+    }
+    FormalParam &operator=(const FormalParam &other)
+    {
+        name = other.name;
+        type = other.type;
+        return *this;
+    }
+    FormalParam(){}
+    QString toString();
+    virtual void prettyPrint(CodeFormatter *formatter);
+};
+
 class ProceduralDecl : public Declaration, public IScopeIntroducer
 {
 public:
     shared_ptr<Identifier> _procName;
         shared_ptr<BlockStmt> _body;
-    QVector<shared_ptr<Identifier > > _formals;
+    QVector<shared_ptr<FormalParam> > _formals;
     Token endPos;
 //    QVector<shared_ptr<Identifier > > _allReferences;
 
@@ -27,12 +56,12 @@ public:
     ProceduralDecl(Token pos,
                    Token endingToken,
                    shared_ptr<Identifier> procName,
-                   QVector<shared_ptr<Identifier> > formals,
+                   QVector<shared_ptr<FormalParam> > formals,
                    shared_ptr<BlockStmt> body,
                    bool isPublic);
     shared_ptr<Identifier> procName() {return _procName;}
     int formalCount() { return _formals.count();}
-    shared_ptr<Identifier> formal(int i) { return _formals[i];}
+    shared_ptr<FormalParam> formal(int i) { return _formals[i];}
 //    shared_ptr<Identifier> allReferences(int i) { return _allReferences[i];}
 //    void addReference(shared_ptr<Identifier> id) { _allReferences.append(id);}
     shared_ptr<BlockStmt> body() {return _body;}
@@ -57,7 +86,7 @@ public:
     ProcedureDecl(Token pos,
                   Token endingToken,
                   shared_ptr<Identifier> procName,
-                  QVector<shared_ptr<Identifier> > formals,
+                  QVector<shared_ptr<FormalParam> > formals,
                   shared_ptr<BlockStmt> body,
                   bool isPublic);
     QString toString();
@@ -70,7 +99,7 @@ public:
     FunctionDecl(Token pos,
                  Token endingToken,
                  shared_ptr<Identifier> procName,
-                 QVector<shared_ptr<Identifier> > formals,
+                 QVector<shared_ptr<FormalParam> > formals,
                  shared_ptr<BlockStmt> body,
                  bool isPublic);
     QString toString();
@@ -155,7 +184,7 @@ struct MethodInfo
 struct ConcreteResponseInfo : public PrettyPrintable
 {
     shared_ptr<Identifier> name;
-    QVector<shared_ptr<Identifier> > params;
+    QVector<shared_ptr<FormalParam> > params;
     void prettyPrint(CodeFormatter *f);
 
     ConcreteResponseInfo(shared_ptr<Identifier> _name)
@@ -163,7 +192,7 @@ struct ConcreteResponseInfo : public PrettyPrintable
     {
     }
 
-    void add(shared_ptr<Identifier> param)
+    void add(shared_ptr<FormalParam> param)
     {
         params.append(param);
     }
@@ -275,7 +304,7 @@ public:
                shared_ptr<Identifier> className,
                shared_ptr<Identifier> receiverName,
                shared_ptr<Identifier> methodName,
-               QVector<shared_ptr<Identifier> > formals,
+               QVector<shared_ptr<FormalParam> > formals,
                shared_ptr<BlockStmt> body,
                bool isFunctionNotProcedure);
     shared_ptr<Identifier> className() { return _className;}
