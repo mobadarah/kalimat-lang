@@ -2096,16 +2096,27 @@ void MainWindow::triggerAutocomplete(MyEdit *editor)
     if(t.Type == TokenInvalid)
         return;
     QString varName = t.Lexeme;
-    VarInfo vi = varInfos[t.Pos];
+    if(!varInfos.contains(t.Pos))
+        return; // among other reasons for not being in
+                // varinfos is thatit might not
+                // actually be a variable
+                // but any identifier
+    VarUsageInfo vi = varInfos[t.Pos];
     showCompletionCombo(editor, vi);
 
 }
 
-void MainWindow::showCompletionCombo(MyEdit *editor, VarInfo vi)
+void MainWindow::showCompletionCombo(MyEdit *editor, VarUsageInfo vi)
 {
-    if(!classInfoData.contains(vi.type))
+    QString typeName;
+    shared_ptr<Identifier> declPoint = vi.pointOfDeclaration;
+    int pos = declPoint->getPos().Pos;
+    if(!varTypeInfo.contains(pos))
         return;
-    shared_ptr<ClassDecl> cd = classInfoData[vi.type];
+    typeName = varTypeInfo[pos];
+    if(!classInfoData.contains(typeName))
+        return;
+    shared_ptr<ClassDecl> cd = classInfoData[typeName];
     if(cd->methodCount() == 0)
         return;
 
@@ -2201,6 +2212,7 @@ void MainWindow::analyzeForAutocomplete()
         }
         varInfos = gen.varInfos;
         classInfoData = gen.allClasses;
+        varTypeInfo = gen.varTypeInfo;
     }
     catch(UnexpectedCharException ex)
     {

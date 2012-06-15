@@ -14,6 +14,8 @@ enum KalimatParserError
     ModulesCannotContainStatements,
     StatementNotImplemented,
     LeftOfAssignmentMustBeAssignableExpression,
+    DeclaringTypeInAssignmentMustBeForVariable,
+    MeaninglessTypeDeclaration,
     CanDelegateOnlyToInvokation,
     CanOnlyLaunchProcedureInvokation
 };

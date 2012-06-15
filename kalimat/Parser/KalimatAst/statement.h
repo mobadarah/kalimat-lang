@@ -27,11 +27,14 @@ class AssignmentStmt : public Statement
 public:
     shared_ptr <AssignableExpression> _variable;
     shared_ptr<Expression> _value;
+    shared_ptr<TypeExpression> _type;
 public:
-    AssignmentStmt(Token pos, shared_ptr<AssignableExpression> variable, shared_ptr<Expression> value);
+    AssignmentStmt(Token pos, shared_ptr<AssignableExpression> variable, shared_ptr<Expression> value,
+                   shared_ptr<TypeExpression> type);
     ~AssignmentStmt();
     shared_ptr<AssignableExpression> variable() {return _variable;}
     shared_ptr<Expression> value() {return _value;}
+    shared_ptr<TypeExpression> type() {return _type;}
     QString toString();
     void prettyPrint(CodeFormatter *f);
 };
@@ -51,6 +54,7 @@ public:
     shared_ptr<Expression> condition() {return _condition;}
     shared_ptr<Statement> thenPart() { return _thenPart;}
     shared_ptr<Statement> elsePart() {return _elsePart;}
+
     QString toString();
     void prettyPrint(CodeFormatter *f);
 };

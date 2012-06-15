@@ -92,9 +92,17 @@ void CodeGenerator::defineInCurrentScope(QString var, shared_ptr<Identifier> def
     if(!scopeStack.empty() && !scopeStack.top().bindings.contains(var))
     {
         scopeStack.top().bindings.insert(var);
-        scopeStack.top().declarationOf[var] = defPoint;
-        if(!varInfos.contains(defPoint->getPos().Pos))
-            varInfos[defPoint->getPos().Pos] = VarInfo(defPoint, type);
+        if(defPoint) // it can be NULL due to defineInCurrentScopeNoSource
+        {
+            scopeStack.top().declarationOf[var] = defPoint;
+            if(!varInfos.contains(defPoint->getPos().Pos))
+            {
+                varInfos[defPoint->getPos().Pos] = VarUsageInfo(defPoint);
+                if(type!="")
+                    varTypeInfo[defPoint->getPos().Pos]
+                            = type;
+            }
+        }
     }
 }
 
@@ -722,7 +730,8 @@ shared_ptr<GotoStmt> gotoOf(Token pos, shared_ptr<Expression> lbl)
 shared_ptr<AssignmentStmt> assignmentOf(Token pos, shared_ptr<AssignableExpression> lval,
                                         shared_ptr<Expression> rval)
 {
-    return shared_ptr<AssignmentStmt>(new AssignmentStmt(pos, lval, rval));
+    return shared_ptr<AssignmentStmt>(new AssignmentStmt(pos, lval, rval,
+                                                         shared_ptr<TypeExpression>()));
 }
 
 shared_ptr<AssignmentStmt> assignmentOf(shared_ptr<AssignableExpression> lval,
@@ -730,7 +739,8 @@ shared_ptr<AssignmentStmt> assignmentOf(shared_ptr<AssignableExpression> lval,
 {
     return shared_ptr<AssignmentStmt>(new AssignmentStmt(lval->getPos(),
                                                          lval,
-                                                         rval));
+                                                         rval,
+                                                         shared_ptr<TypeExpression>()));
 }
 
 shared_ptr<IfStmt> ifOf(Token pos, shared_ptr<Expression> cond,
@@ -1222,7 +1232,7 @@ void CodeGenerator::generateGlobalDeclaration(shared_ptr<GlobalDecl> decl)
 void CodeGenerator::generateMethodDeclaration(shared_ptr<MethodDecl> decl)
 {
     QString name = decl->procName()->name;
-    varInfos[decl->receiverName()->getPos().Pos].type
+    varTypeInfo[decl->receiverName()->getPos().Pos]
             = decl->className()->name;
     int numRet = decl->isFunctionNotProcedure? 1: 0;
     gen(decl, QString(".method %1 %2 %3").arg(name).arg(decl->formalCount()).arg(numRet));
@@ -1645,6 +1655,21 @@ void CodeGenerator::generateAssignmentStmt(shared_ptr<AssignmentStmt> stmt)
     } myGen(this, stmt->value());
 
     generateAssignmentToLvalue(stmt, lval, myGen);
+    if(stmt->type() && isa<Identifier>(lval))
+    {
+        shared_ptr<TypeExpression> type = stmt->type();
+        shared_ptr<Identifier> var = dynamic_pointer_cast<Identifier>(lval);
+        QString typeName = typeExpressionToAssemblyTypeId(type);
+        int pos = var->getPos().Pos;
+        if(!varTypeInfo.contains(pos))
+        {
+            varTypeInfo[pos] = typeName;
+        }
+        else
+        {
+            error(CompilerException(currentModuleName, stmt, OnlyFirstAssignmentToVarCanContainType));
+        }
+    }
 }
 
 void CodeGenerator::generateAssignmentToLvalue(shared_ptr<AST> src, shared_ptr<AssignableExpression> lval,
@@ -2330,7 +2355,8 @@ void CodeGenerator::generateMatchOperation(shared_ptr<MatchOperation> expr)
         defineInCurrentScopeNoSource(i.value()->name);
         generateAssignmentStmt(shared_ptr<AssignmentStmt>(new AssignmentStmt(i.key()->getPos(),
                                                     i.key(),
-                                                  i.value())));
+                                                  i.value(),
+                                                shared_ptr<TypeExpression>())));
     }
     gen(expr, "pushv true");
     gen(expr, QString("jmp %1").arg(exit));

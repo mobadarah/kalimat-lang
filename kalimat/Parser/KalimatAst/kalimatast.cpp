@@ -110,16 +110,19 @@ GraphicsStatement::GraphicsStatement(Token pos) : Statement(pos)
 
 AssignmentStmt::AssignmentStmt(Token pos,
                                shared_ptr<AssignableExpression> _variable,
-                               shared_ptr<Expression> _value)
+                               shared_ptr<Expression> _value,
+                               shared_ptr<TypeExpression> type)
     :Statement(pos),
     _variable(_variable),
-    _value(_value)
+    _value(_value),
+    _type(type)
 {
 }
 
 QString AssignmentStmt::toString()
 {
-    return _ws(L"=(%1، %2)").arg(variable()->toString(),value()->toString());
+    return _ws(L"=(%1، %2;%3)").arg(variable()->toString(),value()->toString())
+            .arg(_type?_type->toString():"");
 }
 
 IfStmt::IfStmt(Token pos,
@@ -1417,6 +1420,12 @@ void AssignmentStmt::prettyPrint(CodeFormatter *f)
 {
     variable()->prettyPrint(f);
     f->space();
+    if(type())
+    {
+        f->printKw(L"هو");
+        type()->prettyPrint(f);
+        f->space();
+    }
     f->print("=");
     f->space();
     value()->prettyPrint(f);

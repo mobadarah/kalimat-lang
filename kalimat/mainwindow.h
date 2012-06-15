@@ -71,11 +71,12 @@ public:
     Analyzer codeAnalyzer;
     QTimer codeParseTimer;
 
-    // Info on all variables: declaration point & type if available
+    // Info on all variables, including (currently) declaration point
     // generated frequently for autocomplete
     // maps from position of token of identifier
     // to its varinfo
-    QMap<int, VarInfo> varInfos;
+    QMap<int, VarUsageInfo> varInfos;
+    QMap<int, QString> varTypeInfo;
     QMap<QString, shared_ptr<ClassDecl> > classInfoData;
 
     shared_ptr<CompilationUnit> parseCurrentDocumentWithRecovery();
@@ -99,7 +100,7 @@ public:
 
     void jumpToFunctionNamed(QString name, MyEdit *editor);
     void triggerAutocomplete(MyEdit *editor);
-    void showCompletionCombo(MyEdit *editor, VarInfo vi);
+    void showCompletionCombo(MyEdit *editor, VarUsageInfo vi);
     void triggerFunctionTips(MyEdit *editor);
     bool shouldHideFunctionTooltip;
     int funcToolTipParenTokenIndex;

@@ -354,6 +354,21 @@ bool KalimatParser::LA_first_assignment_or_invokation()
 shared_ptr<Statement> KalimatParser::assignmentStmt_or_Invokation(ParserState s)
 {
     shared_ptr<Expression> first = primaryExpression();
+    shared_ptr<TypeExpression> type;
+    if(LA(IS))
+    {
+        match(IS);
+        shared_ptr<Identifier> id2 = dynamic_pointer_cast<Identifier>(first);
+        if(!id2)
+        {
+            throw ParserException(fileName, getPos(), DeclaringTypeInAssignmentMustBeForVariable);
+        }
+        type = typeExpression();
+        if(!LA(EQ))
+        {
+            throw ParserException(fileName, getPos(), MeaninglessTypeDeclaration);
+        }
+    }
     if(LA(EQ))
     {
 
@@ -362,10 +377,21 @@ shared_ptr<Statement> KalimatParser::assignmentStmt_or_Invokation(ParserState s)
         {
             throw ParserException(fileName, getPos(), LeftOfAssignmentMustBeAssignableExpression);
         }
+        if(LA(IS))
+        {
+            match(IS);
+            shared_ptr<Identifier> id2 = dynamic_pointer_cast<Identifier>(id);
+            if(!id2)
+            {
+                throw ParserException(fileName, getPos(), DeclaringTypeInAssignmentMustBeForVariable);
+            }
+            type = typeExpression();
+
+        }
         Token eqToken = lookAhead;
         match(EQ);
         shared_ptr<Expression> value = expression();
-        return shared_ptr<Statement>(new AssignmentStmt(eqToken, id, value));
+        return shared_ptr<Statement>(new AssignmentStmt(eqToken, id, value, type));
     }
     else
     {

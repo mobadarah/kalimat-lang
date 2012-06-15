@@ -39,6 +39,7 @@ CannotCallProcedureInExpression1,
 UndefinedVariable,
 UnacceptableNumberLiteral,
 DeclarationNotSupported,
+OnlyFirstAssignmentToVarCanContainType,
 LValueFormNotImplemented,
 UnimplementedExpressionForm,
 UnimplementedStatementForm,
@@ -78,33 +79,25 @@ enum MethodCallStyle
     LaunchProcessStyle
 };
 
-struct VarInfo
+struct VarUsageInfo
 {
     shared_ptr<Identifier> pointOfDeclaration;
-    QString type;
 
-    VarInfo(shared_ptr<Identifier> pointOfDeclaration, QString type)
-        :pointOfDeclaration(pointOfDeclaration), type(type)
-    {
-
-    }
-    VarInfo(shared_ptr<Identifier> pointOfDeclaration)
+    VarUsageInfo(shared_ptr<Identifier> pointOfDeclaration)
         :pointOfDeclaration(pointOfDeclaration)
     {
 
     }
-    VarInfo(const VarInfo &other)
-        :pointOfDeclaration(other.pointOfDeclaration),
-          type(other.type)
+    VarUsageInfo(const VarUsageInfo &other)
+        :pointOfDeclaration(other.pointOfDeclaration)
     {
 
     }
 
-    VarInfo() {}
-    VarInfo &operator =(const VarInfo &other)
+    VarUsageInfo() {}
+    VarUsageInfo &operator =(const VarUsageInfo &other)
     {
         pointOfDeclaration = other.pointOfDeclaration;
-        type = other.type;
     }
 };
 
@@ -151,8 +144,9 @@ public:
 public:
     CodeGenerationMode mode;
     // from position of token of identifier
-    // to its varinfo
-    QMap<int, VarInfo> varInfos;
+    // to its VarUsageInfo
+    QMap<int, VarUsageInfo> varInfos;
+    QMap<int, QString> varTypeInfo;
     DebugInfo debugInfo;
     QMap<int, CodePosition> PositionInfo;
     CodeDocument *currentCodeDoc;
