@@ -547,7 +547,9 @@ void RunWindow::checkCollision(Sprite *s)
         void operator() (Sprite *s1, Sprite *s2) { owner->onCollision(s1, s2); }
     } callBack(this);
 
-    if(vm->hasRegisteredEventHandler("collision"))
+
+    if(vm->hasRegisteredEventHandler("collision")
+            &&!vm->hasInterrupts())
         spriteLayer.checkCollision(s, &callBack);
 }
 

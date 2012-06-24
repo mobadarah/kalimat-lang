@@ -204,7 +204,7 @@ recoveryLogic:
             }
         }
     }
-    emptyModule:
+emptyModule:
     return shared_ptr<AST>(new Module(Token(), modName, elements, usedModules));
 }
 
@@ -307,7 +307,6 @@ shared_ptr<Declaration> KalimatParser::declaration()
 {
     Token firstToken = lookAhead;
     shared_ptr<Declaration> ret;
-
     if(LA(PROCEDURE))
     {
         ret = procedureDecl();
@@ -336,6 +335,7 @@ shared_ptr<Declaration> KalimatParser::declaration()
     {
         ret = rulesDecl();
     }
+
     if(ret == NULL)
         throw ParserException(fileName, getPos(), ExpectedDeclaration);
 
@@ -538,7 +538,7 @@ shared_ptr<Statement> KalimatParser::forEachStmt()
     else
     {
         theStep = shared_ptr<Expression>(new NumLiteral(to->getPos(),
-                                            downTo?-1:1));
+                                                        downTo?-1:1));
     }
     match(COLON);
     if(LA(NEWLINE))
@@ -1175,7 +1175,7 @@ shared_ptr<BlockStmt> KalimatParser::block(QSet<TokenType> blockTerminators)
     Token tok = lookAhead;
     newLines();
     //#parser-recovery
-    recover:
+recover:
     while(LA_first_statement())
     {
         try
@@ -1187,7 +1187,7 @@ shared_ptr<BlockStmt> KalimatParser::block(QSet<TokenType> blockTerminators)
         }
         catch(ParserException ex)
         {
-            recoveryLogic:
+recoveryLogic:
             if(!withRecovery)
                 throw;
             bool lineStart = atStartOfFile;
@@ -1651,7 +1651,7 @@ shared_ptr<RuleDecl> KalimatParser::ruleDecl()
                                 new Identifier(theExpr->getPos(), "%tmpAV")));
             }
             resultExpr = shared_ptr<Expression>(new Identifier(theExpr->getPos(),
-                                                           theExpr->associatedVar()->name));
+                                                               theExpr->associatedVar()->name));
         }
     }
     match(NEWLINE);
@@ -1679,7 +1679,7 @@ shared_ptr<RuleDecl> KalimatParser::ruleDecl()
                                     new Identifier(theExpr->getPos(), "%tmpAV")));
                 }
                 _resultExpr = shared_ptr<Expression>(new Identifier(theExpr->getPos(),
-                                                               theExpr->associatedVar()->name));
+                                                                    theExpr->associatedVar()->name));
             }
         }
         options.append(shared_ptr<RuleOption>(new RuleOption(expr->getPos(), expr, _resultExpr)));
@@ -1723,7 +1723,7 @@ shared_ptr<PegExpr> KalimatParser::primaryPegExpression()
             varName = identifier();
         }
         return shared_ptr<PegExpr>(
-                   new PegRuleInvokation(ruleName->getPos(), varName, ruleName));
+                    new PegRuleInvokation(ruleName->getPos(), varName, ruleName));
     }
     else if(LA(STR_LITERAL))
     {
@@ -1736,7 +1736,7 @@ shared_ptr<PegExpr> KalimatParser::primaryPegExpression()
             varName = identifier();
         }
         return shared_ptr<PegExpr>(
-                   new PegLiteral(lit->getPos(), varName, lit));
+                    new PegLiteral(lit->getPos(), varName, lit));
     }
     else if(LA(FROM))
     {
@@ -1761,7 +1761,7 @@ shared_ptr<PegExpr> KalimatParser::primaryPegExpression()
         }
 
         return shared_ptr<PegExpr>(
-                   new PegCharRange(lit1->getPos(), varName, lit1, lit2));
+                    new PegCharRange(lit1->getPos(), varName, lit1, lit2));
     }
 }
 
@@ -2161,7 +2161,7 @@ shared_ptr<Expression> KalimatParser::primaryExpression()
                     ret = shared_ptr<ForAutocomplete>(new
                                                       ForAutocomplete(ret->getPos(),
                                                                       ret)
-                                );
+                                                      );
                 }
                 else
                 {

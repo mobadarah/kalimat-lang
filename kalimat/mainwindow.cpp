@@ -265,9 +265,9 @@ void MainWindow::setLineIndicators(int line, int column, QTextEdit *editor)
         else if(t1.Type == TokenInvalid)
         {
             minz = t2.Pos;
-            maxz = ed->document()->toPlainText().length()-1;
+            maxz = ed->document()->toPlainText().length();
             int pos = ed->textCursor().position();
-            if(pos+1 >maxz
+            if(pos >maxz
                     || pos <=minz)
             {
                 success = true;
@@ -2125,17 +2125,20 @@ void MainWindow::showCompletionCombo(MyEdit *editor, VarUsageInfo vi)
     for(int i=0; i<cd->methodCount();i++)
     {
         shared_ptr<MethodDecl> md = cd->method(i);
+        /*
         QIcon icon;
         if(md->isFunctionNotProcedure)
             icon = QIcon(":/icons/icons/response.bmp");
         else
             icon = QIcon(":/icons/icons/reply.bmp");
-        autoCompleteCombo->addItem(icon, md->getTooltip(), md->procName()->name);
+        //*/
+        autoCompleteCombo->addItem(md->getTooltip(), md->procName()->name);
     }
 
     autoCompleteCombo->setWindowOpacity(0.8);
     autoCompleteCombo->setSizeAdjustPolicy(QComboBox::AdjustToContents);
     autoCompleteCombo->setLayoutDirection(Qt::RightToLeft);
+    autoCompleteCombo->adjustSize();
     int x = editor->cursorRect().topLeft().x();
     int y = editor->cursorRect().topLeft().y();
     autoCompleteCombo->move(x - autoCompleteCombo->width(),

@@ -70,6 +70,16 @@ Frame *VM::launchProcess(Method *method, Process *&proc)
     return ret;
 }
 
+Frame *VM::launchProcessAsInterrupt(Method *method)
+{
+    Process *p = new Process(this);
+    p->interrupt = true; // <-
+    p->stack.push(Frame(method, NULL));
+    processes.push_back(p);
+    newProcesses.push_front(p); // front, not back!
+    Frame *ret = &p->stack.top();
+    return ret;
+}
 
 Frame *VM::launchAdministeredProcess(Method *method, QString administrator)
 {
@@ -220,6 +230,12 @@ void VM::makeItSleep(Process *proc, int ms)
         timerWaiting.insert(posToInsertAt, proc);
 }
 
+bool VM::hasInterrupts()
+{
+    return running.count()>0 &&
+            running.front()->interrupt;
+}
+
 bool VM::hasRegisteredEventHandler(QString evName)
 {
     return registeredEventHandlers.contains(evName);
@@ -310,7 +326,7 @@ void VM::ActivateEvent(QString evName, QVector<Value *>args)
     assert(args.count() == method->Arity(), WrongNumberOfArguments);
 
     //Frame *newFrame = launchAdministeredProcess(method, "evQ");
-    Frame *newFrame = launchProcess(method);
+    Frame *newFrame = launchProcessAsInterrupt(method);
     for(int i=args.count()-1; i>=0; i--)
     {
         newFrame->OperandStack.push(args[i]);
@@ -507,7 +523,12 @@ void VM::RunStep(bool singleInstruction)
         else
         {
             running.pop_front();
-            running.push_back(runningNow);
+
+            if(runningNow->interrupt)
+                running.push_front(runningNow);
+            else
+                running.push_back(runningNow);
+
             runningNow = running.front();
             all++;
         }

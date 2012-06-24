@@ -38,6 +38,7 @@ struct Process
     VM *owner;
     clock_t timeToWake;
     QString administrator;
+    bool interrupt;
 public:
     Process(VM *owner);
     void awaken();

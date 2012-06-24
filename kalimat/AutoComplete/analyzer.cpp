@@ -44,6 +44,7 @@ analyzeFunctionDeclarations(shared_ptr<CompilationUnit> cu,
                     decl);
         if(proc)
         {
+            QString s = getBeautifulName(proc);
             ret.funcNameToAst[getBeautifulName(proc)] = decl;
             Token start = proc->getPos();
             Token end = proc->_endingToken;
@@ -83,6 +84,7 @@ void Analyzer::forEachDecl(shared_ptr<CompilationUnit> cu, std::function<void(sh
     shared_ptr<Module> module = dynamic_pointer_cast<Module>(cu);
     if(module)
     {
+
         for(int i=0; i<module->declCount(); i++)
         {
             shared_ptr<Declaration> decl = module->decl(i);
@@ -93,6 +95,7 @@ void Analyzer::forEachDecl(shared_ptr<CompilationUnit> cu, std::function<void(sh
     shared_ptr<Program> program = dynamic_pointer_cast<Program>(cu);
     if(program)
     {
+        int n = program->elementCount();
         for(int i=0; i<program->elementCount(); i++)
         {
             shared_ptr<TopLevel> el= program->element(i);

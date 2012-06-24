@@ -147,6 +147,7 @@ public:
 
     Frame *launchProcess(Method *method);
     Frame *launchProcess(Method *method, Process *&proc);
+    Frame *launchProcessAsInterrupt(Method *method);
     Frame *launchAdministeredProcess(Method *method, QString administrator);
     bool hasRunningInstruction();
     inline bool processIsFinished(Process *process)
@@ -175,6 +176,7 @@ public:
     inline Process *currentProcess() { return running.front(); }
     void makeItSleep(Process *proc, int ms);
     bool hasRegisteredEventHandler(QString evName);
+    bool hasInterrupts();
     void setDebugger(Debugger *);
     void clearAllBreakPoints();
     void setBreakPoint(QString methodName, int offset);

@@ -5,6 +5,7 @@ Process::Process(VM *owner)
 {
     state = AwakeProcess;
     this->owner = owner;
+    interrupt = false;
 }
 
 void Process::sleep()
