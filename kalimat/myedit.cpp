@@ -478,7 +478,7 @@ void MyEdit::enterKeyBehavior(QKeyEvent *ev)
     int elsePart[] = { ELSE, COLON };
     int elseIfStart[] = { ELSE, IF }, elseIfEnd[] = { COLON };
     int forStmtStart[] = { FORALL }, forStmtEnd[] = { COLON };
-    int whileStmtStart[] = { WHILE }, whileStmtEnd[] = { COLON };
+    int whileStmtStart[] = { REPEAT}, whileStmtEnd[] = { COLON };
     int procDeclStart[] = { PROCEDURE, IDENTIFIER, LPAREN }, procDeclEnd[] = { RPAREN, COLON };
     int funcDeclStart[] = { FUNCTION, IDENTIFIER, LPAREN }, funcDeclEnd[] = { RPAREN, COLON };
     int responseDeclStart[] = { RESPONSEOF, IDENTIFIER, IDENTIFIER }, responseDeclEnd[] = { RPAREN, COLON };

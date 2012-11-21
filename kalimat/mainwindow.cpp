@@ -79,7 +79,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     QToolBar *notice = new QToolBar("");
     notice->addAction(
-                QString::fromStdWString(L"هذه هي النسخة الأولية لشهر يونيو 2012. حمل أحدث نسخة من www.kalimat-lang.com"),
+                QString::fromStdWString(L"هذه هي النسخة الأولية لشهر سبتمبر 2012. حمل أحدث نسخة من www.kalimat-lang.com"),
                 this,
                 SLOT(on_goto_kalimatlangdotcom_triggered())
                 );

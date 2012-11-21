@@ -83,10 +83,11 @@ const int POINTER = 72;
 const int ANYOF = 73;
 const int RULES = 74;
 const int TIMING = 75;
-const int REPEAT = 76;
+const int REPETITION = 76;
 const int STEP = 77;
 const int DOWNTO = 78;
-const int KEYWORD_CUTOFF = 78; // As long as the ID of the token is <= KEYWORD_CUTOFF, the
+const int REPEAT = 79;
+const int KEYWORD_CUTOFF = 79; // As long as the ID of the token is <= KEYWORD_CUTOFF, the
                                // syntax hilighter will consider it a keyword.
 const int NUM_LITERAL = 91;
 const int ADD_OP = 92;

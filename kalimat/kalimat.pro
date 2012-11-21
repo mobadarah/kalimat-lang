@@ -3,7 +3,7 @@
 # -------------------------------------------------
 TARGET = kalimat
 TEMPLATE = app
-QMAKE_CXXFLAGS += -fpermissive -std=gnu++0x
+QMAKE_CXXFLAGS += -fpermissive -std=gnu++0x -Wno-unused-parameter
 
 SOURCES += main.cpp \
     mainwindow.cpp \
@@ -13,7 +13,7 @@ SOURCES += main.cpp \
     Lexer/charpredicate.cpp \
     Lexer/buffer.cpp \
     Parser/parser.cpp \
-    Lexer/kalimatlexer.cpp \ # ../../Qt/2009.04/share/qtcreator/gdbmacros/gdbmacros.cpp \
+    Lexer/kalimatlexer.cpp \
     Lexer/action.cpp \
     Parser/ast.cpp \
     syntaxhighlighter.cpp \

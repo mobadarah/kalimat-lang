@@ -48,7 +48,7 @@ void MyToolTip::showText(const QPoint &pos, const QString &text, QWidget *w, con
 
     if (!text.isEmpty()){ // no tip can be reused, create new tip:
 #ifndef Q_WS_WIN
-        new MyTipLabel(text, w); // sets MyTipLabel::instance to itself
+        new MyTipLabel(text, w, autoExpire); // sets MyTipLabel::instance to itself
 #else
         // On windows, we can't use the widget as parent otherwise the window will be
         // raised when the tooltip will be shown

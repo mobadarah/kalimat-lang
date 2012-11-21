@@ -210,7 +210,7 @@ emptyModule:
 
 bool KalimatParser::LA_first_statement()
 {
-    return LA(IF) || LA(FORALL) || LA(WHILE) || LA(RETURN_WITH)
+    return LA(IF) || LA(FORALL) || LA(REPEAT) || LA(RETURN_WITH)
             || LA(DELEGATE) || LA(LAUNCH) || LA(LABEL) || LA(GO) || LA(WHEN)
             || LA(SEND) || LA(RECEIVE) || LA(SELECT)
             || LA_first_io_statement() || LA_first_grfx_statement()
@@ -234,7 +234,7 @@ shared_ptr<Statement> KalimatParser::statement()
     {
         ret = forEachStmt();
     }
-    else if(LA(WHILE))
+    else if(LA(REPEAT))
     {
         ret = whileStmt();
     }
@@ -571,9 +571,21 @@ shared_ptr<Statement> KalimatParser::whileStmt()
 {
     bool multiLineStmt = false;
     shared_ptr<Statement> theStmt;
-    Token whileTok = lookAhead;
-    match(WHILE);
-    shared_ptr<Expression> cond = expression();
+    shared_ptr<Expression> cond;
+    Token repeatTok = lookAhead;
+
+    match(REPEAT);
+
+    if(LA(WHILE))
+    {
+        match(WHILE);
+        cond = expression();
+    }
+    else
+    {
+        cond = shared_ptr<Expression>(new BoolLiteral(repeatTok, true));
+    }
+
     match(COLON);
     if(LA(NEWLINE))
     {
@@ -592,7 +604,7 @@ shared_ptr<Statement> KalimatParser::whileStmt()
         theStmt = statement();
     }
     match(CONTINUE);
-    return shared_ptr<Statement>(new WhileStmt(whileTok, cond, theStmt));
+    return shared_ptr<Statement>(new WhileStmt(repeatTok, cond, theStmt));
 }
 
 shared_ptr<Statement> KalimatParser::returnStmt()
