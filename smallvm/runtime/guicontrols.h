@@ -45,7 +45,7 @@ class ImageForeignClass : public EasyForeignClass
 public:
     ImageForeignClass(QString name, RunWindow *rw);
     IObject *newValue(Allocator *allocator);
-    Value *dispatch(int id, QVector<Value *>args);
+    Value *dispatch(Process *proc, int id, QVector<Value *>args);
 };
 
 class WindowForeignClass : public EasyForeignClass
@@ -54,7 +54,7 @@ class WindowForeignClass : public EasyForeignClass
 public:
     WindowForeignClass(QString name, RunWindow *rw);
     IObject *newValue(Allocator *allocator);
-    Value *dispatch(int id, QVector<Value *>args);
+    Value *dispatch(Process *proc, int id, QVector<Value *>args);
 };
 
 class WindowForeignObject : public IObject
@@ -78,7 +78,7 @@ protected:
 public:
     ControlForeignClass(QString name, RunWindow *rw);
     virtual IObject *newValue(Allocator *allocator);
-    virtual Value *dispatch(int id, QVector<Value *>args);
+    virtual Value *dispatch(Process *proc, int id, QVector<Value *>args);
 };
 
 class ButtonForeignClass : public ControlForeignClass
@@ -87,7 +87,7 @@ class ButtonForeignClass : public ControlForeignClass
 public:
     ButtonForeignClass(QString name, RunWindow *rw);
     IObject *newValue(Allocator *allocator);
-    Value *dispatch(int id, QVector<Value *>args);
+    Value *dispatch(Process *proc, int id, QVector<Value *>args);
 public slots:
     void on_button_clicked();
 };
@@ -98,7 +98,7 @@ class TextboxForeignClass : public ControlForeignClass
 public:
     TextboxForeignClass(QString name, RunWindow *rw);
     IObject *newValue(Allocator *allocator);
-    Value *dispatch(int id, QVector<Value *>args);
+    Value *dispatch(Process *proc, int id, QVector<Value *>args);
 public slots:
     void on_text_changed();
 };
@@ -109,7 +109,7 @@ class LineEditForeignClass : public ControlForeignClass
 public:
     LineEditForeignClass(QString name, RunWindow *rw);
     IObject *newValue(Allocator *allocator);
-    Value *dispatch(int id, QVector<Value *>args);
+    Value *dispatch(Process *proc, int id, QVector<Value *>args);
 public slots:
     void on_text_changed();
 };
@@ -121,7 +121,7 @@ class ListboxForeignClass : public ControlForeignClass
 public:
     ListboxForeignClass(QString name, RunWindow *rw);
     IObject *newValue(Allocator *allocator);
-    Value *dispatch(int id, QVector<Value *>args);
+    Value *dispatch(Process *proc, int id, QVector<Value *>args);
 public slots:
     void on_select(int);
 };
@@ -132,7 +132,7 @@ class ComboboxForeignClass : public ControlForeignClass
 public:
     ComboboxForeignClass(QString name, RunWindow *rw);
     IObject *newValue(Allocator *allocator);
-    Value *dispatch(int id, QVector<Value *>args);
+    Value *dispatch(Process *proc, int id, QVector<Value *>args);
 public slots:
     void on_select(int);
     void on_text_changed(QString);
@@ -144,7 +144,7 @@ class LabelForeignClass : public ControlForeignClass
 public:
     LabelForeignClass(QString name, RunWindow *rw);
     IObject *newValue(Allocator *allocator);
-    Value *dispatch(int id, QVector<Value *>args);
+    Value *dispatch(Process *proc, int id, QVector<Value *>args);
 };
 
 class CheckboxForeignClass : public ControlForeignClass
@@ -153,7 +153,7 @@ class CheckboxForeignClass : public ControlForeignClass
 public:
     CheckboxForeignClass(QString name, RunWindow *rw);
     IObject *newValue(Allocator *allocator);
-    Value *dispatch(int id, QVector<Value *>args);
+    Value *dispatch(Process *proc, int id, QVector<Value *>args);
 public slots:
     void value_changed(int);
 };
@@ -164,7 +164,7 @@ class RadioButtonForeignClass : public ControlForeignClass
 public:
     RadioButtonForeignClass(QString name, RunWindow *rw);
     IObject *newValue(Allocator *allocator);
-    Value *dispatch(int id, QVector<Value *>args);
+    Value *dispatch(Process *proc, int id, QVector<Value *>args);
 public slots:
     void value_changed(bool);
 };
@@ -178,7 +178,7 @@ class ButtonGroupForeignClass : public QObject, public EasyForeignClass
 public:
     ButtonGroupForeignClass(QString name, RunWindow *rw);
     IObject *newValue(Allocator *allocator);
-    Value *dispatch(int id, QVector<Value *>args);
+    Value *dispatch(Process *proc, int id, QVector<Value *>args);
 public slots:
     void button_clicked(int);
 };

@@ -84,6 +84,68 @@ Instruction &Instruction::wArgParse(QString argS, Allocator *allocator)
     return *this;
 }
 
+QString InstructionToString(const Instruction &i)
+{
+    switch(i.opcode)
+    {
+    case PushV: return "PushV";
+    case PushLocal: return "PushLocal";
+    case PopLocal: return "PopLocal";
+    case PushGlobal: return "PushGlobal";
+    case PopGlobal: return "PopGlobal";
+    case PushNull: return "PushNull";
+    case GetRef: return "GetRef";
+    case SetRef: return "SetRef";
+    case Add: return "Add";
+    case Sub: return "Sub";
+    case Mul: return "Mul";
+    case Div: return "Div";
+    case And: return "And";
+    case Or: return "Or";
+    case Not: return "Not";
+    case Jmp: return "Jmp";
+    case JmpVal: return "JmpVal";
+    case If: return "If";
+    case Lt: return "Lt";
+    case Gt: return "Gt";
+    case Eq: return "Eq";
+    case Ne: return "Ne";
+    case Le: return "Le";
+    case Ge: return "Ge";
+    case Tail: return "Tail";
+    case Call: return "Call";
+    case CallMethod: return "CallMethod";
+    case CallRef: return "CallRef";
+    case Ret: return "Ret";
+    case CallExternal: return QString("CallExternal: %1").arg(i.SymRef);
+    case Nop: return "Nop";
+    case SetField: return "SetField";
+    case GetField: return "GetField";
+    case GetFieldRef: return "GetFieldRef";
+    case GetArr: return "GetArr";
+    case SetArr: return "SetArr";
+    case GetArrRef: return "GetArrRef";
+    case New: return "New";
+    case NewArr: return "NewArr";
+    case ArrLength: return "ArrLength";
+    case New_MD_Arr: return "New_MD_Arr";
+    case Get_MD_Arr: return "Get_MD_Arr";
+    case Set_MD_Arr: return "Set_MD_Arr";
+    case Get_MD_ArrRef: return "Get_MD_ArrRef";
+    case MD_ArrDimensions: return "MD_ArrDimensions";
+    case PushConstant: return "PushConstant";
+    case Neg: return "Neg";
+    case RegisterEvent: return "RegisterEvent";
+    case Isa: return "Isa";
+    case Send: return "Send";
+    case Receive: return "Receive";
+    case Select: return "Select";
+    case Break: return "Break";
+    case Tick: return "Tick";
+    default: return "[Unknown]";
+    }
+}
+
 Instruction &Instruction::wLabels(QString l1, QString l2)
 {
     this->True = l1;

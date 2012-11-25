@@ -32,6 +32,8 @@ KalimatLexer::KalimatLexer() : Lexer()
     sm.add          (READY,   la(arabicDigit),  AR_NUM);
     sm.add          (READY,   la(europeanDigit),  EU_NUM);
     sm.addAccepting (READY,   returnWith,       READY, RETURN_WITH);
+    // lambda should be tested before identifier letters, since it is itself a letter
+    sm.addAccepting (READY,   lambda,  READY,   LAMBDA);
     sm.add          (READY,   la(letter), ID);
     sm.add          (READY,   la(quote),  STR);
     sm.addAccepting (READY,   seq(     sol,
@@ -148,6 +150,7 @@ void KalimatLexer::InitCharPredicates()
     dollarSign = new CharEquals('$');
     hash = new CharEquals('#');
     ellipsis = new LAStr("...");
+    lambda = choice(new LAStr("^"), new LAStr(L"λ"));
 
     lparen = new CharEquals('(');
     rparen = new CharEquals(')');

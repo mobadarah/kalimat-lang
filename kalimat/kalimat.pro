@@ -3,7 +3,7 @@
 # -------------------------------------------------
 TARGET = kalimat
 TEMPLATE = app
-QMAKE_CXXFLAGS += -fpermissive -std=gnu++0x -Wno-unused-parameter
+QMAKE_CXXFLAGS += -std=gnu++0x -Wno-unused-parameter
 
 SOURCES += main.cpp \
     mainwindow.cpp \
@@ -40,7 +40,6 @@ SOURCES += main.cpp \
     ../smallvm/channel.cpp \
     ../smallvm/process.cpp \
     ../smallvm/metaclass.cpp \
-    ../smallvm/vmutils.cpp \
     ../smallvm/vm_ffi.cpp \
     ../smallvm/runtime/vmclient.cpp \
     ../smallvm/runtime/textlayer.cpp \
@@ -57,9 +56,7 @@ SOURCES += main.cpp \
     ../smallvm/breakpoint.cpp \
     ../smallvm/debuginfo.cpp \
     ../smallvm/utils.cpp \
-    Parser/astreifier.cpp \
     Parser/kalimatparser.cpp \
-    ../smallvm/qobjectforeignclass.cpp \
     Parser/KalimatAst/kalimatast.cpp \
     Parser/parserexception.cpp \
     linenumberarea.cpp \
@@ -71,7 +68,9 @@ SOURCES += main.cpp \
     AutoComplete/analyzer.cpp \
     ../smallvm/runtime/spriteclass.cpp \
     mytooltip.cpp \
-    mytiplabel.cpp
+    mytiplabel.cpp \
+    Parser/KalimatAst/kalimat_ast_gen.cpp \
+    ../smallvm/runtime/vmrunnerthread.cpp
 HEADERS += mainwindow.h \
     Lexer/token.h \
     Lexer/statemachine.h \
@@ -104,17 +103,9 @@ HEADERS += mainwindow.h \
     ../smallvm/runtime/guieditwidgethandler.h \
     ../smallvm/runtime/guicontrols.h \
     ../smallvm/codedocument.h \
-    Parser/astreifier.h \
-    Parser/KalimatAst/toplevel.h \
-    Parser/KalimatAst/statement.h \
-    Parser/KalimatAst/typeexpression.h \
-    Parser/KalimatAst/expression.h \
-    Parser/KalimatAst/declaration.h \
-    Parser/KalimatAst/pattern.h \
     Parser/KalimatAst/formatmaker.h \
     Parser/KalimatAst/kalimatast.h \
     Parser/KalimatAst/kalimatast_incl.h \
-    Parser/KalimatAst/rules.h \
     Parser/KalimatParserError.h \
     Parser/parserexception.h \
     linenumberarea.h \
@@ -126,7 +117,9 @@ HEADERS += mainwindow.h \
     AutoComplete/analyzer.h \
     ../smallvm/runtime/spriteclass.h \
     mytooltip.h \
-    mytiplabel.h
+    mytiplabel.h \
+    Parser/KalimatAst/kalimat_ast_gen.h \
+    ../smallvm/runtime/vmrunnerthread.h
 
 FORMS += mainwindow.ui \
     savechangedfiles.ui \

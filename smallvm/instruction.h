@@ -19,15 +19,13 @@ enum Opcode
 {
     PushV, PushLocal, PopLocal, PushGlobal, PopGlobal, PushNull, GetRef, SetRef,
     Add, Sub, Mul, Div, And, Or, Not, Jmp, JmpVal, If, Lt, Gt, Eq, Ne, Le, Ge,
-    Tail, Call, CallMethod, CallRef, Ret, CallExternal, Nop,
+    Tail, Call, CallMethod, CallRef, Ret, Apply, CallExternal, Nop,
     SetField, GetField, GetFieldRef, GetArr, SetArr, GetArrRef, New, NewArr, ArrLength,
     New_MD_Arr, Get_MD_Arr, Set_MD_Arr, Get_MD_ArrRef, MD_ArrDimensions,
     PushConstant, Neg,
     RegisterEvent, Isa,
     Send, Receive, Select,
-    Break, Tick,
-    push_bk_pt, ignore_bk_pt // special instructions to speed up parsing engine
-
+    Break, Tick
 };
 
 enum CallStyle
@@ -56,5 +54,7 @@ struct Instruction
     Instruction &wExtra(int info);
     Instruction &wCallStyle(CallStyle);
 };
+
+QString InstructionToString(const Instruction &i);
 
 #endif // INSTRUCTION_H

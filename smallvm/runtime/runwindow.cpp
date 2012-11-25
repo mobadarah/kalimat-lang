@@ -22,10 +22,8 @@
 //#include <iostream>
 #include <QFileInfo>
 #include <QDir>
-//#include <QtConcurrentRun>
+#include <QtConcurrentRun>
 using namespace std;
-
-QMap<QString, QString> RunWindow::qtMethodTranslations;
 
 RunWindow::RunWindow(QWidget *parent, QString pathOfProgramsFile, VMClient *client) :
     QMainWindow(parent),
@@ -95,6 +93,7 @@ RunWindow::~RunWindow()
     delete mouseEventChannel;
     delete mouseDownEventChannel;
     delete mouseUpEventChannel;
+    delete mouseMoveEventChannel;
     delete kbEventChannel;
     delete readChannel;
 }
@@ -108,8 +107,8 @@ void RunWindow::Init(QString program, QMap<QString, QString> stringConstants, QS
         mouseEventChannel = vm->GetAllocator().newChannel(false);
         mouseDownEventChannel = vm->GetAllocator().newChannel(false);
         mouseUpEventChannel = vm->GetAllocator().newChannel(false);
+        mouseMoveEventChannel = vm->GetAllocator().newChannel(false);
         kbEventChannel = vm->GetAllocator().newChannel(false);
-        vm->registerProcessAdministrator("eventQueue");
         vm->DefineStringConstant("new_line", "\n");
         vm->Register("print", new WindowProxyMethod(this, vm, PrintProc));
         vm->Register("input", readMethod);
@@ -186,8 +185,9 @@ void RunWindow::Init(QString program, QMap<QString, QString> stringConstants, QS
 
         vm->Register("wait", new WindowProxyMethod(this, vm, WaitProc));
         vm->Register("mouse_event_channel", new WindowProxyMethod(this, vm, MouseEventChanProc));
-        vm->Register("mouseDown_event_channel", new WindowProxyMethod(this, vm, MouseUpEventChanProc));
+        vm->Register("mouseDown_event_channel", new WindowProxyMethod(this, vm, MouseDownEventChanProc));
         vm->Register("mouseUp_event_channel", new WindowProxyMethod(this, vm, MouseUpEventChanProc));
+        vm->Register("mouseMove_event_channel", new WindowProxyMethod(this, vm, MouseMoveEventChanProc));
         vm->Register("kb_event_channel", new WindowProxyMethod(this, vm, KbEventChanProc));
 
         vm->Register("file_write", new WindowProxyMethod(this, vm, FileWriteProc));
@@ -277,7 +277,6 @@ void RunWindow::Init(QString program, QMap<QString, QString> stringConstants, QS
         ((FrameClass *) BuiltInTypes::ActivationFrameType)->allocator = &vm->GetAllocator();
 
         InitVMPrelude(vm);
-        RegisterQtTypes(vm);
 
         vm->Load(program);
         for(QSet<Breakpoint>::const_iterator i=breakPoints.begin(); i!=breakPoints.end(); ++i)
@@ -287,19 +286,16 @@ void RunWindow::Init(QString program, QMap<QString, QString> stringConstants, QS
         vm->Init();
         vm->setDebugger(client);
 
+        /*
         if(parseTree)
         {
-            // the reified parse tree would not be
-            // available if we've generated an
-            // exe file (for now)
-            Value *pt = vm->wrapQObject(parseTree.get(),
-                                    "ParseTree",
-                                    this->qtMethodTranslations,
-                                    false
-                                    );
-            vm->DoPushVal(pt);
-            vm->DoPopGlobal("%parseTree");
+            // todo: deal with reified parse trees
+            vm->SetGlobal("%parseTree", pt);
         }
+        //*/
+        vmThread = new VMRunthread(vm, this);
+        connect(vmThread, SIGNAL(callGUI(QObject*,QString)), this, SLOT(callGUI(QObject*,QString)));
+        connect(vmThread, SIGNAL(callNew(ObjContainer*,OBJ_MAKER)), this, SLOT(callNew(ObjContainer*,OBJ_MAKER)));
         Run();
     }
     catch(VMError err)
@@ -332,31 +328,19 @@ void RunWindow::InitVMPrelude(VM *vm)
     vm->Load(prelude);
 }
 
-void RunWindow::RegisterQtTypes(VM *vm)
-{
-
-    if(qtMethodTranslations.empty())
-    {
-        LineIterator iter = Utils::readResourceTextFile(":/qt_method_translations.txt");
-        qtMethodTranslations = Utils::readAequalBFile(iter);
-    }
-    registerQtClass(vm, new QWidget, _ws(L"ودجت"));
-    registerQtClass(vm, new QPushButton, _ws(L"بشبطن"));
-}
-
 void RunWindow::singleStep(Process *proc)
 {
     int pos,  len, oldPos = -1, oldLen = -1;
     try
     {
-        if((state == rwNormal || state ==rwTextInput)&& vm->isRunning() && !vm->processIsFinished(proc))
+        if((state == rwNormal || state ==rwTextInput)&& vm->isRunning() && !proc->isFinished())
         {
             bool visualize = client->isWonderfulMonitorEnabled();
 
             if(visualize)
-                client->markCurrentInstruction(vm, pos, len);
+                client->markCurrentInstruction(vm, proc, pos, len);
 
-            vm->RunSingleInstruction(proc);
+            proc->RunSingleInstruction();
             redrawWindow();
 
             if(visualize
@@ -381,24 +365,51 @@ void RunWindow::singleStep(Process *proc)
     }
 }
 
+void RunWindow::callGUI(QObject *control, QString method)
+{
+    control->metaObject()->invokeMethod(control, method.toAscii());
+}
+
+void RunWindow::callNew(ObjContainer *box, OBJ_MAKER klass)
+{
+    box->content = klass();
+    box->cond.wakeOne();
+}
+
 void RunWindow::Run()
 {
     int pos,  len, oldPos = -1, oldLen = -1;
     try
     {
+        //vmThread->start();
+
+        /*
+          while((state == rwNormal || state ==rwTextInput)&& vm->isRunning())
+          {
+            if(!vm->getGUIProcesses().empty())
+            {
+                Process *proc = vm->getGUIProcesses().takeFirst();
+                proc->RunTimeSlice(30, vm);
+                vm->finishUpRunningProcess(proc);
+            }
+            qApp->processEvents();
+          }
+        //*/
+
+        //*
         while((state == rwNormal || state ==rwTextInput)&& vm->isRunning())
         {
             bool visualize = client->isWonderfulMonitorEnabled();
 
             if(visualize)
-            {
-                client->markCurrentInstruction(vm, pos, len);
-            }
-
-            if(visualize)
                 vm->RunStep(true);
             else
                 vm->RunStep();
+
+            if(visualize && vm->runningNow)
+            {
+                client->markCurrentInstruction(vm, vm->runningNow, pos, len);
+            }
 
             redrawWindow();
 
@@ -420,6 +431,7 @@ void RunWindow::Run()
         if(vm->isDone())
             client->programStopped(this);
         update();// Final update, in case the last instruction didn't update things in time.
+        //*/
     }
     catch(VMError err)
     {
@@ -453,25 +465,19 @@ void RunWindow::reportError(VMError err)
         client->handleVMError(err);
 }
 
-void RunWindow::registerQtClass(VM *vm, QObject *toRegAndDelete, QString kalimatClass, bool wrapAll)
-{
-    vm->wrapQObject(toRegAndDelete, kalimatClass, qtMethodTranslations, wrapAll);
-    delete toRegAndDelete;
-}
-
 QString RunWindow::pathOfRunningProgram()
 {
     return this->pathOfProgramsFile;
 }
 
-QString RunWindow::ensureCompletePath(QString fileName)
+QString RunWindow::ensureCompletePath(Process *proc, QString fileName)
 {
 
     QFileInfo fi(fileName);
     if(!fi.isAbsolute())
     {
         if(pathOfRunningProgram() == "")
-            assert(false, ArgumentError, QString::fromStdWString(L"لا يمكن استخدام ملف بإسم ناقص إلا عند تخزين البرنامج أولا"));
+            assert(proc, false, ArgumentError, VM::argumentErrors.get(ArgErr::CannotUsePartialFileName1, fileName));
         else
         {
             QFileInfo i2(pathOfRunningProgram());
@@ -493,19 +499,19 @@ void RunWindow::resetTimer(int interval)
     timerID = startTimer(interval);
 }
 
-void RunWindow::typeCheck(Value *val, IClass *type)
+void RunWindow::typeCheck(Process *proc, Value *val, IClass *type)
 {
-    vm->assert(val->type->subclassOf(type), TypeError2, type, val->type);
+    vm->assert(proc, val->type->subclassOf(type), TypeError2, type, val->type);
 }
 
-void RunWindow::assert(bool condition, VMErrorType errorType, QString errorMsg)
+void RunWindow::assert(Process *proc, bool condition, VMErrorType errorType, QString errorMsg)
 {
-    vm->assert(condition, errorType, errorMsg);
+    vm->assert(proc, condition, errorType, errorMsg);
 }
 
-void RunWindow::typeError(IClass *expected, IClass *given)
+void RunWindow::typeError(Process *proc, IClass *expected, IClass *given)
 {
-    vm->assert(false, TypeError2, expected, given);
+    vm->assert(proc, false, TypeError2, expected, given);
 }
 
 void RunWindow::suspend()
@@ -534,6 +540,7 @@ void RunWindow::redrawWindow()
 void RunWindow::paintEvent(QPaintEvent *)
 {
    QPainter painter(this);
+
    paintSurface->paint(painter, textLayer, spriteLayer);
 }
 
@@ -613,7 +620,7 @@ void RunWindow::activateMouseEvent(QMouseEvent *ev, QString evName)
     try
     {
         // Send to mouse event channel
-        Value *mouseDataV = vm->GetAllocator().newObject((IClass *)vm->GetType(QString::fromStdWString(L"معلومات.حادثة.فارة"))->unboxObj());
+        Value *mouseDataV = vm->GetAllocator().newObject((IClass *)vm->GetType(QString::fromStdWString(L"معلومات.حادثة.ماوس"))->unboxObj());
         IObject *mouseData = mouseDataV->unboxObj();
         mouseData->setSlotValue(QString::fromStdWString(L"س"), xval);
         mouseData->setSlotValue(QString::fromStdWString(L"ص"), yval);
@@ -629,7 +636,8 @@ void RunWindow::activateMouseEvent(QMouseEvent *ev, QString evName)
             mouseDownEventChannel->unboxChan()->send(mouseDataV, NULL);
         else if(evName == "mouseup")
             mouseUpEventChannel->unboxChan()->send(mouseDataV, NULL);
-
+        else if(evName == "mousemove")
+            mouseMoveEventChannel->unboxChan()->send(mouseDataV, NULL);
 
         vm->ActivateEvent(evName, args);
         //resume();
@@ -785,7 +793,7 @@ void RunWindow::onCollision(Sprite *s1, Sprite *s2)
     if(v1->type != BuiltInTypes::SpriteType || v2->type
             != BuiltInTypes::SpriteType)
     {
-        int breakPoint = 0;
+        //int breakPoint = 0;
     }
     QVector<Value *> args;
     args.append(v1);

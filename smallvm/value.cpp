@@ -15,7 +15,6 @@
 #include "value.h"
 #include "references.h"
 #include "vmerror.h"
-#include "vmutils.h"
 #include "runtime/spriteclass.h"
 
 #define QSTR(x) QString::fromStdWString(x)
@@ -26,8 +25,8 @@ ValueClass *BuiltInTypes::IntType = new ValueClass(QSTR(L"عدد.صحيح"), Bui
 ValueClass *BuiltInTypes::LongType = new ValueClass(QSTR(L"عدد.صحيح.واسع"), BuiltInTypes::NumericType);
 ValueClass *BuiltInTypes::DoubleType = new ValueClass(QSTR(L"عدد.حقيقي"), BuiltInTypes::NumericType);
 ValueClass *BuiltInTypes::BoolType = new ValueClass(QSTR(L"قيمة.منطقية"), BuiltInTypes::ObjectType);
-ValueClass *BuiltInTypes::MethodType = new ValueClass("Method", BuiltInTypes::ObjectType);
-ValueClass *BuiltInTypes::ExternalMethodType = new ValueClass("ExternalMethod", BuiltInTypes::ObjectType);
+IClass *BuiltInTypes::MethodType = new MethodClass("Method", BuiltInTypes::ObjectType);
+ValueClass *BuiltInTypes::ExternalMethodType = new ValueClass("ExternalMethod", BuiltInTypes::MethodType);
 ValueClass *BuiltInTypes::ExternalLibrary = new ValueClass("ExternalLibrary", BuiltInTypes::ObjectType);
 MetaClass  *BuiltInTypes::ClassType = new MetaClass("Class", NULL);
 ValueClass *BuiltInTypes::IndexableType = new ValueClass(QSTR(L"مفهرس"), BuiltInTypes::ObjectType);
@@ -242,10 +241,8 @@ QString MapToString(VMap *map)
 
 QString Value::toString() const
 {
-    QString sv;
     QString ret = "<unprintable value>";
     QStringList elems;
-    void *val ;
     const Value *v = this;
     //QLocale loc(QLocale::Arabic, QLocale::Egypt);
     QLocale loc(QLocale::English, QLocale::UnitedStates);
@@ -361,7 +358,7 @@ void VMap::set(Value *key, Value *v)
     Elements[*key] = v;
 }
 
-ValueClass::ValueClass(QString name, ValueClass *baseClass)
+ValueClass::ValueClass(QString name, IClass *baseClass)
 {
     this->name = name;
     if(baseClass !=NULL)

@@ -10,6 +10,7 @@
 
 #include "Parser/parser_incl.h"
 #include "Parser/KalimatAst/kalimatast_incl.h"
+#include "Parser/KalimatAst/kalimat_ast_gen.h"
 #include "Parser/kalimatparser.h"
 #include "../smallvm/codedocument.h"
 #include "Compiler/codegenerator.h"
@@ -79,7 +80,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     QToolBar *notice = new QToolBar("");
     notice->addAction(
-                QString::fromStdWString(L"هذه هي النسخة الأولية لشهر سبتمبر 2012. حمل أحدث نسخة من www.kalimat-lang.com"),
+                QString::fromStdWString(L"هذه هي النسخة الأولية لشهر نوفمبر 2012. حمل أحدث نسخة من www.kalimat-lang.com"),
                 this,
                 SLOT(on_goto_kalimatlangdotcom_triggered())
                 );
@@ -110,6 +111,9 @@ MainWindow::MainWindow(QWidget *parent)
     splitter->addWidget(ui->editorTabs);
     splitter->addWidget(ui->tabWidget);
     setCentralWidget(splitter);
+
+    splitter->setStretchFactor(0, 4);
+    splitter->setStretchFactor(1, 0);
 
     this->setWindowTitle(QString::fromWCharArray(L"كلمات"));
     this->showMaximized();
@@ -238,7 +242,6 @@ void MainWindow::setLineIndicators(int line, int column, QTextEdit *editor)
     lblEditorCurrentLine->setText(QString::fromStdWString(L"السطر: %1").arg(line));
     lblEditorCurrentColumn->setText(QString::fromStdWString(L"العمود: %1").arg(column));
 
-    int index;
     MyEdit *ed = (MyEdit *) editor;
 
     setFunctionNavigationComboSelection(editor);
@@ -346,16 +349,16 @@ shared_ptr<CompilationUnit> MainWindow::parseCurrentDocumentWithRecovery()
     }
     catch(UnexpectedCharException ex)
     {
-        ui->outputView->append(ex.buildMessage());
+        //ui->outputView->append(ex.buildMessage());
     }
     catch(UnexpectedEndOfFileException ex)
     {
-        ui->outputView->append("Unexpected end of file");
+        //ui->outputView->append("Unexpected end of file");
     }
     catch(ParserException ex)
     {
-        QString msg = translateParserError(ex);
-        ui->outputView->append(msg);
+        //QString msg = translateParserError(ex);
+        //ui->outputView->append(msg);
     }
     return ret;
 }
@@ -828,12 +831,18 @@ int MainWindow::wonderfulMonitorDelay()
     return 500;
 }
 
-void MainWindow::visualizeCallStacks(QQueue<Process *> &callStacks, QGraphicsView *view)
+void MainWindow::visualizeCallStacks(QSet<QQueue<Process *> *> callStacks, QGraphicsView *view)
 {
     // todo: Visualize the call stacks; as the function name says :(
     if(callStacks.empty())
         return;
-    visualizeCallStack(callStacks.front()->stack, view);
+    for(QSet<QQueue<Process *> *>::const_iterator i = callStacks.begin(); i!=callStacks.end(); ++i)
+    {
+        const QQueue<Process *> * q = (*i);
+        if(!q->empty())
+            visualizeCallStack(q->front()->stack, view);
+        break; // only the first call stack for now
+    }
 }
 
 void MainWindow::visualizeCallStack(QStack<Frame> &callStack, QGraphicsView *view)
@@ -877,11 +886,11 @@ void MainWindow::visualizeCallStack(QStack<Frame> &callStack, QGraphicsView *vie
     view->setScene(scene);
 }
 
-void MainWindow::markCurrentInstruction(VM *vm, int &pos, int &length)
+void MainWindow::markCurrentInstruction(VM *vm, Process *proc, int &pos, int &length)
 {
-    if(vm->hasRunningInstruction())
+    if(!proc->isFinished())
     {
-        Instruction i = vm->getCurrentInstruction();
+        const Instruction &i = proc->getCurrentInstruction();
         visualizeCallStacks(vm->getCallStacks(), ui->graphicsView);
         int key = i.extra;
         if(key ==-1)
@@ -1208,7 +1217,8 @@ void MainWindow::on_action_copy_as_html_triggered()
         QString program = editor->document()->toPlainText();
         QStringList output;
         syn->highlightToHtml(program, output);
-        QApplication::clipboard()->setText(output.join(""));
+        QString result = removeExtraSpaces(output.join(""));
+        QApplication::clipboard()->setText(result);
     }
 }
 
@@ -1222,7 +1232,8 @@ void MainWindow::on_action_copy_as_wiki_triggered()
         QString program = editor->document()->toPlainText();
         QStringList output;
         syn->highlightToWiki(program, output);
-        QApplication::clipboard()->setText(output.join(""));
+        QString result = removeExtraSpaces(output.join(""));
+        QApplication::clipboard()->setText(result);
     }
 }
 
@@ -1309,7 +1320,7 @@ void MainWindow::genericStep(Process *proc, StepStopCondition &cond)
     if(!currentDebuggerProcess)
         return;
     VM *vm = stoppedRunWindow->getVM();
-    if(vm->processIsFinished(currentDebuggerProcess))
+    if(currentDebuggerProcess->isFinished())
         return;
 
     CodeDocument *doc;
@@ -1333,7 +1344,7 @@ void MainWindow::genericStep(Process *proc, StepStopCondition &cond)
     atBreak = false;
     while(true)
     {
-        if(vm->processIsFinished(currentDebuggerProcess))
+        if(currentDebuggerProcess->isFinished())
             break;
         stoppedRunWindow->singleStep(currentDebuggerProcess);
 
@@ -1454,8 +1465,6 @@ void MainWindow::on_action_step_procedure_triggered()
         return; // We're not actually debugging a program
     VM *vm = stoppedRunWindow->getVM();
 
-    CodeDocument *doc;
-    int line;
     Frame *frame;
 
     int offset;
@@ -1866,7 +1875,7 @@ void setAllEditsProc(CodeDocument *, QWidget *edit, void *newFont)
 
 void setAllEditsSizeProc(CodeDocument *, QWidget *edit, void *fp)
 {
-    int *size = *((int *) fp);
+    int size = *((int *) fp);
     MyEdit *ed = dynamic_cast<MyEdit *>(edit);
     if(ed)
     {
@@ -1939,7 +1948,6 @@ void MainWindow::on_actionUpdate_code_model_triggered()
                     0.6f * (float) ui->functionNavigationToolbar->width() );
         setFunctionNavigationComboSelection(currentEditor());
     }
-    done:
     generatingProgramModel = false;
 }
 
@@ -1960,6 +1968,7 @@ void MainWindow::on_functionNavigationCombo_currentIndexChanged(int index)
     }
     jumpToFunctionNamed(funcName, (MyEdit *) currentEditor());
 }
+
 Token MainWindow::getTokenUnderCursor(MyEdit *editor, TokenType type, bool ignoreTypeFilter)
 {
     int index;
@@ -1996,10 +2005,11 @@ Token MainWindow::getTokenUnderCursor(MyEdit *editor, TokenType type, int &index
     }
     catch(UnexpectedEndOfFileException ex)
     {
-        ui->outputView->append("Unexpected end of file");
+        ui->outputView->append(tr("Unexpected end of file"));
     }
     return Token();
 }
+
 Token MainWindow::getTokenBeforeCursor(MyEdit *editor, TokenType type, bool ignoreTypeFilter)
 {
     int index;
@@ -2050,7 +2060,7 @@ Token MainWindow::getTokenBeforeCursor(MyEdit *editor, TokenType type, int &inde
     }
     catch(UnexpectedEndOfFileException ex)
     {
-        ui->outputView->append("Unexpected end of file");
+        ui->outputView->append(tr("Unexpected end of file"));
     }
     return Token();
 }
@@ -2095,10 +2105,9 @@ void MainWindow::triggerAutocomplete(MyEdit *editor)
 
     if(t.Type == TokenInvalid)
         return;
-    QString varName = t.Lexeme;
     if(!varInfos.contains(t.Pos))
         return; // among other reasons for not being in
-                // varinfos is thatit might not
+                // varinfos is that it might not
                 // actually be a variable
                 // but any identifier
     VarUsageInfo vi = varInfos[t.Pos];
@@ -2122,9 +2131,11 @@ void MainWindow::showCompletionCombo(MyEdit *editor, VarUsageInfo vi)
 
     autoCompleteCombo = new QComboBox(editor);
     //autoCompleteCombo->setIconSize(QSize(32,32));
-    for(int i=0; i<cd->methodCount();i++)
+    for(QMap<QString, shared_ptr<MethodDecl> >::const_iterator i=cd->_methods.begin();
+            i != cd->_methods.end();
+            ++i)
     {
-        shared_ptr<MethodDecl> md = cd->method(i);
+        shared_ptr<MethodDecl> md = i.value();
         /*
         QIcon icon;
         if(md->isFunctionNotProcedure)
@@ -2132,7 +2143,7 @@ void MainWindow::showCompletionCombo(MyEdit *editor, VarUsageInfo vi)
         else
             icon = QIcon(":/icons/icons/reply.bmp");
         //*/
-        autoCompleteCombo->addItem(md->getTooltip(), md->procName()->name);
+        autoCompleteCombo->addItem(md->getTooltip(), md->procName()->name());
     }
 
     autoCompleteCombo->setWindowOpacity(0.8);
@@ -2226,7 +2237,7 @@ void MainWindow::analyzeForAutocomplete()
     }
     catch(UnexpectedEndOfFileException ex)
     {
-        ui->outputView->append("Unexpected end of file");
+        ui->outputView->append(tr("Unexpected end of file"));
     }
     catch(ParserException ex)
     {
@@ -2303,4 +2314,14 @@ void MainWindow::on_action_SpecialSymbol_openBrace_triggered()
 void MainWindow::on_action_SpecialSymbol_closeBrace_triggered()
 {
     insertInEditor("}");
+}
+
+void MainWindow::on_action_SpecialSymbol_lambda_triggered()
+{
+    insertInEditor(QString::fromStdWString(L"λ"));
+}
+
+void MainWindow::on_actionLambda_transformation_triggered()
+{
+
 }

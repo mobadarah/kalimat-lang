@@ -25,15 +25,18 @@ class SpriteLayer
 {
     QVector<Sprite *> _sprites;
     QSet<Sprite *> _visibleSprites;
-
+    bool dirtyState;
 public:
     SpriteLayer();
+    bool dirty();
+    void changing() { dirtyState = true; }
+    void updated() { dirtyState = false; }
     void showSprite(Sprite *s);
     void hideSprite(Sprite *s);
     void AddSprite(Sprite *);
     void checkCollision(Sprite *s, CollisionListener *callback);
-    QSet<Sprite *> visibleSprites() { return _visibleSprites; }
-    QVector<Sprite *> &sprites() { return _sprites; }
+    const QSet<Sprite *> &visibleSprites() { return _visibleSprites; }
+    const QVector<Sprite *> &sprites() { return _sprites; }
 };
 
 #endif // SPRITELAYER_H

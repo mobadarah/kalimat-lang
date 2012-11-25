@@ -18,7 +18,7 @@ enum VMErrorType
     // required to complete the error message string
     NoSuchVariable1, NoSuchProcedure1, NoSuchProcedureOrFunction1,
     NoSuchField2, NoSuchMethod2, NoSuchExternalMethod1, NoSuchEvent,
-    NoSuchClass, NameDoesntIndicateAClass1,
+    NoSuchClass1, NameDoesntIndicateAClass1,
 
     UnrecognizedInstruction,UnrecognizedMnemonic2,
     GettingFieldOnNonObject1, SettingFieldOnNonObject1, CallingMethodOnNonObject,
@@ -27,8 +27,10 @@ enum VMErrorType
     NumericOperationOnNonNumber3, LogicOperationOnNonBoolean,
 
     DivisionByZero,
-    BuiltInOperationOnNonBuiltn,
-    TypeError2, InternalError, InternalError1, WrongNumberOfArguments, FunctionDidntReturnAValue,
+    BuiltInOperationOnNonBuiltn2,
+    IncorrectJumpLabel1,
+    JumpingToNonExistentLabel1,
+    TypeError2, InternalError, InternalError1, WrongNumberOfArguments3, FunctionDidntReturnAValue1,
     SubscribingNonArray, SubscribtMustBeInteger, UnacceptableKeyFormMap1, IndexableNotFound1,
     SubscriptOutOfRange2, SubscriptOutOfRange3,
     ArgumentError, MD_IndexingWrongNumberOfDimensions,
@@ -36,6 +38,36 @@ enum VMErrorType
     RuntimeError,
     NoError
 };
+
+namespace ArgErr
+{
+    enum ArgError
+    {
+        InvalidCursorPosition,
+        RandTakesPositiveValues,
+        CannotConvertStrToInt1,
+        NonExistingImageFile1,
+        NonExistingSpriteFile1,
+        InvalidArgRange3,
+        X,
+        Y,
+        InvalidConstantName1,
+        CannotWriteToClosedFile,
+        CannotReadFromClosedFile,
+        CannotOperateOnClosedFile,
+        TryingToOpenMissingFile1,
+        FailedToOpenFile1,
+        SentValueHasToBeAnObject1,
+        StackTopNotBacktrackPoint1,
+        BadFrameNumber1,
+        CannotUsePartialFileName1,
+        NoMainFuncToExecute,
+        Editing1,
+        Ok,
+        Cancel
+    };
+
+}
 
 class VMError
 {

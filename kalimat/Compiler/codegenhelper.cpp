@@ -18,6 +18,7 @@ void SmallVMCodeGenerator::Init()
     uniqueLabelCount = 0;
     uniqueStringConstantCount = 0;
     uniqueVariableCount = 0;
+    uniqueLambdaCount = 0;
 }
 
 QString SmallVMCodeGenerator::getOutput()
@@ -43,6 +44,11 @@ QString SmallVMCodeGenerator::uniqueLabel()
 QString SmallVMCodeGenerator::uniqueVariable()
 {
     return QString("%%var%1").arg(uniqueVariableCount++);
+}
+
+QString SmallVMCodeGenerator::uniqueLambda()
+{
+    return QString("%%lambda%1").arg(uniqueLambdaCount++);
 }
 
 void SmallVMCodeGenerator::gen(QString str)

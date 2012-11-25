@@ -27,6 +27,7 @@ public:
 
     virtual void space() = 0;
     virtual void comma() = 0;
+    virtual void semi() = 0;
     virtual void colon() = 0;
     virtual void nl() = 0;
     virtual void blankLine()=0;
@@ -57,6 +58,7 @@ public:
         print(" ");
     }
     virtual void comma() { print(QString::fromStdWString(L"، ")); }
+    virtual void semi() { print(QString::fromStdWString(L"؛ ")); }
     virtual void colon() { print(":"); }
     virtual void openParen() { print("("); }
     virtual void closeParen() { print(")"); }

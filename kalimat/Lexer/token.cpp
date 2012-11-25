@@ -8,6 +8,11 @@
 #include <QString>
 #include "token.h"
 
+QTextStream & operator <<(QTextStream &str, const Token & t)
+{
+    return str << t.Lexeme;
+}
+
 Token::Token(QString lexeme, TokenType type)
 {
     Lexeme = lexeme;

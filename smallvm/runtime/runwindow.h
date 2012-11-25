@@ -59,6 +59,10 @@ using namespace std;
     #include "vmclient.h"
 #endif
 
+#ifndef VMRUNNERTHREAD_H
+    #include "vmrunnerthread.h"
+#endif
+
 namespace Ui {
     class RunWindow;
 }
@@ -78,25 +82,27 @@ public:
     void Init(QString program, QMap<QString, QString> stringConstants, QSet<Breakpoint> breakPoints, DebugInfo debugInfo);
     void InitVMPrelude(VM *vm);
     void RegisterQtTypes(VM *vm);
-    void assert(bool condition,  VMErrorType errorType, QString errorMsg);
+    void assert(Process *proc,  bool condition, VMErrorType errorType, QString errorMsg);
     QString pathOfRunningProgram();
-    QString ensureCompletePath(QString fileName);
+    QString ensureCompletePath(Process *proc, QString fileName);
     VM *getVM() { return vm;}
+    VMRunthread *getVmThread() { return vmThread;}
 private:
     QString pathOfProgramsFile;
     VM *vm;
+    VMRunthread *vmThread;
     VMClient *client;
     WindowReadMethod *readMethod;
     QMap<VMErrorType, QString> ErrorMap;
     QString translate_error(VMError err);
     void reportError(VMError );
-    void registerQtClass(VM *vm, QObject *toRegAndDelete, QString kalimatClass, bool wrapAll=false);
 protected:
     void changeEvent(QEvent *e);
 private:
     RunWindowState state;
+    friend class VMRunthread;
+    static void vmRunner(VM *vm, RunWindow *rw);
 public:
-    shared_ptr<QObject> parseTree;
     Value *readChannel;
     TextLayer textLayer;
     SpriteLayer spriteLayer;
@@ -105,6 +111,7 @@ public:
     Value *mouseEventChannel;
     Value *mouseDownEventChannel;
     Value *mouseUpEventChannel;
+    Value *mouseMoveEventChannel;
     Value *kbEventChannel;
     void checkCollision(Sprite *s);
     void onCollision(Sprite *s1, Sprite *s2);
@@ -117,7 +124,6 @@ public:
     PaintTimer updateTimer;
 private:
     Ui::RunWindow *ui;
-    static QMap<QString, QString> qtMethodTranslations;
     void activateMouseEvent(QMouseEvent *ev, QString evName);
     void activateKeyEvent(QKeyEvent *ev, QString evName);
 public:
@@ -132,15 +138,16 @@ public:
     void setAsleep(int cookie, Value *channel, int ms);
     bool isAsleep(int cookie);
 
-    void typeCheck(Value *val, IClass *type);
-    void typeError(IClass *expected, IClass *given);
+    void typeCheck(Process *proc, Value *val, IClass *type);
+    void typeError(Process *proc, IClass *expected, IClass *given);
     void beginInput();
     void Run();
     void singleStep(Process *proc);
     friend class WindowPrintMethod;
     friend class WindowReadMethod;
-
 private slots:
+    void callGUI(QObject *control, QString method);
+    void callNew(ObjContainer *box, OBJ_MAKER);
     void mousePressEvent(QMouseEvent *);
     void mouseReleaseEvent(QMouseEvent *);
     void mouseMoveEvent(QMouseEvent *);

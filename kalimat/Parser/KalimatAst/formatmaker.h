@@ -1,6 +1,7 @@
 #ifndef FORMATMAKER_H
 #define FORMATMAKER_H
 
+#include "kalimat_ast_gen.h"
 template<typename V> QString vector_toString(QVector<V> vector)
 {
     QStringList lst;
@@ -17,7 +18,7 @@ template<typename V> QString vector_toString(QVector<V> vector)
 // since mingw has problems when we support C++0x
 typedef function<void(CodeFormatter *)> FormatMaker;
 
-FormatMaker parens(FormatMaker f)
+FormatMaker parens(&FormatMaker f)
 {
     return [&f](CodeFormatter *cf)
     {
@@ -47,7 +48,7 @@ class parens : public FormatMaker
 {
     FormatMaker *f;
 public:
-    parens(FormatMaker *_f) { f = _f;}
+    parens(FormatMaker *_f) : f(_f) { }
     void run(CodeFormatter *cf)
     {
         cf->openParen();
@@ -103,6 +104,23 @@ public:
             fs[i]->run(cf);
             if(i+1<fs.count())
                 cf->comma();
+        }
+    }
+};
+
+class semiColonSep: public FormatMaker
+{
+    QVector<FormatMaker *> fs;
+public:
+    semiColonSep(FormatMaker *_f1, FormatMaker *_f2) { fs.append(_f1);fs.append(_f2);}
+    semiColonSep(QVector<FormatMaker *> _fs) { fs = _fs;}
+    void run(CodeFormatter *cf)
+    {
+        for(int i=0; i<fs.count(); i++)
+        {
+            fs[i]->run(cf);
+            if(i+1<fs.count())
+                cf->semi();
         }
     }
 };
@@ -164,7 +182,8 @@ public:
         if(width)
         {
             f->printKw(L"بعرض");
-            parens(&ast(width)).run(f);
+            ast a(width);
+            parens(&a).run(f);
             f->space();
         }
         expression->prettyPrint(f);

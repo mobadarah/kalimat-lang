@@ -15,7 +15,7 @@ public:
     explicit ExternalMethod();
     explicit ExternalMethod(int arity);
     int Arity() { return arity;}
-    virtual void operator ()(QStack<Value *> &operandStack) =0;
+    virtual void operator ()(QStack<Value *> &operandStack, Process *) =0;
 };
 
 

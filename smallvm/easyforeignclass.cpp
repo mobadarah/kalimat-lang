@@ -15,9 +15,9 @@ QString ForeignMethodProxy::toString()
     return name;
 }
 
-Value *ForeignMethodProxy::invoke(QVector<Value *> args)
+Value *ForeignMethodProxy::invoke(Process *proc, QVector<Value *> args)
 {
-    return owner->dispatch(id, args);
+    return owner->dispatch(proc, id, args);
 }
 
 int ForeignMethodProxy::Arity()

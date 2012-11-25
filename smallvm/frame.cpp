@@ -25,7 +25,7 @@ IObject *FrameClass::newValue(Allocator *allocator)
     return f;
 }
 
-Value *FrameClass::dispatch(int id, QVector<Value *>args)
+Value *FrameClass::dispatch(Process *proc, int id, QVector<Value *> args)
 {
     IObject *receiver = args[0]->unboxObj();
     Frame *frm = dynamic_cast<Frame *>(receiver);

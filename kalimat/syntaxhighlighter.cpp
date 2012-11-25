@@ -30,7 +30,6 @@ SyntaxHighlighter::SyntaxHighlighter(QTextDocument *parent, KalimatLexer *_lexer
 void SyntaxHighlighter::highlightBlock(const QString &text)
 {
     this->lexer->init(text);
-    bool lineStart = true;
     try
     {
         lexer->tokenize();
@@ -56,12 +55,6 @@ void SyntaxHighlighter::highlightBlock(const QString &text)
            }
            else if(t.Type == STR_LITERAL)
                setFormat(t.Pos, t.Lexeme.length(), stringLiterals);
-
-
-           if(t.Is(NEWLINE))
-               lineStart = true;
-           else
-               lineStart = false;
        }
     }
     catch(UnexpectedCharException ex)
@@ -105,6 +98,14 @@ void SyntaxHighlighter::highlightToHtml(QString program, QStringList &output)
            else if(t.Type == NEWLINE)
            {
                output.append("<br>");
+           }
+           else if(t.Type == GT)
+           {
+               output.append("&gt;");
+           }
+           else if(t.Type == LT)
+           {
+               output.append("&lt;");
            }
            else
            {
@@ -249,4 +250,13 @@ void SyntaxHighlighter::highlightLiterateHtml(QString program, QStringList &outp
     catch(ParserException ex)
     {
     }
+}
+
+QString removeExtraSpaces(QString input)
+{
+    return input.replace(" ,", ",").replace(QString::fromStdWString(L" ،"), QString::fromStdWString(L"،")) // fix spaces before commans
+           .replace("( ", "(").replace("[ ", "[").replace("{ ", "{") // spaces after open brackets
+           .replace(") ", ")").replace("] ", "]").replace("} ", "}") // spaces after closed brackets
+           .replace(" )", ")").replace(" ]", "]").replace(" }", "}") // spaces before closed brackets
+            ;
 }

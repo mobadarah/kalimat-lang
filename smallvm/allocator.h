@@ -46,11 +46,11 @@ class Allocator
 
     // Store VM root objects for GC
     QHash<int, Value*> *constantPool;
-    QQueue<Process *> *processes;
+    QSet<QQueue<Process *> *> processes;
     QSet<Frame *> otherFrames;
 public:
     Allocator(QHash<int, Value*> *constantPool,
-              QQueue<Process *> *processes);
+              QSet<QQueue<Process *> *>);
 
     void addOtherFrameAsRoot(Frame *f) { otherFrames.insert(f); }
     void makeGcMonitored(Value *v);

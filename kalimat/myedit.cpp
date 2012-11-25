@@ -684,12 +684,10 @@ void MyEdit::mousePressEvent(QMouseEvent *e)
     {
         QTextCursor c = this->cursorForPosition(e->pos());
         KalimatLexer lxr;
-        bool tokenized = false;
         try
         {
             lxr.init(this->toPlainText());
             lxr.tokenize();
-            tokenized = true;
         }
         catch(UnexpectedCharException ex)
         {

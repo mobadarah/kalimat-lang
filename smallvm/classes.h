@@ -9,6 +9,7 @@
 
 class Value;
 class Allocator;
+class Process;
 
 struct IObject
 {
@@ -46,7 +47,7 @@ struct IForeignMethod : public IMethod
     virtual void setSlotValue(QString name, Value *val) {}
     virtual QString toString()=0;
     // Args are last to first
-    virtual Value *invoke(QVector<Value *> args)=0;
+    virtual Value *invoke(Process *proc, QVector<Value *> args)=0;
 };
 
 struct PropertyDesc
@@ -71,7 +72,7 @@ struct IClass : public IObject
 
 struct ValueClass : public IClass
 {
-    ValueClass(QString name, ValueClass *baseClass);
+    ValueClass(QString name, IClass *baseClass);
     virtual ~ValueClass();
 
     // IObject
@@ -98,7 +99,7 @@ public:
     QString name;
     QSet<QString> fields;
     QVector<QString> fieldNames; // In order of definition
-    QVector<ValueClass*> BaseClasses;
+    QVector<IClass *> BaseClasses;
     QMap<QString, Value*> methods;
     QMap<QString, Value *> fieldAttributes;
     QVector<PropertyDesc> properties;

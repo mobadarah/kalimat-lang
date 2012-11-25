@@ -12,8 +12,17 @@ using namespace std;
 TextLayer::TextLayer()
 {
     state = Normal;
+    dirtyState = false;
     mode = Overwrite;
     clearText();
+}
+
+bool TextLayer::dirty()
+{
+    if(inputState())
+        return true; // we need to keep refreshing to make the cursor blink
+
+    return dirtyState;
 }
 
 void TextLayer::clearText()
@@ -26,6 +35,7 @@ void TextLayer::clearText()
     textLineWidth = 54;
     visibleTextBuffer.clear();
     visibleTextBuffer.resize(25);
+    dirtyState = true;
 }
 
 void TextLayer::print(QString str)
@@ -34,8 +44,9 @@ void TextLayer::print(QString str)
     {
         printChar(str[i]);
     }
-
+    dirtyState = true;
 }
+
 void TextLayer::printChar(QChar c)
 {
     if(c == '\n')
@@ -213,6 +224,7 @@ void TextLayer::nl()
     }
     cr();
     lf();
+    dirtyState = true;
 }
 
 void TextLayer::del()
@@ -225,6 +237,7 @@ void TextLayer::del()
 
     s = s.remove(cursor_col, 1);
     visibleTextBuffer[cursor_line] = s;
+    dirtyState = true;
 }
 
 void TextLayer::backSpace()
@@ -240,6 +253,7 @@ void TextLayer::backSpace()
     s = s.remove(cursor_col-1, 1);
     visibleTextBuffer[cursor_line] = s;
     cursor_col --;
+    dirtyState = true;
 }
 
 QString TextLayer::formatStringUsingWidth(QString str, int width)

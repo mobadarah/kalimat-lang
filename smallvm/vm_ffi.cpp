@@ -70,7 +70,7 @@ void kalimat_to_ffi_type(IClass *kalimatType, ffi_type *&type, VM *vm)
             {
                 QString str = fieldMarshallingType->unboxStr();
                 if(vm->GetType(str) == NULL)
-                    vm->signal(InternalError1, QString("Marshalling type '%1' does not exist").arg(str));
+                    vm->signal(NULL, InternalError1, QString("Marshalling type '%1' does not exist").arg(str));
 
                 IClass *fieldClass = (IClass *) vm->GetType(str)->unboxObj();
                 ffi_type *fieldFfiType;
@@ -95,7 +95,7 @@ void kalimat_to_ffi_type(IClass *kalimatType, ffi_type *&type, VM *vm)
               ffi_prep_cif to do that now. */
         ffi_cif cif;
         if (ffi_prep_cif(&cif, FFI_DEFAULT_ABI, 0, type, 0) != FFI_OK)
-            vm->signal(InternalError);
+            vm->signal(NULL, InternalError, "ffi_cif failed");
     }
 
 }
@@ -128,7 +128,7 @@ void kalimat_to_ffi_value(IClass *kalimatType, Value *v, ffi_type *type, void *&
         {
             std::string str_c = v->unboxStr().toStdString();
             char *str = new char[str_c.length()+1];
-            for(int i=0;i<str_c.length(); i++)
+            for(unsigned int i=0;i<str_c.length(); i++)
             {
                 str[i] = str_c[i];
             }
@@ -140,7 +140,7 @@ void kalimat_to_ffi_value(IClass *kalimatType, Value *v, ffi_type *type, void *&
         {
             std::wstring str_c = v->unboxStr().toStdWString();
             wchar_t *str = new wchar_t[str_c.length()+1];
-            for(int i=0;i<str_c.length(); i++)
+            for(unsigned int i=0;i<str_c.length(); i++)
             {
                 str[i] = str_c[i];
             }
@@ -170,7 +170,7 @@ void kalimat_to_ffi_value(IClass *kalimatType, Value *v, ffi_type *type, void *&
             {
                 QString str = fieldMarshallingType->unboxStr();
                 if(vm->GetType(str) == NULL)
-                    vm->signal(InternalError1, QString("Marshalling type '%1' does not exist").arg(str));
+                    vm->signal(NULL, InternalError1, QString("Marshalling type '%1' does not exist").arg(str));
 
                 IClass *fieldClass = (IClass *) vm->GetType(str)->unboxObj();
 
@@ -254,7 +254,7 @@ void toKalimatType(IClass *kalimatType, ffi_type *type, Value *&value, void *v, 
             {
                 QString str = fieldMarshallingType->unboxStr();
                 if(vm->GetType(str) == NULL)
-                    vm->signal(InternalError1, QString("Marshalling type '%1' does not exist").arg(str));
+                    vm->signal(NULL, InternalError1, QString("Marshalling type '%1' does not exist").arg(str));
 
                 IClass *fieldClass = (IClass *) vm->GetType(str)->unboxObj();
 

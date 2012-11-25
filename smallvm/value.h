@@ -131,7 +131,7 @@ public:
     static ValueClass *LongType;
     static ValueClass *DoubleType;
     static ValueClass *BoolType;
-    static ValueClass *MethodType;
+    static IClass *MethodType;
     static ValueClass *ExternalMethodType;
     static ValueClass *ExternalLibrary;
     static MetaClass  *ClassType;

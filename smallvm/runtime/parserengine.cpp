@@ -78,7 +78,7 @@ IObject *ParseResultClass::newValue(Allocator *allocator)
     return obj;
 }
 
-Value *ParseResultClass::dispatch(int id, QVector<Value *> args)
+Value *ParseResultClass::dispatch(Process *, int, QVector<Value *>)
 {
     return NULL;
 }
@@ -154,7 +154,7 @@ IObject *ParserClass::newValue(Allocator *allocator)
     return obj;
 }
 
-Value *ParserClass::dispatch(int id, QVector<Value *>args)
+Value *ParserClass::dispatch(Process *proc, int id, QVector<Value *> args)
 {
     IObject *receiver = args[0]->unboxObj();
     ParserObj *parser = dynamic_cast<ParserObj *>(receiver);
@@ -175,14 +175,14 @@ Value *ParserClass::dispatch(int id, QVector<Value *>args)
     {
 
     case 0: // ادفع.مسار.بديل
-        //rw->typeCheck(args[1], BuiltInTypes::IntType);
+        //rw->typeCheck(proc, args[1], BuiltInTypes::IntType);
         parser->stack.push(ParseFrame(args[1]->unboxInt(), parser->pos, true));
         return NULL;
 
     case 1: // اذهب.مسار.بديل
         f = parser->stack.pop();
         if(!f.backTrack)
-            this->rw->assert(false, InternalError1, _ws(L"محاولة الذهاب لمسار إعرابي بديل، لكن قمة المكدس هي %1").arg(f.continuationLabel));
+            this->rw->assert(proc, false, InternalError1, _ws(L"محاولة الذهاب لمسار إعرابي بديل، لكن قمة المكدس هي %1").arg(f.continuationLabel));
 
         parser->pos = f.parsePos;
         return allocator->newInt(f.continuationLabel);
@@ -190,7 +190,7 @@ Value *ParserClass::dispatch(int id, QVector<Value *>args)
     case 2: // تجاهل.آخر.مسار.بديل
         f = parser->stack.pop();
         if(!f.backTrack)
-            this->rw->assert(false, InternalError1, _ws(L"تجاهل آخر مسار بديل: قمة المكدس (%1) ليست نقطة تراجع").arg(f.continuationLabel));
+            this->rw->assert(proc, false, InternalError1, _ws(L"تجاهل آخر مسار بديل: قمة المكدس (%1) ليست نقطة تراجع").arg(f.continuationLabel));
         return NULL;
 
     case 3:// الجأ.لبديل
@@ -213,7 +213,7 @@ Value *ParserClass::dispatch(int id, QVector<Value *>args)
         return NULL;
 
     case 5:    // تقدم.عديد
-        rw->typeCheck(args[1], BuiltInTypes::IntType);
+        rw->typeCheck(proc, args[1], BuiltInTypes::IntType);
         parser->pos += args[1]->unboxInt();
         return NULL;
 
@@ -221,20 +221,20 @@ Value *ParserClass::dispatch(int id, QVector<Value *>args)
         str = parser->data->unboxStr();
         return allocator->newString(str.mid(parser->pos, 1));
     case 7:    // انظر.عديد
-        rw->typeCheck(parser->data, BuiltInTypes::StringType);
-        rw->typeCheck(args[1], BuiltInTypes::IntType);
+        rw->typeCheck(proc, parser->data, BuiltInTypes::StringType);
+        rw->typeCheck(proc, args[1], BuiltInTypes::IntType);
         return allocator->newString(parser->data->unboxStr().mid(parser->pos, args[1]->unboxInt()));
     case 8:    // يطل.على
-        //rw->typeCheck(parser->data, BuiltInTypes::StringType);
-        //rw->typeCheck(args[1], BuiltInTypes::StringType);
+        //rw->typeCheck(proc, parser->data, BuiltInTypes::StringType);
+        //rw->typeCheck(proc, args[1], BuiltInTypes::StringType);
         str = parser->data->unboxStr();
         if(parser->pos >= str.length())
             return allocator->newBool(false);
         return allocator->newBool(str.at(parser->pos) == args[1]->unboxStr().at(0));
 
     case 9:     // يطل.على.عديد
-        rw->typeCheck(parser->data, BuiltInTypes::StringType);
-        rw->typeCheck(args[1], BuiltInTypes::StringType);
+        rw->typeCheck(proc, parser->data, BuiltInTypes::StringType);
+        rw->typeCheck(proc, args[1], BuiltInTypes::StringType);
         str = parser->data->unboxStr();
         str2 = args[1]->unboxStr();
         if(parser->pos + str2.length() > str.length())
@@ -242,8 +242,8 @@ Value *ParserClass::dispatch(int id, QVector<Value *>args)
         return allocator->newBool(str.mid(parser->pos,str2.length()) == str2);
 
     case 10:     // تفرع
-        //rw->typeCheck(args[1], BuiltInTypes::IntType);
-        //rw->typeCheck(args[2], BuiltInTypes::IntType);
+        //rw->typeCheck(proc, args[1], BuiltInTypes::IntType);
+        //rw->typeCheck(proc, args[2], BuiltInTypes::IntType);
         if(parser->hasInfiniteRecursion(args[2]->unboxInt()))
         {
             {
@@ -252,7 +252,7 @@ Value *ParserClass::dispatch(int id, QVector<Value *>args)
                 args.append(arg0);
             }
             // backtrack
-            return dispatch(3, args);
+            return dispatch(proc, 3, args);
         }
         else
         {
@@ -292,9 +292,9 @@ Value *ParserClass::dispatch(int id, QVector<Value *>args)
     case 15: // اطرش
         return NULL;
     case 16:// تذكر
-        rw->typeCheck(args[1], BuiltInTypes::IntType);
-        rw->typeCheck(args[2], BuiltInTypes::IntType);
-        rw->typeCheck(args[3], BuiltInTypes::IntType);
+        rw->typeCheck(proc, args[1], BuiltInTypes::IntType);
+        rw->typeCheck(proc, args[2], BuiltInTypes::IntType);
+        rw->typeCheck(proc, args[3], BuiltInTypes::IntType);
         label = args[1]->unboxInt();
         pos = args[2]->unboxInt();
         if(!parser->memoize.contains(label))
@@ -305,8 +305,8 @@ Value *ParserClass::dispatch(int id, QVector<Value *>args)
                 ParseResult(args[3]->unboxInt(), args[4]);
         return NULL;
     case 17: // استرد.ذكرى
-        rw->typeCheck(args[1], BuiltInTypes::IntType);
-        rw->typeCheck(args[2], BuiltInTypes::IntType);
+        rw->typeCheck(proc, args[1], BuiltInTypes::IntType);
+        rw->typeCheck(proc, args[2], BuiltInTypes::IntType);
         label = args[1]->unboxInt();
         pos = args[2]->unboxInt();
         pr = parser->memoize[label][pos];
@@ -315,8 +315,8 @@ Value *ParserClass::dispatch(int id, QVector<Value *>args)
         res->setSlotValue(_ws(L"نتيجة"), pr.v);
         return allocator->newObject(res, ParseResultClass::type);
     case 18:  // هل.تذكر
-        rw->typeCheck(args[1], BuiltInTypes::IntType);
-        rw->typeCheck(args[2], BuiltInTypes::IntType);
+        rw->typeCheck(proc, args[1], BuiltInTypes::IntType);
+        rw->typeCheck(proc, args[2], BuiltInTypes::IntType);
         label = args[1]->unboxInt();
         pos = args[2]->unboxInt();
         if(!parser->memoize.contains(label))
@@ -333,8 +333,8 @@ Value *ParserClass::dispatch(int id, QVector<Value *>args)
         str = strList.join("  /  ");
         return allocator->newString(str);
     case 20: // يطل.على.نطاق
-        //rw->typeCheck(parser->data, BuiltInTypes::StringType);
-        //rw->typeCheck(args[1], BuiltInTypes::StringType);
+        //rw->typeCheck(proc, parser->data, BuiltInTypes::StringType);
+        //rw->typeCheck(proc, args[1], BuiltInTypes::StringType);
         str = parser->data->unboxStr();
         if(parser->pos >= str.length())
             return allocator->newBool(false);

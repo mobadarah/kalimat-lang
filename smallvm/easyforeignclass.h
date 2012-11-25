@@ -8,7 +8,7 @@
 #include <QMetaClassInfo>
 
 class EasyForeignClass;
-
+class Process;
 #define _method(a, b, c) methodIds[_ws(a)] = b; \
     methodArities[_ws(a)] = c + 1;
 
@@ -21,7 +21,7 @@ class ForeignMethodProxy : public IForeignMethod
 public:
     ForeignMethodProxy(QString name, EasyForeignClass *owner, int id, int arity);
     QString toString();
-    Value *invoke(QVector<Value *> args);
+    Value *invoke(Process *proc, QVector<Value *> args);
     int Arity();
 };
 
@@ -34,7 +34,7 @@ protected:
     QMap<QString, int> methodArities;
 public:
     EasyForeignClass(QString className);
-    virtual Value *dispatch(int id, QVector<Value *>args) = 0;
+    virtual Value *dispatch(Process *proc, int id, QVector<Value *>args) = 0;
     virtual IObject *newValue(Allocator *allocator) = 0;
     virtual bool getFieldAttribute(QString attr, Value *&ret, Allocator *allocator) {return false;}
     virtual QVector<PropertyDesc> getProperties() { return properties; }

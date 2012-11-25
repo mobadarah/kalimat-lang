@@ -11,7 +11,7 @@ class MetaClass : public EasyForeignClass
 public:
     MetaClass(QString name, Allocator *allocator);
     virtual IObject *newValue(Allocator *allocator);
-    virtual Value *dispatch(int id, QVector<Value *>args);
+    virtual Value *dispatch(Process *proc, int id, QVector<Value *>args);
     virtual bool getFieldAttribute(QString attr, Value *&ret, Allocator *allocator);
     virtual QVector<PropertyDesc> getProperties();
     // We need to set this before the VM starts

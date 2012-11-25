@@ -9,13 +9,3 @@
 #include "../Lexer/token.h"
 #include "codeformatter.h"
 #include "ast.h"
-
-ASTImpl::ASTImpl(Token position)
-{
-    this->position = position;
-}
-
-Token ASTImpl::getPos()
-{
-    return position;
-}

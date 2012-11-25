@@ -28,6 +28,7 @@ class PaintSurface
     QColor textColor;
     long cursorTimerPoint;
     double cursorTimeSoFar;
+    bool dirtyState;
 public:
     // We have a specia 'demo coordinates' mode in Kalimat
     // to teach children about the x/y coordinate system
@@ -39,12 +40,17 @@ public:
 
 public:
     PaintSurface(QSize size, QFont font);
+    bool dirty();
+    void updated() { dirtyState = false;}
     void paint(QPainter &painter, TextLayer &textLayer, SpriteLayer &spriteLayer);
+    void update(TextLayer &textLayer, SpriteLayer &spriteLayer);
     void TX(int &);
+    void TX(int &x, int width);
 
     void zoom(int x1, int y1, int x2, int y2);
     void clearImage();
-    QImage *GetImage();
+    const QImage *GetImage();
+    QImage *GetImageForWriting();
     QColor GetColor(int color);
     int colorConstant(QColor color);
     void setTextColor(QColor);

@@ -17,6 +17,7 @@ class SmallVMCodeGenerator
     int uniqueLabelCount;
     int uniqueStringConstantCount;
     int uniqueVariableCount;
+    int uniqueLambdaCount;
 
 public:
     QMap<QString, QString> StringConstants;
@@ -38,6 +39,7 @@ public:
 
     QString uniqueLabel();
     QString uniqueVariable();
+    QString uniqueLambda();
     QString makeStringConstant(QString str);
 };
 

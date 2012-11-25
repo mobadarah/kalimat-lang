@@ -16,9 +16,11 @@ TEMPLATE = app
 
 
 SOURCES += main.cpp \
-    json.cpp
+    json.cpp \
+    generate.cpp
 
 HEADERS += \
-    json.h
+    json.h \
+    typeinfo.h
 
 

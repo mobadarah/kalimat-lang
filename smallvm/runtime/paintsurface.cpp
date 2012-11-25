@@ -17,9 +17,27 @@ PaintSurface::PaintSurface(QSize size, QFont font)
     finalImg = QImage(image.size(), image.format());
     textFont = font;
     cursorTimerPoint = -1;
+    dirtyState = true; // to update first time
+}
+
+bool PaintSurface::dirty()
+{
+    return dirtyState;
 }
 
 void PaintSurface::paint(QPainter &painter, TextLayer &textLayer, SpriteLayer &spriteLayer)
+{
+  //  if(textLayer.dirty() || spriteLayer.dirty() || this->dirty())
+    {
+        update(textLayer, spriteLayer);
+        textLayer.updated();
+        spriteLayer.updated();
+        this->updated();
+    }
+    painter.drawImage(QPoint(0, 0), finalImg);
+}
+
+void PaintSurface::update(TextLayer &textLayer, SpriteLayer &spriteLayer)
 {
     QPainter imgPainter(&finalImg);
     imgPainter.drawImage(QPoint(0,0), image);
@@ -45,7 +63,7 @@ void PaintSurface::paint(QPainter &painter, TextLayer &textLayer, SpriteLayer &s
         imgPainter.drawLine(x2, y2, x2-5, y2-5);
         imgPainter.drawLine(x2, y2, x2+5, y2-5);
 
-        QString loc = QString("(%1, %2)").arg(mouseLocationForDemo.x())
+        QString loc = QString::fromStdWString(L"س=%1، ص=%2 النقطة=(%1, %2)").arg(mouseLocationForDemo.x())
                 .arg(mouseLocationForDemo.y());
         int locX = 230;
         int locY = 20 + shiftDist;
@@ -53,7 +71,6 @@ void PaintSurface::paint(QPainter &painter, TextLayer &textLayer, SpriteLayer &s
         imgPainter.drawText(locX, locY, loc);
 
     }
-    painter.drawImage(QPoint(0, 0), finalImg);
 }
 
 void PaintSurface::drawTextLayer(QPainter &imgPainter, TextLayer &textLayer)
@@ -75,7 +92,9 @@ void PaintSurface::drawTextLayer(QPainter &imgPainter, TextLayer &textLayer)
         rct.adjust(-2, 0, -2, 0);
         imgPainter.drawText(rct, textLayer.lines()[i], options);
     }
+
     imgPainter.setPen(oldPen);
+
     if(textLayer.inputState())
     {
         if(cursorTimerPoint == -1)
@@ -113,14 +132,24 @@ void PaintSurface::drawSpriteLayer(QPainter &imgPainter, SpriteLayer &spriteLaye
             //imgPainter.setCompositionMode(QPainter::RasterOp_SourceAndDestination);
             //imgPainter.drawPixmap(s->location, s->mask);
             //imgPainter.setCompositionMode(QPainter::RasterOp_SourceOrDestination);
-            imgPainter.drawPixmap(s->location, s->image);
+            int x = s->location.x();
+            int y = s->location.y();
+            TX(x, s->image.width());
+
+            imgPainter.drawPixmap(x, y, s->image);
         }
     }
     imgPainter.setCompositionMode(oldMode);
 }
 
-QImage *PaintSurface::GetImage()
+const QImage *PaintSurface::GetImage()
 {
+    return &this->image;
+}
+
+QImage *PaintSurface::GetImageForWriting()
+{
+    dirtyState = true;
     return &this->image;
 }
 
@@ -194,13 +223,19 @@ void PaintSurface::zoom(int x1, int y1, int x2, int y2)
 
 void PaintSurface::clearImage()
 {
-    QPainter p(GetImage());
+    QPainter p(GetImageForWriting());
     p.fillRect(0,0,GetImage()->width(), GetImage()->height(), Qt::white);
 }
 
 void PaintSurface::TX(int &x)
 {
     x = (this->image.width()-1)-x;
+}
+
+void PaintSurface::TX(int &x, int w)
+{
+    x = (this->image.width()-1)-x;
+    x-= w;
 }
 
 void PaintSurface::setTextColor(QColor color)
@@ -210,7 +245,13 @@ void PaintSurface::setTextColor(QColor color)
 
 QRect PaintSurface::textCursor(TextLayer &textLayer)
 {
-    QPainter p(GetImage());
+    // We use a trick to preserve the value of dirtyState
+    // since GetImageForWriting() changes it to true
+    // even though we are not actually drawing anything
+    // on the image
+    bool oldDirtyState = dirtyState;
+    QPainter p(GetImageForWriting());
+    dirtyState = oldDirtyState;
 
     p.setFont(textFont);
     QString line = textLayer.currentLine().left(textLayer.cursorColumn());

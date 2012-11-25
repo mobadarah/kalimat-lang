@@ -3,5 +3,8 @@
         <file>error_map.txt</file>
         <file>vm_prelude.txt</file>
         <file>qt_method_translations.txt</file>
+        <file>codedoc_messages.txt</file>
+        <file>runlib_identifiers.txt</file>
+        <file>runlib_errors.txt</file>
     </qresource>
 </RCC>

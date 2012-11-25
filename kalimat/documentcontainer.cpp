@@ -82,8 +82,9 @@ CodeDocument *DocumentContainer::addDocument(QString title, QString fileName, QW
 
 CodeDocument *DocumentContainer::addInitialEmptyDocument()
 {
-    addDocument(QString::fromWCharArray(L"بدون عنوان"), "untitled", client->CreateEditorWidget(), true);
+    CodeDocument *ret = addDocument(QString::fromWCharArray(L"بدون عنوان"), "untitled", client->CreateEditorWidget(), true);
     hasInitialEmptyDocument = true;
+    return ret;
 }
 
 bool DocumentContainer::hasOpenDocument(CodeDocument *doc)
@@ -127,7 +128,7 @@ CodeDocument *DocumentContainer::getDocumentFromWidget(QWidget *w)
     return widgetDocs[w];
 }
 
-bool DocumentContainer::setCurrentDocument(CodeDocument *doc)
+void DocumentContainer::setCurrentDocument(CodeDocument *doc)
 {
     tabWidget->setCurrentWidget(doc->getEditor());
 }
@@ -226,13 +227,10 @@ void DocumentContainer::handleOpen()
                     QString("Open program"),
                     dir,
                     documentFilter);
-    QString fileName;
     dlg.setFileMode(QFileDialog::ExistingFiles);
     dlg.setAcceptMode(QFileDialog::AcceptOpen);
     if(dlg.exec())
     {
-        int n = dlg.selectedFiles().count();
-        bool anyLoaded = false;
         dir = OpenExistingFiles(dlg.selectedFiles());
 
         // set last opened Dir

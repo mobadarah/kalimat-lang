@@ -14,7 +14,7 @@ public:
     virtual int wonderfulMonitorDelay() = 0;
     virtual void programStopped(RunWindow *) = 0;
 
-    virtual void markCurrentInstruction(VM *vm, int &pos, int &length)=0;
+    virtual void markCurrentInstruction(VM *vm, Process *proc, int &pos, int &length)=0;
     virtual void handleVMError(VMError err) = 0;
 };
 
@@ -25,7 +25,7 @@ public:
     int wonderfulMonitorDelay() { return 0; }
     void programStopped(RunWindow *) { }
 
-    void markCurrentInstruction(VM *vm, int &pos, int &length) { }
+    void markCurrentInstruction(VM *, Process *, int &, int &) { }
     void handleVMError(VMError err) { }
 
     void Break(QString methodName, int offset, Frame *frame, Process *process) { }

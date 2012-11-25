@@ -87,7 +87,9 @@ const int REPETITION = 76;
 const int STEP = 77;
 const int DOWNTO = 78;
 const int REPEAT = 79;
-const int KEYWORD_CUTOFF = 79; // As long as the ID of the token is <= KEYWORD_CUTOFF, the
+const int THEPROC = 80;
+const int THEFUNCTION = 81;
+const int KEYWORD_CUTOFF = 81; // As long as the ID of the token is <= KEYWORD_CUTOFF, the
                                // syntax hilighter will consider it a keyword.
 const int NUM_LITERAL = 91;
 const int ADD_OP = 92;
@@ -122,6 +124,7 @@ const int RBRACE = 118;
 const int ROCKET = 119;
 const int MATCHES = 120;
 const int QUESTION = 121;
+const int LAMBDA = 122;
 
 const int WHITESPACE = TokenNone;
 
@@ -151,7 +154,9 @@ class KalimatLexer : public Lexer
     Predicate *returnWith;
 
     CharPredicate *comma, *semi, *colon, *kasra, *hash;
+
     Predicate *ellipsis;
+    Predicate *lambda;
     CharPredicate *quote;
     Predicate *two_quotes;
 

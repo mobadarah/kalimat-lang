@@ -12,6 +12,9 @@
 #include <QRadioButton>
 #include <QButtonGroup>
 #include <QComboBox>
+#include <QApplication>
+#include <QShowEvent>
+#include <QMutex>
 
 #define _ws(a) QString::fromStdWString(a)
 
@@ -96,7 +99,7 @@ IObject *ImageForeignClass::newValue(Allocator *allocator)
     return obj;
 }
 
-Value *ImageForeignClass::dispatch(int id, QVector<Value *> args)
+Value *ImageForeignClass::dispatch(Process *proc, int id, QVector<Value *> args)
 {
     IObject *receiver = args[0]->unboxObj();
     QImage *handle = reinterpret_cast<QImage*>
@@ -113,7 +116,7 @@ Value *ImageForeignClass::dispatch(int id, QVector<Value *> args)
     switch(id)
     {
         case 0: // rotated
-        rw->typeCheck(args[1], BuiltInTypes::NumericType);
+        rw->typeCheck(proc, args[1], BuiltInTypes::NumericType);
         degrees = args[1]->unboxNumeric();
         w = handle->width()/2;
         h = handle->height() /2 ;
@@ -141,8 +144,8 @@ Value *ImageForeignClass::dispatch(int id, QVector<Value *> args)
         return allocator->newObject(obj, this);
 
     case 1: //scaled
-        rw->typeCheck(args[1], BuiltInTypes::NumericType);
-        rw->typeCheck(args[2], BuiltInTypes::NumericType);
+        rw->typeCheck(proc, args[1], BuiltInTypes::NumericType);
+        rw->typeCheck(proc, args[2], BuiltInTypes::NumericType);
         s1= args[1]->unboxNumeric();
         s2= args[2]->unboxNumeric();
         trans = trans.scale(s1, s2);
@@ -151,13 +154,13 @@ Value *ImageForeignClass::dispatch(int id, QVector<Value *> args)
         obj->setSlotValue("handle", allocator->newRaw(img2, BuiltInTypes::ObjectType));
         return allocator->newObject(obj, this);
     case 2: // line
-        rw->typeCheck(args[1], BuiltInTypes::NumericType);
+        rw->typeCheck(proc, args[1], BuiltInTypes::NumericType);
         x1 = (int) args[1]->unboxNumeric();
-        rw->typeCheck(args[2], BuiltInTypes::NumericType);
+        rw->typeCheck(proc, args[2], BuiltInTypes::NumericType);
         y1 = (int) args[2]->unboxNumeric();
-        rw->typeCheck(args[3], BuiltInTypes::NumericType);
+        rw->typeCheck(proc, args[3], BuiltInTypes::NumericType);
         x2 = (int) args[3]->unboxNumeric();
-        rw->typeCheck(args[4], BuiltInTypes::NumericType);
+        rw->typeCheck(proc, args[4], BuiltInTypes::NumericType);
         y2 = (int) args[4]->unboxNumeric();
         {
             QPainter p(handle);
@@ -165,8 +168,8 @@ Value *ImageForeignClass::dispatch(int id, QVector<Value *> args)
         }
         return NULL;
     case 3: // flipped
-        rw->typeCheck(args[1], BuiltInTypes::NumericType);
-        rw->typeCheck(args[2], BuiltInTypes::NumericType);
+        rw->typeCheck(proc, args[1], BuiltInTypes::NumericType);
+        rw->typeCheck(proc, args[2], BuiltInTypes::NumericType);
         s1= args[1]->unboxNumeric();
         s2= args[2]->unboxNumeric();
         if(s1>0)
@@ -189,9 +192,9 @@ Value *ImageForeignClass::dispatch(int id, QVector<Value *> args)
         obj->setSlotValue("handle", allocator->newRaw(img2, BuiltInTypes::ObjectType));
         return allocator->newObject(obj, this);
     case 5:
-        rw->typeCheck(args[1], BuiltInTypes::NumericType);
-        rw->typeCheck(args[2], BuiltInTypes::NumericType);
-        rw->typeCheck(args[3], BuiltInTypes::NumericType);
+        rw->typeCheck(proc, args[1], BuiltInTypes::NumericType);
+        rw->typeCheck(proc, args[2], BuiltInTypes::NumericType);
+        rw->typeCheck(proc, args[3], BuiltInTypes::NumericType);
         {
             int x = (int) args[1]->unboxNumeric();
             int y = (int) args[2]->unboxNumeric();
@@ -200,8 +203,8 @@ Value *ImageForeignClass::dispatch(int id, QVector<Value *> args)
         }
         return NULL;
     case 6:
-        rw->typeCheck(args[1], BuiltInTypes::NumericType);
-        rw->typeCheck(args[2], BuiltInTypes::NumericType);
+        rw->typeCheck(proc, args[1], BuiltInTypes::NumericType);
+        rw->typeCheck(proc, args[2], BuiltInTypes::NumericType);
         {
             int x = (int) args[1]->unboxNumeric();
             int y = (int) args[2]->unboxNumeric();
@@ -213,9 +216,9 @@ Value *ImageForeignClass::dispatch(int id, QVector<Value *> args)
     case 8:
         return allocator->newInt(handle->height());
     case 9:
-        rw->typeCheck(args[1], BuiltInTypes::StringType);
-        rw->typeCheck(args[2], BuiltInTypes::NumericType);
-        rw->typeCheck(args[3], BuiltInTypes::NumericType);
+        rw->typeCheck(proc, args[1], BuiltInTypes::StringType);
+        rw->typeCheck(proc, args[2], BuiltInTypes::NumericType);
+        rw->typeCheck(proc, args[3], BuiltInTypes::NumericType);
     {
         QString text = args[1]->unboxStr();
         int x = (int) args[2]->unboxNumeric();
@@ -226,6 +229,7 @@ Value *ImageForeignClass::dispatch(int id, QVector<Value *> args)
     }
         return NULL;
     }
+    return NULL;
 }
 
 WindowForeignClass::WindowForeignClass(QString name, RunWindow *rw)
@@ -263,7 +267,7 @@ IObject *WindowForeignClass::newValue(Allocator *allocator)
     return window;
 }
 
-Value *WindowForeignClass::dispatch(int id, QVector<Value *> args)
+Value *WindowForeignClass::dispatch(Process *proc, int id, QVector<Value *> args)
 {
     if(id == 0)
     {
@@ -283,8 +287,8 @@ Value *WindowForeignClass::dispatch(int id, QVector<Value *> args)
         QObject *praw = raw->unboxQObj();
         QWidget *widget = dynamic_cast<QWidget *>(praw);
 
-        rw->typeCheck(args[1], BuiltInTypes::NumericType);
-        rw->typeCheck(args[2], BuiltInTypes::NumericType);
+        rw->typeCheck(proc, args[1], BuiltInTypes::NumericType);
+        rw->typeCheck(proc, args[2], BuiltInTypes::NumericType);
         int x = args[1]->unboxNumeric();
         int y = args[2]->unboxNumeric();
         widget->move(x, y);
@@ -303,7 +307,10 @@ Value *WindowForeignClass::dispatch(int id, QVector<Value *> args)
         control->setParent(widget);
         QFont f = control->font();
         control->setFont(QFont(f.family(), f.pointSize()+3));
-        control->show();
+        //qApp->postEvent(control, new QShowEvent());
+        //callGuiThread(control, "show");
+        //control->show();
+        rw->getVmThread()->doGUI(control, "show");
         return NULL;
     }
     if(id == 3)
@@ -314,8 +321,8 @@ Value *WindowForeignClass::dispatch(int id, QVector<Value *> args)
         QObject *praw = raw->unboxQObj();
         QWidget *widget = dynamic_cast<QWidget *>(praw);
 
-        rw->typeCheck(args[1], BuiltInTypes::NumericType);
-        rw->typeCheck(args[2], BuiltInTypes::NumericType);
+        rw->typeCheck(proc, args[1], BuiltInTypes::NumericType);
+        rw->typeCheck(proc, args[2], BuiltInTypes::NumericType);
         int w = args[1]->unboxNumeric();
         int h = args[2]->unboxNumeric();
         int wdiff = widget->width() - w;
@@ -342,7 +349,7 @@ Value *WindowForeignClass::dispatch(int id, QVector<Value *> args)
         QObject *praw = raw->unboxQObj();
         QWidget *widget = dynamic_cast<QWidget *>(praw);
 
-        rw->typeCheck(args[1], BuiltInTypes::StringType);
+        rw->typeCheck(proc, args[1], BuiltInTypes::StringType);
         QString t = args[1]->unboxStr();
         widget->setWindowTitle(t);
         return NULL;
@@ -432,7 +439,19 @@ IObject *ButtonForeignClass::newValue(Allocator *allocator)
     Object *newObj = (Object *) ControlForeignClass::newValue(allocator);
 
     newObj->slotNames.append(QString::fromStdWString(L"ضغط"));
-
+    /*
+    ObjContainer box;
+    rw->getVmThread()->mutex.lock();
+    rw->getVmThread()->createNew(&box,
+                                 []{
+                                 return (QObject *) new QPushButton();
+                                }
+    );
+    box.cond.wait(&rw->getVmThread()->mutex);
+    rw->getVmThread()->mutex.unlock();
+    QPushButton *button = (QPushButton *) box.content;
+    button->moveToThread(qApp->thread());
+    */
     QPushButton *button = new QPushButton();
     button->setProperty("objectof", QVariant::fromValue<void *>(newObj));
     newObj->setSlotValue("handle", allocator->newQObject(button));
@@ -443,7 +462,7 @@ IObject *ButtonForeignClass::newValue(Allocator *allocator)
     return newObj;
 }
 
-Value *ControlForeignClass::dispatch(int id, QVector<Value *> args)
+Value *ControlForeignClass::dispatch(Process *proc, int id, QVector<Value *> args)
 {
     if(id == methodSetText)
     {
@@ -451,7 +470,7 @@ Value *ControlForeignClass::dispatch(int id, QVector<Value *> args)
         IObject *receiver = args[0]->unboxObj();
         QWidget *handle = dynamic_cast<QWidget *>(receiver->getSlotValue("handle")->unboxQObj());
 
-        rw->typeCheck(args[1], BuiltInTypes::StringType);
+        rw->typeCheck(proc, args[1], BuiltInTypes::StringType);
         handle->setWindowTitle(args[1]->unboxStr());
         return NULL;
     }
@@ -462,8 +481,8 @@ Value *ControlForeignClass::dispatch(int id, QVector<Value *> args)
         QWidget *handle = dynamic_cast<QWidget *>(receiver->getSlotValue("handle")->unboxQObj());
         int originalx = handle->x() + handle->width();
 
-        rw->typeCheck(args[1], BuiltInTypes::NumericType);
-        rw->typeCheck(args[2], BuiltInTypes::NumericType);
+        rw->typeCheck(proc, args[1], BuiltInTypes::NumericType);
+        rw->typeCheck(proc, args[2], BuiltInTypes::NumericType);
         handle->resize(args[1]->unboxNumeric(), args[2]->unboxNumeric());
 
         originalx -= handle->width();
@@ -476,8 +495,8 @@ Value *ControlForeignClass::dispatch(int id, QVector<Value *> args)
         IObject *receiver = args[0]->unboxObj();
         QWidget *handle = dynamic_cast<QWidget *>(receiver->getSlotValue("handle")->unboxQObj());
 
-        rw->typeCheck(args[1], BuiltInTypes::NumericType);
-        rw->typeCheck(args[2], BuiltInTypes::NumericType);
+        rw->typeCheck(proc, args[1], BuiltInTypes::NumericType);
+        rw->typeCheck(proc, args[2], BuiltInTypes::NumericType);
         int x = args[1]->unboxNumeric();
         int y = args[2]->unboxNumeric();
         rw->paintSurface->TX(x);
@@ -503,7 +522,7 @@ void ButtonForeignClass::on_button_clicked()
     chan->send(allocator->null(), NULL);
 }
 
-Value *ButtonForeignClass::dispatch(int id, QVector<Value *> args)
+Value *ButtonForeignClass::dispatch(Process *proc, int id, QVector<Value *> args)
 {
     if(id == methodSetText)
     {
@@ -511,7 +530,7 @@ Value *ButtonForeignClass::dispatch(int id, QVector<Value *> args)
         IObject *receiver = args[0]->unboxObj();
         QPushButton *handle = dynamic_cast<QPushButton *>(receiver->getSlotValue("handle")->unboxQObj());
 
-        rw->typeCheck(args[1], BuiltInTypes::StringType);
+        rw->typeCheck(proc, args[1], BuiltInTypes::StringType);
         handle->setText(args[1]->unboxStr());
         return NULL;
     }
@@ -523,7 +542,7 @@ Value *ButtonForeignClass::dispatch(int id, QVector<Value *> args)
         return allocator->newString(handle->text());
     }
     if(id <= controlMethodCutoff)
-        return ControlForeignClass::dispatch(id, args);
+        return ControlForeignClass::dispatch(proc, id, args);
     return NULL;
 }
 
@@ -561,7 +580,7 @@ void TextboxForeignClass::on_text_changed()
     chan->send(allocator->null(), NULL);
 }
 
-Value *TextboxForeignClass::dispatch(int id, QVector<Value *> args)
+Value *TextboxForeignClass::dispatch(Process *proc, int id, QVector<Value *> args)
 {
     if(id == methodSetText)
     {
@@ -569,7 +588,7 @@ Value *TextboxForeignClass::dispatch(int id, QVector<Value *> args)
         IObject *receiver = args[0]->unboxObj();
         QTextEdit *handle = dynamic_cast<QTextEdit *>(receiver->getSlotValue("handle")->unboxQObj());
 
-        rw->typeCheck(args[1], BuiltInTypes::StringType);
+        rw->typeCheck(proc, args[1], BuiltInTypes::StringType);
         handle->document()->setPlainText(args[1]->unboxStr());
         return NULL;
     }
@@ -585,12 +604,12 @@ Value *TextboxForeignClass::dispatch(int id, QVector<Value *> args)
         // الحق.نص
         IObject *receiver = args[0]->unboxObj();
         QTextEdit *handle = dynamic_cast<QTextEdit*>(receiver->getSlotValue("handle")->unboxQObj());
-        rw->typeCheck(args[1], BuiltInTypes::StringType);
+        rw->typeCheck(proc, args[1], BuiltInTypes::StringType);
         handle->append(args[1]->unboxStr());
         return NULL;
     }
     if(id <= controlMethodCutoff)
-        return ControlForeignClass::dispatch(id, args);
+        return ControlForeignClass::dispatch(proc, id, args);
     return NULL;
 }
 
@@ -627,7 +646,7 @@ void LineEditForeignClass::on_text_changed()
     chan->send(allocator->null(), NULL);
 }
 
-Value *LineEditForeignClass::dispatch(int id, QVector<Value *> args)
+Value *LineEditForeignClass::dispatch(Process *proc, int id, QVector<Value *> args)
 {
     if(id == methodSetText)
     {
@@ -635,7 +654,7 @@ Value *LineEditForeignClass::dispatch(int id, QVector<Value *> args)
         IObject *receiver = args[0]->unboxObj();
         QLineEdit *handle = dynamic_cast<QLineEdit*>(receiver->getSlotValue("handle")->unboxQObj());
 
-        rw->typeCheck(args[1], BuiltInTypes::StringType);
+        rw->typeCheck(proc, args[1], BuiltInTypes::StringType);
         handle->setText(args[1]->unboxStr());
         return NULL;
     }
@@ -651,12 +670,12 @@ Value *LineEditForeignClass::dispatch(int id, QVector<Value *> args)
         // الحق.نص
         IObject *receiver = args[0]->unboxObj();
         QLineEdit *handle = dynamic_cast<QLineEdit*>(receiver->getSlotValue("handle")->unboxQObj());
-        rw->typeCheck(args[1], BuiltInTypes::StringType);
+        rw->typeCheck(proc, args[1], BuiltInTypes::StringType);
         handle->setText(handle->text()+ args[1]->unboxStr());
         return NULL;
     }
     if(id <= controlMethodCutoff)
-        return ControlForeignClass::dispatch(id, args);
+        return ControlForeignClass::dispatch(proc, id, args);
     return NULL;
 }
 
@@ -705,7 +724,7 @@ void ListboxForeignClass::on_select(int selection)
     chan->send(allocator->newInt(selection), NULL);
 }
 
-Value *ListboxForeignClass::dispatch(int id, QVector<Value *> args)
+Value *ListboxForeignClass::dispatch(Process *proc, int id, QVector<Value *> args)
 {
     if(id == methodAddItem)
     {
@@ -723,7 +742,7 @@ Value *ListboxForeignClass::dispatch(int id, QVector<Value *> args)
 
         Value *v = args[1];
 
-        rw->typeCheck(args[2], BuiltInTypes::IntType);
+        rw->typeCheck(proc, args[2], BuiltInTypes::IntType);
         int index = args[2]->unboxInt();
 
         handle->insertItem(index, v->toString());
@@ -735,13 +754,13 @@ Value *ListboxForeignClass::dispatch(int id, QVector<Value *> args)
         IObject *receiver = args[0]->unboxObj();
         QListWidget *handle = dynamic_cast<QListWidget *>(receiver->getSlotValue("handle")->unboxQObj());
 
-        rw->typeCheck(args[1], BuiltInTypes::IntType);
+        rw->typeCheck(proc, args[1], BuiltInTypes::IntType);
         int index = args[1]->unboxInt();
 
         return allocator->newString(handle->item(index)->text());
     }
     if(id <= controlMethodCutoff)
-        return ControlForeignClass::dispatch(id, args);
+        return ControlForeignClass::dispatch(proc, id, args);
     return NULL;
 }
 
@@ -808,7 +827,7 @@ void ComboboxForeignClass::on_text_changed(QString)
     chan->send(allocator->null(), NULL);
 }
 
-Value *ComboboxForeignClass::dispatch(int id, QVector<Value *> args)
+Value *ComboboxForeignClass::dispatch(Process *proc, int id, QVector<Value *> args)
 {
 
     if(id == methodSetText)
@@ -817,7 +836,7 @@ Value *ComboboxForeignClass::dispatch(int id, QVector<Value *> args)
         IObject *receiver = args[0]->unboxObj();
         QComboBox *handle = dynamic_cast<QComboBox *>(receiver->getSlotValue("handle")->unboxQObj());
 
-        rw->typeCheck(args[1], BuiltInTypes::StringType);
+        rw->typeCheck(proc, args[1], BuiltInTypes::StringType);
         handle->setEditText(args[1]->unboxStr());
         return NULL;
     }
@@ -844,7 +863,7 @@ Value *ComboboxForeignClass::dispatch(int id, QVector<Value *> args)
 
         Value *v = args[1];
 
-        rw->typeCheck(args[2], BuiltInTypes::IntType);
+        rw->typeCheck(proc, args[2], BuiltInTypes::IntType);
         int index = args[2]->unboxInt();
 
         handle->insertItem(index, v->toString());
@@ -856,7 +875,7 @@ Value *ComboboxForeignClass::dispatch(int id, QVector<Value *> args)
         IObject *receiver = args[0]->unboxObj();
         QComboBox *handle = dynamic_cast<QComboBox *>(receiver->getSlotValue("handle")->unboxQObj());
 
-        rw->typeCheck(args[1], BuiltInTypes::IntType);
+        rw->typeCheck(proc, args[1], BuiltInTypes::IntType);
         int index = args[1]->unboxInt();
 
         return allocator->newString(handle->itemText(index));
@@ -867,13 +886,13 @@ Value *ComboboxForeignClass::dispatch(int id, QVector<Value *> args)
         IObject *receiver = args[0]->unboxObj();
         QComboBox *handle = dynamic_cast<QComboBox *>(receiver->getSlotValue("handle")->unboxQObj());
 
-        rw->typeCheck(args[1], BuiltInTypes::BoolType);
+        rw->typeCheck(proc, args[1], BuiltInTypes::BoolType);
         handle->setEditable(args[1]->unboxBool());
         return NULL;
     }
 
     if(id <= controlMethodCutoff)
-        return ControlForeignClass::dispatch(id, args);
+        return ControlForeignClass::dispatch(proc, id, args);
     return NULL;
 }
 
@@ -894,7 +913,7 @@ IObject *LabelForeignClass::newValue(Allocator *allocator)
     return newObj;
 }
 
-Value *LabelForeignClass::dispatch(int id, QVector<Value *> args)
+Value *LabelForeignClass::dispatch(Process *proc, int id, QVector<Value *> args)
 {
     if(id == methodSetText)
     {
@@ -902,7 +921,7 @@ Value *LabelForeignClass::dispatch(int id, QVector<Value *> args)
         IObject *receiver = args[0]->unboxObj();
         QLabel *handle = dynamic_cast<QLabel*>(receiver->getSlotValue("handle")->unboxQObj());
 
-        rw->typeCheck(args[1], BuiltInTypes::StringType);
+        rw->typeCheck(proc, args[1], BuiltInTypes::StringType);
         handle->setText(args[1]->unboxStr());
         return NULL;
     }
@@ -915,7 +934,7 @@ Value *LabelForeignClass::dispatch(int id, QVector<Value *> args)
     }
 
     if(id <= controlMethodCutoff)
-        return ControlForeignClass::dispatch(id, args);
+        return ControlForeignClass::dispatch(proc, id, args);
     return NULL;
 }
 
@@ -958,7 +977,7 @@ void CheckboxForeignClass::value_changed(int newState)
     chan->send(allocator->newInt(newState), NULL);
 }
 
-Value *CheckboxForeignClass::dispatch(int id, QVector<Value *> args)
+Value *CheckboxForeignClass::dispatch(Process *proc, int id, QVector<Value *> args)
 {
     if(id == methodSetText)
     {
@@ -966,7 +985,7 @@ Value *CheckboxForeignClass::dispatch(int id, QVector<Value *> args)
         IObject *receiver = args[0]->unboxObj();
         QCheckBox *handle = dynamic_cast<QCheckBox*>(receiver->getSlotValue("handle")->unboxQObj());
 
-        rw->typeCheck(args[1], BuiltInTypes::StringType);
+        rw->typeCheck(proc, args[1], BuiltInTypes::StringType);
         handle->setText(args[1]->unboxStr());
         return NULL;
     }
@@ -993,14 +1012,14 @@ Value *CheckboxForeignClass::dispatch(int id, QVector<Value *> args)
         IObject *receiver = args[0]->unboxObj();
         QCheckBox *handle = dynamic_cast<QCheckBox*>(receiver->getSlotValue("handle")->unboxQObj());
 
-        rw->typeCheck(args[1], BuiltInTypes::IntType);
+        rw->typeCheck(proc, args[1], BuiltInTypes::IntType);
         int newState = args[1]->unboxInt();
         handle->setCheckState((Qt::CheckState)newState);
         return NULL;
     }
 
     if(id <= controlMethodCutoff)
-        return ControlForeignClass::dispatch(id, args);
+        return ControlForeignClass::dispatch(proc, id, args);
     return NULL;
 }
 
@@ -1046,7 +1065,7 @@ void RadioButtonForeignClass::value_changed(bool newState)
     }
 }
 
-Value *RadioButtonForeignClass::dispatch(int id, QVector<Value *> args)
+Value *RadioButtonForeignClass::dispatch(Process *proc, int id, QVector<Value *> args)
 {
     if(id == methodSetText)
     {
@@ -1054,7 +1073,7 @@ Value *RadioButtonForeignClass::dispatch(int id, QVector<Value *> args)
         IObject *receiver = args[0]->unboxObj();
         QRadioButton *handle = dynamic_cast<QRadioButton *>(receiver->getSlotValue("handle")->unboxQObj());
 
-        rw->typeCheck(args[1], BuiltInTypes::StringType);
+        rw->typeCheck(proc, args[1], BuiltInTypes::StringType);
         handle->setText(args[1]->unboxStr());
         return NULL;
     }
@@ -1081,14 +1100,14 @@ Value *RadioButtonForeignClass::dispatch(int id, QVector<Value *> args)
         IObject *receiver = args[0]->unboxObj();
         QRadioButton *handle = dynamic_cast<QRadioButton *>(receiver->getSlotValue("handle")->unboxQObj());
 
-        rw->typeCheck(args[1], BuiltInTypes::BoolType);
+        rw->typeCheck(proc, args[1], BuiltInTypes::BoolType);
         bool newState = args[1]->unboxBool();
         handle->setChecked(newState);
         return NULL;
     }
 
     if(id <= controlMethodCutoff)
-        return ControlForeignClass::dispatch(id, args);
+        return ControlForeignClass::dispatch(proc, id, args);
     return NULL;
 }
 
@@ -1136,7 +1155,7 @@ void ButtonGroupForeignClass::button_clicked(int id)
         chan->send(allocator->newInt(id), NULL);
 }
 
-Value *ButtonGroupForeignClass::dispatch(int id, QVector<Value *> args)
+Value *ButtonGroupForeignClass::dispatch(Process *proc, int id, QVector<Value *> args)
 {
     if(id == methodAddButton)
     {
@@ -1165,7 +1184,7 @@ Value *ButtonGroupForeignClass::dispatch(int id, QVector<Value *> args)
         Value *vhandle = receiver->getSlotValue("handle");
         QButtonGroup *handle = dynamic_cast<QButtonGroup*>(vhandle->unboxQObj());
 
-        rw->typeCheck(args[1], BuiltInTypes::IntType);
+        rw->typeCheck(proc, args[1], BuiltInTypes::IntType);
         int theId = args[1]->unboxInt();
 
         QAbstractButton *button = handle->button(theId);

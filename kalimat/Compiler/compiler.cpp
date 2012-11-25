@@ -32,7 +32,7 @@ void Compiler::importModules(shared_ptr<Program> p, QString path, bool allModule
 {
     for(int i=0; i<p->usedModuleCount(); i++)
     {
-        QString m2 = p->usedModule(i)->value;
+        QString m2 = p->usedModule(i)->value();
 
         QString fullPath;
         if(allModulesStandard)
@@ -77,7 +77,7 @@ shared_ptr<Module> Compiler::loadModule(QString path)
     pathsOfModules[m.get()] = path;
     for(int i=0; i<m->usedModuleCount(); i++)
     {
-        QString m2 = m->usedModule(i)->value;
+        QString m2 = m->usedModule(i)->value();
         QString fullPath = getPathOfModule(m2, path);
         if(!loadedModules.contains(fullPath))
             loadModule(fullPath);
@@ -142,12 +142,13 @@ QString Compiler::CompileFromCode(QString source, CodeDocument *doc)
 
     for(int i=0; i<p->usedModuleCount(); i++)
     {
-        QString s = p->usedModule(i)->value;
+        QString s = p->usedModule(i)->value();
         s = getPathOfStandardModule(s);
         if(!QFile::exists(s))
             throw CompilerException(doc->getFileName(), p, ProgramsCannotUseExternalModulesWithoutSavingThemFirst);
     }
     importModules(p, "", true);
+    generateAllLoadedModules();
     generator.generate(p, doc->getFileName(), doc);
     return generator.getOutput();
 }

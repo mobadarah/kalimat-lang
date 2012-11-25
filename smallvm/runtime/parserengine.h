@@ -39,7 +39,7 @@ class ParseResultClass : public EasyForeignClass
 public:
     ParseResultClass(QString name);
     IObject *newValue(Allocator *allocator);
-    Value *dispatch(int id, QVector<Value *>args);
+    Value *dispatch(Process *, int , QVector<Value *>);
     static ParseResultClass *type;
 };
 
@@ -79,7 +79,7 @@ class ParserClass : public EasyForeignClass
 public:
     ParserClass(QString name, RunWindow *rw);
     IObject *newValue(Allocator *allocator);
-    Value *dispatch(int id, QVector<Value *>args);
+    Value *dispatch(Process *proc, int id, QVector<Value *>args);
 };
 
 #endif // PARSER_H

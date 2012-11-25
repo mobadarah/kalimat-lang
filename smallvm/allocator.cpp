@@ -13,7 +13,7 @@ Value *Allocator::_true = NULL;
 Value *Allocator::_false = NULL;
 Value *Allocator::_ints[intCacheSize];
 
-Allocator::Allocator(QHash<int, Value *> *constantPool, QQueue<Process *> *processes)
+Allocator::Allocator(QHash<int, Value *> *constantPool, QSet<QQueue<Process *> *>)
 {
     this->constantPool = constantPool;
     this->processes = processes;
@@ -319,22 +319,27 @@ void Allocator::mark()
             reachable.push(of->OperandStack.value(j));
         }
     }
-    for(QQueue<Process *>::const_iterator iter=processes->begin(); iter!=processes->end(); ++iter)
+    for(QSet<QQueue<Process *> *>::const_iterator iter1=processes.begin(); iter1 != processes.end(); ++iter1)
     {
-        const QStack<Frame> &stack = (*iter)->stack;
-        for(int i=0; i<stack.count(); i++)
+        const QQueue<Process *> &q = *(*iter1);
+        for(QQueue<Process *>::const_iterator iter=q.begin(); iter!=q.end(); ++iter)
         {
-            const Frame &f = stack.at(i);
-            for(int j=0; j<f.Locals.count(); j++)
+            const QStack<Frame> &stack = (*iter)->stack;
+            for(int i=0; i<stack.count(); i++)
             {
-                reachable.push(f.Locals.values()[j]);
-            }
-            for(int j=0; j<f.OperandStack.count(); j++)
-            {
-                reachable.push(f.OperandStack.value(j));
+                const Frame &f = stack.at(i);
+                for(int j=0; j<f.Locals.count(); j++)
+                {
+                    reachable.push(f.Locals.values()[j]);
+                }
+                for(int j=0; j<f.OperandStack.count(); j++)
+                {
+                    reachable.push(f.OperandStack.value(j));
+                }
             }
         }
     }
+
 
     while(!reachable.empty())
     {

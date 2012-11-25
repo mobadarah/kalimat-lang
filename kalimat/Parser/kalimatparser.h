@@ -76,6 +76,7 @@ private:
     shared_ptr<Statement> selectStmt();
 
     QVector<shared_ptr<FormalParam> > formalParamList();
+    QVector<shared_ptr<FormalParam> > commaSeparatedFormalParams();
     shared_ptr<Declaration> procedureDecl();
     shared_ptr<Declaration> functionDecl();
     shared_ptr<Declaration> classDecl();

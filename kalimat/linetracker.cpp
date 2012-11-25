@@ -15,8 +15,6 @@ void LineTracker::setText(QString text)
 {
     lineStartPositions.clear();
     this->text = text;
-    bool startOfLine = true;
-    int count = 0;
     if(text.length() == 0)
     {
         LineInfo li(0,0);
@@ -32,30 +30,6 @@ void LineTracker::setText(QString text)
             lineStartPositions.append(LineInfo(runningIndex, n+1));
             runningIndex += n+1;
         }
-        /*
-        for(int i=0; i<text.length();i++,count++)
-        {
-            if(startOfLine)
-            {
-                lineStartPositions.append(LineInfo(count));
-            }
-            if(text[i] == '\n')
-            {
-                startOfLine = true;
-            }
-            else
-                startOfLine = false;
-        }
-        for(int i=0; i< lineStartPositions.count()-1; i++)
-        {
-            lineStartPositions[i].length = lineStartPositions[i+1].start - lineStartPositions[i].start;
-        }
-        if(lineStartPositions.count()>0)
-        {
-            int last = lineStartPositions.count() -1;
-            lineStartPositions[last].length = text.count() - lineStartPositions[last].start;
-        }
-        //*/
     }
 }
 

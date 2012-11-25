@@ -28,7 +28,7 @@ struct FrameClass : public EasyForeignClass
     Allocator *allocator;
 
     FrameClass(QString className);
-    virtual Value *dispatch(int id, QVector<Value *>args);
+    virtual Value *dispatch(Process *proc, int id, QVector<Value *>args);
     virtual IObject *newValue(Allocator *allocator);
 };
 

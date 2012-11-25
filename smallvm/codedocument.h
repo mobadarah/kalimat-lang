@@ -10,6 +10,7 @@
 
 #include <QTextEdit>
 #include <QTabWidget>
+#include "utils.h"
 
 class CodeDocument;
 class DocumentContainer;
@@ -19,10 +20,16 @@ public:
     virtual void onFileTouched(QString fileName, CodeDocument *doc) = 0;
 };
 
+enum CodeDocumentMessage
+{
+    SaveChangesInFile1,
+    AppName0
+};
+
 class CodeDocument : public QObject
 {
     Q_OBJECT
-
+    static Translation<CodeDocumentMessage> docMessages;
 private:
     bool _isDirty, isNewFile;
     QString _fileName;

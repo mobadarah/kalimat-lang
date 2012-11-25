@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>782</width>
-    <height>678</height>
+    <height>614</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -33,105 +33,101 @@
      <verstretch>100</verstretch>
     </sizepolicy>
    </property>
-   <property name="maximumSize">
-    <size>
-     <width>600</width>
-     <height>348</height>
-    </size>
-   </property>
    <property name="layoutDirection">
     <enum>Qt::LeftToRight</enum>
    </property>
    <property name="autoFillBackground">
     <bool>false</bool>
    </property>
-   <widget class="QTabWidget" name="editorTabs">
-    <property name="geometry">
-     <rect>
-      <x>9</x>
-      <y>9</y>
-      <width>581</width>
-      <height>231</height>
-     </rect>
-    </property>
-    <property name="sizePolicy">
-     <sizepolicy hsizetype="Ignored" vsizetype="Expanding">
-      <horstretch>0</horstretch>
-      <verstretch>5</verstretch>
-     </sizepolicy>
-    </property>
-    <property name="tabsClosable">
-     <bool>true</bool>
-    </property>
-   </widget>
-   <widget class="QTabWidget" name="tabWidget">
-    <property name="geometry">
-     <rect>
-      <x>9</x>
-      <y>235</y>
-      <width>473</width>
-      <height>229</height>
-     </rect>
-    </property>
-    <property name="sizePolicy">
-     <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-      <horstretch>0</horstretch>
-      <verstretch>2</verstretch>
-     </sizepolicy>
-    </property>
-    <property name="tabShape">
-     <enum>QTabWidget::Triangular</enum>
-    </property>
-    <property name="currentIndex">
-     <number>0</number>
-    </property>
-    <property name="documentMode">
-     <bool>true</bool>
-    </property>
-    <widget class="QWidget" name="tab">
-     <attribute name="title">
-      <string>الرسائل</string>
-     </attribute>
-     <layout class="QVBoxLayout" name="verticalLayout_2">
-      <item>
-       <widget class="QTextBrowser" name="outputView">
-        <property name="sizePolicy">
-         <sizepolicy hsizetype="Ignored" vsizetype="Expanding">
-          <horstretch>0</horstretch>
-          <verstretch>2</verstretch>
-         </sizepolicy>
-        </property>
-        <property name="minimumSize">
-         <size>
-          <width>451</width>
-          <height>0</height>
-         </size>
-        </property>
-        <property name="layoutDirection">
-         <enum>Qt::RightToLeft</enum>
-        </property>
-       </widget>
-      </item>
-     </layout>
-    </widget>
-    <widget class="QWidget" name="tab_2">
-     <attribute name="title">
-      <string>المتغيرات</string>
-     </attribute>
-     <layout class="QVBoxLayout" name="verticalLayout">
-      <item>
-       <widget class="QGraphicsView" name="graphicsView">
-        <property name="font">
-         <font>
-          <family>Courier New</family>
-          <pointsize>14</pointsize>
-         </font>
-        </property>
-       </widget>
-      </item>
-     </layout>
-    </widget>
-   </widget>
+   <layout class="QVBoxLayout" name="verticalLayout_3">
+    <item>
+     <widget class="QTabWidget" name="editorTabs">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Ignored" vsizetype="MinimumExpanding">
+        <horstretch>0</horstretch>
+        <verstretch>8</verstretch>
+       </sizepolicy>
+      </property>
+      <property name="minimumSize">
+       <size>
+        <width>0</width>
+        <height>152</height>
+       </size>
+      </property>
+      <property name="tabsClosable">
+       <bool>true</bool>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QTabWidget" name="tabWidget">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+        <horstretch>0</horstretch>
+        <verstretch>2</verstretch>
+       </sizepolicy>
+      </property>
+      <property name="tabShape">
+       <enum>QTabWidget::Triangular</enum>
+      </property>
+      <property name="currentIndex">
+       <number>1</number>
+      </property>
+      <property name="documentMode">
+       <bool>true</bool>
+      </property>
+      <widget class="QWidget" name="tab">
+       <attribute name="title">
+        <string>الرسائل</string>
+       </attribute>
+       <layout class="QVBoxLayout" name="verticalLayout_2">
+        <item>
+         <widget class="QTextBrowser" name="outputView">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Ignored" vsizetype="Preferred">
+            <horstretch>0</horstretch>
+            <verstretch>2</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="minimumSize">
+           <size>
+            <width>451</width>
+            <height>0</height>
+           </size>
+          </property>
+          <property name="layoutDirection">
+           <enum>Qt::RightToLeft</enum>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+      <widget class="QWidget" name="tab_2">
+       <attribute name="title">
+        <string>المتغيرات</string>
+       </attribute>
+       <layout class="QVBoxLayout" name="verticalLayout">
+        <item>
+         <widget class="QGraphicsView" name="graphicsView">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="font">
+           <font>
+            <family>Courier New</family>
+            <pointsize>14</pointsize>
+           </font>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+     </widget>
+    </item>
+   </layout>
   </widget>
   <widget class="QMenuBar" name="menuBar">
    <property name="geometry">
@@ -242,6 +238,7 @@
     <addaction name="actionGo_to_position"/>
     <addaction name="actionParse_with_recovery"/>
     <addaction name="actionUpdate_code_model"/>
+    <addaction name="actionLambda_transformation"/>
    </widget>
    <widget class="QMenu" name="mnuSpecialSymbol">
     <property name="title">
@@ -253,6 +250,7 @@
     <addaction name="action_SpecialSymbol_closeBracket"/>
     <addaction name="action_SpecialSymbol_openBrace"/>
     <addaction name="action_SpecialSymbol_closeBrace"/>
+    <addaction name="action_SpecialSymbol_lambda"/>
    </widget>
    <addaction name="mnuFile"/>
    <addaction name="mnuEdit"/>
@@ -294,6 +292,12 @@
   </widget>
   <widget class="QStatusBar" name="statusBar"/>
   <widget class="QDockWidget" name="dockSearchReplace">
+   <property name="sizePolicy">
+    <sizepolicy hsizetype="Preferred" vsizetype="Maximum">
+     <horstretch>0</horstretch>
+     <verstretch>0</verstretch>
+    </sizepolicy>
+   </property>
    <property name="minimumSize">
     <size>
      <width>79</width>
@@ -458,9 +462,6 @@
   <action name="actionLexize">
    <property name="text">
     <string>Lexize</string>
-   </property>
-   <property name="shortcut">
-    <string>Ctrl+L</string>
    </property>
   </action>
   <action name="actionParse">
@@ -925,6 +926,19 @@
    </property>
    <property name="shortcut">
     <string>F2</string>
+   </property>
+  </action>
+  <action name="action_SpecialSymbol_lambda">
+   <property name="text">
+    <string>λ</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+L</string>
+   </property>
+  </action>
+  <action name="actionLambda_transformation">
+   <property name="text">
+    <string>Lambda transformation</string>
    </property>
   </action>
  </widget>

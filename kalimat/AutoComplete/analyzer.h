@@ -3,8 +3,7 @@
 
 #include <QMap>
 #include <functional>
-#include "../Parser/KalimatAst/declaration.h"
-#include "../Parser/KalimatAst/expression.h"
+#include "../Parser/KalimatAst/kalimat_ast_gen.h"
 
 QString getBeautifulName(shared_ptr<ProceduralDecl> proc);
 QString methodDeclarationForCompletion(shared_ptr<MethodDecl> md);

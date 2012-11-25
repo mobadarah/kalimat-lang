@@ -10,6 +10,11 @@
 //#include <iostream>
 using namespace std;
 
+QString str(int i)
+{
+    return QString("%1").arg(i);
+}
+
 QString _ws(QStdWString str)
 {
     return QString::fromStdWString(str);
@@ -45,10 +50,6 @@ int Labeller::labelOf(QString str)
     {
         labelMap[str] = count++;
     }
-    if(labelMap[str] == 48)
-    {
-        int x = 5;
-    }
     return labelMap[str];
 }
 
@@ -67,6 +68,7 @@ LineIterator Utils::readResourceTextFile(QString fileName)
     LineIterator iter;
 
     QFile *inputFile = new QFile(fileName);
+
     inputFile->open(QIODevice::ReadOnly | QIODevice::Text);
     QTextStream *in = new QTextStream(inputFile);
 

@@ -10,6 +10,12 @@
 
 SpriteLayer::SpriteLayer()
 {
+    dirtyState = false;
+}
+
+bool SpriteLayer::dirty()
+{
+    return dirtyState;
 }
 
 void SpriteLayer::AddSprite(Sprite *s)
@@ -20,10 +26,12 @@ void SpriteLayer::AddSprite(Sprite *s)
 void SpriteLayer::showSprite(Sprite *s)
 {
     _visibleSprites.insert(s);
+    dirtyState = true;
 }
 void SpriteLayer::hideSprite(Sprite *s)
 {
     _visibleSprites.remove(s);
+    dirtyState = true;
 }
 
 void SpriteLayer::checkCollision(Sprite *s, CollisionListener *callback)

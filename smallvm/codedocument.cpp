@@ -17,6 +17,8 @@
 
 //#include "mainwindow.h"
 
+Translation<CodeDocumentMessage> CodeDocument::docMessages(":/codedoc_messages.txt");
+
 CodeDocument *CodeDocument::newDoc(QString fileName, QTabWidget *tabs, QWidget *tabWidget, RecentFileHandler *listener)
 {
     CodeDocument *ret = new CodeDocument(fileName, tabs, tabWidget, listener);
@@ -52,10 +54,8 @@ void CodeDocument::initTabLink(QTabWidget *tabBar, QWidget * tabWidget)
 {
     this->tabs = tabBar;
     this->editor = (QTextEdit *) tabWidget;
-    //bool ret = QObject::connect(this->editor, SIGNAL(textChanged()), this, SLOT(editor_textChanged()));
-    bool ret = QObject::connect(this->editor->document(), SIGNAL(contentsChanged()), this, SLOT(editor_textChanged()));
-
-    ret =  QObject::connect(this->editor, SIGNAL(cursorPositionChanged()), this, SLOT(editor_cursorPositionChanged()));
+    QObject::connect(this->editor->document(), SIGNAL(contentsChanged()), this, SLOT(editor_textChanged()));
+    QObject::connect(this->editor, SIGNAL(cursorPositionChanged()), this, SLOT(editor_cursorPositionChanged()));
 }
 bool CodeDocument::isFileDirty()
 {
@@ -199,7 +199,7 @@ bool CodeDocument::canDiscard()
         return true;
     }
     QMessageBox box(QMessageBox::Warning,
-                    QString::fromWCharArray(L"كلمات"), QString::fromStdWString(L"حفظ التغييرات في الملف '%1'؟").arg(getFileName()),
+                    docMessages[AppName0], docMessages.get(SaveChangesInFile1, getFileName()),
                     QMessageBox::Yes|QMessageBox::No| QMessageBox::Cancel,
                     NULL);
     int ret = box.exec();

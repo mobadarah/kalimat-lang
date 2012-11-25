@@ -10,11 +10,11 @@ QString getBeautifulName(shared_ptr<ProceduralDecl> proc)
     shared_ptr<MethodDecl> method = dynamic_pointer_cast<MethodDecl>(proc);
     if(method)
     {
-        return QString("%1 : %2").arg(method->className()->name).arg(proc->procName()->name);
+        return QString("%1 : %2").arg(method->className()->name()).arg(proc->procName()->name());
     }
     else
     {
-        QString name = proc->procName()->name;
+        QString name = proc->procName()->name();
         if(name == "%main")
             return QString::fromStdWString(L"(البرنامج الرئيسي)");
         else
@@ -45,7 +45,7 @@ analyzeFunctionDeclarations(shared_ptr<CompilationUnit> cu,
         if(proc)
         {
             QString s = getBeautifulName(proc);
-            ret.funcNameToAst[getBeautifulName(proc)] = decl;
+            ret.funcNameToAst[getBeautifulName(proc)] = proc;
             Token start = proc->getPos();
             Token end = proc->_endingToken;
             ret.rangeOfEachProc[start.Pos] = ProcPosRange(start.Pos,
@@ -67,12 +67,13 @@ analyzeClassDeclarations(shared_ptr<CompilationUnit> cu,
                     decl);
         if(clas)
         {
-        QString name = clas->name()->name;
+        QString name = clas->name()->name();
         ClassInfo ci;
-        for(int i=0; i<clas->methodCount(); i++)
+        for(QMap<QString, shared_ptr<MethodDecl> >::const_iterator i=clas->_methods.begin();
+            i != clas->_methods.end(); ++i)
         {
-            shared_ptr<MethodDecl> md = clas->method(i);
-            ci.methods[md->procName()->name] = md;
+            shared_ptr<MethodDecl> md = i.value();
+            ci.methods[md->procName()->name()] = md;
         }
         ret.classInfo[name] = ci;
         }
@@ -85,9 +86,9 @@ void Analyzer::forEachDecl(shared_ptr<CompilationUnit> cu, std::function<void(sh
     if(module)
     {
 
-        for(int i=0; i<module->declCount(); i++)
+        for(int i=0; i<module->declarationCount(); i++)
         {
-            shared_ptr<Declaration> decl = module->decl(i);
+            shared_ptr<Declaration> decl = module->declaration(i);
             func(decl);
         }
         return;
@@ -95,7 +96,6 @@ void Analyzer::forEachDecl(shared_ptr<CompilationUnit> cu, std::function<void(sh
     shared_ptr<Program> program = dynamic_pointer_cast<Program>(cu);
     if(program)
     {
-        int n = program->elementCount();
         for(int i=0; i<program->elementCount(); i++)
         {
             shared_ptr<TopLevel> el= program->element(i);

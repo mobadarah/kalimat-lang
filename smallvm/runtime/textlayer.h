@@ -23,12 +23,15 @@ class TextLayer
     int visibleTextLines;
     int textLineWidth;
     int cursor_col, cursor_line;
+    bool dirtyState;
     void printChar(QChar c);
     void cr();
     void lf();
 
 public:
     TextLayer();
+    bool dirty();
+    void updated() { dirtyState = false; }
     const QVector<QString> &lines() const { return visibleTextBuffer; }
     void print(QString);
     void println(QString);

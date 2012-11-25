@@ -24,7 +24,6 @@ SOURCES += main.cpp \
     metaclass.cpp \
     debugger.cpp \
     tracelistener.cpp \
-    vmutils.cpp \
     vm_ffi.cpp \
     runtime/textlayer.cpp \
     runtime/spritelayer.cpp \
@@ -40,12 +39,11 @@ SOURCES += main.cpp \
     runtime/vmclient.cpp \
     runtime/guieditwidgethandler.cpp \
     debuginfo.cpp \
-    qobjectforeignclass.cpp \
     runtime/parserengine.cpp \
-    runtime/spriteclass.cpp
+    runtime/spriteclass.cpp \
+    runtime/vmrunnerthread.cpp
 
-HEADERS += \
-    value.h \
+HEADERS += value.h \
     instruction.h \
     vm.h \
     method.h \
@@ -79,9 +77,9 @@ HEADERS += \
     utils.h \
     runtime/vmclient.h \
     runtime/guieditwidgethandler.h \
-    qobjectforeignclass.h \
     runtime/parserengine.h \
-    runtime/spriteclass.h
+    runtime/spriteclass.h \
+    runtime/vmrunnerthread.h
 FORMS +=  runtime/runwindow.ui
 
 RESOURCES += \
@@ -89,6 +87,9 @@ RESOURCES += \
 
 win32:LIBS += -L"$$_PRO_FILE_PWD_/../smallvm/libffi/" -llibffi
 unix:LIBS += -lffi
+
+OTHER_FILES += \
+    runlib_errors.txt
 
 
 

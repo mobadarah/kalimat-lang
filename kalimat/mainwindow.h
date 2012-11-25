@@ -116,7 +116,7 @@ public:
     int wonderfulMonitorDelay();
     CodePosition getPositionOfRunningInstruction(Frame *f);
     CodePosition getPositionOfInstruction(QString method, int offset);
-    void markCurrentInstruction(VM *vm, int &pos, int &length);
+    void markCurrentInstruction(VM *vm, Process *proc, int &pos, int &length);
 
     void handleVMError(VMError err);
     void highlightRunningInstruction(Frame *f);
@@ -126,7 +126,7 @@ public:
     void highlightToken(QTextEdit *editor, int pos, int length);
     void removeLineHighlights(MyEdit *editor, int line);
     void setLineIndicators(int line, int column, QTextEdit *editor);
-    void visualizeCallStacks(QQueue<Process *> &callStacks, QGraphicsView *view);
+    void visualizeCallStacks(QSet<QQueue<Process *> *> callStacks, QGraphicsView *view);
     void visualizeCallStack(QStack<Frame> &callStack, QGraphicsView *view);
 
     void outputMsg(QString s);
@@ -238,6 +238,10 @@ private slots:
 
     void on_action_go_to_definition_triggered();
     void autoCompleteBoxActivated(int);
+
+    void on_action_SpecialSymbol_lambda_triggered();
+
+    void on_actionLambda_transformation_triggered();
 
 protected:
      void dropEvent(QDropEvent *de);

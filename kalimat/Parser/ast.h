@@ -21,12 +21,4 @@ public:
     virtual Token getPos()=0;
 };
 
-class ASTImpl
-{
-    Token position;
-public:
-    ASTImpl(Token position);
-    Token getPos();
-};
-
 #endif // AST_H

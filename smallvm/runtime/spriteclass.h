@@ -7,7 +7,7 @@ class SpriteClass : public EasyForeignClass
 {
 public:
     SpriteClass(QString name);
-    virtual Value *dispatch(int id, QVector<Value *>args);
+    virtual Value *dispatch(Process *proc, int id, QVector<Value *>args);
     virtual IObject *newValue(Allocator *allocator);
 };
 

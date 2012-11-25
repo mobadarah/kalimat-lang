@@ -51,7 +51,8 @@ InternalCompilerErrorInFunc,
 CannotRunAModule,
 RuleAlreadyDefined,
 InvokingUndefinedRule,
-ModuleDoesntExist
+ModuleDoesntExist,
+ProcedureOrFunctionDoesntExist
 };
 
 class CompilerException
@@ -154,6 +155,13 @@ public:
     QString currentFileName;
     QMap<int, CodePosition> getPositionInfo() {return PositionInfo;}
     QMap<QString, QString> &getStringConstants() { return _asm.StringConstants; }
+
+    // Synthesic functions, classes...etc generated from other code, ex converting lambda expressions
+    // to normal functions.
+    // This vector is cleared at the start of compiling each module or program, and after the normal code generation
+    // passes any declaration in the vector is also generated. The previous passes are free to add what they like here.
+    // see compileModule() and generate()
+    QVector<shared_ptr<Declaration> > extraDeclarations;
 public:
     CodeGenerator();
     void Init();
@@ -247,11 +255,12 @@ private:
     void generateInvokation(shared_ptr<Invokation> expr, InvokationContext context, MethodCallStyle style = NonTailCallStyle);
     void generateMethodInvokation(shared_ptr<MethodInvokation> expr, InvokationContext context, MethodCallStyle style = NonTailCallStyle);
     void generateTimingExpression(shared_ptr<TimingExpression> expr);
+    void generateTheSomething(shared_ptr<TheSomething> expr);
     void generateIdafa(shared_ptr<Idafa> expr);
     void generateArrayIndex(shared_ptr<ArrayIndex> expr);
     void generateMultiDimensionalArrayIndex(shared_ptr<MultiDimensionalArrayIndex> expr);
     void generateObjectCreation(shared_ptr<ObjectCreation> expr);
-
+    void generateLambdaExpression(shared_ptr<LambdaExpression> expr);
     QString typeExpressionToAssemblyTypeId(shared_ptr<TypeExpression> expr);
     QString generateArrayFromValues(shared_ptr<AST> src, QVector<shared_ptr<Expression> > values);
     void generateAssignmentToLvalue(shared_ptr<AST> src, shared_ptr<AssignableExpression> lval,

@@ -41,7 +41,7 @@ IObject *SpriteClass::newValue(Allocator *allocator)
     return newObj;
 }
 
-Value *SpriteClass::dispatch(int id, QVector<Value *> args)
+Value *SpriteClass::dispatch(Process *proc, int id, QVector<Value *> args)
 {
     IObject *receiver = args[0]->unboxObj();
     Sprite *sprite = reinterpret_cast<Sprite *>(

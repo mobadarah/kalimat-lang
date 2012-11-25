@@ -328,7 +328,7 @@ ret
 		ret
 	.endmethod
 
-	.method منته 0 1
+        .method منته 1 1
 		callex file_eof
 		ret
 	.endmethod
@@ -406,7 +406,7 @@ ret
 	ret
 .endmethod
 
-.class معلومات.حادثة.فارة
+.class معلومات.حادثة.ماوس
     .field س
     .field ص
     .field الزر.الأيمن
@@ -418,18 +418,23 @@ ret
     .field حرف
 .endclass
 
-.method قناة.الفارة 0 1
+.method قناة.الماوس 0 1
     callex mouse_event_channel
     ret
 .endmethod
 
-.method قناة.ضغط.الفارة 0 1
+.method قناة.ضغط.زر.الماوس 0 1
     callex mouseDown_event_channel
     ret
 .endmethod
 
-.method قناة.رفع.الفارة 0 1
+.method قناة.رفع.زر.الماوس 0 1
     callex mouseUp_event_channel
+    ret
+.endmethod
+
+.method قناة.تحريك.الماوس 0 1
+    callex mouseMove_event_channel
     ret
 .endmethod
 
@@ -446,16 +451,6 @@ ret
 
 .method صنع.معرب 1 1
 callex make_parser
-ret
-.endmethod
-
-.method ادفع.مسار.بديل 2 0
-push_bk_pt
-ret
-.endmethod
-
-.method تجاهل.آخر.مسار.بديل 1 0
-ignore_bk_pt
 ret
 .endmethod
 

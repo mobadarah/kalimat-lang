@@ -18,6 +18,13 @@ QString readFile(QString path);
 QString base64encode(QString other);
 QString base64Decode(QString source);
 
+QString str(int i);
+template <typename T> bool isa(void * obj)
+{
+    T value = dynamic_cast<T>(obj);
+    return value != NULL;
+}
+
 template<class T> void appendAll(QVector<T> &a, QVector<T> b)
 {
     for(int i=0; i<b.count(); i++)
@@ -72,6 +79,37 @@ public:
         }
         in.close();
         return ErrorMap;
+    }
+};
+
+template<class ErrTypeEnum> class Translation
+{
+    QMap<ErrTypeEnum, QString> table;
+    QString filename;
+public:
+    Translation(QString filename): filename(filename)
+    {
+
+    }
+
+    QString operator[](ErrTypeEnum msgId)
+    {
+        if(table.empty())
+            table = Utils::prepareErrorMap<ErrTypeEnum>(filename);
+        return table[msgId];
+    }
+    QString get(ErrTypeEnum msgId, QString arg0)
+    {
+        if(table.empty())
+            table = Utils::prepareErrorMap<ErrTypeEnum>(filename);
+        return table[msgId].arg(arg0);
+    }
+
+    QString get(ErrTypeEnum msgId, QString arg0, QString arg1)
+    {
+        if(table.empty())
+            table = Utils::prepareErrorMap<ErrTypeEnum>(filename);
+        return table[msgId].arg(arg0).arg(arg1);
     }
 };
 

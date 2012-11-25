@@ -8,6 +8,8 @@
 #ifndef TOKEN_H
 #define TOKEN_H
 #include <QtCore>
+#include <QTextStream>
+
 typedef int TokenType;
 
 // Tokens of type 'TokenNone' are skipped during lexical analysis.
@@ -43,6 +45,9 @@ public:
         bool Is(QString lexeme);
         bool Is(TokenType type);
 };
+
+QTextStream & operator <<(QTextStream &str, const Token & t);
+
 Q_DECLARE_METATYPE(Token);
 Q_DECLARE_METATYPE(QVector<Token>);
 #endif // TOKEN_H

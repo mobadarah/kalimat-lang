@@ -30,9 +30,12 @@ void ValueClass::InitObjectLayout(Object *object, Allocator *allocator)
 void ValueClass::InitObjectLayoutHelper(ValueClass *_class, Object *object, Allocator *allocator)
 {
     //todo:
-    for(QVector<ValueClass *>::iterator i=_class->BaseClasses.begin(); i!=_class->BaseClasses.end(); ++i)
+    for(QVector<IClass *>::iterator i=_class->BaseClasses.begin(); i!=_class->BaseClasses.end(); ++i)
     {
-        (*i)->InitObjectLayout(object, allocator);
+        IClass *aBase = *i;
+        ValueClass *vc = dynamic_cast<ValueClass *>(aBase);
+        if(vc)
+            vc->InitObjectLayout(object, allocator);
     }
     for(QSet<QString>::iterator i = _class->fields.begin(); i!=_class->fields.end();  ++i)
     {

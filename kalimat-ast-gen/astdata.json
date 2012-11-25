@@ -1,9 +1,20 @@
 ﻿[
 {
-	'type' : 'TopLevel',
-	'parent' : 'KalimatAst',
-	'arabic' : 'عنصر.مستوى.أساسي',
-	'nodes' : []
+"type" : "KalimatAst",
+"arabic" : "شجرة.إعراب.كلمات",
+"parent" : "AST",
+"abstract" : true,
+"nodes" : [{"type":"Token", "name":"_pos", "arabic": "موضع", "toString" : false
+    }],
+    "embed" : "Token getPos() { return _pos; }"
+},
+
+{
+	"type" : "TopLevel",
+        "arabic" : "عنصر.مستوى.أساسي",
+        "parent" : "KalimatAst",
+        "nodes" : [],
+         "embed" : "QString attachedComments;"
 },
 { 
   "type" :"Statement", 
@@ -39,32 +50,34 @@
 	"type": "CompilationUnit",
 	"arabic" : "أمر.اتصال.بقناة",
 	"parent" : "KalimatAst",
-	"nodes" :[{'type': 'StrLiteral', 'vector': true, 'name': 'usedModules'}]
+        "abstract" : true,
+	"nodes" :[{"type": "StrLiteral", "vector": true, "name": "usedModules"}]
 },
 {
 	"type": "Program",
-	"arabic" : "أمر.اتصال.بقناة",
+        "arabic" : "برنامج",
 	"parent" : "CompilationUnit",
-	"nodes" :[{'type': 'TopLevel', 'vector': true, 'name': 'elements'},
-			  {'type': 'StrLiteral', 'vector': true, 'hasAddFunction': true, 'name': 'originalElements', 'comment': "// Original layout without collecting top-level statements // into a 'main' function. Used for pretty-printing...etc"}
+	"nodes" :[{"type": "TopLevel", "vector": true, "name": "elements"},
+                          {"type": "TopLevel", "vector": true, "hasAddFunction": true, "name": "originalElements", "toString" : false, "comment": "// Original layout without collecting top-level statements\n // into a 'main' function. Used for pretty-printing...etc"}
 	]
 },
 {
 	"type": "Module",
-	"arabic" : "أمر.اتصال.بقناة",
+        "arabic" : "وحدة.برمجية",
 	"parent" : "CompilationUnit",
-	"nodes" :[{'type': 'Declaration', 'vector': true, hasAddFunction: true, 'name': 'declarations'}
+        "nodes" :[{"type": "Identifier", "name" : "name", "arabic" : "اسم"},
+                {"type": "Declaration", "vector": true, "hasAddFunction": true, "name": "declarations", "arabic" :""}
 	]
 },
 {
 	"type": "AssignableExpression",
-	"arabic" : "أمر.اتصال.بقناة",
+        "arabic" : "تعبير.يمكن.التخصيص.له",
 	"parent" : "Expression",
 	"nodes" :[]
 },
 {
 	"type": "Literal",
-	"arabic" : "أمر.اتصال.بقناة",
+        "arabic" : "تعبير.حرفي",
 	"parent" : "Expression",
 	"nodes" :[]
 },
@@ -79,164 +92,166 @@
 	"type": "AssignmentStmt",
 	"arabic" : "أمر.تخصيص",
 	"parent" : "Statement",
-	"nodes" :[{"type": "AssignableExpression", 'name' : 'variable', 'arabic' : 'متغير'},
-			  {"type": "Expression", 'name' : 'value', 'arabic' : 'قيمة'}
+        "nodes" :[{"type": "AssignableExpression", "name" : "_variable", "arabic" : "متغير"},
+                          {"type": "Expression", "name" : "_value", "arabic" : "قيمة"},
+                          {"type": "TypeExpression", "name" : "_type", "arabic" : "نوع"}
+
 	]
 },
 {
 	"type": "IfStmt",
 	"arabic" : "أمر.إذا",
 	"parent" : "Statement",
-	"nodes" :[{"type": "Expression", 'name' : 'condition', 'arabic' : 'شرط'},
-			  {"type": "Statement", 'name' : 'thenPart', 'arabic' : 'لوصحيح'},
-			  {"type": "Statement", 'name' : 'elsePart', 'arabic' : 'لوخطأ'}
+        "nodes" :[{"type": "Expression", "name" : "_condition", "arabic" : "شرط"},
+                          {"type": "Statement", "name" : "_thenPart", "arabic" : "لوصحيح"},
+                          {"type": "Statement", "name" : "_elsePart", "arabic" : "لوخطأ", "nullable": true}
 	]
 },
 {
 	"type": "WhileStmt",
-	"arabic" : "أمر.طالما",
+        "arabic" : "أمر.كرر",
 	"parent" : "Statement",
-	"nodes" :[{"type": "Expression", 'name' : 'condition', 'arabic' : 'شرط'},
-			  {"type": "Statement", 'name' : 'statement', 'arabic' : 'أمر'}
+        "nodes" :[{"type": "Expression", "name" : "_condition", "arabic" : "شرط"},
+                          {"type": "Statement", "name" : "_statement", "arabic" : "أمر"}
 	]
 },
 {
 	"type": "ForAllStmt", 
 	"arabic" : "أمر.لكل",
 	"parent" : "Statement",
-	"nodes" :[{"type": "Identifier", 'name' : 'variable', 'arabic' : 'عداد'},
-			  {"type": "Expression", 'name' : 'from', 'arabic' : 'جزء.من'},
-			  {"type": "Expression", 'name' : 'to', 'arabic' : 'جزء.إلى'},
-			  {"type": "Statement", 'name' : 'statement', 'arabic' : 'أمر'}
-	]
+        "nodes" :[{"type": "Identifier", "name" : "_variable", "arabic" : "عداد"},
+                          {"type": "Expression", "name" : "_from", "arabic" : "جزء.من"},
+                          {"type": "Expression", "name" : "_to", "arabic" : "جزء.إلى"},
+                          {"type": "Expression", "name" : "_step", "arabic" : "جزء.بخطوة"},
+                          {"type": "Statement", "name" : "_statement", "arabic" : "أمر"},
+                          {"type": "bool", "name" : "_downTo", "arabic" : "به.نزولا"}
+        ],
+        "embed" : "  virtual QVector<shared_ptr<Identifier> > getIntroducedVariables();"
 },
 {
 	"type": "ReturnStmt",
-	"arabic" : "أمر.لكل",
+        "arabic" : "أمر.ارجع",
 	"parent" : "Statement",
-	"nodes" :[{"type": "Expression", 'name' : 'returnVal', 'arabic' : 'جزء.من'}
+        "nodes" :[{"type": "Expression", "name" : "_returnVal", "arabic" : "القيمة.الراجعة.من"}
 	]
 },
 {
 	"type": "DelegationStmt",
-	"arabic" : "أمر.لكل",
+        "arabic" : "أمر.وكل",
 	"parent" : "Statement",
-	"nodes" :[{"type": "IInvokation", 'name' : 'invokation', 'arabic' : 'جزء.من'}
+        "nodes" :[{"type": "IInvokation", "name" : "_invokation", "arabic" : "استدعاء"}
 	]
 },
 {
 	"type": "LaunchStmt",
-	"arabic" : "أمر.لكل",
+        "arabic" : "أمر.شغل",
 	"parent" : "Statement",
-	"nodes" :[{"type": "IInvokation", 'name' : 'invokation', 'arabic' : 'جزء.من'}
+        "nodes" :[{"type": "IInvokation", "name" : "_invokation", "arabic" : "استدعاء"}
 	]
 },
 {
 	"type": "LabelStmt",
-	"arabic" : "أمر.لكل",
-	"parent" : "Statement",
-	"nodes" :[{"type": "Expression", 'name' : 'target', 'arabic' : 'جزء.من'}
+        "arabic" : "أمر.علامة",
+        "parent" : "Statement",
+        "nodes" :[{"type": "Expression", "name" : "_target", "arabic" : "تعبير"}
 	]
 },
 {
 	"type": "GotoStmt",
-	"arabic" : "أمر.لكل",
+        "arabic" : "أمر.اذهب",
 	"parent" : "Statement",
-	"nodes" :[{"type": "bool", 'name' : 'targetIsNumber', 'arabic' : 'جزء.من'},
-		      {"type": "NumLiteral", 'name' : 'numericTarget', 'arabic' : 'جزء.من'},
-			  {"type": "Identifier", 'name' : 'idTarget', 'arabic' : 'جزء.من'}
-	]
+        "nodes" :[{"type": "Expression", "name" : "target", "arabic" : "المستهدف"}
+        ]
 },
 {
 	"type":  "PrintStmt",
-	"arabic" : "أمر.لكل",
+        "arabic" : "أمر.اطبع",
 	"parent" : "IOStatement",
-	"nodes" :[{"type": "Expression", 'name' : 'fileObject', 'arabic' : 'جزء.من'},
-		      {"vector": true, "type": "Expression", 'name' : 'args', 'arabic' : 'جزء.من'},
-			  {"vector": true, "type": "Expression", 'name' : 'widths', 'arabic' : 'جزء.من'},
-			  {"type": "bool", 'name' : 'printOnSameLine', 'arabic' : 'جزء.من'}
+	"nodes" :[{"type": "Expression", "name" : "fileObject", "arabic" : "جزء.من"},
+		      {"vector": true, "type": "Expression", "name" : "args", "arabic" : "جزء.من"},
+			  {"vector": true, "type": "Expression", "name" : "widths", "arabic" : "جزء.من"},
+			  {"type": "bool", "name" : "printOnSameLine", "arabic" : "جزء.من"}
 	]
 },
 {
 	"type":  "ReadStmt",
 	"arabic" : "أمر.لكل",
 	"parent" : "IOStatement",
-	"nodes" :[{"type": "Expression", 'name' : 'fileObject', 'arabic' : 'جزء.من'},
-			  {"type": "QString", 'name': 'prompt', arabic : ''},
-		      {"vector": true, "type": "AssignableExpression", 'name' : 'variables', 'arabic' : 'جزء.من'},
-			  {"vector": true, "type": "bool", 'name' : 'readNumberFlags', 'arabic' : 'جزء.من'}
+	"nodes" :[{"type": "Expression", "name" : "fileObject", "arabic" : "جزء.من"},
+                          {"type": "QString", "name": "prompt", "arabic" : ""},
+		      {"vector": true, "type": "AssignableExpression", "name" : "variables", "arabic" : "جزء.من"},
+			  {"vector": true, "type": "bool", "name" : "readNumberFlags", "arabic" : "جزء.من"}
 	]
 },
 {
 	"type": "DrawPixelStmt",
-	"arabic" : "أمر.لكل",
+        "arabic" : "أمر.ارسم.نقطة",
 	"parent" : "GraphicsStatement",
-	"nodes" :[{"type": "Expression", 'name' : 'x', 'arabic' : 'جزء.من'},
-			  {"type": "Expression", 'name' : 'y', 'arabic' : 'جزء.من'},
-			  {"type": "Expression", 'name' : 'color', 'arabic' : 'جزء.من'}
+        "nodes" :[{"type": "Expression", "name" : "x", "arabic" : "س"},
+                          {"type": "Expression", "name" : "y", "arabic" : "ص"},
+                          {"type": "Expression", "name" : "color", "arabic" : "لون"}
 	]
 },
 {
 	"type": "DrawLineStmt",
-	"arabic" : "أمر.لكل",
+        "arabic" : "أمر.ارسم.خط",
 	"parent" : "GraphicsStatement",
-	"nodes" :[{"type": "Expression", 'name' : 'x1', 'arabic' : 'جزء.من'},
-			  {"type": "Expression", 'name' : 'y1', 'arabic' : 'جزء.من'},
-			  {"type": "Expression", 'name' : 'x2', 'arabic' : 'جزء.من'},
-			  {"type": "Expression", 'name' : 'y2', 'arabic' : 'جزء.من'},
-			  {"type": "Expression", 'name' : 'color', 'arabic' : 'جزء.من'}
+        "nodes" :[{"type": "Expression", "name" : "x1", "arabic" : "س1"},
+                          {"type": "Expression", "name" : "y1", "arabic" : "ص1"},
+                          {"type": "Expression", "name" : "x2", "arabic" : "س2"},
+                          {"type": "Expression", "name" : "y2", "arabic" : "ص2"},
+                          {"type": "Expression", "name" : "color", "arabic" : "لون"}
 	]
 },
 {
 	"type": "DrawRectStmt",
-	"arabic" : "أمر.لكل",
+        "arabic" : "أمر.ارسم.مستطيل",
 	"parent" : "GraphicsStatement",
-	"nodes" :[{"type": "Expression", 'name' : 'x1', 'arabic' : 'جزء.من'},
-			  {"type": "Expression", 'name' : 'y1', 'arabic' : 'جزء.من'},
-			  {"type": "Expression", 'name' : 'x2', 'arabic' : 'جزء.من'},
-			  {"type": "Expression", 'name' : 'y2', 'arabic' : 'جزء.من'},
-			  {"type": "Expression", 'name' : 'color', 'arabic' : 'جزء.من'}
-			  {"type": "Expression", 'name' : 'filled', 'arabic' : 'جزء.من'}
+        "nodes" :[{"type": "Expression", "name" : "x1", "arabic" : "س1"},
+                          {"type": "Expression", "name" : "y1", "arabic" : "ص1"},
+                          {"type": "Expression", "name" : "x2", "arabic" : "س2"},
+                          {"type": "Expression", "name" : "y2", "arabic" : "ص2"},
+                          {"type": "Expression", "name" : "color", "arabic" : "لون"},
+                          {"type": "Expression", "name" : "filled", "arabic" : "ملء"}
 	]
 },
 {
 	"type": "DrawCircleStmt",
-	"arabic" : "أمر.لكل",
+        "arabic" : "أمر.ارسم.دائرة",
 	"parent" : "GraphicsStatement",
-	"nodes" :[{"type": "Expression", 'name' : 'cx', 'arabic' : 'جزء.من'},
-			  {"type": "Expression", 'name' : 'cy', 'arabic' : 'جزء.من'},
-			  {"type": "Expression", 'name' : 'radius', 'arabic' : 'جزء.من'},
-			  {"type": "Expression", 'name' : 'color', 'arabic' : 'جزء.من'}
-			  {"type": "Expression", 'name' : 'filled', 'arabic' : 'جزء.من'}
+        "nodes" :[{"type": "Expression", "name" : "cx", "arabic" : "س.مركز"},
+                          {"type": "Expression", "name" : "cy", "arabic" : "ص.مركز"},
+                          {"type": "Expression", "name" : "radius", "arabic" : "نق"},
+                          {"type": "Expression", "name" : "color", "arabic" : "لون"},
+                          {"type": "Expression", "name" : "filled", "arabic" : "ملء"}
 	]
 },
 {
 	"type": "DrawImageStmt",
-	"arabic" : "أمر.لكل",
+        "arabic" : "أمر.ارسم.صورة",
 	"parent" : "GraphicsStatement",
-	"nodes" :[{"type": "Expression", 'name' : 'x', 'arabic' : 'جزء.من'},
-			  {"type": "Expression", 'name' : 'y', 'arabic' : 'جزء.من'},
-			  {"type": "Expression", 'name' : 'image', 'arabic' : 'جزء.من'}
+        "nodes" :[{"type": "Expression", "name" : "x", "arabic" : "س"},
+                          {"type": "Expression", "name" : "y", "arabic" : "ص"},
+                          {"type": "Expression", "name" : "image", "arabic" : "صورة"}
 	]
 },
 {
 	"type": "DrawSpriteStmt",
-	"arabic" : "أمر.لكل",
+        "arabic" : "أمر.ارسم.طيف",
 	"parent" : "GraphicsStatement",
-	"nodes" :[{"type": "Expression", 'name' : 'x', 'arabic' : 'جزء.من'},
-			  {"type": "Expression", 'name' : 'y', 'arabic' : 'جزء.من'},
-			  {"type": "Expression", 'name' : 'sprite', 'arabic' : 'جزء.من'}
+        "nodes" :[{"type": "Expression", "name" : "x", "arabic" : "س"},
+                          {"type": "Expression", "name" : "y", "arabic" : "ص"},
+                          {"type": "Expression", "name" : "sprite", "arabic" : "طيف"}
 	]
 },
 {
-	"type": "DrawLineStmt",
-	"arabic" : "أمر.لكل",
+        "type": "ZoomStmt",
+        "arabic" : "أمر.زووم",
 	"parent" : "GraphicsStatement",
-	"nodes" :[{"type": "Expression", 'name' : 'x1', 'arabic' : 'جزء.من'},
-			  {"type": "Expression", 'name' : 'y1', 'arabic' : 'جزء.من'},
-			  {"type": "Expression", 'name' : 'x2', 'arabic' : 'جزء.من'},
-			  {"type": "Expression", 'name' : 'y2', 'arabic' : 'جزء.من'},
-			  {"type": "Expression", 'name' : 'color', 'arabic' : 'جزء.من'}
+        "nodes" :[{"type": "Expression", "name" : "x1", "arabic" : "س1"},
+                          {"type": "Expression", "name" : "y1", "arabic" : "ص1"},
+                          {"type": "Expression", "name" : "x2", "arabic" : "س2"},
+                          {"type": "Expression", "name" : "y2", "arabic" : "ص2"}
 	]
 },
 {
@@ -244,145 +259,164 @@
 	"enum" : true,
 	"members" : 
 	[
-	{'name':'KalimatKeyDownEvent',arabic:''},
-	{'name':'KalimatKeyUpEvent',arabic:''},
-	{'name':'KalimatKeyPressEvent',arabic:''},
-	{'name':'KalimatMouseUpEvent',arabic:''},
-	{'name':'KalimatMouseDownEvent',arabic:''},
-	{'name':'KalimatMouseMoveEvent',arabic:''},
-	{'name':'KalimatSpriteCollisionEvent',arabic:''}
+        {"name":"KalimatKeyDownEvent","arabic":""},
+        {"name":"KalimatKeyUpEvent","arabic":""},
+        {"name":"KalimatKeyPressEvent","arabic":""},
+        {"name":"KalimatMouseUpEvent","arabic":""},
+        {"name":"KalimatMouseDownEvent","arabic":""},
+        {"name":"KalimatMouseMoveEvent","arabic":""},
+        {"name":"KalimatSpriteCollisionEvent","arabic":""}
 	]
-}
+},
 {
 	"type": "EventStatement",
-	"arabic" : "أمر.لكل",
+        "arabic" : "أمر.عند.حادثة",
 	"parent" : "Statement",
-	"nodes" :[{"type": "EventType", 'name' : 'type', 'arabic' : 'جزء.من'},
-			  {"type": "Identifier", 'name' : 'handler', 'arabic' : 'جزء.من'}
+        "nodes" :[{"type": "EventType", "name" : "type", "arabic" : "نوع.حادثة"},
+                          {"type": "Identifier", "name" : "handler", "arabic" : "إجراء.حادثة"}
 		  ]
 },
 {
 	"type": "SendStmt",
-	"arabic" : "أمر.لكل",
+        "arabic" : "أمر.ارسل",
 	"parent" : "ChannelCommunicationStmt",
-	"nodes" :[{"type": "Expression", 'name' : 'value', 'arabic' : 'جزء.من'},
-			  {"type": "Expression", 'name' : 'channel', 'arabic' : 'جزء.من'},
-			  {"type": "bool", 'name' : 'signal', 'arabic' : 'جزء.من'}
+        "nodes" :[{"type": "Expression", "name" : "value", "arabic" : "قيمة"},
+                          {"type": "Expression", "name" : "channel", "arabic" : "قناة"},
+                          {"type": "bool", "name" : "signal", "arabic" : "هو.إشارة"}
 		  ]
 },
 {
 	"type": "ReceiveStmt",
-	"arabic" : "أمر.لكل",
+        "arabic" : "أمر.تسلم",
 	"parent" : "ChannelCommunicationStmt",
-	"nodes" :[{"type": "AssignableExpression", 'name' : 'value', 'arabic' : 'جزء.من'},
-			  {"type": "Expression", 'name' : 'channel', 'arabic' : 'جزء.من'},
-			  {"type": "bool", 'name' : 'signal', 'arabic' : 'جزء.من'}
+        "nodes" :[{"type": "AssignableExpression", "name" : "value", "arabic" : "قيمة"},
+                          {"type": "Expression", "name" : "channel", "arabic" : "قناة"},
+                          {"type": "bool", "name" : "signal", "arabic" : "هو.إشارة"}
 		  ]
 },
 {
 	"type": "SelectStmt",
-	"arabic" : "أمر.لكل",
+        "arabic" : "أمر.تخير",
 	"parent" : "Statement",
-	"nodes" :[{"vector": true, "type": "ChannelCommunicationStmt", 'name' : 'conditions', 'arabic' : 'جزء.من'},
-			  {"type": "Statement", 'name' : 'actions', 'arabic' : 'جزء.من'}
+        "nodes" :[{"vector": true, "type": "ChannelCommunicationStmt", "name" : "conditions", "arabic" : "شروط"},
+                          {"type": "Statement", "vector": true, "name": "actions", "arabic" : "أوامر"}
 		  ]
 },
 {
 	"type": "BlockStmt",
-	"arabic" : "أمر.لكل",
+        "arabic" : "كتلة.أوامر",
 	"parent" : "Statement",
-	"nodes" :[{"vector": true, "genGetWholeVector": true, "type": "Statement", 'name' : 'statements', 'arabic' : 'جزء.من'}
+        "nodes" :[{"vector": true, "genGetWholeVector": true, "type": "Statement", "name" : "_statements", "arabic" : "أوامر"}
 		  ]
 },
 {
 	"type": "InvokationStmt",
-	"arabic" : "أمر.لكل",
+        "arabic" : "أمر.استدعائي",
 	"parent" : "Statement",
-	"nodes" :[{"type": "Expression", 'name' : 'expression', 'arabic' : 'جزء.من'}
+        "nodes" :[{"type": "Expression", "name" : "expression", "arabic" : "استدعاء"}
 		  ]
 },
 {
 	"type": "BinaryOperation",
-	"arabic" : "أمر.لكل",
+        "arabic" : "تعبير.عملية.ثنائية",
 	"parent" : "Expression",
-	"nodes" :[{"type": "QString", 'name' : 'operator', 'arabic' : 'جزء.من'},
-			  {"type": "Expression", 'name' : 'operand1', 'arabic' : 'جزء.من'},
-			  {"type": "Expression", 'name' : 'operand2', 'arabic' : 'جزء.من'}
+        "nodes" :[{"type": "QString", "name" : "operator_", "arabic" : "عملية"},
+                          {"type": "Expression", "name" : "operand1", "arabic" : "معامل1"},
+                          {"type": "Expression", "name" : "operand2", "arabic" : "معامل2"}
 		  ]
 },
 {
 	"type": "UnaryOperation",
-	"arabic" : "أمر.لكل",
+        "arabic" : "أمر.عملية.أحادية",
 	"parent" : "Expression",
-	"nodes" :[{"type": "QString", 'name' : 'operator', 'arabic' : 'جزء.من'},
-			  {"type": "Expression", 'name' : 'operand1', 'arabic' : 'جزء.من'}
+        "nodes" :[{"type": "QString", "name" : "operator_", "arabic" : "عملية"},
+                          {"type": "Expression", "name" : "operand", "arabic" : "معامل"}
 		  ]
 },
 {
 	"type": "IsaOperation",
-	"arabic" : "أمر.لكل",
+        "arabic" : "تعبير.هو",
 	"parent" : "Expression",
-	"nodes" :[{"type": "Expression", 'name' : 'expression', 'arabic' : 'جزء.من'},
-			  {"type": "Identifier", 'name' : 'type', 'arabic' : 'جزء.من'}
+        "nodes" :[{"type": "Expression", "name" : "expression", "arabic" : "تعبير"},
+                          {"type": "Identifier", "name" : "type", "arabic" : "نوع"}
 		  ]
 },
 {
 	"type": "MatchOperation",
 	"arabic" : "أمر.لكل",
 	"parent" : "Expression",
-	"nodes" :[{"type": "Expression", 'name' : 'expression', 'arabic' : 'جزء.من'},
-			  {"type": "Pattern", 'name' : 'pattern', 'arabic' : 'جزء.من'}
+	"nodes" :[{"type": "Expression", "name" : "expression", "arabic" : "جزء.من"},
+			  {"type": "Pattern", "name" : "pattern", "arabic" : "جزء.من"}
 		  ]
 },
 {
 	"type": "Identifier",
-	"arabic" : "أمر.لكل",
-	"parent" : "AssignableExpression",
-	"nodes" :[{"type": "QString", 'name' : 'name', 'arabic' : 'جزء.من'}
+        "arabic" : "معرف",
+        "parent" : "KalimatAst",
+        "nodes" :[{"type": "QString", "name" : "name", "arabic" : "اسم"}
 		  ]
+
 },
 {
+        "type": "VarAccess",
+        "arabic" : "وصول.لمتغير",
+        "parent" : "AssignableExpression",
+        "nodes" :[{"type": "Identifier", "name" : "name", "arabic" : "متغير"}
+                  ]
+
+},
+
+{
 	"type": "NumLiteral",
-	"arabic" : "أمر.لكل",
+        "autoGenerateConstructor" : false,
+        "arabic" : "تعبير.عددي.حرفي",
 	"parent" : "SimpleLiteral",
-	"nodes" :[{"type": "long", 'name' : 'lValue', 'arabic' : 'جزء.من'},
-		      {"type": "double", 'name' : 'dValue', 'arabic' : 'جزء.من'},
-			  {"type": "bool", 'name' : 'longNotDouble', 'arabic' : 'جزء.من'},
-			  {"type": "bool", 'name' : 'valueRecognized', 'arabic' : 'جزء.من'}
-		  ]
+        "nodes" :[{"type": "long", "name" : "lValue", "arabic" : "المكون.الطويل"},
+                      {"type": "double", "name" : "dValue", "arabic" : "المكون.المزدوج"},
+                          {"type": "bool", "name" : "longNotDouble", "arabic" : "طويل.وليس.مزدوج"},
+                          {"type": "bool", "name" : "valueRecognized", "arabic" : "القيمة.معروفة"}
+                  ],
+        "embed" : "NumLiteral(Token pos ,QString lexeme);
+                  NumLiteral(Token pos ,int value);
+                  QString repr();"
 },
 {
 	"type": "StrLiteral",
-	"arabic" : "أمر.لكل",
+        "arabic" : "تعبير.نصي.حرفي",
 	"parent" : "SimpleLiteral",
-	"nodes" :[{"type": "QString", 'name' : 'value', 'arabic' : 'جزء.من'}
-		  ]
+        "nodes" :[{"type": "QString", "name" : "value", "arabic" : "قيمة"}
+                  ],
+        "embed" : "    QString repr();"
 },
 {
 	"type": "NullLiteral",
-	"arabic" : "أمر.لكل",
+        "arabic" : "لاشيء",
 	"parent" : "SimpleLiteral",
-	"nodes" :[]
+        "abstract" : false,
+        "nodes" :[],
+        "embed" : "    QString repr();"
 },
 {
 	"type": "BoolLiteral",
-	"arabic" : "أمر.لكل",
+        "arabic" : "تعبير.منطقي.حرفي",
 	"parent" : "SimpleLiteral",
-	"nodes" :[{"type": "bool", 'name' : 'value', 'arabic' : 'جزء.من'}
-		  ]
+        "nodes" :[{"type": "bool", "name" : "value", "arabic" : "قيمة"}
+                  ],
+        "embed" : "    QString repr();"
 },
 {
 	"type": "ArrayLiteral",
 	"arabic" : "أمر.لكل",
 	"parent" : "Literal",
-	"nodes" :[{'vector': true, "type": "Expression", genGetWholeVector: true, 'name' : 'data', 'arabic' : 'جزء.من'}
+        "nodes" :[{"vector": true, "type": "Expression", "genGetWholeVector": true, "name" : "_data", "notplural": true,
+                        "arabic" : "جزء.من"}
 		  ]
 },
 {
 	"type": "MapLiteral",
 	"arabic" : "أمر.لكل",
 	"parent" : "Literal",
-	"nodes" :[{'vector': true, "type": "Expression", genGetWholeVector: true, 'name' : 'data', 'arabic' : 'جزء.من'}
+        "nodes" :[{"vector": true, "type": "Expression", "genGetWholeVector": true, "name" : "data", "notplural": true, "arabic" : "جزء.من"}
 		  ]
 },
 {
@@ -395,56 +429,101 @@
 	"type": "Invokation",
 	"arabic" : "أمر.لكل",
 	"parent" : "IInvokation",
-	"nodes" :[{"type": "Expression", 'name' : 'functor', 'arabic' : 'جزء.من'},
-		{'vector': true, "type": "Expression", 'name' : 'arguments', 'arabic' : 'جزء.من'}
+        "nodes" :[{"type": "Identifier", "name" : "functor", "arabic" : "جزء.من"},
+		{"vector": true, "type": "Expression", "name" : "arguments", "arabic" : "جزء.من"}
 	]
 },
 {
 	"type": "MethodInvokation",
 	"arabic" : "أمر.لكل",
 	"parent" : "IInvokation",
-	"nodes" :[{"type": "Expression", 'name' : 'receiver', 'arabic' : 'جزء.من'},
-		      {"type": "Identifier", 'name' : 'methodSelector', 'arabic' : 'جزء.من'},
-		{'vector': true, "type": "Expression", 'name' : 'arguments', 'arabic' : 'جزء.من'}
+	"nodes" :[{"type": "Expression", "name" : "receiver", "arabic" : "جزء.من"},
+		      {"type": "Identifier", "name" : "methodSelector", "arabic" : "جزء.من"},
+		{"vector": true, "type": "Expression", "name" : "arguments", "arabic" : "جزء.من"}
 	]
+},
+{
+        "type": "ForAutocomplete",
+        "arabic" : "تعبير.للتكملة.الآلية",
+        "parent" : "IInvokation",
+        "nodes" :[{"type": "Expression", "name" : "toBeCompleted", "arabic" : "ما.يراد.إكماله.في"}
+
+        ]
 },
 {
 	"type": "TimingExpression",
 	"arabic" : "أمر.لكل",
 	"parent" : "Expression",
-	"nodes" :[{"type": "Expression", 'name' : 'toTime', 'arabic' : 'جزء.من'}
+	"nodes" :[{"type": "Expression", "name" : "toTime", "arabic" : "جزء.من"}
 	]
 },
+{
+        "type": "DeclarationType",
+        "enum" : true,
+        "members" :
+        [
+            {"name":"Proc","arabic":"الشيء.إجراء"},
+            {"name":"Function","arabic":"الشيء.دالة"}
+        ]
+},
+{
+        "type": "TheSomething",
+        "comment" : "// TheProc, TheFunction...etc",
+        "arabic" : "تعبير.الشيء",
+        "parent" : "Expression",
+        "suppressToString" : true,
+        "nodes" :[{"type": "QString", "name" : "name", "arabic" : "اسم"},
+           {"type": "DeclarationType", "name" : "what", "arabic" : "شيء"}
+        ],
+        "embed" : "virtual QString toString();"
+},
+
 {
 	"type": "Idafa",
 	"arabic" : "أمر.لكل",
 	"parent" : "AssignableExpression",
-	"nodes" :[{"type": "Expression", 'name' : 'modaf', 'arabic' : 'جزء.من'},
-	          {"type": "Expression", 'name' : 'modaf_elaih', 'arabic' : 'جزء.من'}
+        "nodes" :[{"type": "Identifier", "name" : "modaf", "arabic" : "جزء.من"},
+	          {"type": "Expression", "name" : "modaf_elaih", "arabic" : "جزء.من"}
 	]
 },
 {
 	"type": "ArrayIndex",
 	"arabic" : "أمر.لكل",
 	"parent" : "AssignableExpression",
-	"nodes" :[{"type": "Expression", 'name' : 'array', 'arabic' : 'جزء.من'},
-	          {"type": "Expression", 'name' : 'index', 'arabic' : 'جزء.من'}
+	"nodes" :[{"type": "Expression", "name" : "array", "arabic" : "جزء.من"},
+	          {"type": "Expression", "name" : "index", "arabic" : "جزء.من"}
 	]
 },
 {
 	"type": "MultiDimensionalArrayIndex",
 	"arabic" : "أمر.لكل",
 	"parent" : "AssignableExpression",
-	"nodes" :[{"type": "Expression", 'name' : 'array', 'arabic' : 'جزء.من'},
-	          {'vector': true, "genGetWholeVector": true, "type": "Expression", 'name' : 'indexes', 'arabic' : 'جزء.من'}
+	"nodes" :[{"type": "Expression", "name" : "array", "arabic" : "جزء.من"},
+	          {"vector": true, "genGetWholeVector": true, "type": "Expression", "name" : "indexes", "arabic" : "جزء.من"}
 	]
 },
 {
 	"type": "ObjectCreation",
 	"arabic" : "أمر.لكل",
 	"parent" : "Expression",
-	"nodes" :[{"type": "Identifier", 'name' : 'className', 'arabic' : 'جزء.من'}
+        "nodes" :[{"type": "Identifier", "name" : "className", "arabic" : "جزء.من"},
+                  {"vector" : true, "type": "Identifier", "name" : "fieldInitNames", "arabic" : "جزء.من"},
+                  {"vector" : true, "type": "Expression", "name" : "fieldInitValues", "arabic" : "جزء.من"}
 	]
+},
+{
+        "type": "LambdaExpression",
+        "arabic" : "تعبير.لامدا",
+        "parent" : "Expression",
+        "nodes" :[{"type": "FormalParam", "vector":true, "name" : "_argList", "notplural" : true, "arabic" : "عوامل"},
+                  {"type": "Statement", "vector":true, "name" : "statements", "arabic" : "أوامر"},
+                  {"type": "bool", "name" : "hasDoToken", "arabic" : "فيه.كلمة.نفذ",
+                  "comment": "// todo: The hasDoToken flag is a kludge, we should split lambda expressions
+                  // into one class that encapsulate a simple expression and one (or two) for
+                  // longer procs and functions."},
+                  {"type": "Identifier", "vector" : true, "name" : "freeVariables", "arabic" : "المتغيرات.الحرة.في",
+                  "traverse": false, "constructorArg": false, "hasAddFunction": true}
+        ]
 },
 {
 	"type": "Pattern",
@@ -456,45 +535,46 @@
 	"type": "SimpleLiteralPattern",
 	"arabic" : "أمر.لكل",
 	"parent" : "Pattern",
-	"nodes" :[{'type': 'SimpleLiteral', 'name' : 'value', 'arabic': 'قيمة'}
+	"nodes" :[{"type": "SimpleLiteral", "name" : "value", "arabic": "قيمة"}
 	]
 },
 {
-	"type": "VarLiteralPattern",
+        "type": "VarPattern",
 	"arabic" : "أمر.لكل",
 	"parent" : "Pattern",
-	"nodes" :[{'type': 'Identifier', 'name' : 'id', 'arabic': 'قيمة'}
+        "nodes" :[{"type": "VarAccess", "name" : "id", "arabic": "قيمة"}
 	]
 },
 {
 	"type": "AssignedVarPattern",
 	"arabic" : "أمر.لكل",
 	"parent" : "Pattern",
-	"nodes" :[{'type': 'AssignableExpression', 'name' : 'lv', 'arabic': 'قيمة'}
+	"nodes" :[{"type": "AssignableExpression", "name" : "lv", "arabic": "قيمة"}
 	]
 },
 {
 	"type": "ArrayPattern",
 	"arabic" : "أمر.لكل",
 	"parent" : "Pattern",
-	"nodes" :[{'vector': true, 'type': 'Pattern', 'name' : 'elements', 'arabic': 'قيمة'}
+        "nodes" :[{"vector": true, "type": "Pattern", "name" : "elements", "arabic": "قيمة"},
+                  {"type" : "bool", "name" : "fixedLength", "arabic": "ثابت.الطول"}
 	]
 },
 {
 	"type": "ObjPattern",
 	"arabic" : "أمر.لكل",
 	"parent" : "Pattern",
-	"nodes" :[{'type': 'Identifier', 'name' : 'classId', 'arabic': 'قيمة'},
-              {'vector': true, 'type': 'Identifier', 'name' : 'fieldNames', 'arabic': 'قيمة'},
-			  {'vector': true, 'type': 'Pattern', 'name' : 'fieldPatterns', 'arabic': 'قيمة'}
+	"nodes" :[{"type": "Identifier", "name" : "classId", "arabic": "قيمة"},
+              {"vector": true, "type": "Identifier", "name" : "fieldNames", "arabic": "قيمة"},
+			  {"vector": true, "type": "Pattern", "name" : "fieldPatterns", "arabic": "قيمة"}
 	]
 },
 {
 	"type": "MapPattern",
 	"arabic" : "أمر.لكل",
 	"parent" : "Pattern",
-	"nodes" :[{'vector': true, 'type': 'Expression', 'name' : 'keys', 'arabic': 'قيمة'},
-			  {'vector': true, 'type': 'Pattern', 'name' : 'values', 'arabic': 'قيمة'}
+	"nodes" :[{"vector": true, "type": "Expression", "name" : "keys", "arabic": "قيمة"},
+			  {"vector": true, "type": "Pattern", "name" : "values", "arabic": "قيمة"}
 	]
 },
 {
@@ -507,42 +587,61 @@
 	"type": "TypeIdentifier",
 	"arabic" : "أمر.لكل",
 	"parent" : "TypeExpression",
-	"nodes" :[{'type': 'QString', 'name' : 'name', 'arabic': 'اسم'}
+	"nodes" :[{"type": "QString", "name" : "name", "arabic": "اسم"}
 	]
 },
 {
 	"type": "PointerTypeExpression",
 	"arabic" : "أمر.لكل",
 	"parent" : "TypeExpression",
-	"nodes" :[{'type': 'TypeExpression', 'name' : 'pointeeType', 'arabic': 'اسم'}
+	"nodes" :[{"type": "TypeExpression", "name" : "pointeeType", "arabic": "اسم"}
 	]
 },
 {
 	"type": "FunctionTypeExpression",
 	"arabic" : "أمر.لكل",
 	"parent" : "TypeExpression",
-	"nodes" :[{'type': 'TypeExpression', 'name' : 'retType', 'arabic': 'اسم'},
-			  {'type': 'TypeExpression', 'vector': true, 'name' : 'argTypes', 'arabic': 'اسم'},
+	"nodes" :[{"type": "TypeExpression", "name" : "retType", "arabic": "اسم"},
+			  {"type": "TypeExpression", "vector": true, "name" : "argTypes", "arabic": "اسم"}
 	]
 },
 {
 	"type": "Declaration",
 	"arabic" : "أمر.لكل",
 	"parent" : "TopLevel",
-	"nodes" :[{'type': 'bool', 'name' : 'isPublic', 'arabic': 'اسم'}
-	]
+        "abstract" : true,
+	"nodes" :[{"type": "bool", "name" : "isPublic", "arabic": "اسم"}
+        ]
+},
+{
+        "type": "FormalParam",
+        "arabic" : "عامل.رسمي",
+        "struct" : true,
+        "parent" : "PrettyPrintable",
+        "generateEmptyConstructor": true,
+        "nodes" :[{"type": "Identifier", "name" : "name", "arabic": "اسم"},
+                 {"type": "TypeExpression", "name" : "type", "arabic": "نوع"}
+        ],
+        "embed" : "    FormalParam(shared_ptr<Identifier> name)
+        :_name(name)
+    {
+
+    }
+    "
 },
 {
 	"type": "ProceduralDecl",
 	"abstract": true,
-	"arabic" : "أمر.لكل",
+        "arabic" : "إعلان.إجرائي",
 	"parent" : ["Declaration","IScopeIntroducer"],
-	"nodes" :[{'type': 'Identifier', 'name' : 'procName', 'arabic': 'اسم'},
-		      {'vector': true, 'type': 'Identifier', 'name' : 'formals', 'arabic': 'اسم'},
-			  {'vector': true, 'type': 'Identifier', 'name' : 'allReference', 'hasAddFunction': true, 'arabic': 'اسم'},
-			  {'type': 'BlockStmt', 'name' : 'body', 'arabic': 'اسم'},
-			  {'type': 'Token', 'name' : 'endingToken', 'arabic': 'اسم'},
-	]
+        "nodes" :[{"type": "Token", "name" : "endingToken", "arabic": "اسم"},
+                   {"type": "Identifier", "name" : "procName", "arabic": "اسم"},
+                   {"vector": true, "type": "FormalParam", "name" : "formals", "arabic": "اسم"},
+                   {"type": "BlockStmt", "name" : "body", "generateMutator" : true,  "arabic": "اسم"}
+
+        ],
+        "embed" : "virtual QString getTooltip();
+         virtual QVector<shared_ptr<Identifier> > getIntroducedVariables();"
 },
 {
 	"type": "IProcedure",
@@ -556,201 +655,225 @@
 },
 {
 	"type": "ProcedureDecl",
-	"arabic" : "أمر.لكل",
-	"parent" : ["ProceduralDecl", "IProcedure"]
-	"nodes" :[]
-	"abstract" : false;
+        "arabic" : "إعلان.إجراء",
+        "parent" : ["ProceduralDecl", "IProcedure"],
+        "nodes" :[],
+        "abstract" : false
 },
 {
 	"type": "FunctionDecl",
-	"arabic" : "أمر.لكل",
-	"parent" : ["ProceduralDecl", "IFunction"]
-	"nodes" :[]
-	"abstract" : false;
+        "arabic" : "إعلان.دالة",
+        "parent" : ["ProceduralDecl", "IFunction"],
+        "nodes" :[],
+        "abstract" : false
 },
 {
 	"type": "FFILibraryDecl",
 	"arabic" : "إعلان.مكتبة.خارجية",
-	"parent" : "Declaration"
-	"nodes" :[{'type': 'QString', 'name': 'libName', 'arabic': 'اسم.مكتبة'},
-		      {'vector': true, 'type': 'Declaration', 'name': 'decls', 'arabic': 'إعلانات'}
+        "parent" : "Declaration",
+	"nodes" :[{"type": "QString", "name": "libName", "arabic": "اسم.مكتبة"},
+		      {"vector": true, "type": "Declaration", "name": "decls", "arabic": "إعلانات"}
 	]
 },
 {
 	"type": "FFIProceduralDecl",
-	"arabic" : "إعلان.مكتبة.خارجية",
-	"parent" : "Declaration"
-	"nodes" :[{'type': 'bool', 'name': 'isFunctionNotProc', 'arabic': 'اسم.مكتبة'},
-		      {'type': 'QString', 'name': 'procName', 'arabic': 'اسم.مكتبة'},
-			  {'type': 'QString', 'name': 'symbol', 'arabic': 'اسم.مكتبة'},
-			  {'type': 'TypeExpression', 'name': 'returnType', 'arabic': 'اسم.مكتبة'},
-		      {'vector': true, 'type': 'TypeExpression', 'name': 'paramTypes', 'arabic': 'إعلانات'}
+        "arabic" : "إعلان.إجراء.أو.دالة.خارجية",
+        "parent" : "Declaration",
+	"nodes" :[{"type": "bool", "name": "isFunctionNotProc", "arabic": "اسم.مكتبة"},
+		      {"type": "QString", "name": "procName", "arabic": "اسم.مكتبة"},
+			  {"type": "QString", "name": "symbol", "arabic": "اسم.مكتبة"},
+			  {"type": "TypeExpression", "name": "returnType", "arabic": "اسم.مكتبة"},
+		      {"vector": true, "type": "TypeExpression", "name": "paramTypes", "arabic": "إعلانات"}
 	]
 },
 {
-	"type": "FFIProceduralDecl",
-	"arabic" : "إعلان.مكتبة.خارجية",
-	"parent" : "Declaration"
-	"nodes" :[{'type': 'Identifier', 'name': 'name', 'arabic': 'اسم.مكتبة'},
-		      {'vector': true, 'type': 'Identifier', 'name': 'fieldNames', 'arabic': 'اسم.مكتبة'},
-			  {'vector': true, 'type': 'TypeExpression', 'name': 'fieldTypes', 'arabic': 'اسم.مكتبة'},
-		      {'vector': true, 'type': 'int', 'name': 'fieldBatches', 'arabic': 'إعلانات'}
+        "type": "FFIStructDecl",
+        "arabic" : "إعلان.تركيب.خارجي",
+        "parent" : "Declaration",
+        "nodes" :[{"type": "Identifier", "name": "name", "arabic": "اسم"},
+		      {"vector": true, "type": "Identifier", "name": "fieldNames", "arabic": "اسم.مكتبة"},
+			  {"vector": true, "type": "TypeExpression", "name": "fieldTypes", "arabic": "اسم.مكتبة"},
+		      {"vector": true, "type": "int", "name": "fieldBatches", "arabic": "إعلانات"}
 	]
 },
 
 {
 	"type": "ClassInternalDecl",
+        "parent" : "PrettyPrintable",
 	"arabic" : "إعلان.داخل.الفصيلة",
 	"struct" : true,
 	"nodes" :[ ]
 },
 
 {
-	"type": "ClassInternalDecl",
-	"arabic" : "إعلان.داخل.الفصيلة",
+	"type": "MethodInfo",
+	"arabic" : "معلومات.الوسيلة",
 	"struct" : true,
-	"nodes" :[ ]
+	"nodes" :[ { "type":"int", "name":"arity", "arabic":"عدد.العوامل" },
+               { "type":"bool", "name":"isFunction", "arabic":"هي.دالة" }
+         ],
+         "embed" : "MethodInfo();"
+},
+{
+	"type": "ConcreteResponseInfo",
+        "arabic" : "معلومات.تفاصيل.الاستجابة",
+        "parent" : "PrettyPrintable",
+	"struct" : true,
+	"nodes" :[ { "type":"Identifier", "name":"name", "arabic":"اسم" },
+               { "vector":true, "type":"FormalParam", "name":"params",  "constructorArg": false,  "hasAddFunction": true, "arabic":"العوامل" }
+	 ]
 },
 
-struct MethodInfo
 {
-    int arity;
-    bool isFunction;
-    MethodInfo(int arity, bool isFunction);
-    MethodInfo();
-};
-
-struct ConcreteResponseInfo : public PrettyPrintable
+	"type": "Has",
+	"arabic" : "مال",
+        "parent" : "ClassInternalDecl",
+	"struct" : true,
+        "nodes" :[ { "type":"QString/TypeExpression", "map":true,  "constructorArg": false, "name":"_fieldMarshallAs", "notplural": true, "arabic":"التسييرات" },
+               { "vector":true, "type":"Identifier", "name":"fields",  "constructorArg": false, "hasAddFunction": true, "arabic":"المجالات" }
+	 ]
+},
 {
-    shared_ptr<Identifier> name;
-    QVector<shared_ptr<Identifier> > params;
-    void prettyPrint(CodeFormatter *f);
-
-    ConcreteResponseInfo(shared_ptr<Identifier> _name)
-        :name(_name)
-    {
-    }
-
-    void add(shared_ptr<Identifier> param)
-    {
-        params.append(param);
-    }
-};
-
-struct Has : public ClassInternalDecl
+	"type": "RespondsTo",
+	"arabic" : "استجابات",
+        "parent" : "ClassInternalDecl",
+	"struct" : true,
+	"nodes" :[ { "type":"bool", "name":"isFunctions", "arabic":"ردود" },
+               { "vector":true, "type":"ConcreteResponseInfo", "name":"methods", "constructorArg": false, "hasAddFunction": true, "arabic":"إعلانات.استجابات" }
+	 ]
+},
 {
-    QMap<QString, shared_ptr<TypeExpression> > _fieldMarshallAs;
-    QVector<shared_ptr<Identifier> > fields;
-    void prettyPrint(CodeFormatter *f);
-    void add(shared_ptr<Identifier> field)
-    {
-        fields.append(shared_ptr<Identifier>(field));
-    }
-    int fieldCount() { return fields.count(); }
-    Identifier *field(int i) { return fields[i].get(); }
-    TypeExpression *marshallingTypeOf(QString field)
-    {
-        if(_fieldMarshallAs.contains(field))
-            return _fieldMarshallAs[field].get();
-        else
-            return NULL;
-    }
-};
+	"type": "ClassDecl",
+	"arabic" : "تعريف.فصيلة",
+        "parent" : "Declaration",
+	"nodes" :[ { "type":"Identifier", "name":"_ancestorName", "arabic":"اسم.المبني.عليه" },
+               { "type":"Identifier", "name":"_name", "arabic":"اسم" },
+               { "vector":true, "type":"Identifier", "name":"_fields", "arabic":"مجالات" },
+               { "map":true, "type":"QString/MethodInfo", "name":"_methodPrototypes",
+                    "toString":false, "generateContains": true, "arabic":"إعلانات.استجابات" },
+               { "vector":true, "type":"ClassInternalDecl", "name":"_internalDecls", "arabic":"التعريفات.بداخل",
+               "toString":false,
+               "traverse" : false},
+               { "map":true, "type":"QString/TypeExpression", "name":"_fieldMarshallAs",  "notplural": true, "arabic":"تسييرات.المجالات" },
 
-struct RespondsTo : public ClassInternalDecl
+
+               { "map":true, "type":"QString/MethodDecl", "name":"_methods", "generateContains": true, "constructorArg": false, "arabic":"وسائل" ,
+                    "hasAddFunction" : true},
+               { "type":"ClassDecl", "name":"_ancestorClass", "constructorArg": false, "arabic":"الفصيلة.المبني.عليها",
+                   "generateMutator" : true}
+
+	 ]
+},
 {
-    bool isFunctions;
-    QVector<shared_ptr<ConcreteResponseInfo> > methods;
-
-    RespondsTo(bool _isFunctions) { isFunctions = _isFunctions;}
-    void prettyPrint(CodeFormatter *f);
-    void add(shared_ptr<ConcreteResponseInfo> mi)
-    {
-        methods.append(mi);
-    }
-    ConcreteResponseInfo *method(int i) { return methods[i].get(); }
-    int methodCount() { return methods.count(); }
-};
-
-class ClassDecl : public Declaration
+	"type": "GlobalDecl",
+	"arabic" : "تعريف.متغير.مشترك",
+        "parent" : "Declaration",
+        "nodes" :[ { "type": "QString", "name":"varName", "arabic":"اسم.المتغير" }
+	 ]
+},
 {
-    Q_OBJECT
-public:
-    shared_ptr<Identifier> _ancestorName;
-    shared_ptr<Identifier> _name;
-    QVector<shared_ptr<Identifier > > _fields;
-    QMap<QString, MethodInfo>  _methodPrototypes;
-    QVector<shared_ptr<ClassInternalDecl> > _internalDecls; // For pretty printing...etc
-    QMap<QString, shared_ptr<TypeExpression> > _fieldMarshallAs;
-    QMap<QString, shared_ptr<MethodDecl> > _methods;
-    shared_ptr<ClassDecl> _ancestorClass;
-
-public:
-    ClassDecl(Token pos,
-              shared_ptr<Identifier> name,
-              QVector<shared_ptr<Identifier> > fields,
-              QMap<QString,MethodInfo> methodPrototypes,
-              QVector<shared_ptr<ClassInternalDecl> > internalDecls,
-              QMap<QString, shared_ptr<TypeExpression> > fieldMarshalAs,
-              bool isPublic);
-    ClassDecl(Token pos,
-              shared_ptr<Identifier> ancestorName,
-              shared_ptr<Identifier> name,
-              QVector<shared_ptr<Identifier> > fields,
-              QMap<QString,MethodInfo> methodPrototypes,
-              QVector<shared_ptr<ClassInternalDecl> > internalDecls,
-              QMap<QString, shared_ptr<TypeExpression> > fieldMarshalAs,
-              bool isPublic);
-    shared_ptr<Identifier> name() { return _name;}
-    int fieldCount() { return _fields.count();}
-    shared_ptr<Identifier> field(int i) { return _fields[i];}
-    bool containsMethod(QString name);
-    bool containsPrototype(QString name);
-    int methodCount() { return _methods.count();}
-    shared_ptr<MethodDecl> method(QString name);
-    shared_ptr<MethodDecl> method(int i) { return _methods.values().at(i);}
-    MethodInfo methodPrototype(QString name);
-    int prototypeCount() { return _methodPrototypes.count();}
-    shared_ptr<Identifier> ancestor() { return _ancestorName;}
-    bool fieldHasMarshalType(QString fieldName) { return _fieldMarshallAs.contains(fieldName); }
-    shared_ptr<TypeExpression> marshalTypeOf(QString fieldName) { return _fieldMarshallAs[fieldName]; }
-
-    void setAncestorClass(shared_ptr<ClassDecl> cd);
-    void insertMethod(QString name, shared_ptr<MethodDecl> m);
-    QString toString();
-    void prettyPrint(CodeFormatter *f);
-};
-
-class GlobalDecl : public Declaration
+	"type": "MethodDecl",
+	"arabic" : "تعريف.وسيلة",
+        "parent" : "ProceduralDecl",
+        "nodes" :[ { "type": "Identifier", "name":"_className", "arabic":"اسم.الفصيلة" },
+               { "type" :"Identifier", "name":"_receiverName", "arabic":"اسم.المتلقي" },
+               { "type" : "bool", "name":"isFunctionNotProcedure", "arabic":"دالة.وليس.إجراء" }
+         ],
+         "embed": "QString getTooltip();",
+         "constructorCode" : "this->formals.prepend(
+         shared_ptr<FormalParam>(
+             new FormalParam(receiverName(),
+                             shared_ptr<TypeIdentifier>
+                             (new TypeIdentifier
+                              (className()->getPos(), className()->name())
+                              )
+                             )));
+                             "
+},
 {
-    Q_OBJECT
-public:
-    QString varName;
-public:
-    GlobalDecl(Token pos, QString varName, bool isPublic);
-    QString toString();
-    void prettyPrint(CodeFormatter *f);
-};
-
-class MethodDecl : public ProceduralDecl
+        "type" : "PegExpr",
+        "arabic" : "تعبير.نحوي",
+        "parent" : "KalimatAst",
+        "nodes" : [  ],
+        "embed" : "virtual QSet<QString> getAllAssociatedVars()=0;"
+},
 {
-    Q_OBJECT
-public:
-    shared_ptr<Identifier> _className;
-    shared_ptr<Identifier> _receiverName;
-    bool isFunctionNotProcedure;
-public:
-    MethodDecl(Token pos,
-               Token endingToken,
-               shared_ptr<Identifier> className,
-               shared_ptr<Identifier> receiverName,
-               shared_ptr<Identifier> methodName,
-               QVector<shared_ptr<Identifier> > formals,
-               shared_ptr<BlockStmt> body,
-               bool isFunctionNotProcedure);
-    Identifier *className() { return _className.get();}
-    Identifier *receiverName() { return _receiverName.get();}
-    QString toString();
-    void prettyPrint(CodeFormatter *f);
-};
+        "type" : "PegPrimary",
+        "arabic" : "تعبير.نحوي.أساسي",
+        "parent" : "PegExpr",
+        "abstract" : true,
+        "nodes" : [ {"type": "Identifier", "name": "_associatedVar", "arabic" : "متغير", "generateMutator" : true} ],
+        "embed" : "virtual QSet<QString> getAllAssociatedVars();"
+},
+{
+        "type" : "PegSequence",
+        "arabic" : "تعبير.نحوي.تسلسلي",
+        "parent" : "PegExpr",
+        "nodes" : [ {"type": "PegExpr", "name": "elements", "arabic" : "عناصر", "vector" : true} ],
+        "embed" : "virtual QSet<QString> getAllAssociatedVars();"
+},
+
+{
+        "type" : "PegRuleInvokation",
+        "arabic" : "تعبير.نحوي.استدعاء.قاعدة",
+        "parent" : "PegPrimary",
+        "nodes" : [ {"type": "Identifier", "name": "_ruleName", "arabic" : "اسم.قاعدة"} ]
+},
+{
+        "type" : "PegLiteral",
+        "arabic" : "تعبير.نحوي.حرفي",
+        "parent" : "PegPrimary",
+        "nodes" : [ {"type": "StrLiteral", "name": "_value", "arabic" : "قيمة"} ]
+},
+{
+        "type" : "PegCharRange",
+        "arabic" : "تعبير.نحوي.نطاق.حروف",
+        "parent" : "PegPrimary",
+        "nodes" : [ {"type": "StrLiteral", "name": "_value1", "arabic" : "قيمة1"},
+                    {"type": "StrLiteral", "name": "_value2", "arabic" : "قيمة2"}
+        ]
+
+},
+{
+        "type" : "PegRepetion",
+        "arabic" : "تعبير.نحوي.تكراري",
+        "parent" : "PegPrimary",
+        "comment" : "// rep(stmt)\n// expr = term:t1 rep(x=t1, \"+\" term:t2, x=binOp(\"+\", t1,t2)):x",
+        "nodes" : [ {"type": "Identifier", "name": "_resultVar", "arabic" : "متغير.نتيجة"},
+                    {"type": "PegExpr", "name": "_subExpr", "arabic" : "تعبير.فرعي"},
+                    {"type": "AssignmentStmt", "name": "_stepAssignment", "arabic" : "خطوة.تخصيصية"}
+
+        ]
+
+},
+{
+        "type" : "RuleOption",
+        "arabic" : "اختيار.في.قاعدة",
+        "parent" : "KalimatAst",
+        "nodes" : [ {"type": "PegExpr", "name": "_expression", "arabic" : "تعبير"},
+                    {"type": "Expression", "name": "_resultExpr", "arabic" : "تعبير.نتيجة"}
+
+        ]
+
+},
+{
+        "type" : "RuleDecl",
+        "arabic" : "إعلان.قاعدة",
+        "parent" : "KalimatAst",
+        "nodes" : [ {"type": "QString", "name": "ruleName", "arabic" : "اسم"},
+                    {"type": "RuleOption", "vector": true, "name": "options", "arabic" : "اختيارات"}
+        ],
+        "embed" : "virtual QSet<QString> getAllAssociatedVars();"
+
+},
+{
+        "type" : "RulesDecl",
+        "arabic" : "إعلان.قواعد",
+        "parent" : "Declaration",
+        "nodes" : [ {"type": "Identifier", "name": "_ruleName", "arabic" : "اسم"},
+                    {"type": "RuleDecl", "vector": true, "name": "_subRules", "arabic" : "قواعد.فرعية"}
+        ],
+        "embed" : " virtual QSet<QString> getAllAssociatedVars();"
+
+}
 ]

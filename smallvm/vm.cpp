@@ -8,22 +8,32 @@
 #include "vm_incl.h"
 #include "vm.h"
 #include "utils.h"
-#include "vmutils.h"
 #include "vm_ffi.h"
 //#include <iostream>
 #include <QLibrary>
 #include <QDateTime>
 #include <time.h>
-#include "qobjectforeignclass.h"
 #include "runtime/parserengine.h"
 #include <QtDebug>
 
 using namespace std;
-#define QSTR(x) QString::fromStdWString(x)
 
+Translation<ArgErr::ArgError> VM::argumentErrors(":/runlib_errors.txt");
+
+QSet<QQueue<Process *> *> setOf(QQueue<Process *> *q1, QQueue<Process *> * q2, QQueue<Process *> *q3,
+                                QQueue<Process *> *q4, QQueue<Process *> *q5)
+{
+    QSet<QQueue<Process *> *> ret;
+    ret.insert(q1);
+    ret.insert(q2);
+    ret.insert(q3);
+    ret.insert(q4);
+    ret.insert(q5);
+    return ret;
+}
 
 VM::VM()
-    :allocator(&constantPool, &processes)
+    :allocator(&constantPool, setOf(&running, &sleeping, &timerWaiting, &newProcesses, &guiProcesses))
 {
 }
 
@@ -33,7 +43,7 @@ void VM::Init()
 
     int _main = constantPoolLabeller.labelOf("main");
     if(!constantPool.contains(_main))
-            signal(InternalError1 ,QSTR(L"لا يوجد برنامج أساسي لينفّذ"));
+        signal(NULL, InternalError1 ,VM::argumentErrors[ArgErr::NoMainFuncToExecute]);
     Method *method = dynamic_cast<Method *>(constantPool[_main]->unboxObj());
     int malaf = constantPoolLabeller.labelOf("%file");
     if(constantPool.contains(malaf))
@@ -57,14 +67,13 @@ void VM::Init()
 Frame *VM::launchProcess(Method *method)
 {
     Process *dummy;
-    launchProcess(method, dummy);
+    return launchProcess(method, dummy);
 }
 
 Frame *VM::launchProcess(Method *method, Process *&proc)
 {
     Process *p = new Process(this);
     p->stack.push(Frame(method, NULL));
-    processes.push_back(p);
     newProcesses.push_back(p);
     Frame *ret = &p->stack.top();
     return ret;
@@ -75,114 +84,103 @@ Frame *VM::launchProcessAsInterrupt(Method *method)
     Process *p = new Process(this);
     p->interrupt = true; // <-
     p->stack.push(Frame(method, NULL));
-    processes.push_back(p);
     newProcesses.push_front(p); // front, not back!
     Frame *ret = &p->stack.top();
     return ret;
 }
 
-Frame *VM::launchAdministeredProcess(Method *method, QString administrator)
+void VM::awaken(Process *proc)
 {
-    Process *proc;
-    Frame *ret = launchProcess(method, proc);
+    sleeping.removeOne(proc);
 
-    if(!processAdministrators.contains(administrator))
-        signal(InternalError1, QString("launchAdministeredProcess: no registered administrator '%1'")
-               .arg(administrator));
-
-    QQueue<Process *> &queue = processAdministrators[administrator];
-    if(!queue.empty())
-    {
-        proc->sleep();
-        processAdministrators[administrator].push_back(proc);
-        proc->administrator = administrator;
-    }
-
-    return ret;
+    running.push_front(proc);
 }
 
-void VM::registerProcessAdministrator(QString name)
+void VM::sleepify(Process *proc)
 {
-    processAdministrators[name] = QQueue<Process *>();
+    running.removeOne(proc);
+
+    sleeping.push_back(proc); // todo: what's more optimal, push_back or push_front?
+
 }
 
-void VM::assert(bool cond, VMErrorType toSignal)
+void VM::assert(Process *proc, bool cond, VMErrorType toSignal)
 {
     if(!cond)
-        signal(toSignal);
+        signal(proc, toSignal);
 }
 
-void VM::assert(bool cond, VMErrorType toSignal, QString arg0)
+void VM::assert(Process *proc, bool cond, VMErrorType toSignal, QString arg0)
 {
     if(!cond)
-        signal(toSignal, arg0);
+        signal(proc, toSignal, arg0);
 }
 
-void VM::assert(bool cond, VMErrorType toSignal, QString arg0, QString arg1)
+void VM::assert(Process *proc, bool cond, VMErrorType toSignal, QString arg0, QString arg1)
 {
     if(!cond)
-        signal(toSignal, arg0, arg1);
+        signal(proc, toSignal, arg0, arg1);
 }
 
-void VM::assert(bool cond, VMErrorType toSignal, IClass *arg0, IClass *arg1)
+void VM::assert(Process *proc, bool cond, VMErrorType toSignal, IClass *arg0, IClass *arg1)
 {
-    assert(cond, toSignal, arg0->getName(), arg1->getName());
+    assert(proc, cond, toSignal, arg0->getName(), arg1->getName());
 }
 
-void VM::assert(bool cond, VMErrorType toSignal, QString arg0, QString arg1, QString arg2)
+void VM::assert(Process *proc, bool cond, VMErrorType toSignal, QString arg0, QString arg1, QString arg2)
 {
     if(!cond)
-        signal(toSignal, arg0, arg1, arg2);
+        signal(proc, toSignal, arg0, arg1, arg2);
 }
 
-QQueue<Process *> &VM::getCallStacks()
+QSet<QQueue<Process *> *> VM::getCallStacks()
 {
-    return this->processes;
+    return setOf(&running, &sleeping, &timerWaiting, &newProcesses, &guiProcesses);
 }
 
-void VM::signalWithStack(VMError err)
+void VM::signalWithStack(Process *proc, VMError err)
 {
     _isRunning = false;
     if(!running.empty())
-        err.callStack = stack();
+        err.callStack = proc->stack;
     throw err;
 }
 
-void VM::signal(VMErrorType err)
+void VM::signal(Process *proc, VMErrorType err)
 {
     _isRunning = false;
-    if(!running.empty())
-        _lastError = VMError(err, stack());
+    if(proc)
+        _lastError = VMError(err, proc->stack);
     else
         _lastError = VMError(err);
 
     throw _lastError;
 }
-void VM::signal(VMErrorType err, QString arg0)
+void VM::signal(Process *proc, VMErrorType err, QString arg0)
 {
     _isRunning = false;
-    if(!running.empty())
-        _lastError = VMError(err, stack()).arg(arg0);
+    if(proc)
+        _lastError = VMError(err, proc->stack).arg(arg0);
     else
         _lastError = VMError(err).arg(arg0);
     throw _lastError;
 }
 
-void VM::signal(VMErrorType err, QString arg0, QString arg1)
+void VM::signal(Process *proc, VMErrorType err, QString arg0, QString arg1)
 {
     _isRunning = false;
-    if(!running.empty())
-        _lastError = VMError(err, stack()).arg(arg0).arg(arg1);
+    if(proc)
+        _lastError = VMError(err, proc->stack).arg(arg0).arg(arg1);
     else
         _lastError = VMError(err).arg(arg0).arg(arg1);
     throw _lastError;
 }
 
-void VM::signal(VMErrorType err, QString arg0, QString arg1, QString arg2)
+void VM::signal(Process *proc, VMErrorType err, QString arg0, QString arg1, QString arg2)
 {
     _isRunning = false;
-    if(!running.empty())
-        _lastError = VMError(err, stack()).arg(arg0).arg(arg1).arg(arg2);
+    if(proc)
+        _lastError = VMError(err, proc->stack).arg(arg0).arg(arg1).arg(arg2);
     else
         _lastError = VMError(err).arg(arg0).arg(arg1).arg(arg2);
     throw _lastError;
@@ -198,19 +196,20 @@ VMError VM::GetLastError()
     return _lastError;
 }
 
+/*
 QStack<Frame> &VM::stack()
 {
     return running.front()->stack;
 }
+*/
 
 void VM::makeItSleep(Process *proc, int ms)
 {
     proc->state = TimerWaitingProcess;
 
     proc->timeToWake = clock() + ms * CLOCKS_PER_SEC / 1000;
-
+    running.removeOne(proc);
     bool added = false;
-    QVector<Process *> toAdd;
     int posToInsertAt= 0;
 
     // We now want to insert proc just before the proc
@@ -292,7 +291,7 @@ void VM::clearBreakPoint(QString methodName, int offset)
 
 bool VM::getCodePos(Process *proc, QString &method, int &offset, Frame *&frame)
 {
-    if(processIsFinished(proc))
+    if(proc->isFinished())
     {
         return false;
     }
@@ -321,9 +320,9 @@ void VM::ActivateEvent(QString evName, QVector<Value *>args)
         return;
     QString procName = registeredEventHandlers[evName];
     int procLabel = constantPoolLabeller.labelOf(procName);
-    assert(constantPool.contains(procLabel), NoSuchProcedureOrFunction1, procName);
+    assert(NULL, constantPool.contains(procLabel), NoSuchProcedureOrFunction1, procName);
     Method *method = (Method *) constantPool[procLabel]->unboxObj();
-    assert(args.count() == method->Arity(), WrongNumberOfArguments);
+    assert(NULL, args.count() == method->Arity(), WrongNumberOfArguments3, procName, toStr(args.count()), toStr(method->Arity()));
 
     //Frame *newFrame = launchAdministeredProcess(method, "evQ");
     Frame *newFrame = launchProcessAsInterrupt(method);
@@ -342,6 +341,16 @@ void VM::DefineStringConstant(QString symRef, QString strValue)
     //cout.flush();
 }
 
+void VM::SetGlobal(QString symRef, Value *v)
+{
+    globalFrame().Locals[symRef] = v;
+}
+
+Value *VM::GetGlobal(QString symRef)
+{
+    return globalFrame().Locals[symRef];
+}
+
 Value *VM::GetType(QString vmTypeId)
 {
     if(vmTypeId.startsWith("*"))
@@ -356,70 +365,12 @@ Value *VM::GetType(QString vmTypeId)
     {
         int vmTypeIdLabel = constantPoolLabeller.labelOf(vmTypeId);
         if(!constantPool.contains(vmTypeIdLabel))
-            signal(InternalError1, QString("VM::GetType Cannot find type:%1").arg(vmTypeId));
+            signal(NULL, InternalError1, QString("VM::GetType Cannot find type:%1").arg(vmTypeId));
         Value *v = constantPool[vmTypeIdLabel];
         if(!(v->type == BuiltInTypes::ClassType))
-            signal(InternalError1, QString("VM::GetType: Constant pool entry '%1' not a type").arg(vmTypeId));
+            signal(NULL, InternalError1, QString("VM::GetType: Constant pool entry '%1' not a type").arg(vmTypeId));
         return v;
     }
-}
-
-Value *VM::wrapQObject(QObject *obj, QString newClassName, QMap<QString, QString> translations, bool wrapAll)
-{
-    if(!constantPool.contains(constantPoolLabeller.labelOf(newClassName)))
-    {
-        RegisterType(newClassName,
-                     new QObjectForeignClass(this,
-                                             newClassName,
-                                             obj->metaObject(),
-                                             translations,
-                                             wrapAll));
-        translatedQbjClasses[obj->metaObject()->className()]
-                = newClassName;
-    }
-    IClass *cls = (IClass *) GetType(newClassName)->unboxObj();
-    IObject *nobj = cls->newValue(&GetAllocator());
-    nobj->setSlotValue("handle", allocator.newQObject(obj));
-    return allocator.newObject(nobj, cls);
-}
-
-Value *VM::wrapQObject(IClass *cls, QObject *obj)
-{
-    IObject *nobj = cls->newValue(&GetAllocator());
-    nobj->setSlotValue("handle", allocator.newQObject(obj));
-    return allocator.newObject(nobj, cls);
-}
-
-IClass *VM::classForQtClass(QString className)
-{
-    if(translatedQbjClasses.contains(className))
-    {
-        return (IClass *) GetType(translatedQbjClasses[className])->unboxObj();
-    }
-    return NULL;
-}
-
-bool VM::hasRunningInstruction()
-{
-    //todo: use this instead of the initial checks in RunStep()
-    if(running.empty())
-    {
-        return false;
-    }
-    if(processIsFinished(currentProcess()))
-    {
-        return false;
-    }
-
-    return true;
-
-}
-
-Instruction VM::getCurrentInstruction()
-{
-    //todo: use this to retrieve the current instruction in RunStep()
-    Instruction i= currentFrame()->currentMethod->Get(currentFrame()->ip);
-    return i;
 }
 
 Allocator &VM::GetAllocator()
@@ -432,408 +383,78 @@ void VM::gc()
     allocator.gc();
 }
 
-int VM::popIntOrCoercedDouble()
+bool VM::schedule()
 {
-    QStack<Value *> &stack = currentFrame()->OperandStack;
-    if(stack.empty())
-        this->signal(InternalError1, "Empty operand stack when reading integer or integer-coercible value");
-    Value *v = stack.top();
-    if(v->tag != Int && v->tag != Double)
-        this->signal(TypeError2, QString::fromStdWString(L"عدد"), v->type->getName());
-    v = stack.pop();
-    int ret;
-    if(v->tag == Double)
-        ret = (int) v->unboxDouble();
-    else
-        ret = v->unboxInt();
-    return ret;
-}
+    clock_t qt = clock();
 
-double VM::popDoubleOrCoercedInt()
-{
-    QStack<Value *> &stack = currentFrame()->OperandStack;
-    if(stack.empty())
-        this->signal(InternalError1, "Empty operand stack when reading value in 'popDoubleOrCoercedInt'");
-    Value *v = stack.top();
-    if(v->tag != Int && v->tag != Double)
-        this->signal(TypeError2, QString::fromStdWString(L"عدد"), v->type->getName());
-    v = stack.pop();
-    double ret;
-    if(v->tag == Double)
-        ret = v->unboxDouble();
-    else
-        ret = (double) v->unboxInt();
-    return ret;
-}
+    bool awokeAtimer = false;
+    if(timerWaiting.count() > 0)
+    {
+        while(timerWaiting.count() >0 && timerWaiting.front()->timeToWake < qt)
+        {
+            awokeAtimer = true;
+            Process *proc = timerWaiting.takeFirst();
+            proc->awaken();
+        }
+    }
 
-int getInstructionArity(Instruction &i)
-{
-    if(i.Arg == NULL)
-        return -1;
-    return i.Arg->unboxInt();
+    if(!awokeAtimer && newProcesses.count() > 0)
+    {
+        Process *proc = newProcesses.takeFirst();
+        running.push_front(proc);
+    }
+
+
+    if(running.empty() && timerWaiting.empty() && sleeping.empty())
+    {
+        _isRunning = false;
+        return false;
+    }
+
+    if(running.empty())
+    {
+        return false;
+    }
+    return true;
 }
 
 void VM::RunStep(bool singleInstruction)
 {
     int random = rand();
     int n = singleInstruction? 1 : random % 30;
-    bool pIsRunning = true;
-    //bool timerOrNew = (random % 2) == 0;
-    clock_t qt = clock();
 
-    if(/*timerOrNew &&*/ timerWaiting.count() > 0 && timerWaiting.front()->timeToWake < qt)
-    {
-        Process *proc = timerWaiting.takeFirst();
-        proc->awaken();
-        running.push_front(proc);
-    }
-    else if(newProcesses.count() > 0)
-    {
-        Process *proc = newProcesses.takeFirst();
-        running.push_front(proc);
-    }
+    // Bring a process to the front of 'running' queue
 
-    if(running.empty() && timerWaiting.empty())
-    {
-        _isRunning = false;
+    if(!schedule())
         return;
-    }
 
-    if(running.empty())
-    {
-        return;
-    }
+    runningNow = running.front();
 
-    Process *runningNow = running.front();
-    int all = 0;
-    while(runningNow->state == SleepingProcess
-          && all < running.count())
-    {
-        if(/*timerOrNew &&*/ timerWaiting.count() > 0 && timerWaiting.front()->timeToWake < qt)
-        {
-            Process *proc = timerWaiting.takeFirst();
-            proc->awaken();
-            running.push_front(proc);
-        }
-        else  if(newProcesses.count() > 0)
-        {
-            Process *proc = newProcesses.takeFirst();
-            running.push_front(proc);
-        }
-        else
-        {
-            running.pop_front();
+    runningNow->RunTimeSlice(n, this);
 
-            if(runningNow->interrupt)
-                running.push_front(runningNow);
-            else
-                running.push_back(runningNow);
+    if(runningNow->state != MovedToGuiThread)
+        finishUpRunningProcess();
 
-            runningNow = running.front();
-            all++;
-        }
-    }
+    _isRunning = !isDone();
+}
 
-    while(n--)
-    {
-        if(processIsFinished(runningNow))
-        {
-            pIsRunning = false;
-            break;
-        }
-        if(runningNow->state == SleepingProcess)
-        {
-            break;
-        }
-        if(runningNow->state == TimerWaitingProcess)
-        {
-            break;
-        }
-        RunSingleInstruction(runningNow);
-        // A breakpoint might pause/stop the VM, we then must stop this function at once
-        if(!_isRunning)
-            return;
-    }
-
+void VM::finishUpRunningProcess()
+{
     // Notice that it may be already removed, e.g by a call to receive
     // or sleep
-    running.removeOne(runningNow);
-    if(pIsRunning && !(runningNow->state == TimerWaitingProcess))
+    if(runningNow->isFinished() || runningNow->state != AwakeProcess)
     {
-        running.push_back(runningNow);
+        running.removeOne(runningNow);
     }
-    else if(!pIsRunning)
-    {
-        processes.removeOne(runningNow);
-        /*
-        if(runningNow->administrator != "")
-        {
-            QQueue<Process *> admin = processAdministrators
-                    [runningNow->administrator];
-            if(!admin.empty())
-            {
-                Process *next = admin.front();
-                admin.pop_front();
-                next->awaken();
-            }
-        }
-        */
-        delete runningNow; // since it will not return to the queue
-    }
-    _isRunning = !processes.empty();
-}
 
-QString InstructionToString(Instruction i)
-{
-    switch(i.opcode)
+    if(runningNow->isFinished())
     {
-    case PushV: return "PushV";
-    case PushLocal: return "PushLocal";
-    case PopLocal: return "PopLocal";
-    case PushGlobal: return "PushGlobal";
-    case PopGlobal: return "PopGlobal";
-    case PushNull: return "PushNull";
-    case GetRef: return "GetRef";
-    case SetRef: return "SetRef";
-    case Add: return "Add";
-    case Sub: return "Sub";
-    case Mul: return "Mul";
-    case Div: return "Div";
-    case And: return "And";
-    case Or: return "Or";
-    case Not: return "Not";
-    case Jmp: return "Jmp";
-    case JmpVal: return "JmpVal";
-    case If: return "If";
-    case Lt: return "Lt";
-    case Gt: return "Gt";
-    case Eq: return "Eq";
-    case Ne: return "Ne";
-    case Le: return "Le";
-    case Ge: return "Ge";
-    case Tail: return "Tail";
-    case Call: return "Call";
-    case CallMethod: return "CallMethod";
-    case CallRef: return "CallRef";
-    case Ret: return "Ret";
-    case CallExternal: return QString("CallExternal: %1").arg(i.SymRef);
-    case Nop: return "Nop";
-    case SetField: return "SetField";
-    case GetField: return "GetField";
-    case GetFieldRef: return "GetFieldRef";
-    case GetArr: return "GetArr";
-    case SetArr: return "SetArr";
-    case GetArrRef: return "GetArrRef";
-    case New: return "New";
-    case NewArr: return "NewArr";
-    case ArrLength: return "ArrLength";
-    case New_MD_Arr: return "New_MD_Arr";
-    case Get_MD_Arr: return "Get_MD_Arr";
-    case Set_MD_Arr: return "Set_MD_Arr";
-    case Get_MD_ArrRef: return "Get_MD_ArrRef";
-    case MD_ArrDimensions: return "MD_ArrDimensions";
-    case PushConstant: return "PushConstant";
-    case Neg: return "Neg";
-    case RegisterEvent: return "RegisterEvent";
-    case Isa: return "Isa";
-    case Send: return "Send";
-    case Receive: return "Receive";
-    case Select: return "Select";
-    case Break: return "Break";
-    case Tick: return "Tick";
-    default: return "[Unknown]";
+        delete runningNow; // since it will not be put in any queue
+        runningNow = NULL;
+
     }
 }
 
-void VM::RunSingleInstruction(Process *process)
-{
-    Frame &frame = process->stack.top();
-    Instruction i = frame.currentMethod->Get(frame.ip);
-
-    /*
-    qDebug() << QString("Running '%1', IP=%2, method=%3, process=%4\n")
-             .arg(InstructionToString(i))
-             .arg(frame.ip)
-             .arg(frame.currentMethod->getName())
-             .arg((long) process);
-    //*/
-    frame.ip++;
-
-    Value *Arg;
-
-    switch(i.opcode)
-    {
-    case PushV:
-        Arg = i.Arg;
-        this->DoPushVal(Arg);
-        break;
-    case PushLocal:
-        this->DoPushLocal(i.SymRef);
-        break;
-    case PushGlobal:
-        this->DoPushGlobal(i.SymRef);
-        break;
-    case PushConstant:
-        this->DoPushConstant(i.SymRef, i.SymRefLabel);
-        break;
-    case PopLocal:
-        this->DoPopLocal(i.SymRef);
-        break;
-    case PopGlobal:
-        this->DoPopGlobal(i.SymRef);
-        break;
-    case PushNull:
-        this->DoPushNull();
-        break;
-    case SetRef:
-        this->DoSetRef();
-        break;
-    case GetRef:
-        this->DoGetRef();
-        break;
-    case Add:
-        this->DoAdd();
-        break;
-    case Sub:
-        this->DoSub();
-        break;
-    case Mul:
-        this->DoMul();
-        break;
-    case Div:
-        this->DoDiv();
-        break;
-    case Neg:
-        this->DoNeg();
-        break;
-    case And:
-        this->DoAnd();
-        break;
-    case Or:
-        this->DoOr();
-        break;
-    case Not:
-        this->DoNot(); // tee hee
-        break;
-    case Jmp:
-        this->DoJmp(i.True);
-        break;
-    case JmpVal:
-        this->DoJmpVal();
-        break;
-    case If:
-        this->DoIf(i.True, i.False);
-        break;
-    case Lt:
-        this->DoLt();
-        break;
-    case Gt:
-        this->DoGt();
-        break;
-    case Eq:
-        this->DoEq();
-        break;
-    case Ne:
-        this->DoNe();
-        break;
-    case Le:
-        this->DoLe();
-        break;
-    case Ge:
-        this->DoGe();
-        break;
-    case Call:
-        this->DoCall(i.SymRef, i.SymRefLabel, getInstructionArity(i), i.callStyle);
-        break;
-    case CallRef:
-        this->DoCallRef(i.SymRef, i.SymRefLabel, getInstructionArity(i), i.callStyle);
-        break;
-    case CallMethod:
-        this->DoCallMethod(i.SymRef, i.SymRefLabel, getInstructionArity(i), i.callStyle);
-        break;
-    case Ret:
-        this->DoRet();
-        break;
-    case CallExternal:
-        this->DoCallExternal(i.SymRef, i.SymRefLabel, getInstructionArity(i));
-        break;
-    case Nop:
-        break;
-    case SetField:
-        this->DoSetField(i.SymRef);
-        break;
-    case GetField:
-        this->DoGetField(i.SymRef);
-        break;
-    case GetFieldRef:
-        this->DoGetFieldRef(i.SymRef);
-        break;
-    case SetArr:
-        this->DoSetArr();
-        break;
-    case GetArr:
-        this->DoGetArr();
-        break;
-    case GetArrRef:
-        this->DoGetArrRef();
-        break;
-    case New:
-        this->DoNew(i.SymRef, i.SymRefLabel);
-        break;
-    case NewArr:
-        this->DoNewArr();
-        break;
-    case ArrLength:
-        this->DoArrLength();
-        break;
-    case New_MD_Arr:
-        this->DoNewMD_Arr();
-        break;
-    case Get_MD_Arr:
-        this->DoGetMD_Arr();
-        break;
-    case Set_MD_Arr:
-        this->DoSetMD_Arr();
-        break;
-    case Get_MD_ArrRef:
-        this->DoGetMD_ArrRef();
-        break;
-    case MD_ArrDimensions:
-        this->DoMD_ArrDimensions();
-        break;
-    case RegisterEvent:
-        this->DoRegisterEvent(i.Arg, i.SymRef);
-        break;
-    case Isa:
-        this->DoIsa(i.SymRef, i.SymRefLabel);
-        break;
-    case Send:
-        this->DoSend();
-        break;
-    case Receive:
-        this->DoReceive();
-        break;
-    case Select:
-        this->DoSelect();
-        break;
-    case Break:
-        this->DoBreak();
-        break;
-    case Tick:
-        this->DoTick();
-        break;
-    case push_bk_pt:
-        this->DoPushParserBacktrack();
-        break;
-    case ignore_bk_pt:
-        this->DoIgnoreParserBacktrack();
-        break;
-    default:
-        signal(UnrecognizedInstruction);
-        break;
-
-    } // switch i.opcode
-}
 
 /*
 proc PrintLine(x, y):
@@ -962,7 +583,7 @@ void VM::Load(QString assemblyCode)
             {
                 //cout << "in strconst lineParts.count is " << lineParts.count() << endl;
                 //cout.flush();
-                signal(InternalError1, QString("Malformed strconst input: '%1'").arg(line));
+                signal(NULL, InternalError1, QString("Malformed strconst input: '%1'").arg(line));
             }
         }
         else if(opcode == ".method")
@@ -992,14 +613,14 @@ void VM::Load(QString assemblyCode)
             {
                 int methodLabel = constantPoolLabeller.labelOf(curMethodName);
                 if(constantPool.contains(methodLabel))
-                    signal(ElementAlreadyDefined1, curMethodName);
+                    signal(NULL, ElementAlreadyDefined1, curMethodName);
                 else
                     constantPool[methodLabel] = methodVal;
             }
             else
             {
                 if(curClass->methods.contains(curMethodName))
-                    signal(MethodAlreadyDefinedInClass, curMethodName, curClassName);
+                    signal(NULL, MethodAlreadyDefinedInClass, curMethodName, curClassName);
                 else
                     curClass->methods[curMethodName] = methodVal;
             }
@@ -1015,7 +636,7 @@ void VM::Load(QString assemblyCode)
             curClass = new ValueClass(curClassName, BuiltInTypes::ObjectType);
             int classLabel = constantPoolLabeller.labelOf(curClassName);
             if(constantPool.contains(classLabel))
-                signal(ElementAlreadyDefined1, curClassName);
+                signal(NULL, ElementAlreadyDefined1, curClassName);
             else
                 constantPool[classLabel] = allocator.newObject(curClass, BuiltInTypes::ClassType);
         }
@@ -1027,7 +648,7 @@ void VM::Load(QString assemblyCode)
         else if(opcode == ".field")
         {
             if(curClass->fields.contains(arg))
-                signal(MethodAlreadyDefinedInClass, arg, curClassName);
+                signal(NULL, MethodAlreadyDefinedInClass, arg, curClassName);
             else
             {
                 curClass->fieldNames.append(arg);
@@ -1210,6 +831,11 @@ void VM::Load(QString assemblyCode)
             Instruction i = Instruction(Ret);
             curMethod->Add(i, label, extraInfo);
         }
+        else if(opcode == "apply")
+        {
+            Instruction i = Instruction(Apply);
+            curMethod->Add(i, label, extraInfo);
+        }
         else if(opcode == "callex")
         {
             LoadCallInstruction(CallExternal, arg, allocator, curMethod, label, extraInfo, NormalCall, constantPoolLabeller);
@@ -1340,19 +966,9 @@ void VM::Load(QString assemblyCode)
             Instruction i = Instruction(Tick);
             curMethod->Add(i, label, extraInfo);
         }
-        else if(opcode == "push_bk_pt")
-        {
-            Instruction i = Instruction(push_bk_pt);
-            curMethod->Add(i, label, extraInfo);
-        }
-        else if(opcode == "ignore_bk_pt")
-        {
-            Instruction i = Instruction(ignore_bk_pt);
-            curMethod->Add(i, label, extraInfo);
-        }
         else
         {
-            signal(UnrecognizedMnemonic2,opcode,toStr(i));
+            signal(NULL, UnrecognizedMnemonic2,opcode,toStr(i));
         }
 
     } // end for(lines)
@@ -1385,1192 +1001,6 @@ void VM::patchupInheritance(QMap<ValueClass *, QString> inheritanceList)
     }
 }
 
-void VM::DoPushVal(Value *Arg)
-{
-    currentFrame()->OperandStack.push(Arg);
-}
-
-void VM::DoPushLocal(QString SymRef)
-{
-    assert(currentFrame()->Locals.contains(SymRef), NoSuchVariable1, SymRef);
-    currentFrame()->OperandStack.push(currentFrame()->Locals[SymRef]);
-}
-
-void VM::DoPushGlobal(QString SymRef)
-{
-    assert(globalFrame().Locals.contains(SymRef), NoSuchVariable1, SymRef);
-    currentFrame()->OperandStack.push(globalFrame().Locals[SymRef]);
-}
-
-void VM::DoPushConstant(QString SymRef, int SymRefLabel)
-{
-    if(constantPool.contains(SymRefLabel))
-        currentFrame()->OperandStack.push(constantPool[SymRefLabel]);
-    else
-    {
-        signal(InternalError1, QString("pushc: Constant pool doesn't contain key '%1'").arg(SymRef));
-    }
-}
-
-void VM::DoPopLocal(QString SymRef)
-{
-    if(currentFrame()->OperandStack.empty())
-        signal(InternalError1, "Empty operand stack when reading value in 'popl'");
-    Value *v = currentFrame()->OperandStack.pop();
-    currentFrame()->Locals[SymRef] = v;
-}
-
-void VM::DoPopGlobal(QString SymRef)
-{
-    if(currentFrame()->OperandStack.empty())
-        signal(InternalError1, "Empty operand stack when reading value in 'popg'");
-    Value *v = currentFrame()->OperandStack.pop();
-    globalFrame().Locals[SymRef] = v;
-}
-
-void VM::DoPushNull()
-{
-    currentFrame()->OperandStack.push(allocator.null());
-}
-
-void VM::DoGetRef()
-{
-    // ... ref => ... val
-    Reference *ref = currentFrame()->OperandStack.pop()->unboxRef();
-    currentFrame()->OperandStack.push(ref->Get());
-}
-
-void VM::DoSetRef()
-{
-    // ...ref val => ...
-    Value *v = currentFrame()->OperandStack.pop();
-    Reference *ref = currentFrame()->OperandStack.pop()->unboxRef();
-
-    ref->Set(v);
-}
-
-int add_int(int a, int b) { return a + b;}
-long add_long(long a, long b) { return a + b;}
-double add_double(double a, double b) { return a + b;}
-QString add_str(QString a, QString b){ return a + b;}
-
-int sub_int(int a, int b) { return a - b;}
-long sub_long(long a, long b) { return a - b;}
-double sub_double(double a, double b) { return a - b;}
-
-int mul_int(int a, int b) { return a * b;}
-long mul_long (long a, long b) { return a * b;}
-double mul_double(double a, double b) { return a * b;}
-
-int div_int(int a, int b) { return a / b;}
-long div_long(long a, long b) { return a / b;}
-double div_double(double a, double b) { return a / b;}
-
-bool _and(bool a, bool b) { return a && b;}
-bool _or(bool a, bool b) { return a || b;}
-bool _not(bool a) { return !a;}
-
-bool lt_int(int a, int b) { return a<b;}
-bool lt_long(long a, long b) { return a<b;}
-bool lt_double(double a, double b) { return a<b;}
-bool lt_str(QString a, QString b) { return a < b; }
-
-bool gt_int(int a, int b) { return a>b;}
-bool gt_long(long a, long b) { return a>b;}
-bool gt_double(double a, double b) { return a>b;}
-bool gt_str(QString a, QString b) { return a > b; }
-
-bool le_int(int a, int b) { return a<=b;}
-bool le_long(long a, long b) { return a<=b;}
-bool le_double(double a, double b) { return a<=b;}
-bool le_str(QString a, QString b) { return a <= b; }
-
-bool ge_int(int a, int b) { return a>=b;}
-bool ge_long(long a, long b) { return a>=b;}
-bool ge_double(double a, double b) { return a>=b;}
-bool ge_str(QString a, QString b) { return a >= b; }
-
-bool eq_int(int a, int b) { return a==b;}
-bool eq_long(long a, long b) { return a==b;}
-bool eq_double(double a, double b) { return a==b;}
-bool eq_bool(bool a, bool b) { return a==b;}
-bool eq_obj(IObject *a, IObject *b){ return a==b;}
-bool eq_raw(void *a, void *b){ return a==b;}
-
-bool  eq_str(QString a, QString b)
-{
-    return QString::compare(a, b, Qt::CaseSensitive) == 0;
-}
-
-bool  eq_difftypes(Value *, Value *)
-{
-    return false;
-}
-
-bool  eq_bothnull() { return true;}
-
-bool ne_int(int a, int b) { return a!=b;}
-bool ne_long(long a, long b) { return a!=b;}
-bool ne_double(double a, double b) { return a!=b;}
-bool ne_bool(bool a, bool b) { return a!=b;}
-bool ne_obj(IObject *a, IObject *b) { return a!=b;}
-bool ne_raw(void *a, void *b) { return a!=b;}
-
-bool  ne_str(QString a, QString b)
-{
-    return QString::compare(a, b, Qt::CaseSensitive) != 0;
-}
-
-bool  ne_difftypes(Value *, Value *)
-{
-    return true;
-}
-bool  ne_bothnull() { return false; }
-
-void VM::DoAdd()
-{
-    BuiltInAddOp(add_int, add_long, add_double, add_str);
-}
-
-void VM::DoSub()
-{
-    BuiltInArithmeticOp(QSTR(L"طرح"), sub_int, sub_long, sub_double);
-}
-
-void VM::DoMul()
-{
-    BuiltInArithmeticOp(QSTR(L"ضرب"), mul_int, mul_long, mul_double);
-}
-
-void VM::DoDiv()
-{
-    // can't convert till we can handle div by zero situation :(
-    Value *v2 = currentFrame()->OperandStack.pop();
-    Value *v1 = currentFrame()->OperandStack.pop();
-
-    Value *v3 = _div(v1, v2);
-
-    currentFrame()->OperandStack.push(v3);
-}
-
-void VM::DoNeg()
-{
-    Value *v1 = currentFrame()->OperandStack.pop();
-    Value *v2 = NULL;
-
-    assert(v1->tag == Int || v1->tag == Long || v1->tag == Double,
-           NumericOperationOnNonNumber2, "-",v1->type->toString());
-    if(v1->tag == Int)
-        v2 = allocator.newInt(-v1->unboxInt());
-    if(v1->tag == Long)
-        v2 = allocator.newLong(-v1->unboxLong());
-    if(v1->tag == Double)
-        v2 = allocator.newDouble(-v1->unboxDouble());
-
-    currentFrame()->OperandStack.push(v2);
-}
-
-void VM::DoAnd()
-{
-    BinaryLogicOp(_and);
-}
-
-void VM::DoOr()
-{
-    BinaryLogicOp(_or);
-}
-
-void VM::DoNot()
-{
-    UnaryLogicOp(_not);
-}
-
-void VM::DoJmp(QString label)
-{
-    int ip = currentFrame()->currentMethod->GetIp(label);
-    assert(ip != -1, InternalError1, QString(_ws(L"Jumping to nonexistant label: %1").arg(label)));
-    currentFrame()->ip = ip;
-}
-
-void VM::DoJmpVal()
-{
-    Value *v = currentFrame()->OperandStack.pop();
-    assert(v->tag == Int || v->tag == StringVal, InternalError1, QString::fromStdWString(L"القيمة المقدمة لأمر اذهب إلى لابد أن تكون عدداً صحيحاً أو نص"));
-    QString label;
-    if(v->tag == Int)
-        label = QString("%1").arg(v->unboxInt());
-    else
-        label = v->unboxStr();
-    DoJmp(label);
-}
-
-void VM::DoIf(QString trueLabel, QString falseLabel)
-{
-    Value *v = currentFrame()->OperandStack.pop();
-    assert(v->tag == Boolean, TypeError2, BuiltInTypes::BoolType, v->type);
-    test(v->unboxBool(), trueLabel, falseLabel);
-}
-
-void VM::DoLt()
-{
-    BuiltInComparisonOp(lt_int,lt_long, lt_double, lt_str);
-}
-
-void VM::DoGt()
-{
-    BuiltInComparisonOp(gt_int, gt_long, gt_double , gt_str);
-}
-
-void VM::DoEq()
-{
-    EqualityRelatedOp(eq_int, eq_long, eq_double, eq_bool, eq_obj, eq_str, eq_raw, eq_difftypes, eq_bothnull);
-}
-
-void VM::DoNe()
-{
-    EqualityRelatedOp(ne_int, ne_long, ne_double, ne_bool, ne_obj, ne_str, ne_raw, ne_difftypes, ne_bothnull);
-}
-
-void VM::DoLe()
-{
-    BuiltInComparisonOp(le_int, le_long, le_double, le_str);
-}
-
-void VM::DoGe()
-{
-    BuiltInComparisonOp(ge_int, ge_long, ge_double, ge_str);
-}
-
-void VM::DoCall(QString symRef, int SymRefLabel, int arity, CallStyle callStyle)
-{
-    CallImpl(symRef, SymRefLabel, true, arity, callStyle);
-}
-
-void VM::DoCallRef(QString symRef, int SymRefLabel, int arity, CallStyle callStyle)
-{
-    CallImpl(symRef, SymRefLabel, false, arity, callStyle);
-}
-
-void VM::CallImpl(QString symRef, int symRefLabel, bool wantValueNotRef, int arity, CallStyle callStyle)
-{
-    // call expects the arguments on the operand stack in reverse order,
-    // but the callee pops them in the right order
-    // so f(a, b, c) will be like this:
-    // CALLER
-    // -------
-    // push c
-    // push b
-    // push a
-    // call f
-    // CALLEE
-    // ------
-    // pop a
-    // pop b
-    // pop c
-    // ...code
-    assert(constantPool.contains(symRefLabel), NoSuchProcedureOrFunction1, symRef);
-    Method *method = dynamic_cast<Method *>(constantPool[symRefLabel]->unboxObj());
-    assert(method, NoSuchProcedureOrFunction1, symRef);
-    assert(arity == -1 || method->Arity() ==-1 || arity == method->Arity(), WrongNumberOfArguments);
-    QVector<Value *> args;
-    for(int i=0; i<method->Arity(); i++)
-    {
-        Value *v = currentFrame()->OperandStack.pop();
-        args.append(v);
-    }
-
-    Frame *frame = NULL;
-    if(callStyle == TailCall)
-    {
-        stack().pop();
-        stack().push(Frame(method, currentFrame()));
-        frame = currentFrame();
-    }
-    else if(callStyle == LaunchCall)
-    {
-        frame = launchProcess(method);
-    }
-    else if(callStyle == NormalCall)
-    {
-        stack().push(Frame(method, currentFrame()));
-        frame = currentFrame();
-    }
-
-    frame->returnReferenceIfRefMethod = !wantValueNotRef;
-    for(int i=args.count()-1; i>=0; i--)
-    {
-        Value *v = args[i];
-        frame->OperandStack.push(v);
-    }
-}
-
-void VM::DoCallMethod(QString SymRef, int SymRefLabel, int arity, CallStyle callStyle)
-{
-    // callm expects the arguments in reverse order, and the last pushed argument is 'this'
-    // but the execution site pops them in the correct order, i.e the first popped is 'this'
-    // followed by the first normal argument...and so on.
-    Value *receiver = currentFrame()->OperandStack.pop();
-    bool noSuchMethodTrapFound = false;
-    assert(receiver->tag != NullVal, CallingMethodOnNull);
-    assert(receiver ->tag == ObjectVal, CallingMethodOnNonObject);
-
-    IMethod *_method = receiver->type->lookupMethod(SymRef);
-    /*
-    if(_method == NULL)
-    {
-        _method = receiver->type->lookupMethod("%nosuchmethod");
-        if(_method)
-            noSuchMethodTrapFound = true;
-    }
-    */
-    assert(_method!=NULL, NoSuchMethod2,SymRef, receiver->type->getName());
-
-    assert(!noSuchMethodTrapFound || arity !=-1, InternalError1, "Calling with %nosuchmethod needs the arity to be specified in the instruction");
-    Method *method = dynamic_cast<Method *>(_method);
-
-    QVector<Value *> args;
-    args.append(receiver);
-
-    assert(arity == -1 || _method->Arity() ==-1 || arity == _method->Arity(), WrongNumberOfArguments);
-
-    if(!noSuchMethodTrapFound)
-    {
-        for(int i=0; i<_method->Arity()-1; i++)
-        {
-            Value *v = currentFrame()->OperandStack.pop();
-            args.append(v);
-        }
-    }
-    else
-    {
-        args.append(allocator.newString(SymRef));
-        Value *arr = allocator.newArray(arity);
-        for(int i=0; i<arity; i++)
-        {
-            arr->v.arrayVal->Elements[i] = currentFrame()->OperandStack.pop();
-        }
-    }
-
-
-    if(callStyle == TailCall)
-    {
-        stack().pop();
-    }
-    if(method == NULL)
-    {
-        // Since _method is not NULL but method is,
-        // therefore we have a special method (i.e not a collection of bytecode)
-        // in our hands.
-        CallSpecialMethod(_method, args);
-        return;
-    }
-    else
-    {
-        Frame *frame = NULL;
-        if(callStyle == NormalCall || callStyle == TailCall)
-        {
-            stack().push(Frame(method, currentFrame()));
-            frame = currentFrame();
-        }
-        else if(callStyle == LaunchCall)
-        {
-            frame = launchProcess(method);
-        }
-
-        // When popped and pushed, the arguments
-        // will be in the right order in the new frame
-        // so e.g in calling x.print(a, b)
-        // the new frame will have a stack like this:
-        // [x, a , b |...]
-        for(int i= args.count()-1; i>=0; i--)
-        {
-            Value *v = args[i];
-            frame->OperandStack.push(v);
-        }
-    }
-
-}
-
-void VM::DoRet()
-{
-    Value *v = NULL;
-    int toReturn = currentFrame()->currentMethod->NumReturnValues();
-    bool getReferredVal = currentFrame()->currentMethod->IsReturningReference() &&! currentFrame()->returnReferenceIfRefMethod;
-
-    if(toReturn != -1)
-    {
-        if(toReturn == 1 && currentFrame()->OperandStack.empty())
-            signal(FunctionDidntReturnAValue);
-        else if(toReturn != currentFrame()->OperandStack.count())
-            signal(InternalError1,
-                   QString("Values left on stack (%1) do not match declared return value count (%2) for method '%3'")
-                   .arg(currentFrame()->OperandStack.count())
-                   .arg(toReturn)
-                   .arg(currentFrame()->currentMethod->getName()));
-    }
-    if(currentFrame()->OperandStack.count()==1)
-        v = currentFrame()->OperandStack.pop();
-    stack().pop();
-    if(!stack().empty())
-    {
-        if(v!=NULL)
-            currentFrame()->OperandStack.push(v);
-        if(getReferredVal)
-            DoGetRef();
-    }
-}
-
-void VM::DoCallExternal(QString symRef, int SymRefLabel, int arity)
-{
-    assert(constantPool.contains(SymRefLabel), NoSuchExternalMethod1, symRef);
-
-    ExternalMethod *method = (ExternalMethod*) constantPool[SymRefLabel]->v.objVal;
-    assert(arity == -1 || method->Arity() ==-1 || arity == method->Arity(), WrongNumberOfArguments);
-    (*method)(currentFrame()->OperandStack);
-}
-
-void VM::DoSetField(QString SymRef)
-{
-    // ...obj val  => ...
-    Value *v = currentFrame()->OperandStack.pop();
-    Value *objVal = currentFrame()->OperandStack.pop();
-
-    assert(objVal->tag != NullVal, SettingFieldOnNull);
-    assert(objVal->tag == ObjectVal, SettingFieldOnNonObject1, objVal->type->toString());
-    assert(objVal->type->hasField(SymRef), NoSuchField2, SymRef, objVal->type->getName());
-
-    IObject *obj = objVal->unboxObj();
-    obj->setSlotValue(SymRef, v);
-}
-
-void VM::DoGetField(QString SymRef)
-{
-    // ...object => val
-    Value *objVal = currentFrame()->OperandStack.pop();
-
-    assert(objVal->tag != NullVal, GettingFieldOnNull);
-    assert(objVal->tag == ObjectVal, GettingFieldOnNonObject1, objVal->type->toString());
-    assert(objVal->type->hasField(SymRef), NoSuchField2, SymRef, objVal->type->getName());
-
-    IObject *obj = objVal->v.objVal;
-    Value *v = obj->getSlotValue(SymRef);
-    currentFrame()->OperandStack.push(v);
-}
-
-void VM::DoGetFieldRef(QString SymRef)
-{
-    // ...object => ...fieldRef
-    Value *objVal = currentFrame()->OperandStack.pop();
-
-    assert(objVal->tag != NullVal, GettingFieldOnNull);
-    assert(objVal->tag == ObjectVal, GettingFieldOnNonObject1, objVal->type->getName());
-    assert(objVal->type->hasField(SymRef), NoSuchField2, SymRef, objVal->type->getName());
-    Value *ref = allocator.newFieldReference(objVal->unboxObj(), SymRef);
-    currentFrame()->OperandStack.push(ref);
-}
-
-void VM::DoSetArr()
-{
-    // ...arr index val => ...
-    /*
-    Value *v = currentFrame()->OperandStack.pop();
-    Value *index = currentFrame()->OperandStack.pop();
-    Value *arrVal = currentFrame()->OperandStack.pop();
-
-    assert(arrVal->tag == ArrayVal, SubscribingNonArray);
-    assert(index->tag == Int, SubscribtMustBeInteger);
-    int i = index->unboxInt();
-    VArray *arr = arrVal->unboxArray();
-
-    assert(i>=1 && i<=arr->count, SubscriptOutOfRange2, str(i), str(arr->count));
-
-    arr->Elements[i-1] = v;
-    */
-
-
-    Value *v = currentFrame()->OperandStack.pop();
-    Value *index = currentFrame()->OperandStack.pop();
-    Value *arrVal = currentFrame()->OperandStack.pop();
-
-    assert(arrVal->tag == ArrayVal
-           || arrVal->tag == MapVal
-           || arrVal->tag == StringVal , SubscribingNonArray);
-
-    if(arrVal->tag != StringVal)
-    {
-        VIndexable *container = arrVal->unboxIndexable();
-        VMError err;
-        bool b = container->keyCheck(index, err);
-        if(!b)
-            signalWithStack(err);
-
-        container->set(index, v);
-    }
-    else
-    {
-        assert(index->tag == Int, SubscribtMustBeInteger);
-        assert(v->tag == StringVal, TypeError2, BuiltInTypes::StringType, v->type);
-        QString arr = arrVal->unboxStr();
-        QString sv = v->unboxStr();
-        assert(sv.length() ==1, ArgumentError,
-               QString::fromStdWString(L"النص المحدد لابد أن يكون طوله رمزا واحدا"));
-        int i = index->unboxInt() -1;
-        arr[i] = sv[0];
-    }
-}
-
-void VM::DoGetArr()
-{
-
-    // ...arr index => ...value
-    /*
-    Value *index = currentFrame()->OperandStack.pop();
-    Value *arrVal= currentFrame()->OperandStack.pop();
-
-    assert(arrVal->tag == ArrayVal, SubscribingNonArray);
-    assert(index->tag == Int, SubscribtMustBeInteger);
-    int i = index->unboxInt();
-    VArray *arr = arrVal->unboxArray();
-
-    assert(i>=1 && i<=arr->count, SubscriptOutOfRange2, str(i), str(arr->count));
-
-    Value *v = arr->Elements[i-1];
-    currentFrame()->OperandStack.push(v);
-    */
-    Value *index = currentFrame()->OperandStack.pop();
-    Value *arrVal= currentFrame()->OperandStack.pop();
-
-    assert(arrVal->tag == ArrayVal
-           || arrVal->tag == MapVal
-           || arrVal, SubscribingNonArray);
-
-    if(arrVal->tag != StringVal)
-    {
-        VMError err;
-        VIndexable *container = arrVal->unboxIndexable();
-        bool b = container->keyCheck(index, err);
-        if(!b)
-            signalWithStack(err);
-        Value *v = container->get(index);
-        if(!v)
-            assert(false, IndexableNotFound1, index->toString());
-        currentFrame()->OperandStack.push(v);
-    }
-    else
-    {
-        assert(index->tag == Int, SubscribtMustBeInteger);
-        QString arr = arrVal->unboxStr();
-        int i = index->unboxInt() -1;
-        Value *v = allocator.newString(arr.mid(i,1));
-        currentFrame()->OperandStack.push(v);
-    }
-}
-
-void VM::DoGetArrRef()
-{
-    // todo: Sync DoGetArrRef with moving to VIndexable, support strings
-    // ...arr index => ...arrref
-    Value *index  = currentFrame()->OperandStack.pop();
-    Value *arrVal= currentFrame()->OperandStack.pop();
-
-    assert(arrVal->tag == ArrayVal, SubscribingNonArray);
-    assert(index->tag == Int, SubscribtMustBeInteger);
-    int i = index->unboxInt();
-    VArray *arr = arrVal->unboxArray();
-
-    assert(i>=1 && i<=arr->count(), SubscriptOutOfRange2, str(i), str(arr->count()));
-
-    Value *ref = allocator.newArrayReference(arr, i-1);
-    currentFrame()->OperandStack.push(ref);
-}
-
-void VM::DoNew(QString SymRef, int SymRefLabel)
-{
-    assert(constantPool.contains(SymRefLabel), NoSuchClass, SymRef);
-    Value *classObj = (Value*) constantPool[SymRefLabel];
-    IClass *theClass = dynamic_cast<IClass *>(classObj->v.objVal);
-    assert(theClass != NULL, NameDoesntIndicateAClass1, SymRef);
-    Value *newObj = allocator.newObject(theClass);
-    currentFrame()->OperandStack.push(newObj);
-}
-
-void VM::DoNewArr()
-{
-    assert(__top()->tag == Int, TypeError2, BuiltInTypes::IntType, __top()->type);
-    int size = currentFrame()->OperandStack.pop()->unboxInt();
-
-    Value *newArr = allocator.newArray(size);
-    currentFrame()->OperandStack.push(newArr);
-}
-
-void VM::DoArrLength()
-{
-    // ... arr => ... length
-    assert(__top()->tag == ArrayVal
-           || __top()->tag == MapVal
-           || __top()->tag == StringVal, TypeError2, BuiltInTypes::IndexableType, __top()->type);
-
-    Value *arrVal= currentFrame()->OperandStack.pop();
-    if(arrVal->tag == StringVal)
-    {
-        Value *len = allocator.newInt(arrVal->unboxStr().length());
-        currentFrame()->OperandStack.push(len);
-    }
-    else
-    {
-        VIndexable *arr = arrVal->unboxIndexable();
-        Value *len = allocator.newInt(arr->count());
-        currentFrame()->OperandStack.push(len);
-    }
-}
-
-void VM::DoNewMD_Arr()
-{
-    // ... dimensions => ... md_arr
-    assert(__top()->tag == ArrayVal, TypeError2, BuiltInTypes::ArrayType, __top()->type);
-    Value *arrVal= currentFrame()->OperandStack.pop();
-    VArray *arr = arrVal->unboxArray();
-    QVector<int> dimensions;
-    for(int i=0; i<arr->count(); i++)
-    {
-        assert(arr->Elements[i]->tag == Int, TypeError2, BuiltInTypes::IntType, arr->Elements[i]->type);
-        int z = arr->Elements[i]->unboxInt();
-        assert(z>=1, ArgumentError, QString::fromStdWString(L"حجم المصفوفة لابد أن يكون أكبر من صفر في البعد رقم %1").arg(i));
-        dimensions.append(z);
-    }
-    Value *mdarr = allocator.newMultiDimensionalArray(dimensions);
-    currentFrame()->OperandStack.push(mdarr);
-}
-
-void VM::Pop_Md_Arr_and_indexes(MultiDimensionalArray<Value *> *&theArray, QVector<int> &indexes)
-{
-
-    // ... arr index => ...
-    assert(__top()->tag == ArrayVal, TypeError2, BuiltInTypes::ArrayType, __top()->type);
-    Value *arrVal= currentFrame()->OperandStack.pop();
-    VArray *boxedIndexes= arrVal->unboxArray();
-
-    assert(__top()->tag == MultiDimensionalArrayVal, TypeError2, QString::fromStdWString(L"مصفوفة متعددة"), __top()->type->getName());
-    Value *md_arrVal= currentFrame()->OperandStack.pop();
-    theArray= md_arrVal->unboxMultiDimensionalArray();
-
-
-
-    assert(theArray->dimensions.count()== boxedIndexes->count(), MD_IndexingWrongNumberOfDimensions);
-
-    for(int i=0; i<boxedIndexes->count(); i++)
-    {
-        assert(boxedIndexes->Elements[i]->tag == Int, TypeError2, BuiltInTypes::IntType, boxedIndexes->Elements[i]->type);
-        int n = boxedIndexes->Elements[i]->unboxInt();
-        assert(n>=1 && n<=theArray->dimensions[i], SubscriptOutOfRange3, str(i+1), str(n), str(theArray->dimensions[i]));
-        indexes.append(n-1); // We're one-based, remember
-    }
-}
-
-void VM::DoGetMD_Arr()
-{
-    // ... md_arr indexes => ... value
-    MultiDimensionalArray<Value *> *theArray;
-    QVector<int> indexes;
-
-    Pop_Md_Arr_and_indexes(theArray, indexes);
-    Value *v = theArray->get(indexes);
-    currentFrame()->OperandStack.push(v);
-}
-
-void VM::DoSetMD_Arr()
-{
-    // ... md_arr indexes value => ...
-    MultiDimensionalArray<Value *> *theArray;
-    QVector<int> indexes;
-
-    Value *v = currentFrame()->OperandStack.pop();
-    Pop_Md_Arr_and_indexes(theArray, indexes);
-
-
-    theArray->set(indexes, v);
-}
-
-void VM::DoGetMD_ArrRef()
-{
-    // ... md_arr indexes => ... md_arrref
-    MultiDimensionalArray<Value *> *theArray;
-    QVector<int> indexes;
-
-    Pop_Md_Arr_and_indexes(theArray, indexes);
-    Value *v = allocator.newMultiDimensionalArrayReference(theArray, indexes);
-
-    currentFrame()->OperandStack.push(v);
-}
-
-void VM::DoMD_ArrDimensions()
-{
-    // ... md_arr => ... dimensions
-    assert(__top()->tag == MultiDimensionalArrayVal, TypeError2, BuiltInTypes::ArrayType, __top()->type);
-    Value *arrVal= currentFrame()->OperandStack.pop();
-    MultiDimensionalArray<Value *> *arr = arrVal->unboxMultiDimensionalArray();
-    Value *v = allocator.newArray(arr->dimensions.count());
-    VArray *internalArr = v->v.arrayVal;
-    for(int i=0; i<arr->dimensions.count(); i++)
-    {
-
-        internalArr->Elements[i] = allocator.newInt(arr->dimensions[i]);
-    }
-
-    currentFrame()->OperandStack.push(v);
-}
-
-void VM::DoRegisterEvent(Value *evname, QString SymRef)
-{
-    int SymRefLabel = constantPoolLabeller.labelOf(SymRef);
-    assert(evname->type == BuiltInTypes::StringType, TypeError2, BuiltInTypes::StringType, evname->type);
-
-    // todo: verify symref is actually a procedure
-    assert(constantPool.contains(SymRefLabel), NoSuchProcedure1, SymRef);
-    QString evName = evname->unboxStr();
-    registeredEventHandlers[evName] = SymRef;
-}
-
-void VM::DoIsa(QString SymRef, int SymRefLabel)
-{
-    // ...value => ...bool
-    Value *v = currentFrame()->OperandStack.pop();
-    ValueClass *cls = NULL;
-    Value *classObj = NULL;
-    if(constantPool.contains(SymRefLabel))
-    {
-        classObj = constantPool[SymRefLabel];
-        if(classObj->type == BuiltInTypes::ClassType)
-        {
-            cls = dynamic_cast<ValueClass *>(classObj->unboxObj());
-        }
-    }
-    assert(cls != NULL, NoSuchClass);
-    bool b = v->type->subclassOf(cls);
-    currentFrame()->OperandStack.push(allocator.newBool(b));
-}
-
-void VM::DoSend()
-{
-    // ... chan val => ...
-    Value *v = currentFrame()->OperandStack.pop();
-    Value *chan = currentFrame()->OperandStack.pop();
-    assert(chan->type == BuiltInTypes::ChannelType, TypeError2, BuiltInTypes::ChannelType, chan->type);
-    Channel *channel = chan->unboxChan();
-    channel->send(v, currentProcess());
-}
-
-void VM::DoReceive()
-{
-    // ... chan => ... val
-    Value *chan = currentFrame()->OperandStack.pop();
-    assert(chan->type == BuiltInTypes::ChannelType, TypeError2, BuiltInTypes::ChannelType, chan->type);
-    Channel *channel = chan->unboxChan();
-    channel->receive(currentProcess());
-}
-
-void VM::DoSelect()
-{
-    // ... arr sendcount => ... ret? activeIndex
-
-    assert(__top()->tag == Int, InternalError);
-    int nsend = currentFrame()->OperandStack.pop()->unboxInt();
-
-    assert(__top()->tag == ArrayVal, InternalError);
-    VArray *varr = currentFrame()->OperandStack.pop()->unboxArray();
-
-    QVector<Channel *> allChans;
-    QVector<Value *> args;
-    for(int i=0; i<varr->count(); i+=2)
-    {
-        allChans.append(varr->Elements[i]->unboxChan());
-        args.append(varr->Elements[i+1]);
-    }
-    currentProcess()->select(allChans, args, nsend);
-}
-
-void VM::DoBreak()
-{
-    _isRunning = false;
-
-    // Restore the original instruction for when/if we resume
-    QString curMethodName = currentFrame()->currentMethod->getName();
-    currentFrame()->ip--;
-    int ip = currentFrame()->ip;
-    if(breakPoints.contains(curMethodName) &&
-            breakPoints[curMethodName].contains(ip))
-    {
-        Instruction i = breakPoints[curMethodName][ip];
-        currentFrame()->currentMethod->Set(ip, i);
-    }
-    else
-    {
-        signal(InternalError);
-    }
-
-    if(debugger)
-    {
-        debugger->Break(curMethodName, currentFrame()->ip, currentFrame(), currentProcess());
-    }
-}
-
-void VM::DoTick()
-{
-    long t = clock();
-    currentFrame()->OperandStack.push(allocator.newLong(t));
-}
-
-void VM::DoPushParserBacktrack()
-{
-    IObject *receiver = currentFrame()->OperandStack.pop()->unboxObj();
-    int arg1 = currentFrame()->OperandStack.pop()->unboxInt();
-    ParserObj *parser = dynamic_cast<ParserObj *>(receiver);
-    parser->stack.push(ParseFrame(arg1, parser->pos, true));
-}
-
-void VM::DoIgnoreParserBacktrack()
-{
-    IObject *receiver = currentFrame()->OperandStack.pop()->unboxObj();
-    ParserObj *parser = dynamic_cast<ParserObj *>(receiver);
-    ParseFrame f = parser->stack.pop();
-    if(!f.backTrack)
-        assert(false, InternalError1, _ws(L"تجاهل آخر مسار بديل: قمة المكدس (%1) ليست نقطة تراجع").arg(f.continuationLabel));
-}
-
-void VM::CallSpecialMethod(IMethod *method, QVector<Value *> args)
-{
-    IForeignMethod *fm = dynamic_cast<IForeignMethod *>(method);
-    if(fm != NULL)
-    {
-        Value *ret = fm->invoke(args);
-        if(ret != NULL)
-            currentFrame()->OperandStack.push(ret);
-        return;
-    }
-    assert(false, InternalError, "CallSpecialMethod is not implemented for this type of method");
-}
-
-void VM::test(bool cond, QString trueLabel, QString falseLabel)
-{
-    int newIp;
-    if(cond)
-        newIp = currentFrame()->currentMethod->GetIp(trueLabel);
-    else
-        newIp = currentFrame()->currentMethod->GetIp(falseLabel);
-
-    currentFrame()->ip = newIp;
-}
-
-bool VM::coercion(Value *v1, Value *v2, Value *&newV1, Value *&newV2)
-{
-    bool ret = false;
-    //todo: corecion leaks
-    if (v1->tag == Int && v2->tag == Double)
-    {
-        // Why do we allocate a new value instead of just
-        // reusing the pointer in v2? Because the call
-        // to the allocator could GC v2, and thus we return an invalid
-        // pointer!
-        // todo: we need to make sure any call to allocation
-        // is not followed by code that makes use of values
-        // that are not guaranteed reachable!
-
-        // notice how we quickly save the old
-        // unboxed values before any call to allocation
-        int oldv1 = v1->unboxInt();
-        double oldv2 = v2->unboxDouble();
-
-        // We first make newV1 not gcMonitored until
-        // newV2 is allocated, because otherwise
-        // the allocation of newV2 might GC newV1
-        newV1 = allocator.newDouble(oldv1,false);
-        newV2 = allocator.newDouble(oldv2);
-        allocator.makeGcMonitored(newV1);
-        ret = true;
-    }
-    else if(v1->tag == Int && v2->tag == Long)
-    {
-        int oldv1 = v1->unboxInt();
-        long oldv2 = v2->unboxLong();
-        newV1 = allocator.newLong(oldv1,false);
-        newV2 = allocator.newLong(oldv2);
-        allocator.makeGcMonitored(newV1);
-        ret = true;
-    }
-    else if(v1->tag == Long && v2->tag == Double)
-    {
-        long oldv1 = v1->unboxLong();
-        double oldv2 = v2->unboxDouble();
-        newV1 = allocator.newDouble(oldv1, false);
-        newV2 = allocator.newDouble(oldv2);
-        allocator.makeGcMonitored(newV1);
-        ret = true;
-    }
-    else if(v1->tag == Long && v2->tag == Int)
-    {
-        long oldv1 = v1->unboxLong();
-        int oldv2 = v2->unboxInt();
-        newV1 = allocator.newLong(oldv1, false);
-        newV2 = allocator.newLong(oldv2);
-        allocator.makeGcMonitored(newV1);
-        ret = true;
-    }
-    else if(v1->tag == Double && v2->tag == Long)
-    {
-        double oldv1 = v1->unboxDouble();
-        long oldv2 = v2->unboxLong();
-        newV1 = allocator.newDouble(oldv1, false);
-        newV2 = allocator.newDouble(oldv2);
-        allocator.makeGcMonitored(newV1);
-        ret = true;
-    }
-    else if(v1->tag == Double && v2->tag == Int)
-    {
-        double oldv1 = v1->unboxDouble();
-        int oldv2 = v2->unboxInt();
-        newV1 = allocator.newDouble(oldv1, false);
-        newV2 = allocator.newDouble(oldv2);
-        allocator.makeGcMonitored(newV1);
-        ret = true;
-    }
-    return ret;
-}
-
-void VM::BuiltInAddOp(int (*intFunc)(int,int),
-                      long (*longFunc)(long, long),
-                      double (*doubleFunc)(double,double),
-                      QString (*strFunc)(QString, QString))
-{
-
-    Value *v2 = currentFrame()->OperandStack.pop();
-    Value *v1 = currentFrame()->OperandStack.pop();
-
-    Value *newV1, *newV2;
-    if(coercion(v1, v2, newV1, newV2))
-    {
-        v1 = newV1;
-        v2 = newV2;
-    }
-
-    assert( v1->tag == v2->tag &&
-            (v1->tag == Double || v1->tag == Long || v1->tag == Int || v1->tag == StringVal
-             || v1->tag == ArrayVal), BuiltInOperationOnNonBuiltn);
-
-    Value *v3 = NULL;
-
-    if(v1->tag == StringVal)
-        v3 = allocator.newString(strFunc(v1->unboxStr(), v2->unboxStr()));
-    else if(v1->tag == Int)
-        v3 = allocator.newInt(intFunc(v1->unboxInt(), v2->unboxInt()));
-    else if(v1->tag == Long)
-        v3 = allocator.newLong(longFunc(v1->unboxLong(), v2->unboxLong()));
-    else if(v1->tag == Double )
-        v3 = allocator.newDouble(doubleFunc(v1->unboxDouble(), v2->unboxDouble()));
-    else if(v1->tag == ArrayVal)
-    {
-        VArray *arr1 = v1->unboxArray();
-        VArray *arr2 = v2->unboxArray();
-        v3 = allocator.newArray(arr1->count() + arr2->count());
-        int c = 0;
-        for(int i=0; i<arr1->count(); i++)
-            v3->v.arrayVal->Elements[c++] = arr1->Elements[i];
-        for(int i=0; i<arr2->count(); i++)
-            v3->v.arrayVal->Elements[c++] = arr2->Elements[i];
-    }
-    currentFrame()->OperandStack.push(v3);
-}
-
-void VM::BuiltInArithmeticOp(QString opName,
-                             int (*intFunc)(int,int),
-                             long (*longFunc)(long, long),
-                             double (*doubleFunc)(double,double))
-{
-    Value *v2 = currentFrame()->OperandStack.pop();
-    Value *v1 = currentFrame()->OperandStack.pop();
-
-    Value *newV1, *newV2;
-    if(coercion(v1, v2, newV1, newV2))
-    {
-        v1 = newV1;
-        v2 = newV2;
-    }
-
-    assert((v1->tag == v2->tag) &&
-           (v1->tag == Int || v1->tag == Long || v1->tag == Double),
-           NumericOperationOnNonNumber3 , opName, v1->type->toString(), v2->type->toString());
-
-    Value *v3 = NULL;
-
-    if(v1->tag == Int && v2->tag == Int)
-        v3 = allocator.newInt(intFunc(v1->unboxInt(), v2->unboxInt()));
-    else if(v1->tag == Long && v2->tag == Long)
-    {
-        v3 = allocator.newLong(longFunc(v1->unboxLong(),v2->unboxLong()));
-    }
-    else if(v1->tag == Double && v2->tag == Double)
-        v3 = allocator.newDouble(doubleFunc(v1->unboxDouble(), v2->unboxDouble()));
-
-    currentFrame()->OperandStack.push(v3);
-}
-
-void VM::BuiltInComparisonOp(bool (*intFunc)(int,int),
-                             bool (*longFunc)(long, long),
-                             bool (*doubleFunc)(double,double),
-                             bool (*strFunc)(QString, QString))
-{
-    Value *v2 = currentFrame()->OperandStack.pop();
-    Value *v1 = currentFrame()->OperandStack.pop();
-
-    Value *newV1, *newV2;
-
-    if(coercion(v1, v2, newV1, newV2))
-    {
-        v1 = newV1;
-        v2 = newV2;
-    }
-
-    assert(v1->tag == v2->tag && (v1->tag == Int || v1->tag== Long || v1->tag == Double || v1->tag == StringVal), BuiltInOperationOnNonBuiltn);
-
-    Value *v3 = NULL;
-    bool result = false;
-
-    if(v1->tag == Int)
-        result = intFunc(v1->v.intVal, v2->v.intVal);
-    else if(v1->tag == Long)
-        result = longFunc(v1->v.longVal, v2->v.longVal);
-    else if(v1->tag == Double)
-        result = doubleFunc(v1->v.doubleVal, v2->v.doubleVal);
-    else if(v1->tag == StringVal)
-        result = strFunc(v1->vstrVal, v2->vstrVal);
-
-    v3 = allocator.newBool(result);
-    currentFrame()->OperandStack.push(v3);
-}
-
-void VM::EqualityRelatedOp(bool(*intFunc)(int, int),
-                           bool (*longFunc)(long, long),
-                           bool(*doubleFunc)(double, double),
-                           bool(*boolFunc)(bool, bool),
-                           bool(*objFunc)(IObject *, IObject *),
-                           bool(*strFunc)(QString, QString),
-                           bool(*rawFunc)(void *, void *),
-                           bool(*differentTypesFunc)(Value *, Value *),
-                           bool(*nullFunc)())
-{
-    Value *v2 = currentFrame()->OperandStack.pop();
-    Value *v1 = currentFrame()->OperandStack.pop();
-
-    Value *newV1, *newV2;
-
-    if(coercion(v1, v2, newV1, newV2))
-    {
-        v1 = newV1;
-        v2 = newV2;
-    }
-
-    Value *v3 = NULL;
-    bool result = false;
-
-    // If both values are of the same type...
-    if(v1->tag == v2->tag
-            && (v1->tag == Int || v1->tag == Long || v1->tag == Double || v1->tag == Boolean || v1->tag == ObjectVal
-                || v1->tag == StringVal || v1->tag == ObjectVal || v1->tag == RawVal || v1->tag == NullVal))
-
-    {
-        if(v1->tag == Int)
-            result = intFunc(v1->v.intVal, v2->v.intVal);
-        if(v1->tag == Long)
-            result = longFunc(v1->v.longVal, v2->v.longVal);
-        if(v1->tag == Double)
-            result = doubleFunc(v1->v.doubleVal, v2->v.doubleVal);
-        if(v1->tag == Boolean)
-            result = boolFunc(v1->unboxBool(), v2->unboxBool());
-        if(v1->tag == ObjectVal)
-            result = objFunc(v1->v.objVal, v2->v.objVal);
-        if(v1->tag == StringVal)
-            result = strFunc(v1->unboxStr(), v2->unboxStr());
-        if(v1->tag == RawVal)
-            result = rawFunc(v1->unboxRaw(), v2->unboxRaw());
-        if(v1->tag == NullVal)
-            result = nullFunc();
-    }
-    else
-    {
-        result = differentTypesFunc(v1, v2);
-    }
-    v3 = allocator.newBool(result);
-    currentFrame()->OperandStack.push(v3);
-}
-
-void VM::BinaryLogicOp(bool (*boolFunc)(bool, bool))
-{
-    Value *v2 = currentFrame()->OperandStack.pop();
-    Value *v1 = currentFrame()->OperandStack.pop();
-    Value *v3 = NULL;
-
-    assert(v1->tag == Boolean && v2->tag == Boolean, LogicOperationOnNonBoolean);
-    v3 = allocator.newBool(boolFunc(v1->unboxBool(), v2->unboxBool()));
-
-    currentFrame()->OperandStack.push(v3);
-}
-
-void VM::UnaryLogicOp(bool(*boolFunc)(bool))
-{
-    Value *v1 = currentFrame()->OperandStack.pop();
-    Value *v2 = NULL;
-
-    assert(v1->tag == Boolean, LogicOperationOnNonBoolean);
-    v2 = allocator.newBool(boolFunc(v1->unboxBool()));
-
-    currentFrame()->OperandStack.push(v2);
-}
-
-Value *VM::_div(Value *v1, Value *v2)
-{
-    Tag oldV1Tag = v1->tag;
-    Tag oldV2Tag = v2->tag;
-
-    Value *newV1 = NULL, *newV2 = NULL;
-    Value *oldv1 = NULL, *oldv2 = NULL;
-
-    if(coercion(v1, v2, newV1, newV2))
-    {
-        oldv1 = v1;
-        oldv2 = v2;
-        v1 = newV1;
-        v2 = newV2;
-    }
-
-    assert((v1->tag == v2->tag) &&
-           ( v1->tag == Double || v1->tag == Long || v1->tag == Int ),
-           NumericOperationOnNonNumber3, QSTR(L"قسمة"), v1->type->toString(), v2->type->toString());
-
-    if(v1->tag == Int && v2->tag == Int)
-    {
-        assert(v2->v.intVal != 0, DivisionByZero);
-        double result = ((double)(v1->unboxInt())) / ((double) (v2->unboxInt()));
-        return allocator.newDouble(result);
-    }
-    else if(v1->tag == Double && v2->tag == Double)
-    {
-        assert(v2->v.doubleVal != 0.0, DivisionByZero);
-        return allocator.newDouble(v1->v.doubleVal / v2->v.doubleVal);
-    }
-    else if(v1->tag == Long && v2->tag == Long)
-    {
-        assert(v2->v.longVal != 0L, DivisionByZero);
-        return allocator.newDouble(((double) v1->v.longVal) /
-                                 ((double)v2->v.longVal));
-    }
-    return NULL;
-}
-
-Value *VM::__top()
-{
-    assert(!running.empty(), InternalError);
-    assert(!stack().empty(), InternalError);
-    return currentFrame()->OperandStack.top();
-}
 
 bool VM::isRunning()
 {
@@ -2579,7 +1009,7 @@ bool VM::isRunning()
 
 bool VM::isDone()
 {
-    return processes.empty();
+    return running.empty() && timerWaiting.empty() && newProcesses.empty() && sleeping.empty() && guiProcesses.empty();
 }
 
 void VM::reactivate()

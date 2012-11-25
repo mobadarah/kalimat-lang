@@ -6,12 +6,22 @@
 **************************************************************************/
 
 #include "method.h"
+#include "vmerror.h"
 
 Method::Method(QString name,int arity)
 {
     this->name = name;
     this->arity = arity;
     this->numReturnValues = 0;
+    this->returnsReference = false;
+    receiver = NULL; // 'tis a global method, not a member of a class
+}
+
+Method::Method(QString name,int arity, int numReturnValues)
+{
+    this->name = name;
+    this->arity = arity;
+    this->numReturnValues = numReturnValues;
     this->returnsReference = false;
     receiver = NULL; // 'tis a global method, not a member of a class
 }
@@ -122,4 +132,18 @@ void Method::setSlotValue(QString name, Value *val)
 QString Method::toString()
 {
     return getName();
+}
+
+IMethod *MethodClass::Apply = new ApplyM();
+
+IMethod *MethodClass::lookupMethod(QString name)
+{
+    if(name == QString::fromStdWString(L"تنفيذها"))
+        return MethodClass::Apply;
+    return NULL;
+}
+
+IObject *MethodClass::newValue(Allocator *allocator)
+{
+    throw VMError(InternalError1).arg("Cannot create a method directly");
 }

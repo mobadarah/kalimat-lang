@@ -66,7 +66,7 @@ public:
     void removeInitialEmptyDocument();
     CodeDocument *getCurrentDocument();
     CodeDocument *getDocumentFromWidget(QWidget *w);
-    bool setCurrentDocument(CodeDocument *doc);
+    void setCurrentDocument(CodeDocument *doc);
     CodeDocument *getDocumentFromPath(QString path, bool addIfNeeded);
     int documentCount() { return widgetDocs.count(); }
     void onFileTouched(QString fileName, CodeDocument *doc);

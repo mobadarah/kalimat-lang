@@ -11,6 +11,8 @@
 #include <QSyntaxHighlighter>
 
 class KalimatLexer;
+
+QString removeExtraSpaces(QString input);
 class SyntaxHighlighter : public QSyntaxHighlighter
 {
 Q_OBJECT
