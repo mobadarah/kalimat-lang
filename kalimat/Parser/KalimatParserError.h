@@ -5,11 +5,13 @@ enum KalimatParserError
 {
     ExpectedDeclaration,
     ExpectedExpression,
+    ExpectedSimpleLiteral,
     ExpectedStatementOrDeclaration,
     ExpectedDrawingStatement,
     ExpectedIdentifier,
     ExpectedSendOrReceiveOperation,
     ExpressionExpectedAfterGoto,
+    ExpectedStringLiteral,
     UsingKeywordMustBeFollowedByStringLiteral,
     ModulesCannotContainStatements,
     StatementNotImplemented,
@@ -17,7 +19,13 @@ enum KalimatParserError
     DeclaringTypeInAssignmentMustBeForVariable,
     MeaninglessTypeDeclaration,
     CanDelegateOnlyToInvokation,
-    CanOnlyLaunchProcedureInvokation
+    CanOnlyLaunchProcedureInvokation,
+    PropertySetterMustBeginWithSet,
+    PropertySetterTakesOneArgument,
+    PropertyGetterTakesNoArguments,
+    NoSuchMethodHandlerTakesTwoArguments,
+    ExpectedStringWithSingleCharacter,
+    InvalidStartOfPrimaryPegExpression
 };
 
 #endif // KALIMATPARSERERROR_H

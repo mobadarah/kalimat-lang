@@ -14,6 +14,11 @@
 #ifndef UTILS_H
     #include "utils.h"
 #endif
+
+#ifndef INSTRUCTIONRUNNERS_H
+    #include "instructionrunners.h"
+#endif
+
 class Allocator;
 enum Opcode
 {
@@ -42,17 +47,23 @@ struct Instruction
     QString SymRef;
     int SymRefLabel;
     QString True, False;
+    int fastTrue, fastFalse;
     CallStyle callStyle;
     int extra;
+
+    Instruction *next;
+    InstructionRunner runner;
 
     Instruction();
     Instruction(Opcode opcode);
     Instruction &wArg(Value *);
     Instruction &wArgParse(QString, Allocator *allocator);
-    Instruction &wLabels(QString, QString);
+    Instruction &wLabels(QString, QString, int fastL1, int fastL2);
     Instruction &wRef(QString, Labeller &lblr);
     Instruction &wExtra(int info);
     Instruction &wCallStyle(CallStyle);
+
+    void assignRunner();
 };
 
 QString InstructionToString(const Instruction &i);

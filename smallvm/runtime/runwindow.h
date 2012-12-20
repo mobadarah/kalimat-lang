@@ -11,6 +11,8 @@
 #include <QMainWindow>
 #include <QTimer>
 #include <memory>
+#include <QEvent>
+
 using namespace std;
 
 #ifndef VM_H
@@ -63,6 +65,8 @@ using namespace std;
     #include "vmrunnerthread.h"
 #endif
 
+#include "../smallvm/utils.h"
+
 namespace Ui {
     class RunWindow;
 }
@@ -70,6 +74,15 @@ namespace Ui {
 enum RunWindowState
 {
     rwNormal, rwTextInput, rwSuspended, rwWaiting
+};
+
+class GUISchedulerEvent : public QEvent
+{
+public:
+    GUISchedulerEvent() :QEvent((QEvent::Type) 1200)
+    {
+
+    }
 };
 
 class RunWindow : public QMainWindow {
@@ -86,11 +99,10 @@ public:
     QString pathOfRunningProgram();
     QString ensureCompletePath(Process *proc, QString fileName);
     VM *getVM() { return vm;}
-    VMRunthread *getVmThread() { return vmThread;}
 private:
     QString pathOfProgramsFile;
     VM *vm;
-    VMRunthread *vmThread;
+    bool alreadyRunningScheduler;
     VMClient *client;
     WindowReadMethod *readMethod;
     QMap<VMErrorType, QString> ErrorMap;
@@ -130,7 +142,6 @@ public:
     void setBreakpoint(Breakpoint, const DebugInfo &);
 
     void redrawWindow();
-    void resetTimer(int interval);
     void suspend();
     void resume();
     void reactivateVM();
@@ -142,12 +153,18 @@ public:
     void typeError(Process *proc, IClass *expected, IClass *given);
     void beginInput();
     void Run();
+    void RunGUIScheduler();
     void singleStep(Process *proc);
     friend class WindowPrintMethod;
     friend class WindowReadMethod;
+    void EmitGuiSchedule();
+    void emitErrorEvent(VMError error);
+signals:
+    void guiSchedule(GUISchedulerEvent *);
+    void errorSignal(VMError err);
 private slots:
-    void callGUI(QObject *control, QString method);
-    void callNew(ObjContainer *box, OBJ_MAKER);
+    void errorEvent(VMError err);
+    void do_gui_schedule(GUISchedulerEvent *);
     void mousePressEvent(QMouseEvent *);
     void mouseReleaseEvent(QMouseEvent *);
     void mouseMoveEvent(QMouseEvent *);
@@ -159,7 +176,6 @@ private slots:
     void resizeEvent(QResizeEvent *event);
     void closeEvent(QCloseEvent *);
     void parentDestroyed(QObject *);
-    void timerEvent(QTimerEvent *);
     void on_actionGC_triggered();
 };
 

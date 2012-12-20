@@ -1,4 +1,6 @@
 #include "completioninfo.h"
+#include "idemessages.h"
+
 #include <QStringList>
 #include <QStack>
 
@@ -10,9 +12,9 @@ QString FunctionCompletionInfo::toolTipStr()
 
     QString what;
     if(isProcNotFunc)
-        what = QString::fromStdWString(L"إجراء");
+        what = Ide::msg[IdeMsg::Procedure];
     else
-        what = QString::fromStdWString(L"دالة");
+        what = Ide::msg[IdeMsg::Function];
 
     return QString("%1 %2(%3)").arg(what)
             .arg(name).arg(strs.join(", "));

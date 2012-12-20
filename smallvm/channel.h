@@ -6,6 +6,7 @@
 #endif
 
 #include <QQueue>
+#include <QMutex>
 
 struct Process;
 
@@ -15,6 +16,7 @@ class Channel
     QQueue<Process *> recv_q;
     QMap<Process *, Value *> data;
 public:
+    QMutex lock;
     Channel();
     void send(Value *v, Process *proc);
     void receive(Process *proc);

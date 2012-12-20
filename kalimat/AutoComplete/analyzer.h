@@ -4,8 +4,10 @@
 #include <QMap>
 #include <functional>
 #include "../Parser/KalimatAst/kalimat_ast_gen.h"
+#include "idemessages.h"
+#include "../smallvm/utils.h"
 
-QString getBeautifulName(shared_ptr<ProceduralDecl> proc);
+QString getBeautifulName(shared_ptr<ProceduralDecl> proc, Translation<IdeMsg::IdeMessage> &msg);
 QString methodDeclarationForCompletion(shared_ptr<MethodDecl> md);
 
 struct ProcPosRange
@@ -40,8 +42,9 @@ struct CompilationUnitInfo
 
 class Analyzer
 {
+    Translation<IdeMsg::IdeMessage> &msg;
 public:
-    Analyzer();
+    Analyzer(Translation<IdeMsg::IdeMessage> &msg);
     CompilationUnitInfo analyzeCompilationUnit(shared_ptr<CompilationUnit>);
     void analyzeFunctionDeclarations(shared_ptr<CompilationUnit> cu,
                                      CompilationUnitInfo &ret);

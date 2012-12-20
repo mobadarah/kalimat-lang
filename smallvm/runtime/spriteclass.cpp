@@ -1,31 +1,33 @@
 #include "spriteclass.h"
 #include "../allocator.h"
 #include "sprite.h"
+#include "../runtime_identifiers.h"
+
 SpriteClass::SpriteClass(QString name):
     EasyForeignClass(name)
 {
-    methodIds[_ws(L"خزن.القيمة")] =
+    methodIds[VMId::get(RId::SetStoredValue)] =
             1;
 
-    methodArities[_ws(L"خزن.القيمة")]
+    methodArities[VMId::get(RId::SetStoredValue)]
             = 2;
 
-    methodIds[_ws(L"القيمة.المخزنة")] =
+    methodIds[VMId::get(RId::GetStoredValue)] =
             2;
 
-    methodArities[_ws(L"القيمة.المخزنة")]
+    methodArities[VMId::get(RId::GetStoredValue)]
             = 1;
 
-    methodIds[_ws(L"امنع.التصادم")] =
+    methodIds[VMId::get(RId::DisableCollision)] =
             3;
 
-    methodArities[_ws(L"امنع.التصادم")]
+    methodArities[VMId::get(RId::DisableCollision)]
             = 1;
 
-    methodIds[_ws(L"اسمح.بالتصادم")] =
+    methodIds[VMId::get(RId::EnableCollision)] =
             4;
 
-    methodArities[_ws(L"اسمح.بالتصادم")]
+    methodArities[VMId::get(RId::EnableCollision)]
             = 1;
 
     fields.insert("_handle");

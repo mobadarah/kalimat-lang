@@ -22,8 +22,10 @@ DocumentContainer::DocumentContainer(QString settingsOrganizationName,
                                      QTabWidget *tabWidget,
                                      DocumentClient *client,
                                      int MaxRecentFiles,
-                                     QMenu *recentFileMenu)
-    :QObject(client->GetParentWindow())
+                                     QMenu *recentFileMenu,
+                                     Translation<IdeMsg::IdeMessage> &msg)
+    :QObject(client->GetParentWindow()),
+     msg(msg)
 {
     newDocCount = 0;
     hasInitialEmptyDocument = false;
@@ -82,7 +84,7 @@ CodeDocument *DocumentContainer::addDocument(QString title, QString fileName, QW
 
 CodeDocument *DocumentContainer::addInitialEmptyDocument()
 {
-    CodeDocument *ret = addDocument(QString::fromWCharArray(L"بدون عنوان"), "untitled", client->CreateEditorWidget(), true);
+    CodeDocument *ret = addDocument(msg[IdeMsg::Untitled], "untitled", client->CreateEditorWidget(), true);
     hasInitialEmptyDocument = true;
     return ret;
 }
@@ -261,7 +263,7 @@ void DocumentContainer::handleSaveAs()
 
 void DocumentContainer::handleClose(QCloseEvent *ev)
 {
-    bool moveOn;
+    bool moveOn = false;
 
     QMap<int, CodeDocument*> dirtyDirtyFiles;
     QVector<int> indices;
@@ -315,7 +317,7 @@ void DocumentContainer::handleClose(QCloseEvent *ev)
         }
         else
         {
-
+            // impossible
         }
     }
 

@@ -15,8 +15,9 @@
 #include <QTextDocument>
 #include <QTextCursor>
 
-SyntaxHighlighter::SyntaxHighlighter(QTextDocument *parent, KalimatLexer *_lexer) :
-    QSyntaxHighlighter(parent)
+SyntaxHighlighter::SyntaxHighlighter(QTextDocument *parent, KalimatLexer *_lexer, Translation<IdeMsg::IdeMessage> &msg) :
+    QSyntaxHighlighter(parent),
+    msg(msg)
 {
     lexer = _lexer;
 
@@ -48,7 +49,7 @@ void SyntaxHighlighter::highlightBlock(const QString &text)
                f.setAnchorHref(t.Lexeme.mid(1, t.Lexeme.length()-2));
                f.setAnchor(true);
                f.setToolTip(
-                           QString::fromStdWString(L"اضغط لفتح الملف"));
+                           msg[IdeMsg::ClickToOpenFile]);
                f.setForeground(Qt::gray);
                f.setUnderlineStyle(QTextCharFormat::SingleUnderline);
                setFormat(t.Pos, t.Lexeme.length(), f);
@@ -78,7 +79,7 @@ void SyntaxHighlighter::highlightToHtml(QString program, QStringList &output)
     {
         lexer->tokenize();
         QVector<Token> tokens = lexer->getTokens();
-        output.append("<div dir=\"rtl\" style=\"background-color: rgb(240, 240, 255);\"><pre>");
+        output.append("<div dir=\"rtl\" style=\"background-color: rgb(250, 250, 255);\"><pre>");
         int indentlevel = 0;
         for(int i=0; i<tokens.size(); i++)
         {

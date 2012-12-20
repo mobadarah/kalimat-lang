@@ -40,7 +40,6 @@ public:
     ParseResultClass(QString name);
     IObject *newValue(Allocator *allocator);
     Value *dispatch(Process *, int , QVector<Value *>);
-    static ParseResultClass *type;
 };
 
 struct ParseResult
@@ -75,9 +74,10 @@ class ParserClass : public EasyForeignClass
 {
     QMap<int,int> callCount; // for profiling
     RunWindow *rw;
+    ParseResultClass *parseResultClass;
     Allocator *allocator;
 public:
-    ParserClass(QString name, RunWindow *rw);
+    ParserClass(QString name, RunWindow *rw, ParseResultClass *parseResultClass);
     IObject *newValue(Allocator *allocator);
     Value *dispatch(Process *proc, int id, QVector<Value *>args);
 };

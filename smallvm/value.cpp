@@ -16,43 +16,86 @@
 #include "references.h"
 #include "vmerror.h"
 #include "runtime/spriteclass.h"
+#include "runtime_identifiers.h"
 
 #define QSTR(x) QString::fromStdWString(x)
 
-ValueClass *BuiltInTypes::ObjectType = new ValueClass(QSTR(L"شيء"), NULL);
-ValueClass *BuiltInTypes::NumericType = new ValueClass(QSTR(L"عددي"), BuiltInTypes::ObjectType);
-ValueClass *BuiltInTypes::IntType = new ValueClass(QSTR(L"عدد.صحيح"), BuiltInTypes::NumericType);
-ValueClass *BuiltInTypes::LongType = new ValueClass(QSTR(L"عدد.صحيح.واسع"), BuiltInTypes::NumericType);
-ValueClass *BuiltInTypes::DoubleType = new ValueClass(QSTR(L"عدد.حقيقي"), BuiltInTypes::NumericType);
-ValueClass *BuiltInTypes::BoolType = new ValueClass(QSTR(L"قيمة.منطقية"), BuiltInTypes::ObjectType);
-IClass *BuiltInTypes::MethodType = new MethodClass("Method", BuiltInTypes::ObjectType);
-ValueClass *BuiltInTypes::ExternalMethodType = new ValueClass("ExternalMethod", BuiltInTypes::MethodType);
-ValueClass *BuiltInTypes::ExternalLibrary = new ValueClass("ExternalLibrary", BuiltInTypes::ObjectType);
-MetaClass  *BuiltInTypes::ClassType = new MetaClass("Class", NULL);
-ValueClass *BuiltInTypes::IndexableType = new ValueClass(QSTR(L"مفهرس"), BuiltInTypes::ObjectType);
-ValueClass *BuiltInTypes::ArrayType = new ValueClass(QSTR(L"مصفوفة.قيم"), BuiltInTypes::IndexableType);
-ValueClass *BuiltInTypes::MapType = new ValueClass(QSTR(L"قاموس.قيم"), BuiltInTypes::IndexableType);
-ValueClass *BuiltInTypes::StringType = new ValueClass(QSTR(L"نص"), BuiltInTypes::IndexableType);
-IClass *BuiltInTypes::SpriteType = new SpriteClass(QSTR(L"طيف"));
+ValueClass *BuiltInTypes::ObjectType = NULL;
+ValueClass *BuiltInTypes::NumericType = NULL;
+ValueClass *BuiltInTypes::IntType = NULL;
+ValueClass *BuiltInTypes::LongType = NULL;
+ValueClass *BuiltInTypes::DoubleType = NULL;
+ValueClass *BuiltInTypes::BoolType = NULL;
+IClass *BuiltInTypes::MethodType = NULL;
+ValueClass *BuiltInTypes::ExternalMethodType = NULL;
+ValueClass *BuiltInTypes::ExternalLibrary = NULL;
+MetaClass  *BuiltInTypes::ClassType = NULL;
+ValueClass *BuiltInTypes::IndexableType = NULL;
+ValueClass *BuiltInTypes::ArrayType = NULL;
+ValueClass *BuiltInTypes::MapType = NULL;
+ValueClass *BuiltInTypes::StringType = NULL;
+IClass *BuiltInTypes::SpriteType = NULL;
 ValueClass *BuiltInTypes::FileType = NULL;
-ValueClass *BuiltInTypes::RawFileType = new ValueClass("RawFile", BuiltInTypes::ObjectType);
-ValueClass *BuiltInTypes::WindowType = new ValueClass("Window", BuiltInTypes::ObjectType);
-ValueClass *BuiltInTypes::RefType = new ValueClass("Reference", BuiltInTypes::ObjectType);
-ValueClass *BuiltInTypes::FieldRefType = new ValueClass("FieldReference", BuiltInTypes::ObjectType);
-ValueClass *BuiltInTypes::ArrayRefType = new ValueClass("ArrayReference", BuiltInTypes::ObjectType);
-ValueClass *BuiltInTypes::NullType = new ValueClass(QSTR(L"لاشيء"), BuiltInTypes::ObjectType);
-ValueClass *BuiltInTypes::ChannelType = new ValueClass(QSTR(L"قناة"), BuiltInTypes::ObjectType);
-ValueClass *BuiltInTypes::QObjectType = new ValueClass(QSTR(L"QObject"), BuiltInTypes::ObjectType);
-IClass *BuiltInTypes::ActivationFrameType = new FrameClass(QSTR(L"إطار.تفعيل"));
+ValueClass *BuiltInTypes::RawFileType = NULL;
+ValueClass *BuiltInTypes::WindowType = NULL;
+ValueClass *BuiltInTypes::RefType = NULL;
+ValueClass *BuiltInTypes::FieldRefType = NULL;
+ValueClass *BuiltInTypes::ArrayRefType = NULL;
+ValueClass *BuiltInTypes::NullType = NULL;
+ValueClass *BuiltInTypes::ChannelType = NULL;
+ValueClass *BuiltInTypes::QObjectType = NULL;
+IClass *BuiltInTypes::ActivationFrameType = NULL;
 
-ValueClass *BuiltInTypes::c_int = new ValueClass(QSTR(L"صحيح32.سي"), BuiltInTypes::ObjectType);
-ValueClass *BuiltInTypes::c_long = new ValueClass(QSTR(L"طويل.سي"), BuiltInTypes::ObjectType);
-ValueClass *BuiltInTypes::c_float = new ValueClass(QSTR(L"طفوي.سي"), BuiltInTypes::ObjectType);
-ValueClass *BuiltInTypes::c_double = new ValueClass(QSTR(L"مزدوج.سي"), BuiltInTypes::ObjectType);
-ValueClass *BuiltInTypes::c_char = new ValueClass(QSTR(L"حرفي.سي"), BuiltInTypes::ObjectType);
-ValueClass *BuiltInTypes::c_asciiz = new ValueClass(QSTR(L"نص.آسكي.سي"), BuiltInTypes::ObjectType);
-ValueClass *BuiltInTypes::c_wstr = new ValueClass(QSTR(L"نص.سي"), BuiltInTypes::ObjectType);
-ValueClass *BuiltInTypes::c_ptr= new ValueClass(QSTR(L"مشير.سي"), BuiltInTypes::ObjectType);
+ValueClass *BuiltInTypes::c_int = NULL;
+ValueClass *BuiltInTypes::c_long = NULL;
+ValueClass *BuiltInTypes::c_float = NULL;
+ValueClass *BuiltInTypes::c_double = NULL;
+ValueClass *BuiltInTypes::c_char = NULL;
+ValueClass *BuiltInTypes::c_asciiz = NULL;
+ValueClass *BuiltInTypes::c_wstr = NULL;
+ValueClass *BuiltInTypes::c_ptr= NULL;
+
+void BuiltInTypes::init()
+{
+    if(ObjectType != NULL)
+        return;
+
+    ObjectType = new ValueClass(VMId::get(RId::Object), NULL);
+    NumericType = new ValueClass(VMId::get(RId::Numeric), BuiltInTypes::ObjectType);
+    IntType = new ValueClass(VMId::get(RId::Integer), BuiltInTypes::NumericType);
+    LongType = new ValueClass(VMId::get(RId::Long), BuiltInTypes::NumericType);
+    DoubleType = new ValueClass(VMId::get(RId::Double), BuiltInTypes::NumericType);
+    BoolType = new ValueClass(VMId::get(RId::Boolean), BuiltInTypes::ObjectType);
+    MethodType = new MethodClass(VMId::get(RId::Method), BuiltInTypes::ObjectType);
+    ExternalMethodType = new ValueClass(VMId::get(RId::ExternalMethod), BuiltInTypes::MethodType);
+    ExternalLibrary = new ValueClass(VMId::get(RId::ExternalLibrary), BuiltInTypes::ObjectType);
+    ClassType = new MetaClass(VMId::get(RId::Class), NULL);
+    IndexableType = new ValueClass(VMId::get(RId::Indexable), BuiltInTypes::ObjectType);
+    ArrayType = new ValueClass(VMId::get(RId::VArray), BuiltInTypes::IndexableType);
+    MapType = new ValueClass(VMId::get(RId::VMap), BuiltInTypes::IndexableType);
+    StringType = new ValueClass(VMId::get(RId::String), BuiltInTypes::IndexableType);
+    SpriteType = new SpriteClass(VMId::get(RId::Sprite));
+    FileType = NULL;
+    RawFileType = new ValueClass(VMId::get(RId::RawFile), BuiltInTypes::ObjectType);
+    WindowType = new ValueClass(VMId::get(RId::Window), BuiltInTypes::ObjectType);
+    RefType = new ValueClass(VMId::get(RId::Reference), BuiltInTypes::ObjectType);
+    FieldRefType = new ValueClass(VMId::get(RId::FieldReference), BuiltInTypes::ObjectType);
+    ArrayRefType = new ValueClass(VMId::get(RId::ArrayReference), BuiltInTypes::ObjectType);
+    NullType = new ValueClass(VMId::get(RId::NullType), BuiltInTypes::ObjectType);
+    ChannelType = new ValueClass(VMId::get(RId::Channel), BuiltInTypes::ObjectType);
+    QObjectType = new ValueClass(VMId::get(RId::QObject), BuiltInTypes::ObjectType);
+    ActivationFrameType = new FrameClass(VMId::get(RId::ActivationRecord));
+
+    c_int = new ValueClass(VMId::get(RId::c_int32), BuiltInTypes::ObjectType);
+    c_long = new ValueClass(VMId::get(RId::c_long), BuiltInTypes::ObjectType);
+    c_float = new ValueClass(VMId::get(RId::c_float), BuiltInTypes::ObjectType);
+    c_double = new ValueClass(VMId::get(RId::c_double), BuiltInTypes::ObjectType);
+    c_char = new ValueClass(VMId::get(RId::c_char), BuiltInTypes::ObjectType);
+    c_asciiz = new ValueClass(VMId::get(RId::c_ascii), BuiltInTypes::ObjectType);
+    c_wstr = new ValueClass(VMId::get(RId::c_wstr), BuiltInTypes::ObjectType);
+    c_ptr= new ValueClass(VMId::get(RId::c_pointer), BuiltInTypes::ObjectType);
+
+}
 
 Value *Value::NullValue = NULL;
 
@@ -112,6 +155,7 @@ QString Object::toString()
 {
     return QString("%1").arg((long)this);
 }
+
 bool Object::hasSlot(QString name)
 {
     return _slots.contains(name);
@@ -126,6 +170,7 @@ Value *Object::getSlotValue(QString name)
 {
     return _slots[name];
 }
+
 void Object::setSlotValue(QString name, Value *val)
 {
     _slots[name] = val;
@@ -176,6 +221,11 @@ bool Value::unboxBool() const
 IObject *Value::unboxObj() const
 {
     return v.objVal;
+}
+
+IClass *Value::unboxClass() const
+{
+    return dynamic_cast<IClass *>(unboxObj());
 }
 
 VArray *Value::unboxArray() const
@@ -266,7 +316,7 @@ QString Value::toString() const
         ret = v->unboxStr();
         break;
     case NullVal:
-        ret = QString::fromWCharArray(L"<لاشيء>");
+        ret = QString("<%1>").arg(VMId::get(RId::NullValue));
         break;
     case RawVal:
         ret = QString("<raw %1>").arg((long) v->unboxRaw());
@@ -281,16 +331,16 @@ QString Value::toString() const
 
         for(QVector<int>::const_iterator i=dims.begin(); i != dims.end(); ++i)
             elems.append(QString("%1").arg(*i));
-        ret = QString::fromWCharArray(L"]مصفوفة بأبعاد [%1>").arg(elems.join(", "));
+        ret = VMId::get(RId::ArrayWithDims1).arg(elems.join(", "));
         break;
     case MapVal:
         ret = MapToString(v->unboxMap());
         break;
     case Boolean:
-        ret = v->unboxBool()? QString::fromStdWString(L"صحيح") : QString::fromStdWString(L"خطأ");
+        ret = v->unboxBool()? VMId::get(RId::TrueValue) : VMId::get(RId::FalseValue);
         break;
     case ChannelVal:
-        ret = QSTR(L"<قناة %1>").arg((long) v->unboxChan());
+        ret = QString("<%1 %2>").arg(VMId::get(RId::ChannelValue)).arg((long) v->unboxChan());
         break;
     case QObjectVal:
         ret = QString("<%1>").arg(v->unboxQObj()->metaObject()->className());

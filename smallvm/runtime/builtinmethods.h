@@ -18,137 +18,141 @@ class RunWindow;
 Sprite *GetSpriteFromValue(Value * v);
 Value *MakeSpriteValue(Sprite *sprite, Allocator *alloc);
 
-typedef void (*VM_PROC)(QStack<Value *> &, Process *proc, RunWindow *, VM *);
+typedef void (*VM_PROC)(Stack<Value *> &, Process *proc, RunWindow *, VM *);
 
-void PrintProc(QStack<Value *> &, Process *proc, RunWindow *, VM *);
-void PushReadChanProc(QStack<Value *> &stack, Process *, RunWindow *w, VM *);
-void SetCursorPosProc(QStack<Value *> &, Process *proc, RunWindow *, VM *);
-void GetCursorRowProc(QStack<Value *> &, Process *proc, RunWindow *, VM *);
-void GetCursorColProc(QStack<Value *> &, Process *proc, RunWindow *, VM *);
+void PrintProc(Stack<Value *> &, Process *proc, RunWindow *, VM *);
+void PushReadChanProc(Stack<Value *> &stack, Process *, RunWindow *w, VM *);
+void SetCursorPosProc(Stack<Value *> &, Process *proc, RunWindow *, VM *);
+void GetCursorRowProc(Stack<Value *> &, Process *proc, RunWindow *, VM *);
+void GetCursorColProc(Stack<Value *> &, Process *proc, RunWindow *, VM *);
 
-void PrintUsingWidthProc(QStack<Value *> &, Process *, RunWindow *, VM *);
-void DrawPixelProc(QStack<Value *> &, Process *proc, RunWindow *, VM *);
-void DrawLineProc(QStack<Value *> &, Process *proc, RunWindow *, VM *);
-void DrawRectProc(QStack<Value *> &, Process *proc, RunWindow *, VM *);
-void DrawCircleProc(QStack<Value *> &, Process *proc, RunWindow *, VM *);
+void PrintUsingWidthProc(Stack<Value *> &, Process *, RunWindow *, VM *);
+void DrawPixelProc(Stack<Value *> &, Process *proc, RunWindow *, VM *);
+void DrawLineProc(Stack<Value *> &, Process *proc, RunWindow *, VM *);
+void DrawRectProc(Stack<Value *> &, Process *proc, RunWindow *, VM *);
+void DrawCircleProc(Stack<Value *> &, Process *proc, RunWindow *, VM *);
 
-void LoadImageProc(QStack<Value *> &stack, Process *proc, RunWindow *w, VM *vm);
-void LoadSpriteProc(QStack<Value *> &, Process *proc, RunWindow *, VM *);
-void SpriteFromImageProc(QStack<Value *> &stack, Process *proc, RunWindow *w, VM *vm);
-void DrawImageProc(QStack<Value *> &stack, Process *proc, RunWindow *w, VM *vm);
-void DrawSpriteProc(QStack<Value *> &, Process *proc, RunWindow *, VM *);
-void ZoomProc(QStack<Value *> &, Process *proc, RunWindow *, VM *);
-void HideSpriteProc(QStack<Value *> &, Process *proc, RunWindow *, VM *);
-void ShowSpriteProc(QStack<Value *> &, Process *proc, RunWindow *, VM *);
+void LoadImageProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm);
+void LoadSpriteProc(Stack<Value *> &, Process *proc, RunWindow *, VM *);
+void SpriteFromImageProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm);
+void DrawImageProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm);
+void DrawSpriteProc(Stack<Value *> &, Process *proc, RunWindow *, VM *);
+void ZoomProc(Stack<Value *> &, Process *proc, RunWindow *, VM *);
+void HideSpriteProc(Stack<Value *> &, Process *proc, RunWindow *, VM *);
+void ShowSpriteProc(Stack<Value *> &, Process *proc, RunWindow *, VM *);
 
-void GetSpriteLeftProc(QStack<Value *> &stack, Process *proc, RunWindow *w, VM *vm);
-void GetSpriteRightProc(QStack<Value *> &stack, Process *proc, RunWindow *w, VM *vm);
-void GetSpriteTopProc(QStack<Value *> &stack, Process *proc, RunWindow *w, VM *vm);
-void GetSpriteBottomProc(QStack<Value *> &stack, Process *proc, RunWindow *w, VM *vm);
-void GetSpriteWidthProc(QStack<Value *> &stack, Process *proc, RunWindow *w, VM *vm);
-void GetSpriteHeightProc(QStack<Value *> &stack, Process *proc, RunWindow *w, VM *vm);
-void GetSpriteImageProc(QStack<Value *> &stack, Process *proc, RunWindow *w, VM *vm);
-void SetSpriteImageProc(QStack<Value *> &stack, Process *proc, RunWindow *w, VM *vm);
+void GetSpriteLeftProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm);
+void GetSpriteRightProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm);
+void GetSpriteTopProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm);
+void GetSpriteBottomProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm);
+void GetSpriteWidthProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm);
+void GetSpriteHeightProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm);
+void GetSpriteImageProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm);
+void SetSpriteImageProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm);
 
-void WaitProc(QStack<Value *> &, Process *proc, RunWindow *, VM *);
-void MouseEventChanProc(QStack<Value *> &stack, Process *, RunWindow *w, VM *);
-void MouseDownEventChanProc(QStack<Value *> &stack, Process *, RunWindow *w, VM *);
-void MouseUpEventChanProc(QStack<Value *> &stack, Process *proc, RunWindow *w, VM *vm);
-void MouseMoveEventChanProc(QStack<Value *> &stack, Process *, RunWindow *w, VM *);
-void KbEventChanProc(QStack<Value *> &stack, Process *, RunWindow *w, VM *);
+void WaitProc(Stack<Value *> &, Process *proc, RunWindow *, VM *);
+void MouseEventChanProc(Stack<Value *> &stack, Process *, RunWindow *w, VM *);
+void MouseDownEventChanProc(Stack<Value *> &stack, Process *, RunWindow *w, VM *);
+void MouseUpEventChanProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm);
+void MouseMoveEventChanProc(Stack<Value *> &stack, Process *, RunWindow *w, VM *);
+void KbEventChanProc(Stack<Value *> &stack, Process *, RunWindow *w, VM *);
 
-void ClsProc(QStack<Value *> &stack, Process *proc, RunWindow *, VM *w);
-void ClearTextProc(QStack<Value *> &stack, Process *proc, RunWindow *w, VM *vm);
-void SetTextColorProc(QStack<Value *> &stack, Process *proc, RunWindow *, VM *w);
-void PointAtProc(QStack<Value *> &stack, Process *proc, RunWindow *w, VM *vm);
-void PointRgbAtProc(QStack<Value *> &stack, Process *proc, RunWindow *w, VM *vm);
-void BuiltInConstantProc(QStack<Value *> &stack, Process *proc, RunWindow *, VM *vm);
-void StringIsNumericProc(QStack<Value *> &stack, Process *proc, RunWindow *w, VM *vm);
-void StringIsAlphabeticProc(QStack<Value *> &stack, Process *proc, RunWindow *w, VM *vm);
-void TypeOfProc(QStack<Value *> &stack, Process *proc, RunWindow *w, VM *vm);
-void TypeFromIdProc(QStack<Value *> &stack, Process *proc, RunWindow *w, VM *vm);
-void NewMapProc(QStack<Value *> &stack, Process *proc, RunWindow *w, VM *vm);
-void HasKeyProc(QStack<Value *> &stack, Process *proc, RunWindow *w, VM *vm);
-void KeysOfProc(QStack<Value *> &stack, Process *proc, RunWindow *w, VM *vm);
+void ClsProc(Stack<Value *> &stack, Process *proc, RunWindow *, VM *w);
+void ClearTextProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm);
+void SetTextColorProc(Stack<Value *> &stack, Process *proc, RunWindow *, VM *w);
+void PointAtProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm);
+void PointRgbAtProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm);
+void BuiltInConstantProc(Stack<Value *> &stack, Process *proc, RunWindow *, VM *vm);
+void StringIsNumericProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm);
+void StringIsAlphabeticProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm);
+void TypeOfProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm);
+void TypeFromIdProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm);
+void NewMapProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm);
+void HasKeyProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm);
+void KeysOfProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm);
 
-void RandomProc(QStack<Value *> &stack, Process *proc, RunWindow *, VM *w);
-void ToNumProc(QStack<Value *> &stack, Process *proc, RunWindow *, VM *w);
-void ToStringProc(QStack<Value *> &stack, Process *proc, RunWindow *, VM *);
-void RoundProc(QStack<Value *> &stack, Process *proc, RunWindow *, VM *);
-void RemainderProc(QStack<Value *> &stack, Process *proc, RunWindow *, VM *);
-void ConcatProc(QStack<Value *> &stack, Process *proc, RunWindow *, VM *);
-void StrFirstProc(QStack<Value *> &stack, Process *proc, RunWindow *, VM *);
-void StrLastProc(QStack<Value *> &stack, Process *proc, RunWindow *, VM *);
-void StrLenProc(QStack<Value *> &stack, Process *proc, RunWindow *, VM *);
-void StrMidProc(QStack<Value *> &stack, Process *proc, RunWindow *, VM *);
+void RandomProc(Stack<Value *> &stack, Process *proc, RunWindow *, VM *w);
+void ToNumProc(Stack<Value *> &stack, Process *proc, RunWindow *, VM *w);
+void ToStringProc(Stack<Value *> &stack, Process *proc, RunWindow *, VM *);
+void RoundProc(Stack<Value *> &stack, Process *proc, RunWindow *, VM *);
+void RemainderProc(Stack<Value *> &stack, Process *proc, RunWindow *, VM *);
+void ConcatProc(Stack<Value *> &stack, Process *proc, RunWindow *, VM *);
+void StrFirstProc(Stack<Value *> &stack, Process *proc, RunWindow *, VM *);
+void StrLastProc(Stack<Value *> &stack, Process *proc, RunWindow *, VM *);
+void StrLenProc(Stack<Value *> &stack, Process *proc, RunWindow *, VM *);
+void StrMidProc(Stack<Value *> &stack, Process *proc, RunWindow *, VM *);
 
-void StrBeginsWithProc(QStack<Value *> &stack, Process *proc, RunWindow *w, VM *vm);
-void StrEndsWithProc(QStack<Value *> &stack, Process *proc, RunWindow *w, VM *vm);
-void StrContainsProc(QStack<Value *> &stack, Process *proc, RunWindow *w, VM *vm);
+void StrBeginsWithProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm);
+void StrEndsWithProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm);
+void StrContainsProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm);
 
-void StrSplitProc(QStack<Value *> &stack, Process *proc, RunWindow *, VM *);
-void StrTrimProc(QStack<Value *> &stack, Process *proc, RunWindow *w, VM *vm);
-void StrReplaceProc(QStack<Value *> &stack, Process *proc, RunWindow *w, VM *vm);
+void StrSplitProc(Stack<Value *> &stack, Process *proc, RunWindow *, VM *);
+void StrTrimProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm);
+void StrReplaceProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm);
 
-void SinProc(QStack<Value *> &stack, Process *proc, RunWindow *, VM *);
-void CosProc(QStack<Value *> &stack, Process *proc, RunWindow *, VM *);
-void TanProc(QStack<Value *> &stack, Process *proc, RunWindow *, VM *);
-void ASinProc(QStack<Value *> &stack, Process *proc, RunWindow *, VM *);
-void ACosProc(QStack<Value *> &stack, Process *proc, RunWindow *, VM *);
-void ATanProc(QStack<Value *> &stack, Process *proc, RunWindow *, VM *);
+void SinProc(Stack<Value *> &stack, Process *proc, RunWindow *, VM *);
+void CosProc(Stack<Value *> &stack, Process *proc, RunWindow *, VM *);
+void TanProc(Stack<Value *> &stack, Process *proc, RunWindow *, VM *);
+void ASinProc(Stack<Value *> &stack, Process *proc, RunWindow *, VM *);
+void ACosProc(Stack<Value *> &stack, Process *proc, RunWindow *, VM *);
+void ATanProc(Stack<Value *> &stack, Process *proc, RunWindow *, VM *);
 
-void SqrtProc(QStack<Value *> &stack, Process *proc, RunWindow *, VM *);
-void PowProc(QStack<Value *> &stack, Process *proc, RunWindow *w, VM *vm);
-void Log10Proc(QStack<Value *> &stack, Process *proc, RunWindow *, VM *);
-void LnProc(QStack<Value *> &stack, Process *proc, RunWindow *, VM *);
+void SqrtProc(Stack<Value *> &stack, Process *proc, RunWindow *, VM *);
+void PowProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm);
+void Log10Proc(Stack<Value *> &stack, Process *proc, RunWindow *, VM *);
+void LnProc(Stack<Value *> &stack, Process *proc, RunWindow *, VM *);
 
-void FileWriteProc(QStack<Value *> &stack, Process *proc, RunWindow *, VM *);
-void FileWriteUsingWidthProc(QStack<Value *> &stack, Process *proc, RunWindow *, VM *);
-void FileWriteLineProc(QStack<Value *> &stack, Process *proc, RunWindow *, VM *);
-void FileReadLineProc(QStack<Value *> &stack, Process *proc, RunWindow *, VM *);
-void FileEofProc(QStack<Value *> &stack, Process *proc, RunWindow *w, VM *vm);
-void FileOpenProc(QStack<Value *> &stack, Process *proc, RunWindow *, VM *);
-void FileCreateProc(QStack<Value *> &stack, Process *proc, RunWindow *, VM *);
-void FileAppendProc(QStack<Value *> &stack, Process *proc, RunWindow *, VM *);
-void FileCloseProc(QStack<Value *> &stack, Process *proc, RunWindow *, VM *);
+void FileWriteProc(Stack<Value *> &stack, Process *proc, RunWindow *, VM *);
+void FileWriteUsingWidthProc(Stack<Value *> &stack, Process *proc, RunWindow *, VM *);
+void FileWriteLineProc(Stack<Value *> &stack, Process *proc, RunWindow *, VM *);
+void FileReadLineProc(Stack<Value *> &stack, Process *proc, RunWindow *, VM *);
+void FileEofProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm);
+void FileOpenProc(Stack<Value *> &stack, Process *proc, RunWindow *, VM *);
+void FileCreateProc(Stack<Value *> &stack, Process *proc, RunWindow *, VM *);
+void FileAppendProc(Stack<Value *> &stack, Process *proc, RunWindow *, VM *);
+void FileCloseProc(Stack<Value *> &stack, Process *proc, RunWindow *, VM *);
 
-void EditProc(QStack<Value *> &stack, Process *proc, RunWindow *w, VM *vm);
-void GetMainWindowProc(QStack<Value *> &stack, Process *proc, RunWindow *w, VM *vm);
-void NewChannelProc(QStack<Value *> &stack, Process *proc, RunWindow *w, VM *vm);
+void EditProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm);
+void GetMainWindowProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm);
+void NewChannelProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm);
 
-void LoadLibraryProc(QStack<Value *> &stack, Process *proc, RunWindow *w, VM *vm);
-void GetProcAddressProc(QStack<Value *> &stack, Process *proc, RunWindow *w, VM *vm);
-void AddressOfProc(QStack<Value *> &stack, Process *proc, RunWindow *w, VM *vm);
-void InvokeForeignProc(QStack<Value *> &stack, Process *proc, RunWindow *w, VM *vm);
+void LoadLibraryProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm);
+void GetProcAddressProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm);
+void AddressOfProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm);
+void InvokeForeignProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm);
 
-void CurrentParseTreeProc(QStack<Value *> &stack, Process *proc, RunWindow *w, VM *vm);
-void MakeParserProc(QStack<Value *> &stack, Process *proc, RunWindow *w, VM *vm);
-void PushParserBacktrackPointProc(QStack<Value *> &stack, Process *proc, RunWindow *w, VM *vm);
-void IgnoreParserBacktrackPointProc(QStack<Value *> &stack, Process *proc, RunWindow *w, VM *vm);
-void ActivationFrameProc(QStack<Value *> &stack, Process *proc, RunWindow *w, VM *vm);
+void CurrentParseTreeProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm);
+void MakeParserProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm);
+void PushParserBacktrackPointProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm);
+void IgnoreParserBacktrackPointProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm);
+void ActivationFrameProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm);
+
+void MigrateToGuiThreadProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm);
+void MigrateBackFromGuiThreadProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm);
+
 
 double verifyNumeric(Value *v, RunWindow *w); // TODO: make this a method of RunWindow
-int popIntOrCoercable(QStack<Value *> &stack, Process *proc, RunWindow *w, VM *vm);
-double popDoubleOrCoercable(QStack<Value *> &stack, Process *proc, RunWindow *w, VM *vm);
-int popInt(QStack<Value *> &stack, Process *proc, RunWindow *w, VM *vm);
-bool popBool(QStack<Value *> &stack, Process *proc, RunWindow *w, VM *vm);
-void *popRaw(QStack<Value *> &stack, Process *proc, RunWindow *w, VM *vm, IClass *type);
-QString popString(QStack<Value *> &stack, Process *proc, RunWindow *w, VM *vm);
-Value *popValue(QStack<Value *> &stack, Process *proc,  RunWindow *w, VM *vm);
-void verifyStackNotEmpty(QStack<Value *> &stack, Process *proc, VM *vm);
+int popIntOrCoercable(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm);
+double popDoubleOrCoercable(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm);
+int popInt(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm);
+bool popBool(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm);
+void *popRaw(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm, IClass *type);
+QString popString(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm);
+Value *popValue(Stack<Value *> &stack, Process *proc,  RunWindow *w, VM *vm);
+void verifyStackNotEmpty(Stack<Value *> &stack, Process *proc, VM *vm);
 
 Value *ConvertStringToNumber(QString str, VM *vm);
 
 class WindowReadMethod : public ExternalMethod
 {
     RunWindow *parent;
-    QStack<Value *> *operandStack;
+    //QStack<Value *> *operandStack;
     VM *vm;
 public:
     int readNum;
 public:
     WindowReadMethod(RunWindow *parent, VM *vm);
-    void operator()(QStack<Value *> &operandStack, Process *);
+    void operator()(Stack<Value *> &operandStack, Process *);
 };
 
 class WindowProxyMethod : public ExternalMethod
@@ -157,8 +161,8 @@ class WindowProxyMethod : public ExternalMethod
     VM_PROC proc;
     VM *vm;
 public:
-    WindowProxyMethod(RunWindow *parent, VM *vm, VM_PROC proc);
-    void operator()(QStack<Value *> &operandStack, Process *process);
+    WindowProxyMethod(RunWindow *parent, VM *vm, VM_PROC proc, bool mustRunInGui=true);
+    void operator()(Stack<Value *> &operandStack, Process *process);
 };
 
 #endif // BUILTINMETHODS_H

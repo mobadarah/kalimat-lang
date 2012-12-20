@@ -7,6 +7,7 @@
 
 #include "paintsurface.h"
 #include <QFontDatabase>
+#include "../vm.h"
 
 PaintSurface::PaintSurface(QSize size, QFont font)
 {
@@ -18,6 +19,13 @@ PaintSurface::PaintSurface(QSize size, QFont font)
     textFont = font;
     cursorTimerPoint = -1;
     dirtyState = true; // to update first time
+
+
+    // todo: this line is the only reference we have to VM
+    // we need to remove this dependency and remove #include "vm.h"
+    // from this file so that the PaintSurface class is not coupled with
+    // SmallVM and can be used elsewhere
+    locationFormatter = VM::argumentErrors.get(ArgErr::MouseLocationReport2);
 }
 
 bool PaintSurface::dirty()
@@ -27,7 +35,7 @@ bool PaintSurface::dirty()
 
 void PaintSurface::paint(QPainter &painter, TextLayer &textLayer, SpriteLayer &spriteLayer)
 {
-  //  if(textLayer.dirty() || spriteLayer.dirty() || this->dirty())
+    if(textLayer.dirty() || spriteLayer.dirty() || this->dirty())
     {
         update(textLayer, spriteLayer);
         textLayer.updated();
@@ -63,13 +71,12 @@ void PaintSurface::update(TextLayer &textLayer, SpriteLayer &spriteLayer)
         imgPainter.drawLine(x2, y2, x2-5, y2-5);
         imgPainter.drawLine(x2, y2, x2+5, y2-5);
 
-        QString loc = QString::fromStdWString(L"س=%1، ص=%2 النقطة=(%1, %2)").arg(mouseLocationForDemo.x())
-                .arg(mouseLocationForDemo.y());
+        QString loc = locationFormatter.arg(mouseLocationForDemo.x()).arg(mouseLocationForDemo.y());
         int locX = 230;
         int locY = 20 + shiftDist;
-        TX(locX);
+        int w = imgPainter.fontMetrics().width(loc);
+        TX(locX, w);
         imgPainter.drawText(locX, locY, loc);
-
     }
 }
 

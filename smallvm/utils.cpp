@@ -8,7 +8,25 @@
 #include "utils.h"
 #include <QStringList>
 //#include <iostream>
+
+#ifdef Q_OS_WIN
+    #include <windows.h> // for Sleep
+#endif
+#include <time.h>
+
 using namespace std;
+
+void mySleep(int ms)
+{
+    if(ms <= 0)
+        return;
+#ifdef Q_OS_WIN
+    Sleep(uint(ms));
+#else
+    timespec ts = { ms / 1000, (ms % 1000) * 1000 * 1000 };
+    nanosleep(&ts, NULL);
+#endif
+}
 
 QString str(int i)
 {
@@ -50,7 +68,7 @@ int Labeller::labelOf(QString str)
     {
         labelMap[str] = count++;
     }
-    return labelMap[str];
+    return labelMap.value(str, -1);
 }
 
 QString readFile(QString path)

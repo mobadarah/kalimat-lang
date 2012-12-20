@@ -20,21 +20,12 @@ using namespace std;
 
 Translation<ArgErr::ArgError> VM::argumentErrors(":/runlib_errors.txt");
 
-QSet<QQueue<Process *> *> setOf(QQueue<Process *> *q1, QQueue<Process *> * q2, QQueue<Process *> *q3,
-                                QQueue<Process *> *q4, QQueue<Process *> *q5)
-{
-    QSet<QQueue<Process *> *> ret;
-    ret.insert(q1);
-    ret.insert(q2);
-    ret.insert(q3);
-    ret.insert(q4);
-    ret.insert(q5);
-    return ret;
-}
-
 VM::VM()
-    :allocator(&constantPool, setOf(&running, &sleeping, &timerWaiting, &newProcesses, &guiProcesses))
+    :mainScheduler(this),
+      guiScheduler(this),
+     allocator(&constantPool, setOf(&mainScheduler))
 {
+    qRegisterMetaType<VMError>("VMError");
 }
 
 void VM::Init()
@@ -49,59 +40,29 @@ void VM::Init()
     if(constantPool.contains(malaf))
         BuiltInTypes::FileType = (ValueClass *) constantPool[malaf]->unboxObj();
 
-    _globalFrame = new Frame();
-    allocator.addOtherFrameAsRoot(_globalFrame);
-    launchProcess(method);
+    allocator.addOtherFrameAsRoot(&_globalFrame);
+    launchProcess(method, _mainProcess);
 
-    // launchProcess() puts the just created main function
-    // into the newProcesses queue, while the rest of the code
-    // assumes it's in 'running' queue
-    // so we manually move it
-    running.push_front(newProcesses.takeFirst());
-
-    _mainProcess = running.front();
-    _isRunning = true;
+    startTheWorld();
     debugger = NULL;
 }
 
 Frame *VM::launchProcess(Method *method)
 {
-    Process *dummy;
-    return launchProcess(method, dummy);
+    Frame *ret = mainScheduler.launchProcess(method);
+    return ret;
 }
 
 Frame *VM::launchProcess(Method *method, Process *&proc)
 {
-    Process *p = new Process(this);
-    p->stack.push(Frame(method, NULL));
-    newProcesses.push_back(p);
-    Frame *ret = &p->stack.top();
+    Frame *ret = mainScheduler.launchProcess(method, proc);
     return ret;
 }
 
 Frame *VM::launchProcessAsInterrupt(Method *method)
 {
-    Process *p = new Process(this);
-    p->interrupt = true; // <-
-    p->stack.push(Frame(method, NULL));
-    newProcesses.push_front(p); // front, not back!
-    Frame *ret = &p->stack.top();
+    Frame *ret = mainScheduler.launchProcessAsInterrupt(method);
     return ret;
-}
-
-void VM::awaken(Process *proc)
-{
-    sleeping.removeOne(proc);
-
-    running.push_front(proc);
-}
-
-void VM::sleepify(Process *proc)
-{
-    running.removeOne(proc);
-
-    sleeping.push_back(proc); // todo: what's more optimal, push_back or push_front?
-
 }
 
 void VM::assert(Process *proc, bool cond, VMErrorType toSignal)
@@ -133,34 +94,33 @@ void VM::assert(Process *proc, bool cond, VMErrorType toSignal, QString arg0, QS
         signal(proc, toSignal, arg0, arg1, arg2);
 }
 
-QSet<QQueue<Process *> *> VM::getCallStacks()
-{
-    return setOf(&running, &sleeping, &timerWaiting, &newProcesses, &guiProcesses);
-}
-
 void VM::signalWithStack(Process *proc, VMError err)
 {
-    _isRunning = false;
-    if(!running.empty())
-        err.callStack = proc->stack;
+    stopTheWorld();
+    // todo: why this condition??
+    //if(!running.empty())
+    //    err.callStack = proc->stack;
+
+    err.callStack = proc->stack;
     throw err;
 }
 
 void VM::signal(Process *proc, VMErrorType err)
 {
-    _isRunning = false;
+    stopTheWorld();
     if(proc)
-        _lastError = VMError(err, proc->stack);
+        _lastError = VMError(err, proc, proc->owner, proc->stack);
     else
         _lastError = VMError(err);
 
     throw _lastError;
 }
+
 void VM::signal(Process *proc, VMErrorType err, QString arg0)
 {
-    _isRunning = false;
+    stopTheWorld();
     if(proc)
-        _lastError = VMError(err, proc->stack).arg(arg0);
+        _lastError = VMError(err, proc, proc->owner, proc->stack).arg(arg0);
     else
         _lastError = VMError(err).arg(arg0);
     throw _lastError;
@@ -168,9 +128,9 @@ void VM::signal(Process *proc, VMErrorType err, QString arg0)
 
 void VM::signal(Process *proc, VMErrorType err, QString arg0, QString arg1)
 {
-    _isRunning = false;
+    stopTheWorld();
     if(proc)
-        _lastError = VMError(err, proc->stack).arg(arg0).arg(arg1);
+        _lastError = VMError(err, proc, proc->owner, proc->stack).arg(arg0).arg(arg1);
     else
         _lastError = VMError(err).arg(arg0).arg(arg1);
     throw _lastError;
@@ -178,9 +138,9 @@ void VM::signal(Process *proc, VMErrorType err, QString arg0, QString arg1)
 
 void VM::signal(Process *proc, VMErrorType err, QString arg0, QString arg1, QString arg2)
 {
-    _isRunning = false;
+    stopTheWorld();
     if(proc)
-        _lastError = VMError(err, proc->stack).arg(arg0).arg(arg1).arg(arg2);
+        _lastError = VMError(err, proc, proc->owner, proc->stack).arg(arg0).arg(arg1).arg(arg2);
     else
         _lastError = VMError(err).arg(arg0).arg(arg1).arg(arg2);
     throw _lastError;
@@ -203,46 +163,14 @@ QStack<Frame> &VM::stack()
 }
 */
 
-void VM::makeItSleep(Process *proc, int ms)
-{
-    proc->state = TimerWaitingProcess;
-
-    proc->timeToWake = clock() + ms * CLOCKS_PER_SEC / 1000;
-    running.removeOne(proc);
-    bool added = false;
-    int posToInsertAt= 0;
-
-    // We now want to insert proc just before the proc
-    // with least timeToWake that is larger than
-    // proc's timeToWake
-    for(int i=0; i<timerWaiting.count(); i++)
-    {
-        if(timerWaiting[i]->timeToWake > proc->timeToWake)
-        {
-            posToInsertAt = i;
-            added = true;
-        }
-    }
-    if(!added)
-        timerWaiting.append(proc);
-    else
-        timerWaiting.insert(posToInsertAt, proc);
-}
-
-bool VM::hasInterrupts()
-{
-    return running.count()>0 &&
-            running.front()->interrupt;
-}
-
 bool VM::hasRegisteredEventHandler(QString evName)
 {
     return registeredEventHandlers.contains(evName);
 }
 
-Frame &VM::globalFrame()
+QMap<QString, Value *> &VM::globalFrame()
 {
-    return *_globalFrame;
+    return _globalFrame;
 }
 
 void VM::setDebugger(Debugger *d)
@@ -295,7 +223,7 @@ bool VM::getCodePos(Process *proc, QString &method, int &offset, Frame *&frame)
     {
         return false;
     }
-    frame = &proc->stack.top();
+    frame = proc->currentFrame();
     method = frame->currentMethod->getName();
     offset = frame->ip;
     return true;
@@ -315,22 +243,22 @@ void VM::RegisterType(QString typeName, IClass *type)
 
 void VM::ActivateEvent(QString evName, QVector<Value *>args)
 {
-    //assert(registeredEventHandlers.contains(evName), NoSuchEvent, evName);
-    if(!registeredEventHandlers.contains(evName))
+    QString procName = registeredEventHandlers.value(evName, "");
+    if(procName == "")
         return;
-    QString procName = registeredEventHandlers[evName];
     int procLabel = constantPoolLabeller.labelOf(procName);
-    assert(NULL, constantPool.contains(procLabel), NoSuchProcedureOrFunction1, procName);
-    Method *method = (Method *) constantPool[procLabel]->unboxObj();
+    Value *v = constantPool.value(procLabel, NULL);
+    assert(NULL, v, NoSuchProcedureOrFunction1, procName);
+    Method *method = (Method *) v->unboxObj();
     assert(NULL, args.count() == method->Arity(), WrongNumberOfArguments3, procName, toStr(args.count()), toStr(method->Arity()));
 
     //Frame *newFrame = launchAdministeredProcess(method, "evQ");
-    Frame *newFrame = launchProcessAsInterrupt(method);
+    //Frame *newFrame = launchProcessAsInterrupt(method);
+    Frame *newFrame = guiScheduler.launchProcessAsInterrupt(method);
     for(int i=args.count()-1; i>=0; i--)
     {
         newFrame->OperandStack.push(args[i]);
     }
-    _isRunning = true;
 }
 
 void VM::DefineStringConstant(QString symRef, QString strValue)
@@ -343,12 +271,12 @@ void VM::DefineStringConstant(QString symRef, QString strValue)
 
 void VM::SetGlobal(QString symRef, Value *v)
 {
-    globalFrame().Locals[symRef] = v;
+    globalFrame()[symRef] = v;
 }
 
 Value *VM::GetGlobal(QString symRef)
 {
-    return globalFrame().Locals[symRef];
+    return globalFrame().value(symRef);
 }
 
 Value *VM::GetType(QString vmTypeId)
@@ -383,77 +311,6 @@ void VM::gc()
     allocator.gc();
 }
 
-bool VM::schedule()
-{
-    clock_t qt = clock();
-
-    bool awokeAtimer = false;
-    if(timerWaiting.count() > 0)
-    {
-        while(timerWaiting.count() >0 && timerWaiting.front()->timeToWake < qt)
-        {
-            awokeAtimer = true;
-            Process *proc = timerWaiting.takeFirst();
-            proc->awaken();
-        }
-    }
-
-    if(!awokeAtimer && newProcesses.count() > 0)
-    {
-        Process *proc = newProcesses.takeFirst();
-        running.push_front(proc);
-    }
-
-
-    if(running.empty() && timerWaiting.empty() && sleeping.empty())
-    {
-        _isRunning = false;
-        return false;
-    }
-
-    if(running.empty())
-    {
-        return false;
-    }
-    return true;
-}
-
-void VM::RunStep(bool singleInstruction)
-{
-    int random = rand();
-    int n = singleInstruction? 1 : random % 30;
-
-    // Bring a process to the front of 'running' queue
-
-    if(!schedule())
-        return;
-
-    runningNow = running.front();
-
-    runningNow->RunTimeSlice(n, this);
-
-    if(runningNow->state != MovedToGuiThread)
-        finishUpRunningProcess();
-
-    _isRunning = !isDone();
-}
-
-void VM::finishUpRunningProcess()
-{
-    // Notice that it may be already removed, e.g by a call to receive
-    // or sleep
-    if(runningNow->isFinished() || runningNow->state != AwakeProcess)
-    {
-        running.removeOne(runningNow);
-    }
-
-    if(runningNow->isFinished())
-    {
-        delete runningNow; // since it will not be put in any queue
-        runningNow = NULL;
-
-    }
-}
 
 
 /*
@@ -764,7 +621,7 @@ void VM::Load(QString assemblyCode)
         }
         else if(opcode == "jmp")
         {
-            Instruction i = Instruction(Jmp).wLabels(arg, NULL);
+            Instruction i = Instruction(Jmp).wLabels(arg, NULL, curMethod->GetFastLabel(arg), -1);
             curMethod->Add(i, label, extraInfo);
         }
         else if(opcode == "jmpv")
@@ -775,7 +632,9 @@ void VM::Load(QString assemblyCode)
         else if(opcode == "if")
         {
             QStringList two_labels = arg.split(",", QString::SkipEmptyParts, Qt::CaseInsensitive);
-            Instruction i = Instruction(If).wLabels(two_labels[0].trimmed(), two_labels[1].trimmed());
+            QString lbl1 = two_labels[0].trimmed();
+            QString lbl2 = two_labels[1].trimmed();
+            Instruction i = Instruction(If).wLabels(lbl1, lbl2, curMethod->GetFastLabel(lbl1), curMethod->GetFastLabel(lbl2));
             curMethod->Add(i, label, extraInfo);
         }
         else if(opcode == "lt")
@@ -978,7 +837,7 @@ void VM::Load(QString assemblyCode)
 void VM::patchupInheritance(QMap<ValueClass *, QString> inheritanceList)
 {
     // todo: walking the inheritanceList is unordered!
-    // base classes might not be added in order or inheritance in code!!
+    // base classes might not be added in order of inheritance in code!!
     for(QMap<ValueClass *, QString>::iterator i=inheritanceList.begin(); i!= inheritanceList.end(); ++i)
     {
         ValueClass *c = i.key();
@@ -1001,18 +860,28 @@ void VM::patchupInheritance(QMap<ValueClass *, QString> inheritanceList)
     }
 }
 
+void VM::stopTheWorld()
+{
+
+}
+
+void VM::startTheWorld()
+{
+
+}
 
 bool VM::isRunning()
 {
-    return _isRunning;
+    // don't think this is correct
+    return mainScheduler.isRunning() && guiScheduler.isRunning();
 }
 
 bool VM::isDone()
 {
-    return running.empty() && timerWaiting.empty() && newProcesses.empty() && sleeping.empty() && guiProcesses.empty();
+    return mainScheduler.isDone();
 }
 
 void VM::reactivate()
 {
-    _isRunning = true;
+    startTheWorld();
 }

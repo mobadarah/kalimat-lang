@@ -44,8 +44,8 @@ struct VariableRef : public Reference
 {
     Frame *frame;
     QString varName;
-
-    VariableRef(Frame *frame, QString varName);
+    int fastLocalIndex;
+    VariableRef(Frame *frame, QString varName, int fastLocalIndex);
     void Set(Value *val);
     Value *Get();
 };

@@ -8,13 +8,14 @@
 #include "frame.h"
 #include "vmerror.h"
 #include "allocator.h"
+#include "runtime_identifiers.h"
 
 FrameClass::FrameClass(QString className)
     : EasyForeignClass(className)
 {
-    _method(L"قيمة.المتغير.المحلي",
+    _method(VMId::get(RId::LocalVar),
             0, 1);
-    _method(L"حدد.قيمة.المتغير.المحلي",
+    _method(VMId::get(RId::SetLocalVar),
             1, 2);
 }
 
@@ -34,46 +35,84 @@ Value *FrameClass::dispatch(Process *proc, int id, QVector<Value *> args)
     {
         case 0: // قيمة.المتغير.المحلي
         str = args[1]->unboxStr();
-        if(frm->Locals.contains(str))
-            return frm->Locals[str];
+        if(frm->currentMethod->Locals.contains(str))
+            return frm->fastLocals[frm->currentMethod->Locals[str]];
         else
             return allocator->null();
         case 1: // حدد.قيمة.المتغير.المحلي
         str = args[1]->unboxStr();
-        frm->Locals[str] = args[2];
+        frm->fastLocals[frm->currentMethod->Locals[str]] = args[2];
         return NULL;
     default:
-        throw VMError(InternalError1).arg(QString::fromStdWString(L"لا توجد هذه الاستجابة"));
+        throw VMError(NoSuchForeignMethod2).arg(::str(id)).arg(this->getName());
     }
 }
 
 Frame::Frame()
 {
-
+    next = NULL;
+    fastLocals = NULL;
+    fastLocalCount = 0;
 }
 
-Frame::Frame(Method *method, Frame *caller)
+Frame::Frame(Method *method)
 {
     currentMethod = method;
-    this->caller = caller;
     ip = 0;
     returnReferenceIfRefMethod = true;
+    next = NULL;
+    prepareFastLocals();
 }
-Frame::Frame(Method *method, int ip, Frame *caller)
+
+Frame::Frame(Method *method, int ip)
 {
     currentMethod = method;
-    this->caller = caller;
     this->ip = ip;
     returnReferenceIfRefMethod = true;
+    next = NULL;
+    prepareFastLocals();
+}
+
+Frame::~Frame()
+{
+    if(fastLocals && fastLocals != fastLocalsStatic)
+    {
+        delete[] fastLocals;
+    }
 }
 
 Instruction Frame::getPreviousRunningInstruction()
 {
-    int n = currentMethod->InstructionCount();
+    const int n = currentMethod->InstructionCount();
     if(ip>=1 && ip-1 < n)
         return currentMethod->Get(this->ip-1);
     else
         return currentMethod->Get(n-1);
+}
+
+void Frame::prepareFastLocals()
+{
+    int n = currentMethod->localVarCount();
+    fastLocalCount = n;
+    if(n != 0)
+    {
+        if(n<=fast_local_static_size)
+        {
+            fastLocals = fastLocalsStatic;
+        }
+        else
+        {
+            fastLocals = new Value *[n];
+        }
+        for(int i=0; i<n; i++)
+        {
+            fastLocals[i] = NULL;
+        }
+    }
+    else
+    {
+        fastLocals = NULL;
+    }
 }
 
 bool Frame::hasSlot(QString)
@@ -98,5 +137,5 @@ void Frame::setSlotValue(QString, Value *)
 
 QString Frame::toString()
 {
-    return QString::fromStdWString(L"<إطار.تفعيل>");
+    return QString("<%1>").arg(VMId::get(RId::ActivationRecord));
 }

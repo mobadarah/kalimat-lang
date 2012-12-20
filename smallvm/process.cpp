@@ -1,15 +1,34 @@
 #include "process.h"
+#include "scheduler.h"
 #include "vm.h"
 #include "value.h"
 #include "utils.h"
 #include "runtime/parserengine.h"
+#include <QDebug>
 
+#define assert0(cond, toSignal) if(!(cond)) { signal(toSignal); }
+#define assert1(cond, toSignal, arg0) if(!(cond)) { signal(toSignal, arg0); }
+#define assert2(cond, toSignal, arg0, arg1) if(!(cond)) { signal(toSignal, arg0, arg1); }
+#define assert3(cond, toSignal, arg0, arg1, arg2) if(!(cond)) { signal(toSignal, arg0, arg1, arg2); }
 
-Process::Process(VM *owner)
+Process::Process(Scheduler *owner)
 {
+    vm = owner->vm;
     state = AwakeProcess;
     this->owner = owner;
     interrupt = false;
+    wannaMigrateTo = NULL;
+    stack = NULL;
+}
+
+Process::~Process()
+{
+    while(stack != NULL)
+    {
+        Frame *temp = stack;
+        stack = stack->next;
+        delete temp;
+    }
 }
 
 void Process::sleep()
@@ -88,7 +107,7 @@ void Process::successfullSelect(Channel *chan)
     if(!allChans.empty())
     {
         // If this was a select, not a simple receive or send
-        this->stack.top().OperandStack.push(owner->GetAllocator().newInt(successIndex));
+        this->currentFrame()->OperandStack.push(vm->GetAllocator().newInt(successIndex));
     }
     allChans.clear();
 }
@@ -96,13 +115,14 @@ void Process::successfullSelect(Channel *chan)
 const Instruction &Process::getCurrentInstruction()
 {
     //todo: use this to retrieve the current instruction in RunStep()
-    const Instruction &i= stack.top().currentMethod->Get(stack.top().ip);
+    Frame *f = currentFrame();
+    const Instruction &i= f->currentMethod->Get(f->ip);
     return i;
 }
 
 IMethod *Process::popMethod()
 {
-    QStack<Value *> &stack = this->stack.top().OperandStack;
+    Stack<Value *> &stack = this->currentFrame()->OperandStack;
     if(stack.empty())
         this->signal(InternalError1, "Empty operand stack when reading integer or integer-coercible value");
     Value *v = stack.top();
@@ -115,7 +135,7 @@ IMethod *Process::popMethod()
 
 VArray *Process::popArray()
 {
-    QStack<Value *> &stack = this->stack.top().OperandStack;
+    Stack<Value *> &stack = this->currentFrame()->OperandStack;
     if(stack.empty())
         this->signal(InternalError1, "Empty operand stack when reading integer or integer-coercible value");
     Value *v = stack.top();
@@ -128,12 +148,12 @@ VArray *Process::popArray()
 
 int Process::popIntOrCoercedDouble()
 {
-    QStack<Value *> &stack = this->stack.top().OperandStack;
+    Stack<Value *> &stack = this->currentFrame()->OperandStack;
     if(stack.empty())
         this->signal(InternalError1, "Empty operand stack when reading integer or integer-coercible value");
     Value *v = stack.top();
     if(v->tag != Int && v->tag != Double)
-        this->signal(TypeError2, QString::fromStdWString(L"عدد"), v->type->getName());
+        this->signal(TypeError2, BuiltInTypes::NumericType->getName(), v->type->getName());
     v = stack.pop();
     int ret;
     if(v->tag == Double)
@@ -145,12 +165,12 @@ int Process::popIntOrCoercedDouble()
 
 double Process::popDoubleOrCoercedInt()
 {
-    QStack<Value *> &stack = this->stack.top().OperandStack;
+    Stack<Value *> &stack = this->currentFrame()->OperandStack;
     if(stack.empty())
         this->signal(InternalError1, "Empty operand stack when reading value in 'popDoubleOrCoercedInt'");
     Value *v = stack.top();
     if(v->tag != Int && v->tag != Double)
-        this->signal(TypeError2, QString::fromStdWString(L"عدد"), v->type->getName());
+        this->signal(TypeError2, BuiltInTypes::NumericType->getName(), v->type->getName());
     v = stack.pop();
     double ret;
     if(v->tag == Double)
@@ -160,63 +180,82 @@ double Process::popDoubleOrCoercedInt()
     return ret;
 }
 
-int getInstructionArity(const Instruction &i)
+void Process::RunTimeSlice(int slice, VM *vm, Scheduler *caller)
 {
-    if(i.Arg == NULL)
-        return -1;
-    return i.Arg->unboxInt();
-}
-
-void Process::RunTimeSlice(int slice, VM *vm)
-{
-    while(slice--)
+    timeSlice = slice;
+    while(timeSlice > 0)
     {
         if(this->isFinished())
         {
             break;
         }
-        if(this->state == SleepingProcess)
-        {
-            break;
-        }
-        if(this->state == TimerWaitingProcess)
-        {
-            break;
-        }
-        if(this->state == MovedToGuiThread)
-        {
-            vm->getGUIProcesses().push_back(this);
-            break;
-        }
 
         RunSingleInstruction();
+
+        timeSlice--;
         // A breakpoint might pause/stop the VM, we then must stop this function at once
-        if(!vm->isRunning())
-            return;
+        //if(!vm->isRunning())
+        //    return;
     }
+}
+
+void Process::migrateTo(Scheduler *scheduler)
+{
+    if(owner == scheduler)
+        return;
+
+    if(this->state != AwakeProcess)
+        signal(InternalError1, "Cannot migrate process unless it's active");
+    //owner->lock.lock();
+    //qDebug("locked owner in migrate");
+    scheduler->lock.lock();
+    //qDebug("locked other in migrate");
+
+    timeSlice = 0;
+    owner->detachProcess(this);
+    owner = scheduler;
+    scheduler->attachProcess(this);
+
+    scheduler->lock.unlock();
+    //qDebug("unlocked other in migrate");
+    //oldOwner->lock.unlock();
+    //qDebug("unlocked owner in migrate");
+
+
+    /*
+    if(owner == &vm->mainScheduler)
+    {
+        //qDebug() << "migrated " << (long) this << " to runner thread";
+    }
+    else
+    {
+        //qDebug() << "migrated " << (long) this << " to GUI thread";
+        vm->guiScheduler.restartOwner();
+    }
+    //*/
 }
 
 void Process::RunSingleInstruction()
 {
-    Frame &frame = stack.top();
-    const Instruction &i = frame.currentMethod->Get(frame.ip);
+    Frame *frame = currentFrame();
+    const Instruction &i = frame->currentMethod->Get(frame->ip);
 
     /*
-    qDebug() << QString("Running '%1', IP=%2, method=%3, process=%4\n")
+    qDebug() << QString("Running '%1', IP=%2, method=%3, process=%4, scheduler =%5")
              .arg(InstructionToString(i))
              .arg(frame.ip)
              .arg(frame.currentMethod->getName())
-             .arg((long) process);
+             .arg((long) this)
+             .arg((owner ==(&vm->mainScheduler))?QString("main"): QString("gui"));
     //*/
-    frame.ip++;
+    frame->ip++;
 
-    Value *Arg;
-
+    i.runner((Instruction *) &i, this);
+    /*
     switch(i.opcode)
     {
     case PushV:
-        Arg = i.Arg;
-        this->DoPushVal(Arg);
+        this->DoPushVal(i.Arg);
         break;
     case PushLocal:
         this->DoPushLocal(i.SymRef);
@@ -267,13 +306,13 @@ void Process::RunSingleInstruction()
         this->DoNot(); // tee hee
         break;
     case Jmp:
-        this->DoJmp(i.True);
+        this->DoJmp(i.True, i.fastTrue);
         break;
     case JmpVal:
         this->DoJmpVal();
         break;
     case If:
-        this->DoIf(i.True, i.False);
+        this->DoIf(i.True, i.False, i.fastTrue, i.fastFalse);
         break;
     case Lt:
         this->DoLt();
@@ -377,76 +416,84 @@ void Process::RunSingleInstruction()
         this->DoTick();
         break;
     default:
-        signal(UnrecognizedInstruction);
+        signal(UnrecognizedInstruction1, InstructionToString(i));
         break;
 
     } // switch i.opcode
+    */
 }
 
 void Process::signal(VMErrorType toSignal)
 {
-    owner->signal(this, toSignal);
+    vm->signal(this, toSignal);
 }
 
 
 void Process::signal(VMErrorType toSignal, QString arg0)
 {
-    owner->signal(this, toSignal, arg0);
+    vm->signal(this, toSignal, arg0);
 }
 
 void Process::signal(VMErrorType toSignal, QString arg0, QString arg1)
 {
-    owner->signal(this, toSignal, arg0, arg1);
+    vm->signal(this, toSignal, arg0, arg1);
+}
+
+void Process::signal(VMErrorType toSignal, IClass *arg0, IClass *arg1)
+{
+    vm->signal(this, toSignal, arg0->getName(), arg1->getName());
 }
 
 void Process::signal(VMErrorType toSignal, QString arg0, QString arg1, QString arg2)
 {
-    owner->signal(this, toSignal, arg0, arg1, arg2);
+    vm->signal(this, toSignal, arg0, arg1, arg2);
 }
 
 void Process::signalWithStack(VMError err)
 {
-    owner->signalWithStack(this, err);
+    vm->signalWithStack(this, err);
 }
 
+//*
 void Process::assert(bool cond, VMErrorType toSignal)
 {
-    owner->assert(this, cond, toSignal);
+    vm->assert(this, cond, toSignal);
 }
 
 void Process::assert(bool cond, VMErrorType toSignal, QString arg0)
 {
-    owner->assert(this, cond, toSignal, arg0);
+    vm->assert(this, cond, toSignal, arg0);
 }
 
 void Process::assert(bool cond, VMErrorType toSignal, QString arg0, QString arg1)
 {
-    owner->assert(this, cond, toSignal, arg0, arg1);
+    vm->assert(this, cond, toSignal, arg0, arg1);
 }
 
 void Process::assert(bool cond, VMErrorType toSignal, IClass *arg0, IClass *arg1)
 {
-    owner->assert(this, cond, toSignal, arg0, arg1);
+    vm->assert(this, cond, toSignal, arg0, arg1);
 }
 
 void Process::assert(bool cond, VMErrorType toSignal, QString arg0, QString arg1, QString arg2)
 {
-    owner->assert(this, cond, toSignal, arg0, arg1, arg2);
+    vm->assert(this, cond, toSignal, arg0, arg1, arg2);
 }
+//*/
 
-inline Frame &Process::globalFrame()
+inline QMap<QString, Value *> &Process::globalFrame()
 {
-    return owner->globalFrame();
+    return vm->globalFrame();
 }
 
 inline QHash<int, Value*> &Process::constantPool()
 {
-    return owner->constantPool;
+    return vm->constantPool;
 }
 
 inline Allocator &Process::allocator()
 {
-    return owner->allocator;
+    return vm->allocator;
 }
 
 void Process::DoPushVal(Value *Arg)
@@ -454,42 +501,47 @@ void Process::DoPushVal(Value *Arg)
     currentFrame()->OperandStack.push(Arg);
 }
 
-void Process::DoPushLocal(QString SymRef)
+void Process::DoPushLocal(const QString &SymRef, int SymRefLabel)
 {
-    assert(currentFrame()->Locals.contains(SymRef), NoSuchVariable1, SymRef);
-    currentFrame()->OperandStack.push(currentFrame()->Locals[SymRef]);
+    assert1(SymRefLabel != -1, NoSuchVariable1, SymRef);
+    Value *v = currentFrame()->fastLocals[SymRefLabel];
+    assert1(v, NoSuchVariable1, SymRef);
+    currentFrame()->OperandStack.push(v);
 }
 
-void Process::DoPushGlobal(QString SymRef)
+void Process::DoPushGlobal(const QString &SymRef)
 {
-    assert(globalFrame().Locals.contains(SymRef), NoSuchVariable1, SymRef);
-    currentFrame()->OperandStack.push(globalFrame().Locals[SymRef]);
+    Value *v = globalFrame().value(SymRef, NULL);
+    assert1(v != NULL, NoSuchVariable1, SymRef);
+    currentFrame()->OperandStack.push(v);
 }
 
 void Process::DoPushConstant(QString SymRef, int SymRefLabel)
 {
-    if(constantPool().contains(SymRefLabel))
-        currentFrame()->OperandStack.push(constantPool()[SymRefLabel]);
+    Value *v = constantPool().value(SymRefLabel, NULL);
+    if(v != NULL)
+        currentFrame()->OperandStack.push(v);
     else
     {
         signal(InternalError1, QString("pushc: Constant pool doesn't contain key '%1'").arg(SymRef));
     }
 }
 
-void Process::DoPopLocal(QString SymRef)
+void Process::DoPopLocal(const QString &SymRef, int SymRefLabel)
 {
     if(currentFrame()->OperandStack.empty())
         signal(InternalError1, "Empty operand stack when reading value in 'popl'");
+    assert1(SymRefLabel != -1, NoSuchVariable1, SymRef);
     Value *v = currentFrame()->OperandStack.pop();
-    currentFrame()->Locals[SymRef] = v;
+    currentFrame()->fastLocals[SymRefLabel] = v;
 }
 
-void Process::DoPopGlobal(QString SymRef)
+void Process::DoPopGlobal(const QString &SymRef)
 {
     if(currentFrame()->OperandStack.empty())
         signal(InternalError1, "Empty operand stack when reading value in 'popg'");
     Value *v = currentFrame()->OperandStack.pop();
-    globalFrame().Locals[SymRef] = v;
+    globalFrame()[SymRef] = v;
 }
 
 void Process::DoPushNull()
@@ -598,12 +650,12 @@ void Process::DoAdd()
 
 void Process::DoSub()
 {
-    BuiltInArithmeticOp(_ws(L"طرح"), sub_int, sub_long, sub_double);
+    BuiltInArithmeticOp(VMId::get(RId::Subtraction), sub_int, sub_long, sub_double);
 }
 
 void Process::DoMul()
 {
-    BuiltInArithmeticOp(_ws(L"ضرب"), mul_int, mul_long, mul_double);
+    BuiltInArithmeticOp(VMId::get(RId::Multiplication), mul_int, mul_long, mul_double);
 }
 
 void Process::DoDiv()
@@ -622,7 +674,7 @@ void Process::DoNeg()
     Value *v1 = currentFrame()->OperandStack.pop();
     Value *v2 = NULL;
 
-    assert(v1->tag == Int || v1->tag == Long || v1->tag == Double,
+    assert2(v1->tag == Int || v1->tag == Long || v1->tag == Double,
            NumericOperationOnNonNumber2, "-",v1->type->toString());
     if(v1->tag == Int)
         v2 = allocator().newInt(-v1->unboxInt());
@@ -649,30 +701,31 @@ void Process::DoNot()
     UnaryLogicOp(_not);
 }
 
-void Process::DoJmp(QString label)
+void Process::DoJmp(const QString &label, int fastLabel)
 {
-    int ip = currentFrame()->currentMethod->GetIp(label);
-    assert(ip != -1, JumpingToNonExistentLabel1, label);
+    int ip = currentFrame()->currentMethod->GetIp(fastLabel);
+    assert1(ip != -1, JumpingToNonExistentLabel1, label);
     currentFrame()->ip = ip;
 }
 
 void Process::DoJmpVal()
 {
-    Value *v = currentFrame()->OperandStack.pop();
-    assert(v->tag == Int || v->tag == StringVal, IncorrectJumpLabel1, v->type->toString());
+    Frame *f = currentFrame();
+    Value *v = f->OperandStack.pop();
+    assert1(v->tag == Int || v->tag == StringVal, IncorrectJumpLabel1, v->type->toString());
     QString label;
     if(v->tag == Int)
         label = QString("%1").arg(v->unboxInt());
     else
         label = v->unboxStr();
-    DoJmp(label);
+    DoJmp(label, f->currentMethod->GetFastLabel(label));
 }
 
-void Process::DoIf(QString trueLabel, QString falseLabel)
+void Process::DoIf(const QString &trueLabel, const QString &falseLabel, int fastTrueLabel, int fastFalseLabel)
 {
     Value *v = currentFrame()->OperandStack.pop();
-    assert(v->tag == Boolean, TypeError2, BuiltInTypes::BoolType, v->type);
-    test(v->unboxBool(), trueLabel, falseLabel);
+    assert2(v->tag == Boolean, TypeError2, BuiltInTypes::BoolType, v->type);
+    test(v->unboxBool(), trueLabel, falseLabel, fastTrueLabel, fastFalseLabel);
 }
 
 void Process::DoLt()
@@ -705,21 +758,22 @@ void Process::DoGe()
     BuiltInComparisonOp(ge_int, ge_long, ge_double, ge_str);
 }
 
-void Process::DoCall(QString symRef, int SymRefLabel, int arity, CallStyle callStyle)
+void Process::DoCall(const QString &symRef, int SymRefLabel, int arity, CallStyle callStyle)
 {
     CallImpl(symRef, SymRefLabel, true, arity, callStyle);
 }
 
-void Process::DoCallRef(QString symRef, int SymRefLabel, int arity, CallStyle callStyle)
+void Process::DoCallRef(const QString &symRef, int SymRefLabel, int arity, CallStyle callStyle)
 {
     CallImpl(symRef, SymRefLabel, false, arity, callStyle);
 }
 
-void Process::CallImpl(QString symRef, int symRefLabel, bool wantValueNotRef, int arity, CallStyle callStyle)
+void Process::CallImpl(const QString &symRef, int symRefLabel, bool wantValueNotRef, int arity, CallStyle callStyle)
 {
-    assert(constantPool().contains(symRefLabel), NoSuchProcedureOrFunction1, symRef);
-    Method *method = dynamic_cast<Method *>(constantPool()[symRefLabel]->unboxObj());
-    assert(method, NoSuchProcedureOrFunction1, symRef);
+    Value *v = constantPool().value(symRefLabel, NULL);
+    assert1(v != NULL, NoSuchProcedureOrFunction1, symRef);
+    Method *method = dynamic_cast<Method *>(v->unboxObj());
+    assert1(method, NoSuchProcedureOrFunction1, symRef);
     CallImpl(method, wantValueNotRef, arity, callStyle);
 }
 
@@ -741,20 +795,36 @@ void Process::CallImpl(Method *method, bool wantValueNotRef, int arity, CallStyl
     // pop c
     // ...code
 
-    assert(arity == -1 || method->Arity() ==-1 || arity == method->Arity(), WrongNumberOfArguments3,
+    int marity = method->Arity();
+    assert3(arity == -1 || marity ==-1 || arity == marity, WrongNumberOfArguments3,
            method->getName(), str(arity), str(method->Arity()));
-    QVector<Value *> args;
-    for(int i=0; i<method->Arity(); i++)
+
+    Value *argsFast[10];
+    Value** args = NULL;
+    if(marity <=10)
     {
-        Value *v = currentFrame()->OperandStack.pop();
-        args.append(v);
+        for(int i=0; i<marity; i++)
+        {
+            Value *v = currentFrame()->OperandStack.pop();
+            argsFast[i] = v;
+        }
+    }
+    else
+    {
+        args = new Value*[marity];
+        for(int i=0; i<marity; i++)
+        {
+            Value *v = currentFrame()->OperandStack.pop();
+            args[i] = v;
+        }
     }
 
     Frame *frame = NULL;
     if(callStyle == TailCall)
     {
-        stack.pop();
-        stack.push(Frame(method, currentFrame()));
+        Frame *oldFrame = popFrame();
+        delete oldFrame;
+        pushFrame(new Frame(method));
         frame = currentFrame();
     }
     else if(callStyle == LaunchCall)
@@ -763,27 +833,41 @@ void Process::CallImpl(Method *method, bool wantValueNotRef, int arity, CallStyl
     }
     else if(callStyle == NormalCall)
     {
-        stack.push(Frame(method, currentFrame()));
+        pushFrame(new Frame(method));
         frame = currentFrame();
     }
 
     frame->returnReferenceIfRefMethod = !wantValueNotRef;
-    for(int i=args.count()-1; i>=0; i--)
+    //frame->OperandStack.reserve(marity);
+    if(marity <= 10)
     {
-        Value *v = args[i];
-        frame->OperandStack.push(v);
+        for(int i=method->Arity()-1; i>=0; i--)
+        {
+            Value *v = argsFast[i];
+            frame->OperandStack.push(v);
+        }
     }
+    else
+    {
+        for(int i=method->Arity()-1; i>=0; i--)
+        {
+            Value *v = args[i];
+            frame->OperandStack.push(v);
+        }
+        delete[] args;
+    }
+
 }
 
-void Process::DoCallMethod(QString SymRef, int SymRefLabel, int arity, CallStyle callStyle)
+void Process::DoCallMethod(const QString &SymRef, int SymRefLabel, int arity, CallStyle callStyle)
 {
     // callm expects the arguments in reverse order, and the last pushed argument is 'this'
     // but the execution site pops them in the correct order, i.e the first popped is 'this'
     // followed by the first normal argument...and so on.
     Value *receiver = currentFrame()->OperandStack.pop();
     bool noSuchMethodTrapFound = false;
-    assert(receiver->tag != NullVal, CallingMethodOnNull);
-    assert(receiver ->tag == ObjectVal, CallingMethodOnNonObject);
+    assert0(receiver->tag != NullVal, CallingMethodOnNull);
+    assert0(receiver ->tag == ObjectVal, CallingMethodOnNonObject);
 
     IMethod *_method = receiver->type->lookupMethod(SymRef);
     /*
@@ -794,15 +878,15 @@ void Process::DoCallMethod(QString SymRef, int SymRefLabel, int arity, CallStyle
             noSuchMethodTrapFound = true;
     }
     */
-    assert(_method!=NULL, NoSuchMethod2,SymRef, receiver->type->getName());
+    assert2(_method!=NULL, NoSuchMethod2, SymRef, receiver->type->getName());
 
-    assert(!noSuchMethodTrapFound || arity !=-1, InternalError1, "Calling with %nosuchmethod needs the arity to be specified in the instruction");
+    assert1(!noSuchMethodTrapFound || arity !=-1, InternalError1, "Calling with %nosuchmethod needs the arity to be specified in the instruction");
     Method *method = dynamic_cast<Method *>(_method);
 
     QVector<Value *> args;
     args.append(receiver);
 
-    assert(arity == -1 || _method->Arity() ==-1 || arity == _method->Arity(), WrongNumberOfArguments3,
+    assert3(arity == -1 || _method->Arity() ==-1 || arity == _method->Arity(), WrongNumberOfArguments3,
            SymRef, str(arity), str(_method->Arity()));
 
     if(!noSuchMethodTrapFound)
@@ -826,7 +910,8 @@ void Process::DoCallMethod(QString SymRef, int SymRefLabel, int arity, CallStyle
 
     if(callStyle == TailCall)
     {
-        stack.pop();
+        Frame *f = popFrame();
+        delete f;
     }
     if(method == NULL)
     {
@@ -841,7 +926,7 @@ void Process::DoCallMethod(QString SymRef, int SymRefLabel, int arity, CallStyle
         Frame *frame = NULL;
         if(callStyle == NormalCall || callStyle == TailCall)
         {
-            stack.push(Frame(method, currentFrame()));
+            pushFrame(new Frame(method));
             frame = currentFrame();
         }
         else if(callStyle == LaunchCall)
@@ -860,7 +945,6 @@ void Process::DoCallMethod(QString SymRef, int SymRefLabel, int arity, CallStyle
             frame->OperandStack.push(v);
         }
     }
-
 }
 
 void Process::CallSpecialMethod(IMethod *method, QVector<Value *> args)
@@ -884,7 +968,7 @@ void Process::CallSpecialMethod(IMethod *method, QVector<Value *> args)
         //VArray *argList = popArray();
     }
 
-    assert(false, InternalError, "CallSpecialMethod is not implemented for this type of method");
+    assert1(false, InternalError, "CallSpecialMethod is not implemented for this type of method");
 }
 
 void Process::DoRet()
@@ -906,8 +990,9 @@ void Process::DoRet()
     }
     if(currentFrame()->OperandStack.count()==1)
         v = currentFrame()->OperandStack.pop();
-    stack.pop();
-    if(!stack.empty())
+    Frame *f = popFrame();
+    delete f;
+    if(!(stack == NULL))
     {
         if(v!=NULL)
             currentFrame()->OperandStack.push(v);
@@ -921,7 +1006,7 @@ void Process::DoApply()
     // Stack is:
     // methodObj, [args], ...
     Method *method = dynamic_cast<Method *>(popMethod());
-    assert(method != NULL, InternalError1, "Apply has been passed a non-standard method");
+    assert1(method != NULL, InternalError1, "Apply has been passed a non-standard method");
     VArray *args = popArray();
 
     for(int i=args->count()-1; i>=0; i--)
@@ -931,52 +1016,68 @@ void Process::DoApply()
     CallImpl(method, true, args->count(), NormalCall);
 }
 
-void Process::DoCallExternal(QString symRef, int SymRefLabel, int arity)
+void Process::DoCallExternal(const QString &symRef, int SymRefLabel, int arity)
 {
-    assert(constantPool().contains(SymRefLabel), NoSuchExternalMethod1, symRef);
+    assert1(constantPool().contains(SymRefLabel), NoSuchExternalMethod1, symRef);
 
     ExternalMethod *method = (ExternalMethod*) constantPool()[SymRefLabel]->v.objVal;
-    assert(arity == -1 || method->Arity() ==-1 || arity == method->Arity(), WrongNumberOfArguments3,
+    assert3(arity == -1 || method->Arity() ==-1 || arity == method->Arity(), WrongNumberOfArguments3,
            symRef, str(arity), str(method->Arity()));
+
+    if(method->mustRunInGui && owner != &vm->guiScheduler)
+    {
+        Frame *frame = currentFrame();
+        frame->ip--;
+        this->wannaMigrateTo = &vm->guiScheduler;
+        this->timeSlice = 0;
+        return;
+    }
+
     (*method)(currentFrame()->OperandStack, this);
+    if(method->mustRunInGui && owner != &vm->mainScheduler)
+    {
+        // qDebug() << "CallExternal finished";
+        this->wannaMigrateTo = &vm->mainScheduler;
+        this->timeSlice = 0;
+    }
 }
 
-void Process::DoSetField(QString SymRef)
+void Process::DoSetField(const QString &SymRef)
 {
     // ...obj val  => ...
     Value *v = currentFrame()->OperandStack.pop();
     Value *objVal = currentFrame()->OperandStack.pop();
 
-    assert(objVal->tag != NullVal, SettingFieldOnNull);
-    assert(objVal->tag == ObjectVal, SettingFieldOnNonObject1, objVal->type->toString());
-    assert(objVal->type->hasField(SymRef), NoSuchField2, SymRef, objVal->type->getName());
+    assert0(objVal->tag != NullVal, SettingFieldOnNull);
+    assert1(objVal->tag == ObjectVal, SettingFieldOnNonObject1, objVal->type->toString());
+    assert2(objVal->type->hasField(SymRef), NoSuchField2, SymRef, objVal->type->getName());
 
     IObject *obj = objVal->unboxObj();
     obj->setSlotValue(SymRef, v);
 }
 
-void Process::DoGetField(QString SymRef)
+void Process::DoGetField(const QString &SymRef)
 {
     // ...object => val
     Value *objVal = currentFrame()->OperandStack.pop();
 
-    assert(objVal->tag != NullVal, GettingFieldOnNull);
-    assert(objVal->tag == ObjectVal, GettingFieldOnNonObject1, objVal->type->toString());
-    assert(objVal->type->hasField(SymRef), NoSuchField2, SymRef, objVal->type->getName());
+    assert0(objVal->tag != NullVal, GettingFieldOnNull);
+    assert1(objVal->tag == ObjectVal, GettingFieldOnNonObject1, objVal->type->toString());
+    assert2(objVal->type->hasField(SymRef), NoSuchField2, SymRef, objVal->type->getName());
 
     IObject *obj = objVal->v.objVal;
     Value *v = obj->getSlotValue(SymRef);
     currentFrame()->OperandStack.push(v);
 }
 
-void Process::DoGetFieldRef(QString SymRef)
+void Process::DoGetFieldRef(const QString &SymRef)
 {
     // ...object => ...fieldRef
     Value *objVal = currentFrame()->OperandStack.pop();
 
-    assert(objVal->tag != NullVal, GettingFieldOnNull);
-    assert(objVal->tag == ObjectVal, GettingFieldOnNonObject1, objVal->type->getName());
-    assert(objVal->type->hasField(SymRef), NoSuchField2, SymRef, objVal->type->getName());
+    assert0(objVal->tag != NullVal, GettingFieldOnNull);
+    assert1(objVal->tag == ObjectVal, GettingFieldOnNonObject1, objVal->type->getName());
+    assert2(objVal->type->hasField(SymRef), NoSuchField2, SymRef, objVal->type->getName());
     Value *ref = allocator().newFieldReference(objVal->unboxObj(), SymRef);
     currentFrame()->OperandStack.push(ref);
 }
@@ -1004,7 +1105,7 @@ void Process::DoSetArr()
     Value *index = currentFrame()->OperandStack.pop();
     Value *arrVal = currentFrame()->OperandStack.pop();
 
-    assert(arrVal->tag == ArrayVal
+    assert0(arrVal->tag == ArrayVal
            || arrVal->tag == MapVal
            || arrVal->tag == StringVal , SubscribingNonArray);
 
@@ -1020,12 +1121,12 @@ void Process::DoSetArr()
     }
     else
     {
-        assert(index->tag == Int, SubscribtMustBeInteger);
-        assert(v->tag == StringVal, TypeError2, BuiltInTypes::StringType, v->type);
+        assert0(index->tag == Int, SubscribtMustBeInteger);
+        assert2(v->tag == StringVal, TypeError2, BuiltInTypes::StringType, v->type);
         QString arr = arrVal->unboxStr();
         QString sv = v->unboxStr();
-        assert(sv.length() ==1, ArgumentError,
-               QString::fromStdWString(L"النص المحدد لابد أن يكون طوله رمزا واحدا"));
+        assert1(sv.length() ==1, ArgumentError,
+               VM::argumentErrors.get(ArgErr::GivenStringMustBeOneCharacter1, sv));
         int i = index->unboxInt() -1;
         arr[i] = sv[0];
     }
@@ -1052,7 +1153,7 @@ void Process::DoGetArr()
     Value *index = currentFrame()->OperandStack.pop();
     Value *arrVal= currentFrame()->OperandStack.pop();
 
-    assert(arrVal->tag == ArrayVal
+    assert0(arrVal->tag == ArrayVal
            || arrVal->tag == MapVal,
            SubscribingNonArray);
 
@@ -1065,12 +1166,12 @@ void Process::DoGetArr()
             signalWithStack(err);
         Value *v = container->get(index);
         if(!v)
-            assert(false, IndexableNotFound1, index->toString());
+            assert1(false, IndexableNotFound1, index->toString());
         currentFrame()->OperandStack.push(v);
     }
     else
     {
-        assert(index->tag == Int, SubscribtMustBeInteger);
+        assert0(index->tag == Int, SubscribtMustBeInteger);
         QString arr = arrVal->unboxStr();
         int i = index->unboxInt() -1;
         Value *v = allocator().newString(arr.mid(i,1));
@@ -1085,30 +1186,30 @@ void Process::DoGetArrRef()
     Value *index  = currentFrame()->OperandStack.pop();
     Value *arrVal= currentFrame()->OperandStack.pop();
 
-    assert(arrVal->tag == ArrayVal, SubscribingNonArray);
-    assert(index->tag == Int, SubscribtMustBeInteger);
+    assert0(arrVal->tag == ArrayVal, SubscribingNonArray);
+    assert0(index->tag == Int, SubscribtMustBeInteger);
     int i = index->unboxInt();
     VArray *arr = arrVal->unboxArray();
 
-    assert(i>=1 && i<=arr->count(), SubscriptOutOfRange2, str(i), str(arr->count()));
+    assert2(i>=1 && i<=arr->count(), SubscriptOutOfRange2, str(i), str(arr->count()));
 
     Value *ref = allocator().newArrayReference(arr, i-1);
     currentFrame()->OperandStack.push(ref);
 }
 
-void Process::DoNew(QString SymRef, int SymRefLabel)
+void Process::DoNew(const QString &SymRef, int SymRefLabel)
 {
-    assert(constantPool().contains(SymRefLabel), NoSuchClass1, SymRef);
+    assert1(constantPool().contains(SymRefLabel), NoSuchClass1, SymRef);
     Value *classObj = (Value*) constantPool()[SymRefLabel];
     IClass *theClass = dynamic_cast<IClass *>(classObj->v.objVal);
-    assert(theClass != NULL, NameDoesntIndicateAClass1, SymRef);
+    assert1(theClass != NULL, NameDoesntIndicateAClass1, SymRef);
     Value *newObj = allocator().newObject(theClass);
     currentFrame()->OperandStack.push(newObj);
 }
 
 void Process::DoNewArr()
 {
-    assert(__top()->tag == Int, TypeError2, BuiltInTypes::IntType, __top()->type);
+    assert2(__top()->tag == Int, TypeError2, BuiltInTypes::IntType, __top()->type);
     int size = currentFrame()->OperandStack.pop()->unboxInt();
 
     Value *newArr = allocator().newArray(size);
@@ -1118,7 +1219,7 @@ void Process::DoNewArr()
 void Process::DoArrLength()
 {
     // ... arr => ... length
-    assert(__top()->tag == ArrayVal
+    assert2(__top()->tag == ArrayVal
            || __top()->tag == MapVal
            || __top()->tag == StringVal, TypeError2, BuiltInTypes::IndexableType, __top()->type);
 
@@ -1139,15 +1240,15 @@ void Process::DoArrLength()
 void Process::DoNewMD_Arr()
 {
     // ... dimensions => ... md_arr
-    assert(__top()->tag == ArrayVal, TypeError2, BuiltInTypes::ArrayType, __top()->type);
+    assert2(__top()->tag == ArrayVal, TypeError2, BuiltInTypes::ArrayType, __top()->type);
     Value *arrVal= currentFrame()->OperandStack.pop();
     VArray *arr = arrVal->unboxArray();
     QVector<int> dimensions;
     for(int i=0; i<arr->count(); i++)
     {
-        assert(arr->Elements[i]->tag == Int, TypeError2, BuiltInTypes::IntType, arr->Elements[i]->type);
+        assert2(arr->Elements[i]->tag == Int, TypeError2, BuiltInTypes::IntType, arr->Elements[i]->type);
         int z = arr->Elements[i]->unboxInt();
-        assert(z>=1, ArgumentError, QString::fromStdWString(L"حجم المصفوفة لابد أن يكون أكبر من صفر في البعد رقم %1").arg(i));
+        assert1(z>=1, ArgumentError, VM::argumentErrors.get(ArgErr::ZeroSizeAtDimention1, str(i)));
         dimensions.append(z);
     }
     Value *mdarr = allocator().newMultiDimensionalArray(dimensions);
@@ -1158,23 +1259,21 @@ void Process::Pop_Md_Arr_and_indexes(MultiDimensionalArray<Value *> *&theArray, 
 {
 
     // ... arr index => ...
-    assert(__top()->tag == ArrayVal, TypeError2, BuiltInTypes::ArrayType, __top()->type);
+    assert2(__top()->tag == ArrayVal, TypeError2, BuiltInTypes::ArrayType, __top()->type);
     Value *arrVal= currentFrame()->OperandStack.pop();
     VArray *boxedIndexes= arrVal->unboxArray();
 
-    assert(__top()->tag == MultiDimensionalArrayVal, TypeError2, QString::fromStdWString(L"مصفوفة متعددة"), __top()->type->getName());
+    assert2(__top()->tag == MultiDimensionalArrayVal, TypeError2, QString::fromStdWString(L"مصفوفة متعددة"), __top()->type->getName());
     Value *md_arrVal= currentFrame()->OperandStack.pop();
     theArray= md_arrVal->unboxMultiDimensionalArray();
 
-
-
-    assert(theArray->dimensions.count()== boxedIndexes->count(), MD_IndexingWrongNumberOfDimensions);
+    assert0(theArray->dimensions.count()== boxedIndexes->count(), MD_IndexingWrongNumberOfDimensions);
 
     for(int i=0; i<boxedIndexes->count(); i++)
     {
-        assert(boxedIndexes->Elements[i]->tag == Int, TypeError2, BuiltInTypes::IntType, boxedIndexes->Elements[i]->type);
+        assert2(boxedIndexes->Elements[i]->tag == Int, TypeError2, BuiltInTypes::IntType, boxedIndexes->Elements[i]->type);
         int n = boxedIndexes->Elements[i]->unboxInt();
-        assert(n>=1 && n<=theArray->dimensions[i], SubscriptOutOfRange3, str(i+1), str(n), str(theArray->dimensions[i]));
+        assert3(n>=1 && n<=theArray->dimensions[i], SubscriptOutOfRange3, str(i+1), str(n), str(theArray->dimensions[i]));
         indexes.append(n-1); // We're one-based, remember
     }
 }
@@ -1199,7 +1298,6 @@ void Process::DoSetMD_Arr()
     Value *v = currentFrame()->OperandStack.pop();
     Pop_Md_Arr_and_indexes(theArray, indexes);
 
-
     theArray->set(indexes, v);
 }
 
@@ -1218,7 +1316,7 @@ void Process::DoGetMD_ArrRef()
 void Process::DoMD_ArrDimensions()
 {
     // ... md_arr => ... dimensions
-    assert(__top()->tag == MultiDimensionalArrayVal, TypeError2, BuiltInTypes::ArrayType, __top()->type);
+    assert2(__top()->tag == MultiDimensionalArrayVal, TypeError2, BuiltInTypes::ArrayType, __top()->type);
     Value *arrVal= currentFrame()->OperandStack.pop();
     MultiDimensionalArray<Value *> *arr = arrVal->unboxMultiDimensionalArray();
     Value *v = allocator().newArray(arr->dimensions.count());
@@ -1234,16 +1332,16 @@ void Process::DoMD_ArrDimensions()
 
 void Process::DoRegisterEvent(Value *evname, QString SymRef)
 {
-    int SymRefLabel = owner->constantPoolLabeller.labelOf(SymRef);
-    assert(evname->type == BuiltInTypes::StringType, TypeError2, BuiltInTypes::StringType, evname->type);
+    int SymRefLabel = vm->constantPoolLabeller.labelOf(SymRef);
+    assert2(evname->type == BuiltInTypes::StringType, TypeError2, BuiltInTypes::StringType, evname->type);
 
     // todo: verify symref is actually a procedure
-    assert(constantPool().contains(SymRefLabel), NoSuchProcedure1, SymRef);
+    assert1(constantPool().contains(SymRefLabel), NoSuchProcedure1, SymRef);
     QString evName = evname->unboxStr();
-    owner->registeredEventHandlers[evName] = SymRef;
+    vm->registeredEventHandlers[evName] = SymRef;
 }
 
-void Process::DoIsa(QString SymRef, int SymRefLabel)
+void Process::DoIsa(const QString &SymRef, int SymRefLabel)
 {
     // ...value => ...bool
     Value *v = currentFrame()->OperandStack.pop();
@@ -1257,7 +1355,7 @@ void Process::DoIsa(QString SymRef, int SymRefLabel)
             cls = dynamic_cast<ValueClass *>(classObj->unboxObj());
         }
     }
-    assert(cls != NULL, NoSuchClass1, SymRef);
+    assert1(cls != NULL, NoSuchClass1, SymRef);
     bool b = v->type->subclassOf(cls);
     currentFrame()->OperandStack.push(allocator().newBool(b));
 }
@@ -1267,8 +1365,9 @@ void Process::DoSend()
     // ... chan val => ...
     Value *v = currentFrame()->OperandStack.pop();
     Value *chan = currentFrame()->OperandStack.pop();
-    assert(chan->type == BuiltInTypes::ChannelType, TypeError2, BuiltInTypes::ChannelType, chan->type);
+    assert2(chan->type == BuiltInTypes::ChannelType, TypeError2, BuiltInTypes::ChannelType, chan->type);
     Channel *channel = chan->unboxChan();
+
     channel->send(v, this);
 }
 
@@ -1276,19 +1375,59 @@ void Process::DoReceive()
 {
     // ... chan => ... val
     Value *chan = currentFrame()->OperandStack.pop();
-    assert(chan->type == BuiltInTypes::ChannelType, TypeError2, BuiltInTypes::ChannelType, chan->type);
+    assert2(chan->type == BuiltInTypes::ChannelType, TypeError2, BuiltInTypes::ChannelType, chan->type);
     Channel *channel = chan->unboxChan();
+
     channel->receive(this);
+}
+
+void insertion_sort(QVector<Channel *> &chans)
+{
+    // sort the cases by Hchan address to get the locking order.
+       for(int i=0; i<chans.count(); i++)
+       {
+           int j;
+           Channel *c = chans[i];
+           for(j=i; j>0 && chans[j-1] >= c; j--)
+               chans[j] = chans[j-1];
+            chans[j] = c;
+       }
+}
+
+void lock_select(const QVector<Channel *> &chans)
+{
+    Channel *c = NULL;
+    for(int i=0; i<chans.count(); ++i)
+    {
+        if(c != chans[i])
+        {
+            c = chans[i];
+            c->lock.lock();
+        }
+    }
+}
+
+void unlock_select(const QVector<Channel *> &chans)
+{
+    Channel *c = NULL;
+    for(int i=chans.count()-1; i>=0; --i)
+    {
+        if(c != chans[i])
+        {
+            c = chans[i];
+            c->lock.unlock();
+        }
+    }
 }
 
 void Process::DoSelect()
 {
     // ... arr sendcount => ... ret? activeIndex
 
-    assert(__top()->tag == Int, InternalError);
+    assert0(__top()->tag == Int, InternalError);
     int nsend = currentFrame()->OperandStack.pop()->unboxInt();
 
-    assert(__top()->tag == ArrayVal, InternalError);
+    assert0(__top()->tag == ArrayVal, InternalError);
     VArray *varr = currentFrame()->OperandStack.pop()->unboxArray();
 
     QVector<Channel *> allChans;
@@ -1298,21 +1437,29 @@ void Process::DoSelect()
         allChans.append(varr->Elements[i]->unboxChan());
         args.append(varr->Elements[i+1]);
     }
+    QVector<Channel *> lockOrder;
+    // todo: It's slow to lock a copy of the allChans array instead of the array itself
+    // but currently the select() method depends on the order of channels in the array (to separate
+    // receivers from senders) and thus we can't sort allChans
+    lockOrder += allChans;
+    insertion_sort(lockOrder);
+    lock_select(lockOrder);
     this->select(allChans, args, nsend);
+    unlock_select(lockOrder);
 }
 
 void Process::DoBreak()
 {
-    owner->_isRunning = false;
+    vm->stopTheWorld();
 
     // Restore the original instruction for when/if we resume
     QString curMethodName = currentFrame()->currentMethod->getName();
     currentFrame()->ip--;
     int ip = currentFrame()->ip;
-    if(owner->breakPoints.contains(curMethodName) &&
-            owner->breakPoints[curMethodName].contains(ip))
+    if(vm->breakPoints.contains(curMethodName) &&
+            vm->breakPoints[curMethodName].contains(ip))
     {
-        Instruction i = owner->breakPoints[curMethodName][ip];
+        Instruction i = vm->breakPoints[curMethodName][ip];
         currentFrame()->currentMethod->Set(ip, i);
     }
     else
@@ -1320,25 +1467,26 @@ void Process::DoBreak()
         signal(InternalError);
     }
 
-    if(owner->debugger)
+    if(vm->debugger)
     {
-        owner->debugger->Break(curMethodName, currentFrame()->ip, currentFrame(), this);
+        vm->debugger->Break(curMethodName, currentFrame()->ip, currentFrame(), this);
     }
 }
 
 void Process::DoTick()
 {
-    long t = clock();
-    currentFrame()->OperandStack.push(allocator().newLong(t));
+    clock_t t = clock();
+    double span = ((double ) t)* 1000.0 / (double) CLOCKS_PER_SEC;
+    currentFrame()->OperandStack.push(allocator().newLong(span));
 }
 
-void Process::test(bool cond, QString trueLabel, QString falseLabel)
+void Process::test(bool cond, const QString &trueLabel, const QString &falseLabel, int fastTrueLabel, int fastFalseLabel)
 {
     int newIp;
     if(cond)
-        newIp = currentFrame()->currentMethod->GetIp(trueLabel);
+        newIp = currentFrame()->currentMethod->GetIp(fastTrueLabel);
     else
-        newIp = currentFrame()->currentMethod->GetIp(falseLabel);
+        newIp = currentFrame()->currentMethod->GetIp(fastFalseLabel);
 
     currentFrame()->ip = newIp;
 }
@@ -1346,6 +1494,8 @@ void Process::test(bool cond, QString trueLabel, QString falseLabel)
 bool Process::coercion(Value *v1, Value *v2, Value *&newV1, Value *&newV2)
 {
     bool ret = false;
+    if(v1->tag == v2->tag)
+        return ret;
     //todo: corecion leaks
     if (v1->tag == Int && v2->tag == Double)
     {
@@ -1424,8 +1574,8 @@ void Process::BuiltInAddOp(int (*intFunc)(int,int),
                       QString (*strFunc)(QString, QString))
 {
 
-    Value *v2 = currentFrame()->OperandStack.pop();
-    Value *v1 = currentFrame()->OperandStack.pop();
+    Value *v2 = this->popValue();
+    Value *v1 = this->popValue();
 
     Value *newV1, *newV2;
     if(coercion(v1, v2, newV1, newV2))
@@ -1434,7 +1584,7 @@ void Process::BuiltInAddOp(int (*intFunc)(int,int),
         v2 = newV2;
     }
 
-    assert( v1->tag == v2->tag &&
+    assert2( v1->tag == v2->tag &&
             (v1->tag == Double || v1->tag == Long || v1->tag == Int || v1->tag == StringVal
              || v1->tag == ArrayVal), BuiltInOperationOnNonBuiltn2, v1->type->toString(), v2->type->toString());
 
@@ -1462,13 +1612,13 @@ void Process::BuiltInAddOp(int (*intFunc)(int,int),
     currentFrame()->OperandStack.push(v3);
 }
 
-void Process::BuiltInArithmeticOp(QString opName,
+void Process::BuiltInArithmeticOp(const QString &opName,
                              int (*intFunc)(int,int),
                              long (*longFunc)(long, long),
                              double (*doubleFunc)(double,double))
 {
-    Value *v2 = currentFrame()->OperandStack.pop();
-    Value *v1 = currentFrame()->OperandStack.pop();
+    Value *v2 = popValue();
+    Value *v1 = popValue();
 
     Value *newV1, *newV2;
     if(coercion(v1, v2, newV1, newV2))
@@ -1477,7 +1627,7 @@ void Process::BuiltInArithmeticOp(QString opName,
         v2 = newV2;
     }
 
-    assert((v1->tag == v2->tag) &&
+    assert3((v1->tag == v2->tag) &&
            (v1->tag == Int || v1->tag == Long || v1->tag == Double),
            NumericOperationOnNonNumber3 , opName, v1->type->toString(), v2->type->toString());
 
@@ -1500,8 +1650,8 @@ void Process::BuiltInComparisonOp(bool (*intFunc)(int,int),
                              bool (*doubleFunc)(double,double),
                              bool (*strFunc)(QString, QString))
 {
-    Value *v2 = currentFrame()->OperandStack.pop();
-    Value *v1 = currentFrame()->OperandStack.pop();
+    Value *v2 = popValue();
+    Value *v1 = popValue();
 
     Value *newV1, *newV2;
 
@@ -1511,7 +1661,7 @@ void Process::BuiltInComparisonOp(bool (*intFunc)(int,int),
         v2 = newV2;
     }
 
-    assert(v1->tag == v2->tag && (v1->tag == Int || v1->tag== Long || v1->tag == Double || v1->tag == StringVal),
+    assert2(v1->tag == v2->tag && (v1->tag == Int || v1->tag== Long || v1->tag == Double || v1->tag == StringVal),
            BuiltInOperationOnNonBuiltn2, v1->type->toString(), v1->type->toString());
 
     Value *v3 = NULL;
@@ -1540,8 +1690,8 @@ void Process::EqualityRelatedOp(bool(*intFunc)(int, int),
                            bool(*differentTypesFunc)(Value *, Value *),
                            bool(*nullFunc)())
 {
-    Value *v2 = currentFrame()->OperandStack.pop();
-    Value *v1 = currentFrame()->OperandStack.pop();
+    Value *v2 = popValue();
+    Value *v1 = popValue();
 
     Value *newV1, *newV2;
 
@@ -1562,19 +1712,19 @@ void Process::EqualityRelatedOp(bool(*intFunc)(int, int),
     {
         if(v1->tag == Int)
             result = intFunc(v1->v.intVal, v2->v.intVal);
-        if(v1->tag == Long)
+        else if(v1->tag == Long)
             result = longFunc(v1->v.longVal, v2->v.longVal);
-        if(v1->tag == Double)
+        else if(v1->tag == Double)
             result = doubleFunc(v1->v.doubleVal, v2->v.doubleVal);
-        if(v1->tag == Boolean)
+        else if(v1->tag == Boolean)
             result = boolFunc(v1->unboxBool(), v2->unboxBool());
-        if(v1->tag == ObjectVal)
+        else if(v1->tag == ObjectVal)
             result = objFunc(v1->v.objVal, v2->v.objVal);
-        if(v1->tag == StringVal)
+        else if(v1->tag == StringVal)
             result = strFunc(v1->unboxStr(), v2->unboxStr());
-        if(v1->tag == RawVal)
+        else if(v1->tag == RawVal)
             result = rawFunc(v1->unboxRaw(), v2->unboxRaw());
-        if(v1->tag == NullVal)
+        else if(v1->tag == NullVal)
             result = nullFunc();
     }
     else
@@ -1587,11 +1737,11 @@ void Process::EqualityRelatedOp(bool(*intFunc)(int, int),
 
 void Process::BinaryLogicOp(bool (*boolFunc)(bool, bool))
 {
-    Value *v2 = currentFrame()->OperandStack.pop();
-    Value *v1 = currentFrame()->OperandStack.pop();
+    Value *v2 = popValue();
+    Value *v1 = popValue();
     Value *v3 = NULL;
 
-    assert(v1->tag == Boolean && v2->tag == Boolean, LogicOperationOnNonBoolean);
+    assert0(v1->tag == Boolean && v2->tag == Boolean, LogicOperationOnNonBoolean);
     v3 = allocator().newBool(boolFunc(v1->unboxBool(), v2->unboxBool()));
 
     currentFrame()->OperandStack.push(v3);
@@ -1599,10 +1749,10 @@ void Process::BinaryLogicOp(bool (*boolFunc)(bool, bool))
 
 void Process::UnaryLogicOp(bool(*boolFunc)(bool))
 {
-    Value *v1 = currentFrame()->OperandStack.pop();
+    Value *v1 = popValue();
     Value *v2 = NULL;
 
-    assert(v1->tag == Boolean, LogicOperationOnNonBoolean);
+    assert0(v1->tag == Boolean, LogicOperationOnNonBoolean);
     v2 = allocator().newBool(boolFunc(v1->unboxBool()));
 
     currentFrame()->OperandStack.push(v2);
@@ -1618,31 +1768,26 @@ Value *Process::_div(Value *v1, Value *v2)
         v2 = newV2;
     }
 
-    assert((v1->tag == v2->tag) &&
+    assert3((v1->tag == v2->tag) &&
            ( v1->tag == Double || v1->tag == Long || v1->tag == Int ),
-           NumericOperationOnNonNumber3, _ws(L"قسمة"), v1->type->toString(), v2->type->toString());
+           NumericOperationOnNonNumber3, VMId::get(RId::Division), v1->type->toString(), v2->type->toString());
 
     if(v1->tag == Int && v2->tag == Int)
     {
-        assert(v2->v.intVal != 0, DivisionByZero);
+        assert0(v2->v.intVal != 0, DivisionByZero);
         double result = ((double)(v1->unboxInt())) / ((double) (v2->unboxInt()));
         return allocator().newDouble(result);
     }
     else if(v1->tag == Double && v2->tag == Double)
     {
-        assert(v2->v.doubleVal != 0.0, DivisionByZero);
+        assert0(v2->v.doubleVal != 0.0, DivisionByZero);
         return allocator().newDouble(v1->v.doubleVal / v2->v.doubleVal);
     }
     else if(v1->tag == Long && v2->tag == Long)
     {
-        assert(v2->v.longVal != 0L, DivisionByZero);
+        assert0(v2->v.longVal != 0L, DivisionByZero);
         return allocator().newDouble(((double) v1->v.longVal) /
                                  ((double)v2->v.longVal));
     }
     return NULL;
-}
-
-inline Value *Process::__top()
-{
-    return currentFrame()->OperandStack.top();
 }

@@ -463,3 +463,13 @@ ret
 call thiscp
 ret
 .endmethod
+
+.method هاجر.لخيط.الرسوم 0 0
+callex migrate_to_gui_thread
+ret
+.endmethod
+
+.method عد.من.خيط.الرسوم 0 0
+callex migrate_back_from_gui_thread
+ret
+.endmethod

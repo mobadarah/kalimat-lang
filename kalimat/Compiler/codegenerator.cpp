@@ -14,7 +14,7 @@
 #include <memory>
 #include "codegenerator_incl.h"
 #include "../../smallvm/utils.h"
-
+#include "../smallvm/runtime_identifiers.h"
 using namespace std;
 template<typename T1, typename T2> bool isa(T2 *value)
 {
@@ -807,13 +807,13 @@ void CodeGenerator::generateRulesDeclaration(shared_ptr<RulesDecl> decl)
     // %parser = make.parser(%input)
     // %result = null -- to declare the variable
     // ...and they say Lisp isn't used anymore
-    stmts.append(assignmentOf(pos0, varOf(pos0, _ws(L"%المعرب")),
-                     invokationOf(pos0,_ws(L"صنع.معرب"), varOf(pos0, _ws(L"%المدخل")))));
+    stmts.append(assignmentOf(pos0, varOf(pos0, VMId::get(RId::ParserGeneratedVarName)),
+                     invokationOf(pos0,_ws(L"صنع.معرب"), varOf(pos0, VMId::get(RId::ParserGeneratedInputArgName)))));
 
-    stmts.append(assignmentOf(pos0, varOf(pos0, _ws(L"%الموقع")),
+    stmts.append(assignmentOf(pos0, varOf(pos0, VMId::get(RId::ParserGeneratedPosVarName)),
                               shared_ptr<NumLiteral>(new NumLiteral(pos0,0))));
 
-    stmts.append(assignmentOf(pos0, varOf(pos0, _ws(L"%النتيجة")),
+    stmts.append(assignmentOf(pos0, varOf(pos0, VMId::get(RId::ParserGeneratedResultVarName)),
                               shared_ptr<NullLiteral>(new NullLiteral(pos0))));
 
 
@@ -837,8 +837,8 @@ void CodeGenerator::generateRulesDeclaration(shared_ptr<RulesDecl> decl)
         // both return address and locals frames
         // %parser : pushLocals([])
         stmts.append(fromInvokation(methodOf(
-                                        varOf(pos0, _ws(L"%المعرب")),
-                                        _ws(L"ادفع.المتغيرات.المحلية"),
+                                        varOf(pos0, VMId::get(RId::ParserGeneratedVarName)),
+                                        VMId::get(RId::PushLocals),
                                         shared_ptr<ArrayLiteral>(
                                             new ArrayLiteral(pos0,
                                                              QVector<shared_ptr<Expression> >())
@@ -848,10 +848,10 @@ void CodeGenerator::generateRulesDeclaration(shared_ptr<RulesDecl> decl)
         shared_ptr<NumLiteral> toCall =
                     numLitOf(pos0, labeller.labelOf(rule->ruleName()));
         shared_ptr<NumLiteral> returnHere =
-                    numLitOf(pos0, labeller.labelOf(_ws(L"نهاية.الإعراب")));
+                    numLitOf(pos0, labeller.labelOf(VMId::get(RId::LblEndOfParsing)));
         stmts.append(gotoOf(pos0,
-                          methodOf(varOf(pos0, _ws(L"%المعرب")),
-                                   _ws(L"تفرع"),
+                          methodOf(varOf(pos0, VMId::get(RId::ParserGeneratedVarName)),
+                                   VMId::get(RId::RuleCall),
                                    toCall,
                                    returnHere)));
 
@@ -875,8 +875,8 @@ void CodeGenerator::generateRulesDeclaration(shared_ptr<RulesDecl> decl)
                         );
             if((j+1) < rule->options.count())
             {
-                stmts.append(fromInvokation(methodOf(varOf(optPos, _ws(L"%المعرب")),
-                                                         _ws(L"ادفع.مسار.بديل"),
+                stmts.append(fromInvokation(methodOf(varOf(optPos, VMId::get(RId::ParserGeneratedVarName)),
+                                                         VMId::get(RId::PushBacktrackPoint),
                                                         numLitOf(optPos, labeller.labelOf(QString("%1%%2")
                                                      .arg(rule->ruleName()).arg(j+1))))));
             }
@@ -896,58 +896,58 @@ void CodeGenerator::generateRulesDeclaration(shared_ptr<RulesDecl> decl)
             if(opt->resultExpr())
             {
                 Token pos1 = opt->resultExpr()->getPos();
-                stmts.append(assignmentOf(pos1, varOf(pos1, _ws(L"%النتيجة")), opt->resultExpr()));
+                stmts.append(assignmentOf(pos1, varOf(pos1, VMId::get(RId::ParserGeneratedResultVarName)), opt->resultExpr()));
             }
             else
             {
                 Token pos1 = opt->expression()->getPos();
-                stmts.append(assignmentOf(pos1, varOf(pos1, _ws(L"%النتيجة")),
+                stmts.append(assignmentOf(pos1, varOf(pos1, VMId::get(RId::ParserGeneratedResultVarName)),
                                           shared_ptr<NullLiteral>(
                                               new NullLiteral(pos1))));
             }
             // if we've succeded, ignore the most recent backtrack point
             if((j+1) < rule->options.count())
             {
-                stmts.append(fromInvokation(methodOf(varOf(optPos, _ws(L"%المعرب")),
-                                      _ws(L"تجاهل.آخر.مسار.بديل")
+                stmts.append(fromInvokation(methodOf(varOf(optPos, VMId::get(RId::ParserGeneratedVarName)),
+                                      VMId::get(RId::IgnoreLastBacktrackPoint)
                                      )));
-                stmts.append(gotoOf(optPos, _ws(L"%نجاح.%1").arg(rule->ruleName()), labeller)
+                stmts.append(gotoOf(optPos, VMId::get(RId::ParserSuccessVarName).arg(rule->ruleName()), labeller)
                         );
             }
         } // for each ruleOption
 
         stmts.append(
-                    labelOf(rulePos, _ws(L"%نجاح.%1").arg(rule->ruleName()), labeller)
+                    labelOf(rulePos, VMId::get(RId::ParserSuccessVarName).arg(rule->ruleName()), labeller)
                     );
         // at the end of each rule:
         // first, memoize:
         // %parser: remember("ruleName", %pos, %result)
-        stmts.append(fromInvokation(methodOf(varOf(rulePos, _ws(L"%المعرب")),
-                                             _ws(L"تذكر"),
+        stmts.append(fromInvokation(methodOf(varOf(rulePos, VMId::get(RId::ParserGeneratedVarName)),
+                                             VMId::get(RId::Memoize),
                                              numLitOf(rulePos, labeller.labelOf(rule->ruleName())),
-                                             varOf(rulePos, _ws(L"%الموقع")),
-                                             fieldAccessOf(varOf(rulePos, _ws(L"%المعرب")), _ws(L"موقع")),
-                                             varOf(rulePos, _ws(L"%النتيجة")))));
+                                             varOf(rulePos, VMId::get(RId::ParserGeneratedPosVarName)),
+                                             fieldAccessOf(varOf(rulePos, VMId::get(RId::ParserGeneratedVarName)), VMId::get(RId::InputPos)),
+                                             varOf(rulePos, VMId::get(RId::ParserGeneratedResultVarName)))));
         // then return
         // goto %parser: ret()
-        stmts.append(gotoOf(rulePos, methodOf(varOf(rulePos, _ws(L"%المعرب")), _ws(L"عد"))));
+        stmts.append(gotoOf(rulePos, methodOf(varOf(rulePos, VMId::get(RId::ParserGeneratedVarName)), VMId::get(RId::RuleReturn))));
     } // for each rule
 
     // a label %endOfParsing for the start rule to return to
-    stmts.append(labelOf(pos0, _ws(L"نهاية.الإعراب"), labeller));
+    stmts.append(labelOf(pos0, VMId::get(RId::LblEndOfParsing), labeller));
     // pop dummy 'locals' frame that was first pushed
     stmts.append(assignmentOf(pos0,
-                               varOf(pos0, _ws(L"%اطار.مؤقت")),
-                                methodOf(varOf(pos0, _ws(L"%المعرب")),
-                           _ws(L"ارفع.المتغيرات.المحلية"))));
+                               varOf(pos0, VMId::get(RId::TmpParseFrame)),
+                                methodOf(varOf(pos0, VMId::get(RId::ParserGeneratedVarName)),
+                           VMId::get(RId::PopLocals))));
     // now return our precious result :D
 
     shared_ptr<ReturnStmt> returnNow(new ReturnStmt(pos0,
-                                                    varOf(pos0, _ws(L"%النتيجة"))));
+                                                    varOf(pos0, VMId::get(RId::ParserGeneratedResultVarName))));
     stmts.append(returnNow);
 
     // and have a label to whom VM routines will jump on error
-    stmts.append(labelOf(pos0, _ws(L"خطأ.في.الإعراب")));
+    stmts.append(labelOf(pos0, VMId::get(RId::ParseLblParseError)));
     shared_ptr<ReturnStmt> returnErr(new ReturnStmt(pos0,
                                                     shared_ptr<Expression>(new NullLiteral(pos0))));
     stmts.append(returnErr);
@@ -955,7 +955,7 @@ void CodeGenerator::generateRulesDeclaration(shared_ptr<RulesDecl> decl)
             new BlockStmt(decl->getPos(), stmts));
     QVector<shared_ptr<FormalParam> > formals;
     formals.append(shared_ptr<FormalParam>(
-                       new FormalParam(idOf(Token(), _ws(L"%المدخل")))));
+                       new FormalParam(idOf(Token(), VMId::get(RId::ParserGeneratedInputArgName)))));
     shared_ptr<FunctionDecl> func(
             new FunctionDecl(decl->getPos(), true, decl->getPos(),
                              decl->ruleName(), formals, body));
@@ -985,7 +985,7 @@ QVector<shared_ptr<Statement> > CodeGenerator::generateRuleImplementation(
     // save locals
     // %parser : pushLocals([%pos, loc1, loc2, loc3])
     QVector<shared_ptr<Expression> > elems;
-    elems.append(varOf(pos0, _ws(L"%الموقع")));
+    elems.append(varOf(pos0, VMId::get(RId::ParserGeneratedPosVarName)));
     for(int i=0; i<locals.count(); i++)
     {
         elems.append(varOf(pos0, locals[i]));
@@ -993,14 +993,14 @@ QVector<shared_ptr<Statement> > CodeGenerator::generateRuleImplementation(
     shared_ptr<ArrayLiteral> arr(
                 new ArrayLiteral(pos0, elems));
 
-    result.append(fromInvokation(methodOf(varOf(pos0, _ws(L"%المعرب")),
-                           _ws(L"ادفع.المتغيرات.المحلية"),
+    result.append(fromInvokation(methodOf(varOf(pos0, VMId::get(RId::ParserGeneratedVarName)),
+                           VMId::get(RId::PushLocals),
                            arr)));
     // done save locals
     // %pos = pos of %parser
-    result.append(assignmentOf(varOf(pos0, _ws(L"%الموقع")),
-                               fieldAccessOf(varOf(pos0, _ws(L"%المعرب")),
-                                             _ws(L"موقع"))));
+    result.append(assignmentOf(varOf(pos0, VMId::get(RId::ParserGeneratedPosVarName)),
+                               fieldAccessOf(varOf(pos0, VMId::get(RId::ParserGeneratedVarName)),
+                                             VMId::get(RId::InputPos))));
     //now invoke the rule
     QString continuationLabel = _asm.uniqueLabel();
     shared_ptr<NumLiteral> toCall(
@@ -1009,8 +1009,8 @@ QVector<shared_ptr<Statement> > CodeGenerator::generateRuleImplementation(
                 numLitOf(pos0, labeller.labelOf(continuationLabel));
 
     result.append(gotoOf(pos0,
-                      methodOf(varOf(pos0, _ws(L"%المعرب")),
-                               _ws(L"تفرع"),
+                      methodOf(varOf(pos0, VMId::get(RId::ParserGeneratedVarName)),
+                               VMId::get(RId::RuleCall),
                                toCall,
                                returnHere)));
     result.append(labelOf(pos0, continuationLabel, labeller));
@@ -1021,17 +1021,17 @@ QVector<shared_ptr<Statement> > CodeGenerator::generateRuleImplementation(
     // loc2 = %tempFrame[3]
     // loc3 = %tempFrame[4]
     result.append(assignmentOf(pos0,
-                               varOf(pos0, _ws(L"%اطار.مؤقت")),
-                                methodOf(varOf(pos0, _ws(L"%المعرب")),
-                           _ws(L"ارفع.المتغيرات.المحلية"))));
-    locals.prepend(_ws(L"%الموقع"));
+                               varOf(pos0, VMId::get(RId::TmpParseFrame)),
+                                methodOf(varOf(pos0, VMId::get(RId::ParserGeneratedVarName)),
+                                         VMId::get(RId::PopLocals))));
+    locals.prepend(VMId::get(RId::ParserGeneratedPosVarName));
     for(int i=0;i<locals.count(); i++)
     {
         shared_ptr<NumLiteral> idx(
                     new NumLiteral(pos0, i+1));
         shared_ptr<ArrayIndex> arrAccess(
                     new ArrayIndex(pos0,
-                                   varOf(pos0,_ws(L"%اطار.مؤقت")),
+                                   varOf(pos0,VMId::get(RId::TmpParseFrame)),
                                    idx));
         result.append(assignmentOf(pos0,
                                    varOf(pos0, locals[i]),
@@ -1064,27 +1064,27 @@ QVector<shared_ptr<Statement> > CodeGenerator::pegExprToStatements(
         //    ...rule invokation...
         // done
         shared_ptr<Expression> rememberCond(
-                    methodOf(varOf(pos0, _ws(L"%المعرب")),
-                             _ws(L"هل.تذكر"),
+                    methodOf(varOf(pos0, VMId::get(RId::ParserGeneratedVarName)),
+                             VMId::get(RId::IsMemoized),
                              numLitOf(pos0, labeller.labelOf(rule->ruleName()->name())),
-                             fieldAccessOf(varOf(pos0, _ws(L"%المعرب")),
-                                           _ws(L"موقع"))));
+                             fieldAccessOf(varOf(pos0, VMId::get(RId::ParserGeneratedVarName)),
+                                           VMId::get(RId::InputPos))));
 
         QVector<shared_ptr<Statement> > assignStmts;
-        shared_ptr<VarAccess> tmpId = varOf(pos0, _ws(L"%مؤقت"));
-        shared_ptr<VarAccess> parserId = varOf(pos0, _ws(L"%المعرب"));
+        shared_ptr<VarAccess> tmpId = varOf(pos0, VMId::get(RId::ParserTempVarName));
+        shared_ptr<VarAccess> parserId = varOf(pos0, VMId::get(RId::ParserGeneratedVarName));
         assignStmts.append(assignmentOf(tmpId,
                                         methodOf(parserId,
-                                                 _ws(L"استرد.ذكرى"),
+                                                 VMId::get(RId::GetMemoized),
                                                  numLitOf(pos0, labeller.labelOf(rule->ruleName()->name())),
-                                                 fieldAccessOf(varOf(pos0, _ws(L"%المعرب")),
-                                                                _ws(L"موقع"))
+                                                 fieldAccessOf(varOf(pos0, VMId::get(RId::ParserGeneratedVarName)),
+                                                                VMId::get(RId::InputPos))
                                                  )));
-        assignStmts.append(assignmentOf(fieldAccessOf(parserId, _ws(L"موقع")),
-                                        fieldAccessOf(tmpId, _ws(L"موقع"))));
+        assignStmts.append(assignmentOf(fieldAccessOf(parserId, VMId::get(RId::InputPos)),
+                                        fieldAccessOf(tmpId, VMId::get(RId::InputPos))));
 
-        assignStmts.append(assignmentOf(varOf(pos0, _ws(L"%النتيجة")),
-                                        fieldAccessOf(tmpId, _ws(L"نتيجة"))));
+        assignStmts.append(assignmentOf(varOf(pos0, VMId::get(RId::ParserGeneratedResultVarName)),
+                                        fieldAccessOf(tmpId, VMId::get(RId::ParseResultOf))));
 
 
 
@@ -1106,7 +1106,7 @@ QVector<shared_ptr<Statement> > CodeGenerator::pegExprToStatements(
             Token pos1 = rule->associatedVar()->getPos();
             result.append(assignmentOf(pos1,
                                        varOf(rule->associatedVar()),
-                                       varOf(pos1, _ws(L"%النتيجة"))));
+                                       varOf(pos1, VMId::get(RId::ParserGeneratedResultVarName))));
         }
     }
     if(isa<PegLiteral>(expr))
@@ -1133,27 +1133,27 @@ QVector<shared_ptr<Statement> > CodeGenerator::pegExprToStatements(
         if(multiChar)
         {
             lookAheadCall = (
-                        methodOf(varOf(pos1, _ws(L"%المعرب")),
-                                 _ws(L"انظر.عديد"),
+                        methodOf(varOf(pos1, VMId::get(RId::ParserGeneratedVarName)),
+                                 VMId::get(RId::PeekMany),
                                  shared_ptr<Expression>(new NumLiteral(pos1,
                                                                        charCount))));
-            progressCall = methodOf(varOf(pos0,_ws(L"%المعرب")),
-                                    _ws(L"تقدم.عديد"),
+            progressCall = methodOf(varOf(pos0,VMId::get(RId::ParserGeneratedVarName)),
+                                    VMId::get(RId::MoveNextMany),
                                     shared_ptr<Expression>(new NumLiteral(pos1,
                                                                           charCount)));
-            conditionCall = methodOf(varOf(pos0, _ws(L"%المعرب")),
-                     _ws(L"يطل.على.عديد"),
+            conditionCall = methodOf(varOf(pos0, VMId::get(RId::ParserGeneratedVarName)),
+                     VMId::get(RId::LookAheadMany),
                      lit->value());
         }
         else
         {
             lookAheadCall = (
-                        methodOf(varOf(pos1, _ws(L"%المعرب")),
-                                 _ws(L"انظر")));
-            progressCall = methodOf(varOf(pos0,_ws(L"%المعرب")),
-                                    _ws(L"تقدم"));
-            conditionCall = methodOf(varOf(pos0, _ws(L"%المعرب")),
-                     _ws(L"يطل.على"),lit->value());
+                        methodOf(varOf(pos1, VMId::get(RId::ParserGeneratedVarName)),
+                                 VMId::get(RId::Peek)));
+            progressCall = methodOf(varOf(pos0,VMId::get(RId::ParserGeneratedVarName)),
+                                    VMId::get(RId::MoveNext));
+            conditionCall = methodOf(varOf(pos0, VMId::get(RId::ParserGeneratedVarName)),
+                     VMId::get(RId::LookAhead),lit->value());
         }
         if(lit->associatedVar())
         {
@@ -1162,8 +1162,8 @@ QVector<shared_ptr<Statement> > CodeGenerator::pegExprToStatements(
                                           lookAheadCall));
         }
         thenStmts.append(fromInvokation(progressCall));
-        elseStmts.append(gotoOf(pos0, methodOf(varOf(pos0,_ws(L"%المعرب")),
-                                        _ws(L"الجأ.لبديل"))));
+        elseStmts.append(gotoOf(pos0, methodOf(varOf(pos0,VMId::get(RId::ParserGeneratedVarName)),
+                                        VMId::get(RId::FailAndBackTrack))));
         shared_ptr<BlockStmt> thenPart(new BlockStmt(pos0, thenStmts));
         shared_ptr<BlockStmt> elsePart(new BlockStmt(pos0, elseStmts));
         shared_ptr<IfStmt> ifStmt = ifOf(pos0,
@@ -1194,12 +1194,12 @@ QVector<shared_ptr<Statement> > CodeGenerator::pegExprToStatements(
 
 
             lookAheadCall = (
-                        methodOf(varOf(pos1, _ws(L"%المعرب")),
-                                 _ws(L"انظر")));
-            progressCall = methodOf(varOf(pos0,_ws(L"%المعرب")),
-                                    _ws(L"تقدم"));
-            conditionCall = methodOf(varOf(pos0, _ws(L"%المعرب")),
-                                     _ws(L"يطل.على.نطاق"),range->value1(), range->value2());
+                        methodOf(varOf(pos1, VMId::get(RId::ParserGeneratedVarName)),
+                                 VMId::get(RId::Peek)));
+            progressCall = methodOf(varOf(pos0,VMId::get(RId::ParserGeneratedVarName)),
+                                    VMId::get(RId::MoveNext));
+            conditionCall = methodOf(varOf(pos0, VMId::get(RId::ParserGeneratedVarName)),
+                                     VMId::get(RId::LookAheadRange),range->value1(), range->value2());
 
         if(range->associatedVar())
         {
@@ -1208,8 +1208,8 @@ QVector<shared_ptr<Statement> > CodeGenerator::pegExprToStatements(
                                           lookAheadCall));
         }
         thenStmts.append(fromInvokation(progressCall));
-        elseStmts.append(gotoOf(pos0, methodOf(varOf(pos0,_ws(L"%المعرب")),
-                                        _ws(L"الجأ.لبديل"))));
+        elseStmts.append(gotoOf(pos0, methodOf(varOf(pos0,VMId::get(RId::ParserGeneratedVarName)),
+                                        VMId::get(RId::FailAndBackTrack))));
         shared_ptr<BlockStmt> thenPart(new BlockStmt(pos0, thenStmts));
         shared_ptr<BlockStmt> elsePart(new BlockStmt(pos0, elseStmts));
         shared_ptr<IfStmt> ifStmt = ifOf(pos0,
@@ -2511,7 +2511,7 @@ void CodeGenerator::generateArrayPattern(shared_ptr<ArrayPattern> pattern,
     generateExpression(matchee);
     gen(matchee, QString("popl %1").arg(arrVar));
     gen(matchee, QString("pushl %1").arg(arrVar));
-    gen(pattern, _ws(L"isa مصفوفة.قيم"));
+    gen(pattern, _ws(L"isa %1").arg(VMId::get(RId::VArray)));
     ok = _asm.uniqueLabel();
     no = _asm.uniqueLabel();
     goon = _asm.uniqueLabel();
@@ -2645,7 +2645,7 @@ void CodeGenerator::generateMapPattern(shared_ptr<MapPattern> pattern,
     generateExpression(matchee);
     gen(matchee, QString("popl %1").arg(mapVar));
     gen(matchee, QString("pushl %1").arg(mapVar));
-    gen(pattern, _ws(L"isa قاموس.قيم"));
+    gen(pattern, _ws(L"isa %1").arg(VMId::get(RId::VMap)));
     ok = _asm.uniqueLabel();
     no = _asm.uniqueLabel();
     goon = _asm.uniqueLabel();
@@ -3068,7 +3068,7 @@ void CodeGenerator::generateLambdaExpression(shared_ptr<LambdaExpression> expr)
         //throw CompilerException(currentFileName, expr, UnimplementedExpressionForm).arg("Lambda has some free variables");
 
         QMap<QString, MethodInfo > proto;
-        proto[_ws(L"تنفيذها")] = MethodInfo(1, true);
+        proto[VMId::get(RId::Invoke)] = MethodInfo(1, true);
 
         QVector<shared_ptr<Identifier> > fields;
         for(int i=0; i<expr->freeVariableCount(); ++i)
@@ -3081,7 +3081,7 @@ void CodeGenerator::generateLambdaExpression(shared_ptr<LambdaExpression> expr)
                                                   QMap<QString, shared_ptr<TypeExpression> >()));
 
         shared_ptr<VarAccess> recvName = varOf(Token(), "%this");
-        shared_ptr<Identifier> execName(new Identifier(Token(), _ws(L"تنفيذها")));
+        shared_ptr<Identifier> execName(new Identifier(Token(), VMId::get(RId::Invoke)));
         for(int i=0; i< expr->freeVariableCount(); ++i)
         {
             shared_ptr<Idafa> fieldAccess(new Idafa(Token(), fields[i], recvName));
@@ -3098,7 +3098,7 @@ void CodeGenerator::generateLambdaExpression(shared_ptr<LambdaExpression> expr)
 
         shared_ptr<MethodDecl> decl(new MethodDecl(expr->getPos(), false, expr->getPos(),
                                                    execName, methodArgs, body, procName, recvName->name(), !expr->hasDoToken()));
-        klass->insertMethod(_ws(L"تنفيذها"), decl);
+        klass->insertMethod(VMId::get(RId::Invoke), decl);
         extraDeclarations.append(klass);
 
         // now finally generate the object to represent the closure
@@ -3187,7 +3187,7 @@ QString CodeGenerator::getCurrentFunctionNameFormatted()
 {
     QString fname = scopeStack.top().proc->procName()->name();
     if(fname == "%main")
-        fname = _ws(L"البرنامج الرئيسي");
+        fname = VMId::get(RId::MainProgram); // todo: this is not the suitable place for this constant
     else
         fname = QString("'%1'").arg(fname);
     return fname;

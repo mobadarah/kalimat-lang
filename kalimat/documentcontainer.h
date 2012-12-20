@@ -15,6 +15,8 @@
 #include <QString>
 
 #include "../smallvm/codedocument.h"
+#include "idemessages.h"
+#include "../smallvm/utils.h"
 
 class DocumentClient
 {
@@ -30,6 +32,7 @@ class DocumentContainer : public QObject, public RecentFileHandler
 {
     Q_OBJECT
 private:
+    Translation<IdeMsg::IdeMessage> &msg;
     int MaxRecentFiles;
     QMenu *recentFileMenu;
     DocumentClient *client;
@@ -47,7 +50,8 @@ public:
                       QTabWidget *tabWidget,
                       DocumentClient *client,
                       int MaxRecentFiles,
-                      QMenu *recentFileMenu);
+                      QMenu *recentFileMenu,
+                      Translation<IdeMsg::IdeMessage> &msg);
     virtual ~DocumentContainer();
     void handleNew(QString prefix,QWidget *editor);
     void handleOpen();

@@ -7,20 +7,22 @@ Channel::Channel()
 
 bool Channel::canSend()
 {
+    // Warning: Does not lock the channel, use only for internal operations
     return !recv_q.empty();
 }
 
 void Channel::send(Value *v, Process *proc)
 {
+    QMutexLocker locker(&lock);
     if(!recv_q.empty())
     {
         Process *receiver = recv_q.front();
         recv_q.pop_front();
-        receiver->stack.top().OperandStack.push(v);
-        receiver->awaken();
+        receiver->currentFrame()->OperandStack.push(v);
         if(proc)
             proc->successfullSelect(this);
         receiver->successfullSelect(this);
+        receiver->awaken();
     }
     else
     {
@@ -35,17 +37,19 @@ void Channel::send(Value *v, Process *proc)
 
 bool Channel::canReceive()
 {
+    // Warning: Does not lock the channel, use only for internal operations
     return !send_q.empty();
 }
 
 void Channel::receive(Process *proc)
 {
+    QMutexLocker locker(&lock);
     if(!send_q.empty())
     {
         Process *sender = send_q.front();
         send_q.pop_front();
         Value *v = data[sender];
-        proc->stack.top().OperandStack.push(v);
+        proc->currentFrame()->OperandStack.push(v);
         sender->awaken();
         if(proc)
             proc->successfullSelect(this);

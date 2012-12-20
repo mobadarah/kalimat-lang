@@ -20,6 +20,7 @@
     #include "easyforeignclass.h"
 #endif
 
+#include "stack.h"
 #include <QStack>
 #include <QMap>
 
@@ -32,19 +33,32 @@ struct FrameClass : public EasyForeignClass
     virtual IObject *newValue(Allocator *allocator);
 };
 
+const int fast_local_static_size = 20;
 struct Frame : public IObject
 {
-    Frame *caller;
     Method *currentMethod;
     int ip;
     bool returnReferenceIfRefMethod;
-    Frame();
-    Frame(Method *method, Frame *caller);
-    Frame(Method *method, int ip, Frame *caller);
-    Instruction getPreviousRunningInstruction();
 
-    QStack<Value *> OperandStack;
-    QMap<QString, Value *> Locals;
+    Stack<Value *> OperandStack;
+    Value **fastLocals;
+    Value *fastLocalsStatic[fast_local_static_size];
+    int fastLocalCount;
+    Frame *next;
+
+    Frame();
+    Frame(Method *method);
+    Frame(Method *method, int ip);
+    Frame(const Frame &other);
+
+    virtual ~Frame();
+    Instruction getPreviousRunningInstruction();
+    void prepareFastLocals();
+
+    inline Value *local(const QString &name)
+    {
+        return fastLocals[currentMethod->Locals[name]];
+    }
 
     // IObject
     virtual bool hasSlot(QString name);

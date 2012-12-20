@@ -13,12 +13,44 @@
 #include <QString>
 #include <QMap>
 #include <QSet>
+#include <QMessageBox>
+
+
+void mySleep(int ms);
+
 QString _ws(QStdWString str);
 QString readFile(QString path);
 QString base64encode(QString other);
 QString base64Decode(QString source);
 
 QString str(int i);
+
+template<class T> QSet<T> setOf(T t1)
+{
+    QSet<T> ret;
+    ret.insert(t1);
+    return ret;
+}
+
+template<class T> QSet<T> setOf(T t1, T t2, T t3)
+{
+    QSet<T> ret;
+    ret.insert(t1);
+    ret.insert(t2);
+    ret.insert(t3);
+    return ret;
+}
+
+template<class T> QSet<T> setOf(T t1, T t2, T t3, T t4)
+{
+    QSet<T> ret;
+    ret.insert(t1);
+    ret.insert(t2);
+    ret.insert(t3);
+    ret.insert(t4);
+    return ret;
+}
+
 template <typename T> bool isa(void * obj)
 {
     T value = dynamic_cast<T>(obj);
@@ -80,11 +112,23 @@ public:
         in.close();
         return ErrorMap;
     }
+    static QVector<QString> prepareErrorVector(QString fileName)
+    {
+        QVector<QString> errorVector;
+        LineIterator in = Utils::readResourceTextFile(fileName);
+        while(!in.atEnd())
+        {
+            QString val = in.readLine().trimmed();
+            errorVector.append(val);
+        }
+        in.close();
+        return errorVector;
+    }
 };
 
 template<class ErrTypeEnum> class Translation
 {
-    QMap<ErrTypeEnum, QString> table;
+    QVector<QString> table;
     QString filename;
 public:
     Translation(QString filename): filename(filename)
@@ -92,24 +136,40 @@ public:
 
     }
 
-    QString operator[](ErrTypeEnum msgId)
+    inline QString operator[](ErrTypeEnum msgId)
+    {
+        return get(msgId);
+    }
+
+    QString get(ErrTypeEnum msgId)
     {
         if(table.empty())
-            table = Utils::prepareErrorMap<ErrTypeEnum>(filename);
+        {
+            table = Utils::prepareErrorVector(filename);
+        }
+
         return table[msgId];
     }
+
     QString get(ErrTypeEnum msgId, QString arg0)
     {
         if(table.empty())
-            table = Utils::prepareErrorMap<ErrTypeEnum>(filename);
+            table = Utils::prepareErrorVector(filename);
         return table[msgId].arg(arg0);
     }
 
     QString get(ErrTypeEnum msgId, QString arg0, QString arg1)
     {
         if(table.empty())
-            table = Utils::prepareErrorMap<ErrTypeEnum>(filename);
+            table = Utils::prepareErrorVector(filename);
         return table[msgId].arg(arg0).arg(arg1);
+    }
+
+    QString get(ErrTypeEnum msgId, QString arg0, QString arg1, QString arg2)
+    {
+        if(table.empty())
+            table = Utils::prepareErrorVector(filename);
+        return table[msgId].arg(arg0).arg(arg1).arg(arg2);
     }
 };
 

@@ -41,7 +41,12 @@ SOURCES += main.cpp \
     debuginfo.cpp \
     runtime/parserengine.cpp \
     runtime/spriteclass.cpp \
-    runtime/vmrunnerthread.cpp
+    runtime/vmrunnerthread.cpp \
+    runtime_identifiers.cpp \
+    scheduler.cpp \
+    blockingqueue.cpp \
+    instructionrunners.cpp \
+    stack.cpp
 
 HEADERS += value.h \
     instruction.h \
@@ -79,7 +84,12 @@ HEADERS += value.h \
     runtime/guieditwidgethandler.h \
     runtime/parserengine.h \
     runtime/spriteclass.h \
-    runtime/vmrunnerthread.h
+    runtime/vmrunnerthread.h \
+    runtime_identifiers.h \
+    scheduler.h \
+    blockingqueue.h \
+    instructionrunners.h \
+    stack.h
 FORMS +=  runtime/runwindow.ui
 
 RESOURCES += \

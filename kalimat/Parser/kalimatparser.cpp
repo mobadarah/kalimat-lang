@@ -1334,11 +1334,11 @@ void KalimatParser::addPropertySetter(Token pos,
 
     if(!methodName->name().startsWith(QString::fromStdWString(L"حدد.")))
     {
-        throw ParserException(fileName, pos, QString::fromStdWString(L"الاستجابة التي تكتب الخاصية لابد أن تبدأ بـ 'حدد.'"));
+        throw ParserException(fileName, pos, PropertySetterMustBeginWithSet);
     }
     else if(formals.count() !=1)
     {
-        throw ParserException(fileName, pos, QString::fromStdWString(L"الاستجابة التي تكتب الخاصية لابد أن تأخذ عاملاً واحداً.'"));
+        throw ParserException(fileName, pos, PropertySetterTakesOneArgument);
     }
     QString realName = methodName->name().mid(4); // remove حدد. //todo: handle when translating to English version
     if(!propertyInfo.contains(realName))
@@ -1357,7 +1357,7 @@ void KalimatParser::addPropertyGetter(Token pos,
 
     if(formals.count() !=0)
     {
-        throw ParserException(fileName, pos, QString::fromStdWString(L"الرد الذي يقرأ الخاصية لابد ألّا يأخذ عواملاً.'"));
+        throw ParserException(fileName, pos, PropertyGetterTakesNoArguments);
     }
     QString realName = methodName->name();
     if(!propertyInfo.contains(realName))
@@ -1527,7 +1527,7 @@ bool KalimatParser::LA_first_method_declaration()
 
 shared_ptr<Declaration> KalimatParser::methodDecl()
 {
-    bool isFunctionNotProcedure;
+    bool isFunctionNotProcedure = false;
     shared_ptr<Identifier> className;
     shared_ptr<Identifier> receiverName;
     shared_ptr<Identifier> methodName;
@@ -1571,7 +1571,7 @@ shared_ptr<Declaration> KalimatParser::methodDecl()
 
     if(methodName->name() == "%nosuchmethod" && formals.count() !=2)
     {
-        throw ParserException(fileName, tok, QString::fromStdWString(L"الرد على رسالة أخرى لابد أن يأخذ عاملين"));
+        throw ParserException(fileName, tok, NoSuchMethodHandlerTakesTwoArguments);
     }
 
     shared_ptr<MethodDecl> ret(new MethodDecl(tok, true, Token(), methodName,
@@ -1621,7 +1621,7 @@ shared_ptr<Declaration> KalimatParser::ffiLibraryDecl()
     }
     else
     {
-        throw ParserException(fileName, tok, "Expected string literal");
+        throw ParserException(fileName, tok, ExpectedStringLiteral);
     }
 }
 
@@ -1766,16 +1766,16 @@ shared_ptr<PegExpr> KalimatParser::primaryPegExpression()
         shared_ptr<Identifier> varName;
         match(FROM);
         if(!LA(STR_LITERAL))
-            throw ParserException(fileName, getPos(), _ws(L"Expected a character"));
+            throw ParserException(fileName, getPos(), ExpectedStringWithSingleCharacter);
         shared_ptr<StrLiteral> lit1 = dynamic_pointer_cast<StrLiteral>(simpleLiteral());
         if(lit1->value().length() != 1)
-            throw ParserException(fileName, lit1->getPos(), _ws(L"Expected a single character"));
+            throw ParserException(fileName, lit1->getPos(), ExpectedStringWithSingleCharacter);
         match(TO);
         if(!LA(STR_LITERAL))
-            throw ParserException(fileName, getPos(), _ws(L"Expected a character"));
+            throw ParserException(fileName, getPos(), ExpectedStringWithSingleCharacter);
         shared_ptr<StrLiteral> lit2 = dynamic_pointer_cast<StrLiteral>(simpleLiteral());
         if(lit2->value().length() != 1)
-            throw ParserException(fileName, lit2->getPos(), _ws(L"Expected a single character"));
+            throw ParserException(fileName, lit2->getPos(), ExpectedStringWithSingleCharacter);
 
         if(LA(COLON))
         {
@@ -1788,7 +1788,7 @@ shared_ptr<PegExpr> KalimatParser::primaryPegExpression()
     }
     else
     {
-        throw ParserException(fileName, getPos(), _ws(L"Invalid start of primary PEG expression"));
+        throw ParserException(fileName, getPos(), InvalidStartOfPrimaryPegExpression);
     }
 }
 
@@ -2314,7 +2314,7 @@ shared_ptr<SimpleLiteral> KalimatParser::simpleLiteral()
     }
     else
     {
-        throw ParserException(fileName, getPos(), "Expected a simple literal");
+        throw ParserException(fileName, getPos(), ExpectedSimpleLiteral);
     }
     return ret;
 }
@@ -2399,7 +2399,7 @@ shared_ptr<Expression> KalimatParser::primaryExpressionNonInvokation()
     }
     else if(LA(THEPROC) || LA(THEFUNCTION))
     {
-        DeclarationType what;
+        DeclarationType what = Proc; // meaningless initial value to silence warning
         Token pos = lookAhead;
         if(pos.Type == THEPROC)
             what = Proc;

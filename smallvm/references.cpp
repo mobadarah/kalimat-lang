@@ -40,18 +40,18 @@ Value *MultiDimensionalArrayReference::Get()
     return array->get(index);
 }
 
-VariableRef::VariableRef(Frame *frame, QString varName)
-    :frame(frame), varName(varName)
+VariableRef::VariableRef(Frame *frame, QString varName, int fastLocalIndex)
+    :frame(frame), varName(varName), fastLocalIndex(fastLocalIndex)
 {
 
 }
 
 void VariableRef::Set(Value *val)
 {
-    frame->Locals[varName] = val;
+    frame->fastLocals[fastLocalIndex] = val;
 }
 
 Value *VariableRef::Get()
 {
-    return frame->Locals[varName];
+    return frame->fastLocals[fastLocalIndex];
 }

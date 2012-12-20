@@ -9,6 +9,8 @@
 #define SYNTAXHIGHLIGHTER_H
 
 #include <QSyntaxHighlighter>
+#include "idemessages.h"
+#include "../smallvm/utils.h"
 
 class KalimatLexer;
 
@@ -16,8 +18,10 @@ QString removeExtraSpaces(QString input);
 class SyntaxHighlighter : public QSyntaxHighlighter
 {
 Q_OBJECT
+private:
+    Translation<IdeMsg::IdeMessage> msg;
 public:
-     SyntaxHighlighter(QTextDocument *parent, KalimatLexer *);
+     SyntaxHighlighter(QTextDocument *parent, KalimatLexer *, Translation<IdeMsg::IdeMessage> &msg);
      void highlightToHtml(QString program, QStringList &output);
      void highlightToWiki(QString program, QStringList &output);
      void highlightLiterateHtml(QString program, QStringList &output);

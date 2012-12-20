@@ -46,14 +46,16 @@
 #include <QtConcurrentRun>
 #include <QToolTip>
 #include <QIcon>
+
 MainWindow *MainWindow::that = NULL;
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent),
+      codeAnalyzer(Ide::msg),
       ui(new Ui::MainWindow)
 {
     MainWindow::that = this;
-
+    BuiltInTypes::init();
     helpWindowVisible = false;
     helpSplitter = NULL;
 
@@ -80,9 +82,9 @@ MainWindow::MainWindow(QWidget *parent)
 
     QToolBar *notice = new QToolBar("");
     notice->addAction(
-                QString::fromStdWString(L"هذه هي النسخة الأولية لشهر نوفمبر 2012. حمل أحدث نسخة من www.kalimat-lang.com"),
+                Ide::msg[IdeMsg::UpdateBanner],
                 this,
-                SLOT(on_goto_kalimatlangdotcom_triggered())
+                SLOT(do_goto_kalimatlangdotcom_triggered())
                 );
     insertToolBarBreak(ui->functionNavigationToolbar);
     insertToolBar(ui->functionNavigationToolbar, notice);
@@ -105,7 +107,8 @@ MainWindow::MainWindow(QWidget *parent)
                                          ui->editorTabs,
                                          this,
                                          MaxRecentFiles,
-                                         ui->mnuRecentFiles_2);
+                                         ui->mnuRecentFiles_2,
+                                         Ide::msg);
 
     QSplitter *splitter = new QSplitter(Qt::Vertical, this);
     splitter->addWidget(ui->editorTabs);
@@ -115,7 +118,7 @@ MainWindow::MainWindow(QWidget *parent)
     splitter->setStretchFactor(0, 4);
     splitter->setStretchFactor(1, 0);
 
-    this->setWindowTitle(QString::fromWCharArray(L"كلمات"));
+    this->setWindowTitle(Ide::msg[IdeMsg::Kalimat]);
     this->showMaximized();
     shouldHideFunctionTooltip = false;
     docContainer->addInitialEmptyDocument();
@@ -136,7 +139,7 @@ MainWindow::MainWindow(QWidget *parent)
     functionNavigationComboIsUpdating = false;
     ui->functionNavigationToolbar->hide();
     ui->functionNavigationToolbar->addWidget(functionNavigationCombo);
-    connect(functionNavigationCombo, SIGNAL(currentIndexChanged(int)), SLOT(on_functionNavigationCombo_currentIndexChanged(int)));
+    connect(functionNavigationCombo, SIGNAL(currentIndexChanged(int)), SLOT(do_functionNavigationCombo_currentIndexChanged(int)));
 
     generatingProgramModel = false;
     codeModelUpdateTimerId = startTimer(codeModelUpdateInterval);
@@ -149,19 +152,16 @@ void MainWindow::outputMsg(QString s)
 
 QString MainWindow::translateParserError(ParserException ex)
 {
-    QString msg = ex.message;
+    QString message = ex.message;
     if(ex.hasType())
     {
-        msg = parserErrorMap[(KalimatParserError)ex.errType()];
+        message = parserErrorMap[(KalimatParserError)ex.errType()];
         if(ex.hasPosInfo)
         {
-            msg += QString::fromStdWString(L" / سطر:%1، عمود:%2، موضع:%3")
-                    .arg(ex.pos.Line)
-                    .arg(ex.pos.Column)
-                    .arg(ex.pos.Pos);
+            message += Ide::msg.get(IdeMsg::TokenPos3, str(ex.pos.Line), str(ex.pos.Column), str(ex.pos.Pos));
         }
     }
-    return msg;
+    return message;
 }
 
 void MainWindow::showHelpWindow()
@@ -221,9 +221,9 @@ QWidget *MainWindow::CreateEditorWidget()
 {
     MyEdit *edit = new MyEdit(this);
 
-    edit->connect(edit,SIGNAL(linkClickedEvent(MyEdit*,QString)), this,SLOT(on_editor_linkClicked(MyEdit*,QString)));
+    edit->connect(edit,SIGNAL(linkClickedEvent(MyEdit*,QString)), this,SLOT(do_editor_linkClicked(MyEdit*,QString)));
 
-    syn = new SyntaxHighlighter(edit->document(), new KalimatLexer());
+    syn = new SyntaxHighlighter(edit->document(), new KalimatLexer(), Ide::msg);
     edit->textCursor().setVisualNavigation(true);
 
     edit->setFont(editorFont);
@@ -239,8 +239,8 @@ QWidget *MainWindow::CreateEditorWidget()
 
 void MainWindow::setLineIndicators(int line, int column, QTextEdit *editor)
 {
-    lblEditorCurrentLine->setText(QString::fromStdWString(L"السطر: %1").arg(line));
-    lblEditorCurrentColumn->setText(QString::fromStdWString(L"العمود: %1").arg(column));
+    lblEditorCurrentLine->setText(Ide::msg.get(IdeMsg::Line1, str(line)));
+    lblEditorCurrentColumn->setText(Ide::msg.get(IdeMsg::Column1, str(column)));
 
     MyEdit *ed = (MyEdit *) editor;
 
@@ -317,7 +317,7 @@ void MainWindow::setFunctionNavigationComboSelection(QTextEdit *editor)
                 shared_ptr<ProceduralDecl> proc = range.proc;
                 functionNavigationComboIsUpdating = true;
                 functionNavigationCombo->setCurrentIndex(
-                            functionNavigationCombo->findText(getBeautifulName(proc)));
+                            functionNavigationCombo->findText(getBeautifulName(proc, Ide::msg)));
                 functionNavigationComboIsUpdating = false;
                 break;
             }
@@ -601,8 +601,8 @@ top:
     CodeDocument *doc = NULL;
     if((currentDebuggerProcess != NULL) && atBreak)
     {
-        QMessageBox box(QMessageBox::Information, QString::fromStdWString(L"لا يمكن التنفيذ"),
-                        QString::fromStdWString(L"لا يمكن تنفيذ برنامج جديد بينما نحن في نقطة توقف للبرنامج الحالي"));
+        QMessageBox box(QMessageBox::Information, Ide::msg[IdeMsg::CannotRunProgram],
+                        Ide::msg[IdeMsg::CannotRunNewProgramAtMiddleOfBreakPoint]);
         box.exec();
         return;
     }
@@ -661,11 +661,11 @@ top:
         CodeDocument *dc = NULL;
         if(ex.getCulprit() == "<EOF>")
         {
-            show_error(QString::fromStdWString(L"انتهى البرنامج قبل أن يكون له معنى"));
+            show_error(Ide::msg[IdeMsg::UnexpectedEof]);
         }
         else
         {
-            show_error(QString::fromStdWString(L"لا يمكن كتابة هذا الرمز هنا '%1'").arg(ex.getCulprit()));
+            show_error(Ide::msg.get(IdeMsg::UnexpectedToken1, ex.getCulprit()));
         }
         if(QFile::exists(ex.fileName))
             dc = docContainer->getDocumentFromPath(ex.fileName, true);
@@ -676,15 +676,13 @@ top:
     }
     catch(UnexpectedEndOfFileException ex)
     {
-        //show_error("Unexpected end of file");
-        //show_error(QString::fromStdWString(L"خطأ في تركيب البرنامج"));
-        show_error(QString::fromStdWString(L"انتهى البرنامج قبل أن يكون له معنى"));
+        show_error(Ide::msg[IdeMsg::UnexpectedEof]);
     }
     catch(ParserException ex)
     {
-        QString msg = translateParserError(ex);
+        // QString message = translateParserError(ex);
         //show_error(ex->message);
-        show_error(QString::fromStdWString(L"خطأ في تركيب البرنامج"));
+        show_error(Ide::msg[IdeMsg::SyntaxError]);
         if(doc != NULL && ex.hasPosInfo)
         {
             CodeDocument *dc = NULL;
@@ -708,12 +706,10 @@ top:
         {
             if(lastCodeDocToRun && docContainer->hasOpenDocument(lastCodeDocToRun))
             {
-                QString msg = QString::fromStdWString(L"لا يمكن تنفيذ '%1' لأنه وحدة، هل تريد تنفيذ البرنامج '%2' بدلا منه؟")
-                        .arg(doc->getFileName())
-                        .arg(lastCodeDocToRun->getFileName());
+                QString message = Ide::msg.get(IdeMsg::CannotExecuteUnit2, doc->getFileName(), lastCodeDocToRun->getFileName());
                 QMessageBox box(QMessageBox::Question,
-                                QString::fromStdWString(L"لا يمكن تنفيذ وحدة"),
-                                msg,
+                               Ide::msg[IdeMsg::CannotExecuteUnit],
+                                message,
                                 QMessageBox::Yes | QMessageBox::No);
                 if(box.exec() == QMessageBox::Yes)
                 {
@@ -727,7 +723,7 @@ top:
             }
         }
         show_error(ex.getMessage());
-        // show_error(QString(L"خطأ في تركيب البرنامج"));
+
         if(doc != NULL)
         {
             CodeDocument *dc = NULL;
@@ -845,20 +841,20 @@ void MainWindow::visualizeCallStacks(QSet<QQueue<Process *> *> callStacks, QGrap
     }
 }
 
-void MainWindow::visualizeCallStack(QStack<Frame> &callStack, QGraphicsView *view)
+void MainWindow::visualizeCallStack(Frame *callStack, QGraphicsView *view)
 {
     QGraphicsScene *scene = new QGraphicsScene();
 
     float left = 0.0f;
-    for(int i= callStack.count() -1; i>=0; i--)
+    Frame *f = callStack;
+    while(f != NULL)
     {
-        Frame f = callStack.at(i);
         QString frepr;
-        frepr = "<" + f.currentMethod->getName() + ">\n";
-        for(int j=0; j<f.Locals.count(); j++)
+        frepr = "<" + f->currentMethod->getName() + ">\n";
+        for(int j=0; j<f->currentMethod->Locals.count(); j++)
         {
-            QString var = f.Locals.keys().at(j);
-            QString val = f.Locals.values().at(j)->toString();
+            QString var = f->currentMethod->Locals.keys().at(j);
+            QString val = f->local(var)->toString();
             if(var.startsWith("%"))
                 continue;
             if(var.length() > 5)
@@ -869,7 +865,7 @@ void MainWindow::visualizeCallStack(QStack<Frame> &callStack, QGraphicsView *vie
             QString out = QString("%1  =  %2").arg(var)
                     .arg(val);
             frepr +=out;
-            if(j<f.Locals.count()-1)
+            if(j<f->currentMethod->Locals.count()-1)
                 frepr += "\n";
         }
 
@@ -879,6 +875,8 @@ void MainWindow::visualizeCallStack(QStack<Frame> &callStack, QGraphicsView *vie
         txt->setParentItem(rct);
         rct->setPos(left, 5.0f);
         left += 5.0f + txt->boundingRect().width();
+
+        f = f->next;
     }
     view->setAlignment(Qt::AlignRight| Qt::AlignTop);
     view->setLayoutDirection(Qt::RightToLeft);
@@ -891,7 +889,8 @@ void MainWindow::markCurrentInstruction(VM *vm, Process *proc, int &pos, int &le
     if(!proc->isFinished())
     {
         const Instruction &i = proc->getCurrentInstruction();
-        visualizeCallStacks(vm->getCallStacks(), ui->graphicsView);
+        // todo: critical: call stack in wonderful monitor
+        // visualizeCallStacks(vm->mainScheduler.getCallStacks(), ui->graphicsView);
         int key = i.extra;
         if(key ==-1)
             return;
@@ -911,10 +910,10 @@ void MainWindow::markCurrentInstruction(VM *vm, Process *proc, int &pos, int &le
 
 void MainWindow::handleVMError(VMError err)
 {
-    if(!err.callStack.empty())
+    if(err.callStack != NULL)
     {
-        Frame f = err.callStack.top();
-        highlightRunningInstruction(&f);
+        Frame *f = err.callStack;
+        highlightRunningInstruction(f);
         visualizeCallStack(err.callStack, ui->graphicsView);
     }
 }
@@ -987,11 +986,11 @@ void MainWindow::on_action_exit_triggered()
     this->close();
 }
 
-void MainWindow::show_error(QString msg)
+void MainWindow::show_error(QString message)
 {
     QMessageBox box;
-    box.setWindowTitle(QString::fromWCharArray(L"كلمات"));
-    box.setText(msg);
+    box.setWindowTitle(Ide::msg[IdeMsg::Kalimat]);
+    box.setText(message);
     box.exec();
 }
 
@@ -1087,7 +1086,7 @@ void MainWindow::on_btnFindPrev_clicked()
         bool result = editor->find(searchStr, QTextDocument::FindBackward);
         if(!result)
         {
-            ui->lblFindStatus->setText(QString::fromStdWString(L"وصلنا لبداية الملف"));
+            ui->lblFindStatus->setText(Ide::msg[IdeMsg::StartOfFileReached]);
 
             // set the cursor at the end of the document
             QTextCursor c = editor->textCursor();
@@ -1110,7 +1109,7 @@ void MainWindow::on_btnFindNext_clicked()
         bool result = editor->find(searchStr);
         if(!result)
         {
-            ui->lblFindStatus->setText(QString::fromStdWString(L"وصلنا لنهاية الملف"));
+            ui->lblFindStatus->setText(Ide::msg[IdeMsg::EndOfFileReached]);
 
             // set the cursor at the begining of the document
             QTextCursor c = editor->textCursor();
@@ -1294,7 +1293,7 @@ void MainWindow::on_action_autoFormat_triggered()
 
 void MainWindow::Break(QString methodName, int offset, Frame *frame, Process *process)
 {
-    this->setWindowTitle(QString::fromStdWString(L"وصلت لنقطة توقف!!"));
+    this->setWindowTitle(Ide::msg[IdeMsg::BreakpointReached]);
     this->activateWindow();
     atBreak = true;
 
@@ -1438,7 +1437,7 @@ void MainWindow::on_action_resume_triggered()
             return;
 
         MyEdit *editor = (MyEdit *)stoppedAtBreakPoint.doc->getEditor();
-        setWindowTitle(QString::fromStdWString(L"كلمات"));
+        setWindowTitle(Ide::msg[IdeMsg::Kalimat]);
         removeLineHighlights(editor, stoppedAtBreakPoint.line);
         highlightLine(editor, editor->textCursor().position(), QColor(170, 170, 170));
         atBreak = false;
@@ -1502,7 +1501,7 @@ void MainWindow::on_actionMake_exe_triggered()
     saveDlg.setDefaultSuffix("exe");
     QString selFilter = "Executable file (*.exe)";
     QString targetFile = saveDlg.getSaveFileName(this,
-                                                 QString::fromStdWString(L"اختر مكان واسم الملف التنفيذي"),
+                                                 Ide::msg[IdeMsg::ChooseExePath],
                                                  "", "Executable file (*.exe)",
                                                  &selFilter);
 
@@ -1630,21 +1629,21 @@ void MainWindow::on_actionMake_exe_triggered()
         }
         if(!success)
         {
-            QMessageBox box(QMessageBox::Information, QString::fromStdWString(L"عمل ملف تنفيذي"),
-                            QString::fromStdWString(L"خطأ في عمل الملف التنفيذي<i>%1</i>").arg(problem));
+            QMessageBox box(QMessageBox::Information, Ide::msg[IdeMsg::CreatingExecutable],
+                            Ide::msg.get(IdeMsg::ErrorCreatingExecutable1, problem));
             box.exec();
         }
         else
         {
-            QMessageBox box(QMessageBox::Information, QString::fromStdWString(L"عمل ملف تنفيذي"),
-                            QString::fromStdWString(L"تم عمل الملف التنفيذي. لكي يعمل برنامجك يجب أن تضع معه الملفات الموجودة في الفهرس المسمى dll المتفرع من مجلد كلمات على جهازك"));
+            QMessageBox box(QMessageBox::Information,  Ide::msg[IdeMsg::CreatingExecutable],
+                            Ide::msg[IdeMsg::SuccessCreatingExe]);
             box.exec();
         }
     }
     catch(UnexpectedCharException ex)
     {
         //show_error(ex->buildMessage());
-        show_error(QString::fromStdWString(L"لا يمكن كتابة هذا الرمز هنا '%1'").arg(ex.getCulprit()));
+        show_error(Ide::msg.get(IdeMsg::UnexpectedToken1, ex.getCulprit()));
         if(doc != NULL)
         {
             CodeDocument *dc = doc;
@@ -1653,14 +1652,12 @@ void MainWindow::on_actionMake_exe_triggered()
     }
     catch(UnexpectedEndOfFileException ex)
     {
-        //show_error("Unexpected end of file");
-        //show_error(QString::fromStdWString(L"خطأ في تركيب البرنامج"));
-        show_error(QString::fromStdWString(L"انتهى البرنامج قبل أن يكون له معنى"));
+        show_error(Ide::msg[IdeMsg::UnexpectedEof]);
     }
     catch(ParserException ex)
     {
         //show_error(ex->message);
-        show_error(QString::fromStdWString(L"خطأ في تركيب البرنامج"));
+        show_error(Ide::msg[IdeMsg::SyntaxError]);
         if(doc != NULL && ex.hasPosInfo)
         {
             CodeDocument *dc = doc;
@@ -1674,7 +1671,7 @@ void MainWindow::on_actionMake_exe_triggered()
     catch(CompilerException ex)
     {
         show_error(ex.getMessage());
-        // show_error(QString(L"خطأ في تركيب البرنامج"));
+        //  show_error(msg[IdeMsg::SyntaxError]);
         if(doc != NULL)
         {
             CodeDocument *dc = doc;
@@ -1755,7 +1752,7 @@ QString combinePath(QString parent, QString child)
     return QFileInfo(parent, child).absoluteFilePath();
 }
 
-void MainWindow::on_editor_linkClicked(MyEdit *source, QString href)
+void MainWindow::do_editor_linkClicked(MyEdit *source, QString href)
 {
     CodeDocument *doc = docContainer->getDocumentFromWidget(source);
     if(!doc)
@@ -1778,8 +1775,8 @@ void MainWindow::on_editor_linkClicked(MyEdit *source, QString href)
         linkedFile = stdPath;
     if(!QFile::exists(linkedFile))
     {
-        QMessageBox box(QMessageBox::Question,QString::fromStdWString(L"ملف غير موجود"),
-                        QString::fromStdWString(L"الملف '%1' غير موجود، هل تود إنشاءه؟").arg(linkedFile),
+        QMessageBox box(QMessageBox::Question,Ide::msg[IdeMsg::FileNotFound],
+                        Ide::msg.get(IdeMsg::FileNotFoundCreateIt1, linkedFile),
                         QMessageBox::Yes|QMessageBox::No);
         box.exec();
         if( box.result() == QMessageBox::Yes)
@@ -1933,7 +1930,7 @@ void MainWindow::on_actionUpdate_code_model_triggered()
     {
         functionNavigationComboIsUpdating = true;
         functionNavigationCombo->clear();
-        functionNavigationCombo->addItem(QString::fromStdWString(L"(خارج الإجراءات)"));
+        functionNavigationCombo->addItem(Ide::msg[IdeMsg::TopLevel]);
 
         for(QMap<QString, shared_ptr<ProceduralDecl> >::const_iterator i = functionNavigationInfo.funcNameToAst.begin();
             i != functionNavigationInfo.funcNameToAst.end(); ++i)
@@ -1951,7 +1948,7 @@ void MainWindow::on_actionUpdate_code_model_triggered()
     generatingProgramModel = false;
 }
 
-void MainWindow::on_functionNavigationCombo_currentIndexChanged(int index)
+void MainWindow::do_functionNavigationCombo_currentIndexChanged(int index)
 {
     if(functionNavigationComboIsUpdating)
         return;
@@ -1961,7 +1958,7 @@ void MainWindow::on_functionNavigationCombo_currentIndexChanged(int index)
         return;
 
     QString funcName = functionNavigationCombo->itemText(index);
-    if(funcName == QString::fromStdWString(L"(خارج الإجراءات)"))
+    if(funcName == Ide::msg[IdeMsg::TopLevel])
     {
         currentEditor()->setFocus();;
         return;
@@ -2273,7 +2270,7 @@ void launchKalimatSite()
     QDesktopServices::openUrl(QUrl("http://www.kalimat-lang.com", QUrl::TolerantMode));
 }
 
-void MainWindow::on_goto_kalimatlangdotcom_triggered()
+void MainWindow::do_goto_kalimatlangdotcom_triggered()
 {
     QtConcurrent::run(launchKalimatSite);
 }

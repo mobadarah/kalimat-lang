@@ -13,6 +13,7 @@
 #include "Lexer/kalimatlexer.h"
 #include <QTextEdit>
 #include <QKeyEvent>
+
 class MainWindow;
 
 bool isParen(QString s );

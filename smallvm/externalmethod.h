@@ -8,14 +8,18 @@
 #ifndef EXTERNALMETHOD_H
 #define EXTERNALMETHOD_H
 
+#include "stack.h"
+
 class ExternalMethod : public Object
 {
     int arity;
 public:
+    bool mustRunInGui;
+public:
     explicit ExternalMethod();
     explicit ExternalMethod(int arity);
     int Arity() { return arity;}
-    virtual void operator ()(QStack<Value *> &operandStack, Process *) =0;
+    virtual void operator ()(Stack<Value *> &operandStack, Process *) =0;
 };
 
 

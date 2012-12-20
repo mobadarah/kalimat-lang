@@ -17,9 +17,11 @@ ExternalMethod::ExternalMethod() :
     Object()
 {
     arity = -1;
+    mustRunInGui = false;
 }
 ExternalMethod::ExternalMethod(int arity) :
     Object()
 {
     this->arity = arity;
+    mustRunInGui = false;
 }

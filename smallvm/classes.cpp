@@ -1,6 +1,7 @@
 #include "classes.h"
 #include "allocator.h"
 #include "vmerror.h"
+#include "runtime_identifiers.h"
 
 IObject *ValueClass::newValue(Allocator *allocator)
 {
@@ -75,7 +76,7 @@ void PointerClass::setSlotValue(QString name, Value *val)
 
 QString PointerClass::getName()
 {
-    return QString::fromStdWString(L"مشير(%1)").arg(pointee->getName());
+    return VMId::get(RId::PointerOf1, pointee->getName());
 }
 
 bool PointerClass::hasField(QString name)

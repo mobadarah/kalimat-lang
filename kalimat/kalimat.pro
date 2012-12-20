@@ -70,7 +70,12 @@ SOURCES += main.cpp \
     mytooltip.cpp \
     mytiplabel.cpp \
     Parser/KalimatAst/kalimat_ast_gen.cpp \
-    ../smallvm/runtime/vmrunnerthread.cpp
+    ../smallvm/runtime/vmrunnerthread.cpp \
+    ../smallvm/runtime_identifiers.cpp \
+    idemessages.cpp \
+    ../smallvm/scheduler.cpp \
+    ../smallvm/blockingqueue.cpp \
+    ../smallvm/instructionrunners.cpp
 HEADERS += mainwindow.h \
     Lexer/token.h \
     Lexer/statemachine.h \
@@ -119,7 +124,10 @@ HEADERS += mainwindow.h \
     mytooltip.h \
     mytiplabel.h \
     Parser/KalimatAst/kalimat_ast_gen.h \
-    ../smallvm/runtime/vmrunnerthread.h
+    ../smallvm/runtime/vmrunnerthread.h \
+    idemessages.h \
+    ../smallvm/blockingqueue.h \
+    ../smallvm/vmerror.h
 
 FORMS += mainwindow.ui \
     savechangedfiles.ui \

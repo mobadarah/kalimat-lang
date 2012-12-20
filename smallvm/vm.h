@@ -28,8 +28,11 @@
     #include "debugger.h"
 #endif
 
+#include "runtime_identifiers.h"
 #include "utils.h"
 
+#include "scheduler.h"
+#include "runtime/vmrunnerthread.h"
 #include <QQueue>
 #include <QMutex>
 
@@ -38,38 +41,23 @@ class VM
     Labeller constantPoolLabeller;
     QHash<int, Value*> constantPool;
 
-    QQueue<Process *> running;
-    QQueue<Process *> sleeping;
-    QQueue<Process *> timerWaiting;
-    QQueue<Process *> newProcesses;
-    QQueue<Process *> guiProcesses; // Schedule processes that need to interact with Qt
-                                    // to run in the GUI thread. See RunWindow::Run() and VM::RunStep()
-
 public:
-    Process *runningNow;
-    QQueue<Process *> &getGUIProcesses() { return guiProcesses;}
     static Translation<ArgErr::ArgError> argumentErrors;
+    Scheduler mainScheduler;
+    Scheduler guiScheduler;
+    VMRunthread *vmThread;
 private:
-    // The allocator must be declared after the 'constantPool' and 'stack'
+
+    // The allocator must be declared after the 'constantPool', 'stack', and 'mainScheduler'
     // members, since it's initialized with them in VMs constructor initializer list!!
     Allocator allocator;
 
-    bool _isRunning;
     VMError _lastError;
-    Frame *_globalFrame;
+    QMap<QString, Value *> _globalFrame;
     QMap<QString, QString> registeredEventHandlers;
+
 private:
-    // QStack<Frame> &stack();
-public: // todo:temp
-    /*inline Frame *currentFrame()
-    {
-        if(stack().empty())
-            return NULL;
-        return &stack().top();
-    }
-    */
-private:
-    Frame &globalFrame();
+    QMap<QString, Value *> &globalFrame();
 
     friend class Process;
 private:
@@ -97,22 +85,15 @@ public:
     Value *GetType(QString symref);
 
     void ActivateEvent(QString evName, QVector<Value *> args);
-    bool schedule();
-    void RunStep(bool singleInstruction=false);
-    void finishUpRunningProcess();
+
     Allocator &GetAllocator();
     void gc();
 
     Frame *launchProcess(Method *method);
     Frame *launchProcess(Method *method, Process *&proc);
     Frame *launchProcessAsInterrupt(Method *method);
-    void awaken(Process *proc);
-    void sleepify(Process *proc);
 
-    inline Process *currentProcess() { return running.front(); }
-    void makeItSleep(Process *proc, int ms);
     bool hasRegisteredEventHandler(QString evName);
-    bool hasInterrupts();
     void setDebugger(Debugger *);
     void clearAllBreakPoints();
     void setBreakPoint(QString methodName, int offset);
@@ -140,17 +121,14 @@ public:
     void assert(Process *proc, bool cond, VMErrorType toSignal, IClass *arg0, IClass *arg1);
     void assert(Process *proc, bool cond, VMErrorType toSignal, QString arg0, QString arg1, QString arg2);
 
-    QSet<QQueue<Process *> *> getCallStacks();
-
-
-
     VMError GetLastError();
 private:
 
     void patchupInheritance(QMap<ValueClass *, QString> inheritanceList);
 
 public:
-
+    void stopTheWorld();
+    void startTheWorld();
 };
 
 #endif // VM_H

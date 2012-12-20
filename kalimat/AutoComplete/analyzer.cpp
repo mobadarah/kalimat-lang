@@ -1,11 +1,12 @@
 #include "analyzer.h"
 
-Analyzer::Analyzer()
+Analyzer::Analyzer(Translation<IdeMsg::IdeMessage> &msg)
+    :msg(msg)
 {
 }
 
 
-QString getBeautifulName(shared_ptr<ProceduralDecl> proc)
+QString getBeautifulName(shared_ptr<ProceduralDecl> proc, Translation<IdeMsg::IdeMessage> &msg)
 {
     shared_ptr<MethodDecl> method = dynamic_pointer_cast<MethodDecl>(proc);
     if(method)
@@ -16,7 +17,7 @@ QString getBeautifulName(shared_ptr<ProceduralDecl> proc)
     {
         QString name = proc->procName()->name();
         if(name == "%main")
-            return QString::fromStdWString(L"(البرنامج الرئيسي)");
+            return msg[IdeMsg::MainProgram];
         else
             return name;
 
@@ -37,15 +38,15 @@ analyzeFunctionDeclarations(shared_ptr<CompilationUnit> cu,
                             CompilationUnitInfo &ret)
 {
     forEachDecl(cu,
-    [&ret](shared_ptr<Declaration> decl)->void
+    [&ret, this](shared_ptr<Declaration> decl)->void
     {
         shared_ptr<ProceduralDecl> proc =
             dynamic_pointer_cast<ProceduralDecl>(
                     decl);
         if(proc)
         {
-            QString s = getBeautifulName(proc);
-            ret.funcNameToAst[getBeautifulName(proc)] = proc;
+            // QString s = getBeautifulName(proc, msg);
+            ret.funcNameToAst[getBeautifulName(proc, msg)] = proc;
             Token start = proc->getPos();
             Token end = proc->_endingToken;
             ret.rangeOfEachProc[start.Pos] = ProcPosRange(start.Pos,

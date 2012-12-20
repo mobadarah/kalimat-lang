@@ -3,15 +3,16 @@
 #include "allocator.h"
 #include "metaclass.h"
 #include "vmerror.h"
+#include "runtime_identifiers.h"
 
 MetaClass::MetaClass(QString name, Allocator *allocator)
     :EasyForeignClass(name)
 {
     this->allocator = allocator;
 
-    methodIds[QString::fromStdWString(L"انشيء.كائن")] =
+    methodIds[VMId::get(RId::NewObject)] =
             0;
-    methodArities[QString::fromStdWString(L"انشيء.كائن")] =
+    methodArities[VMId::get(RId::NewObject)] =
             1;
 }
 

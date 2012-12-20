@@ -22,30 +22,63 @@
 #include <QMap>
 #include <time.h>
 
+/*
+  Processes are a fundamental component in SmallVM. A process has a call stack, runs instructions, and can communicate with
+  other processes via channels.
+
+  Each process is owned by exactly one Scheduler which is responsible for executing it, but it can migrate to another
+  scheduler if needed.
+
+  A process has one of three states:
+
+  - Awake, meaning it is either running now or waiting to be run in the 'running' queue of some scheduler
+
+  - Sleeping, meaning it is blocking for a channel communication like send or receive. Meanwhile it will be in the
+    'sleeping' queue of its scheduler
+
+  - TimerWaiting, meaning the wait(ms) function is called and the process is in the 'timerWaiting' queue of some scheduler, to be
+    reactivated later.
+  */
+
 enum ProcessState
 {
     SleepingProcess,
     TimerWaitingProcess,
-    AwakeProcess,
-    MovedToGuiThread
+    AwakeProcess
 };
 
 class Channel;
 class VM;
+class Scheduler;
+
+inline int getInstructionArity(const Instruction &i)
+{
+    if(i.Arg == NULL)
+        return -1;
+    return i.Arg->unboxInt();
+}
 
 struct Process
 {
     ProcessState state;
-    QStack<Frame> stack;
+    Frame *stack;
 
+    // allChans and nsend are used in select(...) operations
     QVector<Channel *> allChans;
     int nsend;
-    VM *owner;
+
+    Scheduler *owner;
+    VM *vm;
     clock_t timeToWake;
     QString administrator;
     bool interrupt;
+    int timeSlice;
+    QString starterProcedureName;
 public:
-    Process(VM *owner);
+    Scheduler *wannaMigrateTo;
+public:
+    Process(Scheduler *owner);
+    ~Process();
     void awaken();
     void sleep();
     void select(QVector<Channel *> allChans,
@@ -56,18 +89,19 @@ public:
 public:
     inline bool isFinished()
     {
-        if(stack.isEmpty())
+        if(stack == NULL)
         {
             return true;
         }
 
         //*
-        Frame &frame = stack.top();
-        if(frame.currentMethod == NULL)
+        const  Frame *frame = stack;
+        if(frame->currentMethod == NULL)
         {
             return true;
         }
-        if(!frame.currentMethod->HasInstruction(frame.ip))
+
+        if(!frame->currentMethod->HasInstruction(frame->ip))
         {
             return true;
         }
@@ -75,34 +109,51 @@ public:
 
         return false;
     }
+    inline void pushFrame(Frame *f) {
+        f->next = stack;
+        stack = f;
+    }
+
+    inline Frame *popFrame() {
+        if(stack == NULL)
+            signal(InternalError1, "Accessing frame on empty call stack");
+        Frame *temp = stack;
+        stack = stack->next;
+        return temp;
+    }
+    inline Frame *currentFrame() { return stack; }
+
 public:
     const Instruction &getCurrentInstruction();
-    void RunTimeSlice(int slice, VM *vm);
+    void RunTimeSlice(int slice, VM *vm, Scheduler *caller);
     void RunSingleInstruction();
+    void migrateTo(Scheduler *scheduler);
 public:
     void signal(VMErrorType toSignal);
     void signal(VMErrorType toSignal, QString arg0);
     void signal(VMErrorType toSignal, QString arg0, QString arg1);
+    void signal(VMErrorType toSignal, IClass *arg0, IClass *arg1);
     void signal(VMErrorType toSignal, QString arg0, QString arg1, QString arg2);
     void signalWithStack(VMError err);
 
+    //*
     void assert(bool cond, VMErrorType toSignal);
     void assert(bool cond, VMErrorType toSignal, QString arg0);
     void assert(bool cond, VMErrorType toSignal, QString arg0, QString arg1);
     void assert(bool cond, VMErrorType toSignal, IClass *arg0, IClass *arg1);
     void assert(bool cond, VMErrorType toSignal, QString arg0, QString arg1, QString arg2);
+    //*/
 private:
-    inline Frame *currentFrame() { return &stack.top(); }
-    inline Frame &globalFrame();
+    inline QMap<QString, Value *> &globalFrame();
     inline QHash<int, Value*> &constantPool();
     inline Allocator &allocator();
-
+public:
     void DoPushVal(Value *Arg);
-    void DoPushLocal(QString SymRef);
-    void DoPushGlobal(QString SymRef);
+    void DoPushLocal(const QString &SymRef, int SymRefLabel);
+    void DoPushGlobal(const QString &SymRef);
     void DoPushConstant(QString SymRef, int SymRefLabel);
-    void DoPopLocal(QString SymRef);
-    void DoPopGlobal(QString SymRef);
+    void DoPopLocal(const QString &SymRef, int SymRefLabel);
+    void DoPopGlobal(const QString &SymRef);
     void DoPushNull();
     void DoGetRef();
     void DoSetRef();
@@ -114,28 +165,28 @@ private:
     void DoAnd();
     void DoOr();
     void DoNot();
-    void DoJmp(QString label);
+    void DoJmp(const QString &label, int fastLabel);
     void DoJmpVal();
-    void DoIf(QString trueLabel, QString falseLabel);
+    void DoIf(const QString &trueLabel, const QString &falseLabel, int fastTrueLabel, int fastFalseLabel);
     void DoLt();
     void DoGt();
     void DoEq();
     void DoNe();
     void DoLe();
     void DoGe();
-    void DoCall(QString symRef, int SymRefLabel, int arity, CallStyle callStyle);
-    void DoCallRef(QString symRef, int SymRefLabel, int arity, CallStyle callStyle);
-    void DoCallMethod(QString SymRef, int SymRefLabel, int arity, CallStyle callStyle);
+    void DoCall(const QString &symRef, int SymRefLabel, int arity, CallStyle callStyle);
+    void DoCallRef(const QString &symRef, int SymRefLabel, int arity, CallStyle callStyle);
+    void DoCallMethod(const QString &SymRef, int SymRefLabel, int arity, CallStyle callStyle);
     void DoRet();
     void DoApply();
-    void DoCallExternal(QString symRef, int SymRefLabel, int arity);
-    void DoSetField(QString SymRef);
-    void DoGetField(QString SymRef);
-    void DoGetFieldRef(QString SymRef);
+    void DoCallExternal(const QString &symRef, int SymRefLabel, int arity);
+    void DoSetField(const QString &SymRef);
+    void DoGetField(const QString &SymRef);
+    void DoGetFieldRef(const QString &SymRef);
     void DoGetArr();
     void DoSetArr();
     void DoGetArrRef();
-    void DoNew(QString SymRef, int SymRefLabel);
+    void DoNew(const QString &SymRef, int SymRefLabel);
     void DoNewArr();
     void DoArrLength();
     void DoNewMD_Arr();
@@ -144,22 +195,22 @@ private:
     void DoGetMD_ArrRef();
     void DoMD_ArrDimensions();
     void DoRegisterEvent(Value *evname, QString SymRef);
-    void DoIsa(QString SymRef, int SymRefLabel);
+    void DoIsa(const QString &SymRef, int SymRefLabel);
     void DoSend();
     void DoReceive();
     void DoSelect();
     void DoBreak();
     void DoTick();
 
-    void CallImpl(QString sym, int SymRefLabel, bool wantValueNotRef, int arity, CallStyle callStyle);
+    void CallImpl(const QString &sym, int SymRefLabel, bool wantValueNotRef, int arity, CallStyle callStyle);
     void CallImpl(Method *method, bool wantValueNotRef, int arity, CallStyle callStyle);
     void CallSpecialMethod(IMethod *method, QVector<Value *> args);
-    void test(bool, QString, QString);
+    void test(bool, const QString &, const QString &, int fastTrueLabel, int fastFalseLabel);
     bool coercion(Value *v1, Value *v2, Value *&newV1, Value *&newV2);
     Value *_div(Value *, Value *);
     void Pop_Md_Arr_and_indexes(MultiDimensionalArray<Value *> *&theArray, QVector<int> &indexes);
 
-    void BuiltInArithmeticOp(QString opName, int (*intFunc)(int,int),
+    void BuiltInArithmeticOp(const QString &opName, int (*intFunc)(int,int),
                              long (*longFunc)(long, long),
                              double (*doubleFunc)(double,double));
     void BuiltInComparisonOp(bool  (*intFunc)(int,int),
@@ -182,11 +233,20 @@ private:
     void BinaryLogicOp(bool (*boolFunc)(bool, bool));
     void UnaryLogicOp(bool (*boolFunc)(bool));
 private:
+    inline Value *popValue()
+    {
+        if(currentFrame()->OperandStack.empty())
+            signal(InternalError1, "Empty operand stack");
+        return currentFrame()->OperandStack.pop();
+    }
+
     int popIntOrCoercedDouble();
     double popDoubleOrCoercedInt();
     IMethod *popMethod();
     VArray *popArray();
-    inline Value *__top();
+    inline Value *__top() {
+        return currentFrame()->OperandStack.top();
+    }
 };
 
 #endif // PROCESS_H

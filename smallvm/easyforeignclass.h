@@ -9,8 +9,8 @@
 
 class EasyForeignClass;
 class Process;
-#define _method(a, b, c) methodIds[_ws(a)] = b; \
-    methodArities[_ws(a)] = c + 1;
+#define _method(a, b, c) methodIds[a] = b; \
+    methodArities[a] = c + 1;
 
 class ForeignMethodProxy : public IForeignMethod
 {

@@ -9,22 +9,34 @@
 #include "allocator.h"
 
 const int intCacheSize = 40;
-Value *Allocator::_true = NULL;
-Value *Allocator::_false = NULL;
-Value *Allocator::_ints[intCacheSize];
+//Value *Allocator::_true = NULL;
+//Value *Allocator::_false = NULL;
+//Value *Allocator::_ints[intCacheSize];
 
-Allocator::Allocator(QHash<int, Value *> *constantPool, QSet<QQueue<Process *> *>)
+Allocator::Allocator(QHash<int, Value *> *constantPool, QSet<Scheduler *>schedulers)
 {
     this->constantPool = constantPool;
-    this->processes = processes;
+    this->schedulers = schedulers;
     currentAllocationInBytes = 0;
     maxAllocationInBytes = NORMAL_MAX_HEAP;
-    if(_true == NULL)
-        _true = newBool(true, false);
-    if(_false == NULL)
-        _false = newBool(false, false);
+
+    _true = newBool(true, false);
+    _false = newBool(false, false);
+
+    _ints = new Value*[intCacheSize];
     for(int i=0; i<intCacheSize; i++)
         _ints[i] = newInt(i, false);
+}
+
+Allocator::~Allocator()
+{
+    delete _true;
+    delete _false;
+    for(int i=0; i<intCacheSize; ++i)
+    {
+        delete _ints[i];
+    }
+    delete[] _ints;
 }
 
 Value *Allocator::allocateNewValue(bool gcMonitor)
@@ -287,6 +299,7 @@ void Allocator::stopGcMonitoring(Value *v)
 
 void Allocator::gc()
 {
+    return;
     mark();
     sweep();
 }
@@ -307,37 +320,41 @@ void Allocator::mark()
         reachable.push(v);
     }
 
-    for(QSet<Frame *>::const_iterator it= otherFrames.begin(); it != otherFrames.end(); ++it)
+    for(QSet<QMap<QString, Value *> *>::const_iterator it= otherFrames.begin(); it != otherFrames.end(); ++it)
     {
-        Frame *of = *it;
-        for(int j=0; j<of->Locals.count(); j++)
+        QMap<QString, Value *> *of = *it;
+        for(QMap<QString, Value *>::const_iterator j=of->begin(); j != of->end(); ++j)
         {
-            reachable.push(of->Locals.values()[j]);
-        }
-        for(int j=0; j<of->OperandStack.count(); j++)
-        {
-            reachable.push(of->OperandStack.value(j));
+            reachable.push(j.value());
         }
     }
-    for(QSet<QQueue<Process *> *>::const_iterator iter1=processes.begin(); iter1 != processes.end(); ++iter1)
+
+    for(QSet<Scheduler *>::const_iterator iter1=schedulers.begin(); iter1 != schedulers.end(); ++iter1)
     {
-        const QQueue<Process *> &q = *(*iter1);
-        for(QQueue<Process *>::const_iterator iter=q.begin(); iter!=q.end(); ++iter)
+        Scheduler *sched = (*iter1);
+        QSet<QQueue<Process *> *> qs = sched->getProcesses();
+        for(QSet<QQueue<Process *> *>::const_iterator queueIter= qs.begin(); queueIter != qs.end(); ++queueIter)
         {
-            const QStack<Frame> &stack = (*iter)->stack;
-            for(int i=0; i<stack.count(); i++)
+            const QQueue<Process *> &q = *(*queueIter);
+            for(QQueue<Process *>::const_iterator iter=q.begin(); iter!=q.end(); ++iter)
             {
-                const Frame &f = stack.at(i);
-                for(int j=0; j<f.Locals.count(); j++)
+                const Frame *stack = (*iter)->stack;
+                while(stack != NULL)
                 {
-                    reachable.push(f.Locals.values()[j]);
-                }
-                for(int j=0; j<f.OperandStack.count(); j++)
-                {
-                    reachable.push(f.OperandStack.value(j));
+                    const Frame &f = *stack;
+                    for(int j=0; j<f.fastLocalCount; j++)
+                    {
+                        reachable.push(f.fastLocals[j]);
+                    }
+                    for(Stack<Value *>::const_iterator j=f.OperandStack.begin(); j !=f.OperandStack.end(); ++j)
+                    {
+                        reachable.push(*j);
+                    }
+                    stack = stack->next;
                 }
             }
         }
+
     }
 
 

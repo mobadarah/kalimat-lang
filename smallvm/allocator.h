@@ -24,6 +24,10 @@
     #include "process.h"
 #endif
 
+#ifndef SCHEDULER_H
+    #include "scheduler.h"
+#endif
+
 #include <QStack>
 #include <QQueue>
 
@@ -40,19 +44,21 @@ class Allocator
     unsigned int currentAllocationInBytes;
     unsigned int maxAllocationInBytes;
 
-    static Value * _true;
-    static Value * _false;
-    static Value * _ints[];
+    Value * _true;
+    Value * _false;
+    Value ** _ints;
 
     // Store VM root objects for GC
     QHash<int, Value*> *constantPool;
-    QSet<QQueue<Process *> *> processes;
-    QSet<Frame *> otherFrames;
+    QSet<Scheduler *> schedulers;
+    QSet<QMap<QString, Value *> *> otherFrames;
 public:
     Allocator(QHash<int, Value*> *constantPool,
-              QSet<QQueue<Process *> *>);
+              QSet<Scheduler *> schedulers);
 
-    void addOtherFrameAsRoot(Frame *f) { otherFrames.insert(f); }
+    ~Allocator();
+
+    void addOtherFrameAsRoot(QMap<QString, Value *> *f) { otherFrames.insert(f); }
     void makeGcMonitored(Value *v);
     void stopGcMonitoring(Value *v);
     void gc();

@@ -29,6 +29,7 @@ class PaintSurface
     long cursorTimerPoint;
     double cursorTimeSoFar;
     bool dirtyState;
+    QString locationFormatter;
 public:
     // We have a specia 'demo coordinates' mode in Kalimat
     // to teach children about the x/y coordinate system

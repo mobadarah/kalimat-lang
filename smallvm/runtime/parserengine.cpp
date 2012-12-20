@@ -1,15 +1,14 @@
 #include "parserengine.h"
 #include "../utils.h"
-
-ParseResultClass *ParseResultClass::type = new ParseResultClass("ParseResult");
+#include "../runtime_identifiers.h"
 
 void ParserObj::setSlotValue(QString name, Value *val)
 {
-    if(name == _ws(L"بيان"))
+    if(name == VMId::get(RId::Data))
     {
         this->data = val;
     }
-    if(name == _ws(L"موقع"))
+    if(name == VMId::get(RId::InputPos))
     {
         //todo:typecheck
         this->pos = val->unboxInt();
@@ -25,11 +24,11 @@ Value *ParserObj::getSlotValue(QString name)
 {
     // first got to synchonize slots
     // with (possibly internally changed) fields
-    if(name == _ws(L"بيان"))
+    if(name == VMId::get(RId::Data))
     {
         Object::setSlotValue(name, data);
     }
-    if(name == _ws(L"موقع"))
+    if(name == VMId::get(RId::InputPos))
     {
         Object::setSlotValue(name, allocator->newInt(pos));
     }
@@ -65,16 +64,16 @@ bool ParserObj::hasInfiniteRecursion(int label)
 ParseResultClass::ParseResultClass(QString name)
     :EasyForeignClass(name)
 {
-    fields.insert(_ws(L"موقع"));
-    fields.insert(_ws(L"نتيجة"));
+    fields.insert(VMId::get(RId::InputPos));
+    fields.insert(VMId::get(RId::ParseResultOf));
 
 }
 
 IObject *ParseResultClass::newValue(Allocator *allocator)
 {
     Object *obj = new Object();
-    obj->slotNames.append(_ws(L"موقع"));
-    obj->slotNames.append(_ws(L"نتيجة"));
+    obj->slotNames.append(VMId::get(RId::InputPos));
+    obj->slotNames.append(VMId::get(RId::ParseResultOf));
     return obj;
 }
 
@@ -83,58 +82,59 @@ Value *ParseResultClass::dispatch(Process *, int, QVector<Value *>)
     return NULL;
 }
 
-ParserClass::ParserClass(QString name, RunWindow *rw)
+ParserClass::ParserClass(QString name, RunWindow *rw, ParseResultClass *parseResultClass)
     :EasyForeignClass(name),
-      rw(rw)
+      rw(rw),
+      parseResultClass(parseResultClass)
 {
     callCount.clear();
     fields.insert("value_stack");
-    fields.insert(_ws(L"بيان"));
-    fields.insert(_ws(L"موقع"));
+    fields.insert(VMId::get(RId::Data));
+    fields.insert(VMId::get(RId::InputPos));
 
-    _method(L"ادفع.مسار.بديل",
+    _method(VMId::get(RId::PushBacktrackPoint),
             0, 1);
-    _method(L"اذهب.مسار.بديل",
+    _method(VMId::get(RId::GotoBacktrackPoint),
             1, 1);
-    _method(L"تجاهل.آخر.مسار.بديل",
+    _method(VMId::get(RId::IgnoreLastBacktrackPoint),
             2, 0);
-    _method(L"الجأ.لبديل",
+    _method(VMId::get(RId::FailAndBackTrack),
             3, 0);
-    _method(L"تقدم",
+    _method(VMId::get(RId::MoveNext),
             4, 0);
-    _method(L"تقدم.عديد",
+    _method(VMId::get(RId::MoveNextMany),
             5, 1);
-    _method(L"انظر",
+    _method(VMId::get(RId::Peek),
             6, 0);
-    _method(L"انظر.عديد",
+    _method(VMId::get(RId::PeekMany),
             7, 1);
-    _method(L"يطل.على",
+    _method(VMId::get(RId::LookAhead),
             8, 1);
-    _method(L"يطل.على.عديد",
+    _method(VMId::get(RId::LookAheadMany),
             9, 1);
-    _method(L"تفرع",
+    _method(VMId::get(RId::RuleCall),
             10, 2);
-    _method(L"عد",
+    _method(VMId::get(RId::RuleReturn),
             11, 0);
-    _method(L"ادفع.المتغيرات.المحلية",
+    _method(VMId::get(RId::PushLocals),
             12, 1);
-    _method(L"ارفع.المتغيرات.المحلية",
+    _method(VMId::get(RId::PopLocals),
             13, 0);
 
-    _method(L"منته",
+    _method(VMId::get(RId::EndOfInput),
             14, 0);
-    _method(L"اطرش",
+    _method(VMId::get(RId::Dump),
             15, 0);
 
-    _method(L"تذكر",
+    _method(VMId::get(RId::Memoize),
             16, 4);
-    _method(L"استرد.ذكرى",
+    _method(VMId::get(RId::GetMemoized),
             17, 2);
-    _method(L"هل.تذكر",
+    _method(VMId::get(RId::IsMemoized),
             18, 2);
-    _method(L"كم.نوديت",
+    _method(VMId::get(RId::CallCount),
             19, 0);
-    _method(L"يطل.على.نطاق",
+    _method(VMId::get(RId::LookAheadRange),
             20, 2);
 }
 
@@ -146,8 +146,8 @@ IObject *ParserClass::newValue(Allocator *allocator)
     ParserObj *obj = new ParserObj();
     obj->allocator = allocator;
     obj->slotNames.append("value_stack");
-    obj->slotNames.append(_ws(L"بيان"));
-    obj->slotNames.append(_ws(L"موقع"));
+    obj->slotNames.append(VMId::get(RId::Data));
+    obj->slotNames.append(VMId::get(RId::InputPos));
 
     Value *arr = allocator->newArray(30);
     obj->setSlotValue("value_stack", arr);
@@ -182,7 +182,7 @@ Value *ParserClass::dispatch(Process *proc, int id, QVector<Value *> args)
     case 1: // اذهب.مسار.بديل
         f = parser->stack.pop();
         if(!f.backTrack)
-            this->rw->assert(proc, false, InternalError1, _ws(L"محاولة الذهاب لمسار إعرابي بديل، لكن قمة المكدس هي %1").arg(f.continuationLabel));
+            this->rw->assert(proc, false, InternalError1, VM::argumentErrors[ArgErr::StackTopNotBacktrackPointToBackTrack1].arg(f.continuationLabel));
 
         parser->pos = f.parsePos;
         return allocator->newInt(f.continuationLabel);
@@ -190,7 +190,7 @@ Value *ParserClass::dispatch(Process *proc, int id, QVector<Value *> args)
     case 2: // تجاهل.آخر.مسار.بديل
         f = parser->stack.pop();
         if(!f.backTrack)
-            this->rw->assert(proc, false, InternalError1, _ws(L"تجاهل آخر مسار بديل: قمة المكدس (%1) ليست نقطة تراجع").arg(f.continuationLabel));
+            this->rw->assert(proc, false, InternalError1, VM::argumentErrors[ArgErr::StackTopNotBacktrackPointToIgnore1].arg(f.continuationLabel));
         return NULL;
 
     case 3:// الجأ.لبديل
@@ -202,7 +202,8 @@ Value *ParserClass::dispatch(Process *proc, int id, QVector<Value *> args)
         if(parser->stack.empty())
         {
             //rw->assert(false, InternalError1, _ws(L"الجأ لبديل: قمة المكدس فارغة بعد حذف اي علامات عادية"));
-            return allocator->newString(_ws(L"خطأ.في.الإعراب"));
+
+            return allocator->newString(VMId::get(RId::ParseLblParseError));
         }
         f = parser->stack.pop();
         parser->pos = f.parsePos;
@@ -310,10 +311,10 @@ Value *ParserClass::dispatch(Process *proc, int id, QVector<Value *> args)
         label = args[1]->unboxInt();
         pos = args[2]->unboxInt();
         pr = parser->memoize[label][pos];
-        res = ParseResultClass::type->newValue(allocator);
-        res->setSlotValue(_ws(L"موقع"), allocator->newInt(pr.pos));
-        res->setSlotValue(_ws(L"نتيجة"), pr.v);
-        return allocator->newObject(res, ParseResultClass::type);
+        res =  parseResultClass->newValue(allocator);
+        res->setSlotValue(VMId::get(RId::InputPos), allocator->newInt(pr.pos));
+        res->setSlotValue(VMId::get(RId::ParseResultOf), pr.v);
+        return allocator->newObject(res, parseResultClass);
     case 18:  // هل.تذكر
         rw->typeCheck(proc, args[1], BuiltInTypes::IntType);
         rw->typeCheck(proc, args[2], BuiltInTypes::IntType);

@@ -28,6 +28,7 @@
 #include "Parser/parserexception.h"
 #include "Parser/KalimatParserError.h"
 #include "AutoComplete/analyzer.h"
+#include "idemessages.h"
 #include <QQueue>
 #include <QGraphicsView>
 #include <QActionGroup>
@@ -127,7 +128,7 @@ public:
     void removeLineHighlights(MyEdit *editor, int line);
     void setLineIndicators(int line, int column, QTextEdit *editor);
     void visualizeCallStacks(QSet<QQueue<Process *> *> callStacks, QGraphicsView *view);
-    void visualizeCallStack(QStack<Frame> &callStack, QGraphicsView *view);
+    void visualizeCallStack(Frame *callStack, QGraphicsView *view);
 
     void outputMsg(QString s);
     QString translateParserError(ParserException ex);
@@ -151,7 +152,7 @@ private:
     VM vm;
     RunWindow *stoppedRunWindow;
     QMap<KalimatParserError, QString> parserErrorMap;
-    void show_error(QString);
+    void show_error(QString message);
     virtual void LoadDocIntoWidget(CodeDocument *doc, QWidget *widget);
     virtual QWidget *GetParentWindow();
     virtual QWidget *CreateEditorWidget();
@@ -214,7 +215,7 @@ private slots:
     void on_action_step_procedure_triggered();
     void on_actionMake_exe_triggered();
     void makeDrag();
-    void on_editor_linkClicked(MyEdit *source, QString href);
+    void do_editor_linkClicked(MyEdit *source, QString href);
     void on_actionParse_with_recovery_triggered();
 
     void on_action_options_triggered();
@@ -222,8 +223,8 @@ private slots:
     void on_action_about_kalimat_triggered();
 
     void on_actionUpdate_code_model_triggered();
-    void on_functionNavigationCombo_currentIndexChanged(int);
-    void on_goto_kalimatlangdotcom_triggered();
+    void do_functionNavigationCombo_currentIndexChanged(int);
+    void do_goto_kalimatlangdotcom_triggered();
     void on_actionSpecialSymbol_dot_triggered();
 
     void on_action_SpecialSymbol_comma_triggered();

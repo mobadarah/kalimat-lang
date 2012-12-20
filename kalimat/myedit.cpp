@@ -509,17 +509,17 @@ void MyEdit::enterKeyBehavior(QKeyEvent *ev)
                 )
         {
             indented = true;
-            indentAndTerminate(li, QString::fromStdWString(L"نهاية"));
+            indentAndTerminate(li, TokenLexemeFromId(END));
         }
         else if(insertEnding && tokensBeginEnd(toks, ifStmtStart, ifStmtEnd, 1,1))
         {
             indented = true;
-            indentAndTerminate(li, QString::fromStdWString(L"تم"));
+            indentAndTerminate(li, TokenLexemeFromId(DONE));
         }
         else if(insertEnding && tokensBeginEnd(toks, selectStmtStart, selectStmtEnd, 1,1))
         {
             indented = true;
-            indentAndTerminate(li, QString::fromStdWString(L"تم"));
+            indentAndTerminate(li, TokenLexemeFromId(DONE));
         }
         else if(tokensEqual(toks, elsePart, 2) ||
                 tokensBeginEnd(toks, elseIfStart, elseIfEnd, 2, 1) ||
@@ -538,7 +538,7 @@ void MyEdit::enterKeyBehavior(QKeyEvent *ev)
                                  tokensBeginEnd(toks, whileStmtStart, whileStmtEnd, 1,1)))
         {
             indented = true;
-            indentAndTerminate(li, QString::fromStdWString(L"تابع"));
+            indentAndTerminate(li, TokenLexemeFromId(CONTINUE));
         }
     }
     if(endOfLine && !indented)

@@ -16,6 +16,8 @@
 #include <QShowEvent>
 #include <QMutex>
 
+#include "../runtime_identifiers.h"
+
 #define _ws(a) QString::fromStdWString(a)
 
 void ensureValueIsWidget(Value *val)
@@ -38,54 +40,54 @@ ImageForeignClass::ImageForeignClass(QString name, RunWindow *rw)
 {
     QImage img;
 
-    methodIds[_ws(L"تدويرها")]
+    methodIds[VMId::get(RId::Rotated)]
             = 0;
-    methodArities[_ws(L"تدويرها")]
+    methodArities[VMId::get(RId::Rotated)]
             = 2;
 
-    methodIds[_ws(L"ممطوطة")]
+    methodIds[VMId::get(RId::Stretched)]
             = 1;
-    methodArities[_ws(L"ممطوطة")]
+    methodArities[VMId::get(RId::Stretched)]
             = 3;
 
-    methodIds[_ws(L"خط")]
+    methodIds[VMId::get(RId::DrawLine)]
             = 2;
-    methodArities[_ws(L"خط")]
+    methodArities[VMId::get(RId::DrawLine)]
             = 5;
 
-    methodIds[_ws(L"قلبها")]
+    methodIds[VMId::get(RId::Flipped)]
             = 3;
-    methodArities[_ws(L"قلبها")]
+    methodArities[VMId::get(RId::Flipped)]
             = 3;
 
-    methodIds[_ws(L"نسخة.منها")]
+    methodIds[VMId::get(RId::Copied)]
             = 4;
-    methodArities[_ws(L"نسخة.منها")]
+    methodArities[VMId::get(RId::Copied)]
             = 1;
 
-    methodIds[_ws(L"حدد.لون.النقطة")]
+    methodIds[VMId::get(RId::SetPixelColor)]
             = 5;
-    methodArities[_ws(L"حدد.لون.النقطة")]
+    methodArities[VMId::get(RId::SetPixelColor)]
             = 4;
 
-    methodIds[_ws(L"لون.النقطة")]
+    methodIds[VMId::get(RId::PixelColor)]
             = 6;
-    methodArities[_ws(L"لون.النقطة")]
+    methodArities[VMId::get(RId::PixelColor)]
             = 3;
 
-    methodIds[_ws(L"عرضها")]
+    methodIds[VMId::get(RId::ImgWidth)]
             = 7;
-    methodArities[_ws(L"عرضها")]
+    methodArities[VMId::get(RId::ImgWidth)]
             = 1;
 
-    methodIds[_ws(L"ارتفاعها")]
+    methodIds[VMId::get(RId::ImgHeight)]
             = 8;
-    methodArities[_ws(L"ارتفاعها")]
+    methodArities[VMId::get(RId::ImgHeight)]
             = 1;
 
-    methodIds[_ws(L"نص")]
+    methodIds[VMId::get(RId::DrawText)]
             = 9;
-    methodArities[_ws(L"نص")]
+    methodArities[VMId::get(RId::DrawText)]
             = 4;
 }
 
@@ -236,26 +238,26 @@ WindowForeignClass::WindowForeignClass(QString name, RunWindow *rw)
     : EasyForeignClass(name)
 {
     this->rw = rw;
-    methodIds[QString::fromStdWString(L"كبر")
+    methodIds[VMId::get(RId::Maximize)
             ] = 0;
-    methodIds[QString::fromStdWString(L"تحرك.إلى")
+    methodIds[VMId::get(RId::MoveTo)
             ] = 1;
-    methodIds[QString::fromStdWString(L"اضف")
+    methodIds[VMId::get(RId::Add)
             ] = 2;
-    methodIds[_ws(L"حدد.الحجم")] =
+    methodIds[VMId::get(RId::SetSize)] =
             3;
-    methodIds[_ws(L"حدد.العنوان")] =
+    methodIds[VMId::get(RId::SetTitle)] =
             4;
 
-    methodArities[QString::fromStdWString(L"كبر")
+    methodArities[VMId::get(RId::Maximize)
             ] = 1;
-    methodArities[QString::fromStdWString(L"تحرك.إلى")
+    methodArities[VMId::get(RId::MoveTo)
             ] = 3;
-    methodArities[QString::fromStdWString(L"اضف")
+    methodArities[VMId::get(RId::Add)
             ] = 2;
-    methodArities[_ws(L"حدد.الحجم")] =
+    methodArities[VMId::get(RId::SetSize)] =
             3;
-    methodArities[_ws(L"حدد.العنوان")] =
+    methodArities[VMId::get(RId::SetTitle)] =
             2;
 
     fields.insert("handle");
@@ -307,10 +309,8 @@ Value *WindowForeignClass::dispatch(Process *proc, int id, QVector<Value *> args
         control->setParent(widget);
         QFont f = control->font();
         control->setFont(QFont(f.family(), f.pointSize()+3));
-        //qApp->postEvent(control, new QShowEvent());
-        //callGuiThread(control, "show");
-        //control->show();
-        rw->getVmThread()->doGUI(control, "show");
+        control->show();
+
         return NULL;
     }
     if(id == 3)
@@ -390,7 +390,7 @@ void WindowForeignObject::setSlotValue(QString name, Value *val)
 
 QString WindowForeignObject::toString()
 {
-    return QString::fromStdWString(L"<نافذة>");
+    return QString("<%1>").arg(VMId::get(RId::Window));
 }
 
 ControlForeignClass::ControlForeignClass(QString name, RunWindow *rw)
@@ -399,23 +399,23 @@ ControlForeignClass::ControlForeignClass(QString name, RunWindow *rw)
     this->rw = rw;
     fields.insert("handle");
 
-    methodIds[_ws(L"حدد.النص")
+    methodIds[VMId::get(RId::SetText)
             ] = methodSetText;
-    methodIds[QString::fromStdWString(L"حدد.الحجم")
+    methodIds[VMId::get(RId::SetSize)
             ] = methodSetSize;
-    methodIds[QString::fromStdWString(L"حدد.المكان")
+    methodIds[VMId::get(RId::SetLocation)
             ] = methodSetPos;
-    methodIds[QString::fromStdWString(L"نصه")
+    methodIds[VMId::get(RId::Text)
             ] = methodGetText;
 
 
-    methodArities[QString::fromStdWString(L"حدد.النص")
+    methodArities[VMId::get(RId::SetText)
             ] = 2;
-    methodArities[QString::fromStdWString(L"حدد.الحجم")
+    methodArities[VMId::get(RId::SetSize)
             ] = 3;
-    methodArities[QString::fromStdWString(L"حدد.المكان")
+    methodArities[VMId::get(RId::SetLocation)
             ] = 3;
-    methodArities[QString::fromStdWString(L"نصه")
+    methodArities[VMId::get(RId::Text)
             ] = 1;
 }
 
@@ -430,7 +430,7 @@ IObject *ControlForeignClass::newValue(Allocator *allocator)
 ButtonForeignClass::ButtonForeignClass(QString name, RunWindow *rw)
     : ControlForeignClass(name, rw)
 {
-    fields.insert(QString::fromStdWString(L"ضغط"));
+    fields.insert(VMId::get(RId::Click));
 }
 
 IObject *ButtonForeignClass::newValue(Allocator *allocator)
@@ -438,7 +438,7 @@ IObject *ButtonForeignClass::newValue(Allocator *allocator)
 
     Object *newObj = (Object *) ControlForeignClass::newValue(allocator);
 
-    newObj->slotNames.append(QString::fromStdWString(L"ضغط"));
+    newObj->slotNames.append(VMId::get(RId::Click));
     /*
     ObjContainer box;
     rw->getVmThread()->mutex.lock();
@@ -452,12 +452,13 @@ IObject *ButtonForeignClass::newValue(Allocator *allocator)
     QPushButton *button = (QPushButton *) box.content;
     button->moveToThread(qApp->thread());
     */
+
     QPushButton *button = new QPushButton();
     button->setProperty("objectof", QVariant::fromValue<void *>(newObj));
     newObj->setSlotValue("handle", allocator->newQObject(button));
 
     connect(button, SIGNAL(clicked()), this, SLOT(on_button_clicked()));
-    newObj->setSlotValue(QString::fromStdWString(L"ضغط"), allocator->newChannel());
+    newObj->setSlotValue(VMId::get(RId::Click), allocator->newChannel());
 
     return newObj;
 }
@@ -518,7 +519,7 @@ void ButtonForeignClass::on_button_clicked()
 {
     QPushButton *pb = (QPushButton *) sender();
     Object *object = (Object *) pb->property("objectof").value<void *>();
-    Channel *chan = object->getSlotValue(QString::fromStdWString(L"ضغط"))->unboxChan();
+    Channel *chan = object->getSlotValue(VMId::get(RId::Click))->unboxChan();
     chan->send(allocator->null(), NULL);
 }
 
@@ -549,26 +550,26 @@ Value *ButtonForeignClass::dispatch(Process *proc, int id, QVector<Value *> args
 TextboxForeignClass::TextboxForeignClass(QString name, RunWindow *rw)
     : ControlForeignClass(name, rw)
 {
-    methodIds[_ws(L"الحق.نص")] = methodAppendText;
+    methodIds[VMId::get(RId::AppendText)] = methodAppendText;
 
-    methodArities[_ws(L"الحق.نص")]
+    methodArities[VMId::get(RId::AppendText)]
             = 2;
 
-    fields.insert(QString::fromStdWString(L"تغير"));
+    fields.insert(VMId::get(RId::Changed));
 }
 
 IObject *TextboxForeignClass::newValue(Allocator *allocator)
 {
     Object *newObj = (Object *) ControlForeignClass::newValue(allocator);
 
-    newObj->slotNames.append(QString::fromStdWString(L"تغير"));
+    newObj->slotNames.append(VMId::get(RId::Changed));
 
     QTextEdit *tb = new QTextEdit();
     tb->setProperty("objectof", QVariant::fromValue<void *>(newObj));
     newObj->setSlotValue("handle", allocator->newQObject(tb));
 
     connect(tb, SIGNAL(textChanged()), this, SLOT(on_text_changed()));
-    newObj->setSlotValue(QString::fromStdWString(L"تغير"), allocator->newChannel());
+    newObj->setSlotValue(VMId::get(RId::Changed), allocator->newChannel());
     return newObj;
 }
 
@@ -576,7 +577,7 @@ void TextboxForeignClass::on_text_changed()
 {
     QTextEdit *te = (QTextEdit *) sender();
     Object *object = (Object *) te->property("objectof").value<void *>();
-    Channel *chan = object->getSlotValue(QString::fromStdWString(L"تغير"))->unboxChan();
+    Channel *chan = object->getSlotValue(VMId::get(RId::Changed))->unboxChan();
     chan->send(allocator->null(), NULL);
 }
 
@@ -616,25 +617,25 @@ Value *TextboxForeignClass::dispatch(Process *proc, int id, QVector<Value *> arg
 LineEditForeignClass::LineEditForeignClass(QString name, RunWindow *rw)
     : ControlForeignClass(name, rw)
 {
-    methodIds[_ws(L"الحق.نص")] = methodAppendText;
+    methodIds[VMId::get(RId::AppendText)] = methodAppendText;
 
-    methodArities[_ws(L"الحق.نص")]
+    methodArities[VMId::get(RId::AppendText)]
             = 2;
-    fields.insert(QString::fromStdWString(L"تغير"));
+    fields.insert(VMId::get(RId::Changed));
 }
 
 IObject *LineEditForeignClass::newValue(Allocator *allocator)
 {
     Object *newObj = (Object *) ControlForeignClass::newValue(allocator);
 
-    newObj->slotNames.append(QString::fromStdWString(L"تغير"));
+    newObj->slotNames.append(VMId::get(RId::Changed));
 
     QLineEdit *tb = new QLineEdit();
     tb->setProperty("objectof", QVariant::fromValue<void *>(newObj));
     newObj->setSlotValue("handle", allocator->newQObject(tb));
 
     connect(tb, SIGNAL(textChanged(QString)), this, SLOT(on_text_changed()));
-    newObj->setSlotValue(QString::fromStdWString(L"تغير"), allocator->newChannel());
+    newObj->setSlotValue(VMId::get(RId::Changed), allocator->newChannel());
     return newObj;
 }
 
@@ -642,7 +643,7 @@ void LineEditForeignClass::on_text_changed()
 {
     QLineEdit *te = (QLineEdit *) sender();
     Object *object = (Object *) te->property("objectof").value<void *>();
-    Channel *chan = object->getSlotValue(QString::fromStdWString(L"تغير"))->unboxChan();
+    Channel *chan = object->getSlotValue(VMId::get(RId::Changed))->unboxChan();
     chan->send(allocator->null(), NULL);
 }
 
@@ -682,37 +683,36 @@ Value *LineEditForeignClass::dispatch(Process *proc, int id, QVector<Value *> ar
 ListboxForeignClass::ListboxForeignClass(QString name, RunWindow *rw)
     : ControlForeignClass(name, rw)
 {
-    methodIds[_ws(L"اضف")] = methodAddItem;
+    methodIds[VMId::get(RId::Add)] = methodAddItem;
 
-    methodArities[_ws(L"اضف")]
+    methodArities[VMId::get(RId::Add)]
             = 2;
 
-    methodIds[_ws(L"اضف.في")] = methodInsertItem;
+    methodIds[VMId::get(RId::InsertItem)] = methodInsertItem;
 
-    methodArities[_ws(L"اضف.في")]
+    methodArities[VMId::get(RId::InsertItem)]
             = 3;
 
-    methodIds[_ws(L"عنصر.رقم")] = methodGetItem;
+    methodIds[VMId::get(RId::GetItem)] = methodGetItem;
 
-    methodArities[_ws(L"عنصر.رقم")]
+    methodArities[VMId::get(RId::GetItem)]
             = 2;
 
-
-    fields.insert(QString::fromStdWString(L"تغير.اختيار"));
+    fields.insert(VMId::get(RId::SelectionChanged));
 }
 
 IObject *ListboxForeignClass::newValue(Allocator *allocator)
 {
     Object *newObj = (Object *) ControlForeignClass::newValue(allocator);
 
-    newObj->slotNames.append(QString::fromStdWString(L"تغير.اختيار"));
+    newObj->slotNames.append(VMId::get(RId::SelectionChanged));
 
     QListWidget *tb = new QListWidget();
     tb->setProperty("objectof", QVariant::fromValue<void *>(newObj));
     newObj->setSlotValue("handle", allocator->newQObject(tb));
 
     connect(tb, SIGNAL(currentRowChanged(int)), this, SLOT(on_select(int)));
-    newObj->setSlotValue(QString::fromStdWString(L"تغير.اختيار"), allocator->newChannel());
+    newObj->setSlotValue(VMId::get(RId::SelectionChanged), allocator->newChannel());
     return newObj;
 }
 
@@ -720,7 +720,7 @@ void ListboxForeignClass::on_select(int selection)
 {
     QListWidget *te = (QListWidget *) sender();
     Object *object = (Object *) te->property("objectof").value<void *>();
-    Channel *chan = object->getSlotValue(QString::fromStdWString(L"تغير.اختيار"))->unboxChan();
+    Channel *chan = object->getSlotValue(VMId::get(RId::SelectionChanged))->unboxChan();
     chan->send(allocator->newInt(selection), NULL);
 }
 
@@ -767,36 +767,36 @@ Value *ListboxForeignClass::dispatch(Process *proc, int id, QVector<Value *> arg
 ComboboxForeignClass::ComboboxForeignClass(QString name, RunWindow *rw)
     : ControlForeignClass(name, rw)
 {
-    methodIds[_ws(L"اضف")] = methodAddItem;
+    methodIds[VMId::get(RId::Add)] = methodAddItem;
 
-    methodArities[_ws(L"اضف")]
+    methodArities[VMId::get(RId::Add)]
             = 2;
 
-    methodIds[_ws(L"اضف.في")] = methodInsertItem;
+    methodIds[VMId::get(RId::InsertItem)] = methodInsertItem;
 
-    methodArities[_ws(L"اضف.في")]
+    methodArities[VMId::get(RId::InsertItem)]
             = 3;
 
-    methodIds[_ws(L"عنصر.رقم")] = methodGetItem;
+    methodIds[VMId::get(RId::GetItem)] = methodGetItem;
 
-    methodArities[_ws(L"عنصر.رقم")]
+    methodArities[VMId::get(RId::GetItem)]
             = 2;
 
-    methodIds[_ws(L"حدد.أيحرر")] = methodSetEditable;
+    methodIds[VMId::get(RId::SetEditable)] = methodSetEditable;
 
-    methodArities[_ws(L"حدد.أيحرر")]
+    methodArities[VMId::get(RId::SetEditable)]
             = 2;
 
-    fields.insert(QString::fromStdWString(L"تغير.اختيار"));
-    fields.insert(QString::fromStdWString(L"تغير.نص"));
+    fields.insert(VMId::get(RId::SelectionChanged));
+    fields.insert(VMId::get(RId::TextChanged));
 }
 
 IObject *ComboboxForeignClass::newValue(Allocator *allocator)
 {
     Object *newObj = (Object *) ControlForeignClass::newValue(allocator);
 
-    newObj->slotNames.append(QString::fromStdWString(L"تغير.اختيار"));
-    newObj->slotNames.append(QString::fromStdWString(L"تغير.نص"));
+    newObj->slotNames.append(VMId::get(RId::SelectionChanged));
+    newObj->slotNames.append(VMId::get(RId::TextChanged));
 
     QComboBox *cb = new QComboBox();
     cb->setEditable(true);
@@ -806,8 +806,8 @@ IObject *ComboboxForeignClass::newValue(Allocator *allocator)
     connect(cb, SIGNAL(currentIndexChanged(int)), this, SLOT(on_select(int)));
     connect(cb, SIGNAL(editTextChanged(QString)), this, SLOT(on_text_changed(QString)));
 
-    newObj->setSlotValue(QString::fromStdWString(L"تغير.اختيار"), allocator->newChannel());
-    newObj->setSlotValue(QString::fromStdWString(L"تغير.نص"), allocator->newChannel());
+    newObj->setSlotValue(VMId::get(RId::SelectionChanged), allocator->newChannel());
+    newObj->setSlotValue(VMId::get(RId::TextChanged), allocator->newChannel());
     return newObj;
 }
 
@@ -815,7 +815,7 @@ void ComboboxForeignClass::on_select(int selection)
 {
     QComboBox *cb = (QComboBox *) sender();
     Object *object = (Object *) cb->property("objectof").value<void *>();
-    Channel *chan = object->getSlotValue(QString::fromStdWString(L"تغير.اختيار"))->unboxChan();
+    Channel *chan = object->getSlotValue(VMId::get(RId::SelectionChanged))->unboxChan();
     chan->send(allocator->newInt(selection), NULL);
 }
 
@@ -823,7 +823,7 @@ void ComboboxForeignClass::on_text_changed(QString)
 {
     QComboBox *cb = (QComboBox *) sender();
     Object *object = (Object *) cb->property("objectof").value<void *>();
-    Channel *chan = object->getSlotValue(QString::fromStdWString(L"تغير.نص"))->unboxChan();
+    Channel *chan = object->getSlotValue(VMId::get(RId::TextChanged))->unboxChan();
     chan->send(allocator->null(), NULL);
 }
 
@@ -941,31 +941,31 @@ Value *LabelForeignClass::dispatch(Process *proc, int id, QVector<Value *> args)
 CheckboxForeignClass::CheckboxForeignClass(QString name, RunWindow *rw)
     : ControlForeignClass(name, rw)
 {
-    methodIds[_ws(L"حدد.القيمة")] = methodSetValue;
+    methodIds[VMId::get(RId::SetValue)] = methodSetValue;
 
-    methodArities[_ws(L"حدد.القيمة")]
+    methodArities[VMId::get(RId::SetValue)]
             = 2;
 
-    methodIds[_ws(L"قيمته")] = methodGetValue;
+    methodIds[VMId::get(RId::Value)] = methodGetValue;
 
-    methodArities[_ws(L"قيمته")]
+    methodArities[VMId::get(RId::Value)]
             = 1;
 
-    fields.insert(QString::fromStdWString(L"تغير.قيمة"));
+    fields.insert(VMId::get(RId::ValueChanged));
 }
 
 IObject *CheckboxForeignClass::newValue(Allocator *allocator)
 {
     Object *newObj = (Object *) ControlForeignClass::newValue(allocator);
 
-    newObj->slotNames.append(QString::fromStdWString(L"تغير.قيمة"));
+    newObj->slotNames.append(VMId::get(RId::ValueChanged));
 
     QCheckBox *tb = new QCheckBox();
     tb->setProperty("objectof", QVariant::fromValue<void *>(newObj));
     newObj->setSlotValue("handle", allocator->newQObject(tb));
 
     connect(tb, SIGNAL(stateChanged(int)), this, SLOT(value_changed(int)));
-    newObj->setSlotValue(QString::fromStdWString(L"تغير.قيمة"), allocator->newChannel());
+    newObj->setSlotValue(VMId::get(RId::ValueChanged), allocator->newChannel());
     return newObj;
 }
 
@@ -973,7 +973,7 @@ void CheckboxForeignClass::value_changed(int newState)
 {
     QCheckBox *te = (QCheckBox *) sender();
     Object *object = (Object *) te->property("objectof").value<void *>();
-    Channel *chan = object->getSlotValue(QString::fromStdWString(L"تغير.قيمة"))->unboxChan();
+    Channel *chan = object->getSlotValue(VMId::get(RId::ValueChanged))->unboxChan();
     chan->send(allocator->newInt(newState), NULL);
 }
 
@@ -1026,31 +1026,31 @@ Value *CheckboxForeignClass::dispatch(Process *proc, int id, QVector<Value *> ar
 RadioButtonForeignClass::RadioButtonForeignClass(QString name, RunWindow *rw)
     : ControlForeignClass(name, rw)
 {
-    methodIds[_ws(L"حدد.القيمة")] = methodSetValue;
+    methodIds[VMId::get(RId::SetValue)] = methodSetValue;
 
-    methodArities[_ws(L"حدد.القيمة")]
+    methodArities[VMId::get(RId::SetValue)]
             = 2;
 
-    methodIds[_ws(L"قيمته")] = methodGetValue;
+    methodIds[VMId::get(RId::Value)] = methodGetValue;
 
-    methodArities[_ws(L"قيمته")]
+    methodArities[VMId::get(RId::Value)]
             = 1;
 
-    fields.insert(QString::fromStdWString(L"اختيار"));
+    fields.insert(VMId::get(RId::Selection));
 }
 
 IObject *RadioButtonForeignClass::newValue(Allocator *allocator)
 {
     Object *newObj = (Object *) ControlForeignClass::newValue(allocator);
 
-    newObj->slotNames.append(QString::fromStdWString(L"اختيار"));
+    newObj->slotNames.append(VMId::get(RId::Selection));
 
     QRadioButton *tb = new QRadioButton();
     tb->setProperty("objectof", QVariant::fromValue<void *>(newObj));
     newObj->setSlotValue("handle", allocator->newQObject(tb));
 
     connect(tb, SIGNAL(toggled(bool)), this, SLOT(value_changed(bool)));
-    newObj->setSlotValue(QString::fromStdWString(L"اختيار"), allocator->newChannel());
+    newObj->setSlotValue(VMId::get(RId::Selection), allocator->newChannel());
     return newObj;
 }
 
@@ -1060,7 +1060,7 @@ void RadioButtonForeignClass::value_changed(bool newState)
     {
         QRadioButton *te = (QRadioButton *) sender();
         Object *object = (Object *) te->property("objectof").value<void *>();
-        Channel *chan = object->getSlotValue(QString::fromStdWString(L"اختيار"))->unboxChan();
+        Channel *chan = object->getSlotValue(VMId::get(RId::Selection))->unboxChan();
         chan->send(allocator->null(), NULL);
     }
 }
@@ -1117,17 +1117,17 @@ ButtonGroupForeignClass::ButtonGroupForeignClass(QString name, RunWindow *rw)
     this->rw = rw;
     runningIdCount = 1;
 
-    methodIds[_ws(L"اضف")] = methodAddButton;
+    methodIds[VMId::get(RId::Add)] = methodAddButton;
 
-    methodArities[_ws(L"اضف")]
+    methodArities[VMId::get(RId::Add)]
             = 2;
 
-    methodIds[_ws(L"الزر.الموسوم")] = methodGetButton;
+    methodIds[VMId::get(RId::GetButton)] = methodGetButton;
 
-    methodArities[_ws(L"الزر.الموسوم")]
+    methodArities[VMId::get(RId::GetButton)]
             = 2;
 
-    fields.insert(QString::fromStdWString(L"اختيار.زر"));
+    fields.insert(VMId::get(RId::ButtonSelected));
 }
 
 IObject *ButtonGroupForeignClass::newValue(Allocator *allocator)
@@ -1136,14 +1136,14 @@ IObject *ButtonGroupForeignClass::newValue(Allocator *allocator)
     Object *newObj = new Object();
     newObj->slotNames.append("handle");
 
-    newObj->slotNames.append(QString::fromStdWString(L"اختيار.زر"));
+    newObj->slotNames.append(VMId::get(RId::ButtonSelected));
 
     QButtonGroup *tb = new QButtonGroup();
     tb->setProperty("objectof", QVariant::fromValue<void *>(newObj));
     newObj->setSlotValue("handle", allocator->newQObject(tb));
 
     connect(tb, SIGNAL(buttonClicked(int)), this, SLOT(button_clicked(int)));
-    newObj->setSlotValue(QString::fromStdWString(L"اختيار.زر"), allocator->newChannel());
+    newObj->setSlotValue(VMId::get(RId::ButtonSelected), allocator->newChannel());
     return newObj;
 }
 
@@ -1151,7 +1151,7 @@ void ButtonGroupForeignClass::button_clicked(int id)
 {
         QButtonGroup *te = (QButtonGroup *) sender();
         Object *object = (Object *) te->property("objectof").value<void *>();
-        Channel *chan = object->getSlotValue(QString::fromStdWString(L"اختيار.زر"))->unboxChan();
+        Channel *chan = object->getSlotValue(VMId::get(RId::ButtonSelected))->unboxChan();
         chan->send(allocator->newInt(id), NULL);
 }
 

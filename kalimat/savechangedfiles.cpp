@@ -64,7 +64,7 @@ void SaveChangedFiles::changeEvent(QEvent *e)
 void SaveChangedFiles::on_buttonBox_clicked(QAbstractButton* button)
 {
     QDialogButtonBox::ButtonRole role = ui->buttonBox->buttonRole(button);
-    int res;
+    int res = -1;
     switch(role)
     {
     case QDialogButtonBox::DestructiveRole:

@@ -27,30 +27,40 @@ class Method : public IMethod
 private:
     QVector<Instruction> instructions;
     QMap<QString, int> labels;
+
+    QMap<int, int> fastLabels;
     int arity;
     int numReturnValues; // 0, 1 or -1 meaning don't check
     bool returnsReference;
     ValueClass *receiver;
     QString name;
+    Labeller labelInterner;
+    Labeller localsInterner;
+public:
+    QMap<QString, int> Locals;
 public:
     Method(QString name, int arity, int numReturnValues, bool returnsReference, ValueClass *receiver);
     Method(QString name, int arity, int numReturnValues);
     Method(QString name, int arity);
 
+    void prepareInstruction(int index);
     void Add(Instruction i);
     void Add(Instruction i, QString label);
     void Add(Instruction i, QString label, int extraInfo);
-    int GetIp(QString label);
-    int Arity();
-    int InstructionCount();
-    Instruction &Get(QString label);
-    Instruction &Get(int ip);
+    inline int GetFastLabel(QString label) { return labelInterner.labelOf(label); }
+    inline int GetIp(const QString &label) { return labels.value(label, -1); }
+    inline int GetIp(int fastLabel) { return fastLabels.value(fastLabel, -1); }
+    inline int Arity() { return arity; }
+    inline int InstructionCount() { return instructions.count(); }
+    inline const Instruction &Get(const QString &label) { return instructions[labels[label]]; }
+    inline const Instruction &Get(int ip) { return instructions[ip]; }
     void Set(int ip, Instruction i);
-    bool HasInstruction(int ip);
-    bool IsReturningReference();
-    int NumReturnValues();
+    inline bool HasInstruction(int ip) { return ip < instructions.count(); }
+    bool IsReturningReference() { return returnsReference; }
+    inline int NumReturnValues() { return numReturnValues; }
     QString getName();
 
+    int localVarCount();
     // Implementing IObject
     virtual bool hasSlot(QString name);
     virtual QList<QString> getSlotNames();

@@ -148,23 +148,23 @@ bool KalimatPrettyprintParser::is_indentation_starter(LinePP *line, QString &end
        line->tokensBeginEnd(replyDeclStart, replyDeclEnd, 3, 2)
        )
     {
-        ender = QString::fromStdWString(L"نهاية");
+        ender = TokenLexemeFromId(END);
         return true;
     }
     else if(line->tokensBeginEnd(ifStmtStart, ifStmtEnd, 1,1))
     {
-        ender = QString::fromStdWString(L"تم");
+        ender = TokenLexemeFromId(DONE);
         return true;
     }
     else if(line->tokensBeginEnd(forStmtStart, forStmtEnd, 1,1) ||
             line->tokensBeginEnd(whileStmtStart, whileStmtEnd, 1,1))
     {
-        ender = QString::fromStdWString(L"تابع");
+        ender = TokenLexemeFromId(CONTINUE);
         return true;
     }
     else if(line->tokensBeginEnd(selectStmtStart, selectStmtEnd,1,1))
     {
-        ender = QString::fromStdWString(L"تم");
+        ender = TokenLexemeFromId(DONE);
         return true;
     }
     return false;

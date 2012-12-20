@@ -23,6 +23,8 @@ Instruction::Instruction()
     this->extra = -1;
     this->callStyle = NormalCall;
     this->SymRefLabel = -1;
+    this->next = NULL;
+    this->runner = NULL;
 }
 
 Instruction::Instruction(Opcode opcode)
@@ -32,6 +34,8 @@ Instruction::Instruction(Opcode opcode)
     this->Arg = NULL;
     this->callStyle = NormalCall;
     this->SymRefLabel = -1;
+    this->next = NULL;
+    this->runner = NULL;
 }
 
 Instruction &Instruction::wArg(Value *arg)
@@ -56,7 +60,7 @@ Instruction &Instruction::wArgParse(QString argS, Allocator *allocator)
     }
     else
     {
-    iVal = argS.toInt(&ok, 10);
+        iVal = argS.toInt(&ok, 10);
         if(ok)
         {
             // We don't want the GC to remove the values
@@ -142,14 +146,16 @@ QString InstructionToString(const Instruction &i)
     case Select: return "Select";
     case Break: return "Break";
     case Tick: return "Tick";
-    default: return "[Unknown]";
+    default: return QString("[Unknown, opcode = %1]").arg(i.opcode);
     }
 }
 
-Instruction &Instruction::wLabels(QString l1, QString l2)
+Instruction &Instruction::wLabels(QString l1, QString l2, int fastL1, int fastL2)
 {
     this->True = l1;
     this->False = l2;
+    this->fastTrue = fastL1;
+    this->fastFalse = fastL2;
     return *this;
 }
 
@@ -170,4 +176,178 @@ Instruction &Instruction::wCallStyle(CallStyle style)
 {
     this->callStyle = style;
     return *this;
+}
+
+void Instruction::assignRunner()
+{
+    switch(opcode)
+    {
+    case PushV:
+        runner = run_PushV;
+        break;
+    case PushLocal:
+        runner = run_PushLocal;
+        break;
+    case PopLocal:
+        runner = run_PopLocal;
+        break;
+    case PushGlobal:
+        runner = run_PushGlobal;
+        break;
+    case PopGlobal:
+        runner = run_PopGlobal;
+        break;
+    case PushNull:
+        runner = run_PushNull;
+        break;
+    case GetRef:
+        runner = run_GetRef;
+        break;
+    case SetRef:
+        runner = run_SetRef;
+        break;
+    case Add:
+        runner = run_Add;
+        break;
+    case Sub:
+        runner = run_Sub;
+        break;
+    case Mul:
+        runner = run_Mul;
+        break;
+    case Div:
+        runner = run_Div;
+        break;
+    case And:
+        runner = run_And;
+        break;
+    case Or:
+        runner = run_Or;
+        break;
+    case Not:
+        runner = run_Not;
+        break;
+    case Jmp:
+        runner = run_Jmp;
+        break;
+    case JmpVal:
+        runner = run_JmpVal;
+        break;
+    case If:
+        runner = run_If;
+        break;
+    case Lt:
+        runner = run_Lt;
+        break;
+    case Gt:
+        runner = run_Gt;
+        break;
+    case Eq:
+        runner = run_Eq;
+        break;
+    case Ne:
+        runner = run_Ne;
+        break;
+    case Le:
+        runner = run_Le;
+        break;
+    case Ge:
+        runner = run_Ge;
+        break;
+    case Tail:
+        runner = run_Tail;
+        break;
+    case Call:
+        runner = run_Call;
+        break;
+    case CallMethod:
+        runner = run_CallMethod;
+        break;
+    case CallRef:
+        runner = run_CallRef;
+        break;
+    case Ret:
+        runner = run_Ret;
+        break;
+    case Apply:
+        runner = run_Apply;
+        break;
+    case CallExternal:
+        runner = run_CallExternal;
+        break;
+    case Nop:
+        runner = run_Nop;
+        break;
+    case SetField:
+        runner = run_SetField;
+        break;
+    case GetField:
+        runner = run_GetField;
+        break;
+    case GetFieldRef:
+        runner = run_GetFieldRef;
+        break;
+    case GetArr:
+        runner = run_GetArr;
+        break;
+    case SetArr:
+        runner = run_SetArr;
+        break;
+    case GetArrRef:
+        runner = run_GetArrRef;
+        break;
+    case New:
+        runner = run_New;
+        break;
+    case NewArr:
+        runner = run_NewArr;
+        break;
+    case ArrLength:
+        runner = run_ArrLength;
+        break;
+    case New_MD_Arr:
+        runner = run_New_MD_Arr;
+        break;
+    case Get_MD_Arr:
+        runner = run_Get_MD_Arr;
+        break;
+    case Set_MD_Arr:
+        runner = run_Set_MD_Arr;
+        break;
+    case Get_MD_ArrRef:
+        runner = run_Get_MD_ArrRef;
+        break;
+    case MD_ArrDimensions:
+        runner = run_MD_ArrDimensions;
+        break;
+    case PushConstant:
+        runner = run_PushConstant;
+        break;
+    case Neg:
+        runner = run_Neg;
+        break;
+    case RegisterEvent:
+        runner = run_RegisterEvent;
+        break;
+    case Isa:
+        runner = run_Isa;
+        break;
+    case Send:
+        runner = run_Send;
+        break;
+    case Receive:
+        runner = run_Receive;
+        break;
+    case Select:
+        runner = run_Select;
+        break;
+    case Break:
+        runner = run_Break;
+        break;
+    case Tick:
+        runner = run_Tick;
+        break;
+    default:
+        throw VMError(InternalError1).arg(QString("Cannot assign runner to instrusction %1").arg(InstructionToString(*this)));
+    }
 }

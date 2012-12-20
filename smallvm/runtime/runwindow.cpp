@@ -23,6 +23,7 @@
 #include <QFileInfo>
 #include <QDir>
 #include <QtConcurrentRun>
+#include <thread>
 using namespace std;
 
 RunWindow::RunWindow(QWidget *parent, QString pathOfProgramsFile, VMClient *client) :
@@ -58,6 +59,9 @@ void RunWindow::setup(QString pathOfProgramsFile, VMClient *client)
     centralWidget()->setAttribute(Qt::WA_TransparentForMouseEvents);
 
     setMouseTracking(true);
+    alreadyRunningScheduler = false;
+    connect(this, SIGNAL(guiSchedule(GUISchedulerEvent*)), this, SLOT(do_gui_schedule(GUISchedulerEvent*)));
+    connect(this, SIGNAL(errorSignal(VMError)), this, SLOT(errorEvent(VMError)));
 }
 
 void RunWindow::closeEvent(QCloseEvent *ev)
@@ -183,7 +187,7 @@ void RunWindow::Init(QString program, QMap<QString, QString> stringConstants, QS
         vm->Register("setspriteimage", new WindowProxyMethod(this, vm, SetSpriteImageProc));
 
 
-        vm->Register("wait", new WindowProxyMethod(this, vm, WaitProc));
+        vm->Register("wait", new WindowProxyMethod(this, vm, WaitProc, false));
         vm->Register("mouse_event_channel", new WindowProxyMethod(this, vm, MouseEventChanProc));
         vm->Register("mouseDown_event_channel", new WindowProxyMethod(this, vm, MouseDownEventChanProc));
         vm->Register("mouseUp_event_channel", new WindowProxyMethod(this, vm, MouseUpEventChanProc));
@@ -214,6 +218,9 @@ void RunWindow::Init(QString program, QMap<QString, QString> stringConstants, QS
         vm->Register("push_bk_pt", new WindowProxyMethod(this, vm, PushParserBacktrackPointProc));
         vm->Register("ignore_bk_pt", new WindowProxyMethod(this, vm, IgnoreParserBacktrackPointProc));
         vm->Register("activation_frame", new WindowProxyMethod(this, vm, ActivationFrameProc));
+
+        vm->Register("migrate_to_gui_thread", new WindowProxyMethod(this, vm, MigrateToGuiThreadProc));
+        vm->Register("migrate_back_from_gui_thread", new WindowProxyMethod(this, vm, MigrateBackFromGuiThreadProc));
 
         for(int i=0; i<stringConstants.keys().count(); i++)
         {
@@ -260,20 +267,20 @@ void RunWindow::Init(QString program, QMap<QString, QString> stringConstants, QS
         {
             vm->RegisterType(builtIns[i]->getName(), builtIns[i]);
         }
-        vm->RegisterType("ForeignWindow", new WindowForeignClass(_ws(L"نافذة"), this));
-        vm->RegisterType(_ws(L"زر"), new ButtonForeignClass (_ws(L"زر"), this));
-        vm->RegisterType(_ws(L"صندوق.نصي"), new TextboxForeignClass(_ws(L"صندوق.نصي"), this));
-        vm->RegisterType(_ws(L"سطر.نصي"), new LineEditForeignClass(_ws(L"سطر.نصي"), this));
-        vm->RegisterType(_ws(L"صندوق.سرد"), new ListboxForeignClass(_ws(L"صندوق.سرد"), this));
-        vm->RegisterType(_ws(L"علامة.نصية"), new LabelForeignClass(_ws(L"علامة.نصية"), this));
-        vm->RegisterType(_ws(L"صندوق.استبيان"), new CheckboxForeignClass(_ws(L"صندوق.استبيان"), this));
-        vm->RegisterType(_ws(L"صندوق.اختيار"), new RadioButtonForeignClass(_ws(L"صندوق.اختيار"), this));
-        vm->RegisterType(_ws(L"مجموعة.اختيارات"), new ButtonGroupForeignClass(_ws(L"مجموعة.اختيارات"), this));
-        vm->RegisterType(_ws(L"صندوق.مركب"), new ComboboxForeignClass(_ws(L"صندوق.مركب"), this));
-        vm->RegisterType(_ws(L"صورة"), new ImageForeignClass(_ws(L"صورة"), this));
-        vm->RegisterType(_ws(L"معرب"), new ParserClass(_ws(L"معرب"), this));
-        vm->RegisterType(_ws(L"ParseResult"), new ParserClass(_ws(L"ParseResult"), this));
-        vm->RegisterType(_ws(L"إطار.تفعيل"), BuiltInTypes::ActivationFrameType);
+        vm->RegisterType("ForeignWindow", new WindowForeignClass(VMId::get(RId::ForeignWindow), this));
+        vm->RegisterType(VMId::get(RId::Button), new ButtonForeignClass (VMId::get(RId::Button), this));
+        vm->RegisterType(VMId::get(RId::TextBox), new TextboxForeignClass(VMId::get(RId::TextBox), this));
+        vm->RegisterType(VMId::get(RId::TextLine), new LineEditForeignClass(VMId::get(RId::TextLine), this));
+        vm->RegisterType(VMId::get(RId::ListBox), new ListboxForeignClass(VMId::get(RId::ListBox), this));
+        vm->RegisterType(VMId::get(RId::Label), new LabelForeignClass(VMId::get(RId::Label), this));
+        vm->RegisterType(VMId::get(RId::CheckBox), new CheckboxForeignClass(VMId::get(RId::CheckBox), this));
+        vm->RegisterType(VMId::get(RId::RadioButton), new RadioButtonForeignClass(VMId::get(RId::RadioButton), this));
+        vm->RegisterType(VMId::get(RId::ButtonGroup), new ButtonGroupForeignClass(VMId::get(RId::ButtonGroup), this));
+        vm->RegisterType(VMId::get(RId::ComboBox), new ComboboxForeignClass(VMId::get(RId::ComboBox), this));
+        vm->RegisterType(VMId::get(RId::Image), new ImageForeignClass(VMId::get(RId::Image), this));
+        vm->RegisterType(VMId::get(RId::ParseResultClass), new ParseResultClass(VMId::get(RId::ParseResultClass)));
+        vm->RegisterType(VMId::get(RId::Parser), new ParserClass(VMId::get(RId::Parser), this, dynamic_cast<ParseResultClass *>(vm->GetType(VMId::get(RId::ParseResultClass))->unboxClass())));
+        vm->RegisterType(VMId::get(RId::ActivationRecord), BuiltInTypes::ActivationFrameType);
         ((FrameClass *) BuiltInTypes::ActivationFrameType)->allocator = &vm->GetAllocator();
 
         InitVMPrelude(vm);
@@ -283,6 +290,8 @@ void RunWindow::Init(QString program, QMap<QString, QString> stringConstants, QS
         {
             setBreakpoint(*i, debugInfo);
         }
+        vm->vmThread = new VMRunthread(vm, this);
+        vm->guiScheduler.runWindow = this;
         vm->Init();
         vm->setDebugger(client);
 
@@ -293,9 +302,7 @@ void RunWindow::Init(QString program, QMap<QString, QString> stringConstants, QS
             vm->SetGlobal("%parseTree", pt);
         }
         //*/
-        vmThread = new VMRunthread(vm, this);
-        connect(vmThread, SIGNAL(callGUI(QObject*,QString)), this, SLOT(callGUI(QObject*,QString)));
-        connect(vmThread, SIGNAL(callNew(ObjContainer*,OBJ_MAKER)), this, SLOT(callNew(ObjContainer*,OBJ_MAKER)));
+
         Run();
     }
     catch(VMError err)
@@ -365,50 +372,77 @@ void RunWindow::singleStep(Process *proc)
     }
 }
 
-void RunWindow::callGUI(QObject *control, QString method)
+void RunWindow::EmitGuiSchedule()
 {
-    control->metaObject()->invokeMethod(control, method.toAscii());
+    emit guiSchedule(new GUISchedulerEvent);
 }
 
-void RunWindow::callNew(ObjContainer *box, OBJ_MAKER klass)
+void RunWindow::do_gui_schedule(GUISchedulerEvent *)
 {
-    box->content = klass();
-    box->cond.wakeOne();
+    RunGUIScheduler();
+}
+
+void RunWindow::RunGUIScheduler()
+{
+    if(alreadyRunningScheduler)
+        return;
+
+    try
+    {
+        alreadyRunningScheduler = true;
+        while((state == rwNormal || state ==rwTextInput) &&!vm->guiScheduler.isDone()
+              )
+        {
+            if(vm->guiScheduler.RunStep())
+            {
+                redrawWindow();
+            }
+            qApp->processEvents(QEventLoop::AllEvents);
+        }
+        update();
+        alreadyRunningScheduler = false;
+    }
+    catch(VMError err)
+    {
+        alreadyRunningScheduler = false;
+        reportError(err);
+        close();
+    }
 }
 
 void RunWindow::Run()
 {
-    int pos,  len, oldPos = -1, oldLen = -1;
+    // int pos,  len, oldPos = -1, oldLen = -1;
     try
     {
-        //vmThread->start();
-
-        /*
-          while((state == rwNormal || state ==rwTextInput)&& vm->isRunning())
-          {
-            if(!vm->getGUIProcesses().empty())
-            {
-                Process *proc = vm->getGUIProcesses().takeFirst();
-                proc->RunTimeSlice(30, vm);
-                vm->finishUpRunningProcess(proc);
-            }
-            qApp->processEvents();
-          }
-        //*/
+        vm->vmThread->start();
 
         //*
-        while((state == rwNormal || state ==rwTextInput)&& vm->isRunning())
+          while((state == rwNormal || state ==rwTextInput))
+          {
+              //vm->guiScheduler.waitRunning(100);
+              vm->guiScheduler.RunStep();
+              redrawWindow();
+              qApp->processEvents(QEventLoop::AllEvents);
+          }
+          update();
+        //*/
+
+        /*
+        while(false && (state == rwNormal || state ==rwTextInput)
+              // && vm->isRunning()
+              )
         {
             bool visualize = client->isWonderfulMonitorEnabled();
 
             if(visualize)
-                vm->RunStep(true);
+                vm->guiScheduler.RunStep(true);
             else
-                vm->RunStep();
+                vm->guiScheduler.RunStep();
 
-            if(visualize && vm->runningNow)
+            if(visualize && vm->mainScheduler.runningNow)
             {
-                client->markCurrentInstruction(vm, vm->runningNow, pos, len);
+                client->markCurrentInstruction(vm, vm->mainScheduler.runningNow, pos, len);
             }
 
             redrawWindow();
@@ -426,11 +460,12 @@ void RunWindow::Run()
             oldPos = pos;
             oldLen = len;
 
-            qApp->processEvents();
+            qApp->processEvents(QEventLoop::AllEvents);
         }
         if(vm->isDone())
             client->programStopped(this);
         update();// Final update, in case the last instruction didn't update things in time.
+        //state = rwSuspended;
         //*/
     }
     catch(VMError err)
@@ -438,6 +473,17 @@ void RunWindow::Run()
         reportError(err);
         this->close();
     }
+}
+
+void RunWindow::emitErrorEvent(VMError err)
+{
+    emit errorSignal(err);
+}
+
+void RunWindow::errorEvent(VMError err)
+{
+    reportError(err);
+    close();
 }
 
 void RunWindow::reportError(VMError err)
@@ -457,7 +503,7 @@ void RunWindow::reportError(VMError err)
 
         QMessageBox box;
         box.setTextFormat(Qt::RichText);
-        box.setWindowTitle(QString::fromWCharArray(L"كلمات"));
+        box.setWindowTitle(VM::argumentErrors[ArgErr::Kalimat]);
 
         box.setText(msg);
         box.exec();
@@ -486,17 +532,6 @@ QString RunWindow::ensureCompletePath(Process *proc, QString fileName)
         }
     }
     return fileName;
-}
-
-void RunWindow::timerEvent(QTimerEvent *ev)
-{
-
-}
-
-void RunWindow::resetTimer(int interval)
-{
-    killTimer(timerID);
-    timerID = startTimer(interval);
 }
 
 void RunWindow::typeCheck(Process *proc, Value *val, IClass *type)
@@ -556,8 +591,11 @@ void RunWindow::checkCollision(Sprite *s)
 
 
     if(vm->hasRegisteredEventHandler("collision")
-            &&!vm->hasInterrupts())
+    //        &&!vm->mainScheduler.hasInterrupts()
+            )
+    {
         spriteLayer.checkCollision(s, &callBack);
+    }
 }
 
 void RunWindow::resizeEvent(QResizeEvent *event)
@@ -605,6 +643,9 @@ void RunWindow::mouseMoveEvent(QMouseEvent *ev)
 
 void RunWindow::activateMouseEvent(QMouseEvent *ev, QString evName)
 {
+    if(!vm->hasRegisteredEventHandler(evName))
+        return;
+
     QVector<Value *> args;
     int x = ev->x();
     int y = ev->y();
@@ -616,20 +657,19 @@ void RunWindow::activateMouseEvent(QMouseEvent *ev, QString evName)
     args.append(xval);
     args.append(yval);
 
-    bool normalRunning = vm->isRunning() && (state == rwNormal || state == rwTextInput);
     try
     {
         // Send to mouse event channel
-        Value *mouseDataV = vm->GetAllocator().newObject((IClass *)vm->GetType(QString::fromStdWString(L"معلومات.حادثة.ماوس"))->unboxObj());
+        Value *mouseDataV = vm->GetAllocator().newObject((IClass *) vm->GetType(VMId::get(RId::MouseEventInfo))->unboxObj());
         IObject *mouseData = mouseDataV->unboxObj();
-        mouseData->setSlotValue(QString::fromStdWString(L"س"), xval);
-        mouseData->setSlotValue(QString::fromStdWString(L"ص"), yval);
+        mouseData->setSlotValue(VMId::get(RId::X), xval);
+        mouseData->setSlotValue(VMId::get(RId::Y), yval);
 
         bool leftBtn = ev->buttons() & Qt::LeftButton;
         bool rightBtn = ev->buttons() & Qt::RightButton;
 
-        mouseData->setSlotValue(QString::fromStdWString(L"الزر.الأيسر"), vm->GetAllocator().newBool(leftBtn));
-        mouseData->setSlotValue(QString::fromStdWString(L"الزر.الأيمن"), vm->GetAllocator().newBool(rightBtn));
+        mouseData->setSlotValue(VMId::get(RId::LeftButton), vm->GetAllocator().newBool(leftBtn));
+        mouseData->setSlotValue(VMId::get(RId::RightButton), vm->GetAllocator().newBool(rightBtn));
         mouseEventChannel->unboxChan()->send(mouseDataV, NULL);
 
         if(evName == "mousedown")
@@ -640,11 +680,7 @@ void RunWindow::activateMouseEvent(QMouseEvent *ev, QString evName)
             mouseMoveEventChannel->unboxChan()->send(mouseDataV, NULL);
 
         vm->ActivateEvent(evName, args);
-        //resume();
-        if(!normalRunning && vm->isRunning())
-        {
-            Run();
-        }
+
     }
     catch(VMError err)
     {
@@ -679,7 +715,7 @@ void RunWindow::keyPressEvent(QKeyEvent *ev)
             if(v == NULL)
             {
                 textLayer.nl();
-                textLayer.print(QString::fromStdWString(L"يجب إدخال رقم! حاول مرة اخرى"));
+                textLayer.print(VM::argumentErrors[ArgErr::MustEnterANumber]);
                 textLayer.print("\n");
                 textLayer.beginInput();
                 update();
@@ -690,7 +726,6 @@ void RunWindow::keyPressEvent(QKeyEvent *ev)
                 readChannel->unboxChan()->send(v, NULL);
                 textLayer.nl();
                 update();
-                //Run();
             }
         }
         else if(ev->key() == Qt::Key_Backspace)
@@ -751,28 +786,15 @@ void RunWindow::activateKeyEvent(QKeyEvent *ev, QString evName)
         args.append(key);
         args.append(kchar);
 
-        bool normalRunning = vm->isRunning() && state == rwNormal;
-
         // Send to KB channel
-        Value *kbInfoV = vm->GetAllocator().newObject((IClass *)vm->GetType(QString::fromStdWString(L"معلومات.حادثة.لوحة.مفاتيح"))->unboxObj());
+        Value *kbInfoV = vm->GetAllocator().newObject((IClass *) vm->GetType(VMId::get(RId::KBEventInfo))->unboxObj());
         IObject *obj = kbInfoV->unboxObj();
-        obj->setSlotValue(QString::fromStdWString(L"زر"), key);
-        obj->setSlotValue(QString::fromStdWString(L"حرف"), kchar);
+        obj->setSlotValue(VMId::get(RId::Key), key);
+        obj->setSlotValue(VMId::get(RId::Character), kchar);
         kbEventChannel->unboxChan()->send(kbInfoV, NULL);
 
         vm->ActivateEvent(evName, args);
-        if(state != rwTextInput)
-        {
-            resume(); // If the RunWindow was not in a running state (say from a wait() call) then a key
-                      // event should wake it up.
-                      // TODO: This means a key event in the middle of a long wait will resume execution
-                      // prematurely after the event is handled. We should resolve this.
-        }
 
-        if(!normalRunning && vm->isRunning())
-        {
-            Run();
-        }
     }
     catch(VMError err)
     {

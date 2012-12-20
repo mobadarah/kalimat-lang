@@ -11,16 +11,17 @@
 #ifndef FRAME_H
     #include "frame.h"
 #endif
+#include <QObject>
 
 enum VMErrorType
 {
     // The number after some of the errors indicates the # of arguments
     // required to complete the error message string
     NoSuchVariable1, NoSuchProcedure1, NoSuchProcedureOrFunction1,
-    NoSuchField2, NoSuchMethod2, NoSuchExternalMethod1, NoSuchEvent,
+    NoSuchField2, NoSuchMethod2, NoSuchExternalMethod1, NoSuchForeignMethod2, NoSuchEvent,
     NoSuchClass1, NameDoesntIndicateAClass1,
 
-    UnrecognizedInstruction,UnrecognizedMnemonic2,
+    UnrecognizedInstruction1, UnrecognizedMnemonic2,
     GettingFieldOnNonObject1, SettingFieldOnNonObject1, CallingMethodOnNonObject,
     GettingFieldOnNull, SettingFieldOnNull, CallingMethodOnNull,
     NumericOperationOnNonNumber2,
@@ -58,29 +59,41 @@ namespace ArgErr
         TryingToOpenMissingFile1,
         FailedToOpenFile1,
         SentValueHasToBeAnObject1,
-        StackTopNotBacktrackPoint1,
+        StackTopNotBacktrackPointToIgnore1,
+        StackTopNotBacktrackPointToBackTrack1,
         BadFrameNumber1,
         CannotUsePartialFileName1,
         NoMainFuncToExecute,
         Editing1,
         Ok,
-        Cancel
+        Cancel,
+        GivenStringMustBeOneCharacter1,
+        ZeroSizeAtDimention1,
+        MouseLocationReport2,
+        MustEnterANumber,
+        Kalimat
     };
-
 }
 
-class VMError
+class Scheduler;
+class VMError : public QObject
 {
+    Q_OBJECT
 public:
 
     VMErrorType type;
-    QStack<Frame> callStack;
+    Process *process;
+    Scheduler *scheduler;
+    Frame* callStack;
     QVector<QString> args;
 public:
-    VMError(VMErrorType type, QStack<Frame> callStack);
+    VMError(VMErrorType type, Process *process, Scheduler *scheduler, Frame *callStack);
     VMError(VMErrorType type);
+    VMError(const VMError &other);
     VMError();
+    VMError &operator=(const VMError &other);
     VMError &arg(QString s);
+    virtual ~VMError() { }
 };
 
 #endif // VMERROR_H

@@ -11,6 +11,7 @@
 #include <QString>
 
 QMap<int, QString> KalimatLexer::tokenNameMap;
+QMap<int, QString> KalimatLexer::keywordLexemes;
 
 KalimatLexer::KalimatLexer() : Lexer()
 {
@@ -213,7 +214,9 @@ void KalimatLexer::InitKeywords()
     while(!in.atEnd())
     {
         QString kw = in.readLine();
-        keywords[kw] = id++;
+        keywords[kw] = id;
+        keywordLexemes[id] = kw;
+        id++;
     }
     in.close();
 
@@ -250,4 +253,9 @@ QString TokenNameFromId(int id)
         in.close();
     }
     return KalimatLexer::tokenNameMap[id];
+}
+
+QString TokenLexemeFromId(int id)
+{
+    return KalimatLexer::keywordLexemes[id];
 }

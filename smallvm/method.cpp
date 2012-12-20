@@ -7,6 +7,7 @@
 
 #include "method.h"
 #include "vmerror.h"
+#include "runtime_identifiers.h"
 
 Method::Method(QString name,int arity)
 {
@@ -35,78 +36,71 @@ Method::Method(QString name, int arity, int numReturnValues, bool returnsReferen
     this->receiver = receiver;
 }
 
+void Method::prepareInstruction(int index)
+{
+    Instruction &i = instructions[index];
+
+    if(index > 0)
+    {
+        instructions[index-1].next = &i;
+    }
+
+    i.assignRunner();
+
+    if(i.opcode == PushLocal || i.opcode == PopLocal)
+    {
+        int index = localsInterner.labelOf(i.SymRef);
+        i.SymRefLabel = index;
+        Locals[i.SymRef] = index;
+    }
+
+}
+
 void Method::Add(Instruction i)
 {
     instructions.append(i);
+    prepareInstruction(instructions.count()-1);
 }
 
 void Method::Add(Instruction i, QString label)
 {
     instructions.append(i);
+    prepareInstruction(instructions.count()-1);
+
     if(label != "")
     {
         labels[label] = instructions.count() -1;
+        fastLabels[labelInterner.labelOf(label)] = instructions.count() -1;
     }
 }
 
 void Method::Add(Instruction i, QString label, int extraInfo)
 {
+
     instructions.append(i.wExtra(extraInfo));
+    prepareInstruction(instructions.count()-1);
+
     if(label != "")
     {
         labels[label] = instructions.count() -1;
+        fastLabels[labelInterner.labelOf(label)] = instructions.count() -1;
     }
-}
-
-
-Instruction &Method::Get(QString label)
-{
-    return instructions[labels[label]];
-}
-Instruction &Method::Get(int ip)
-{
-    return instructions[ip];
 }
 
 void Method::Set(int ip, Instruction i)
 {
     instructions[ip] = i;
-}
-
-int Method::GetIp(QString label)
-{
-    // todo: slow
-    if(!labels.contains(label))
-        return -1;
-    return labels[label];
-}
-bool Method::HasInstruction(int ip)
-{
-    return ip < instructions.count();
-}
-int Method::InstructionCount()
-{
-    return instructions.count();
-}
-
-int Method::Arity()
-{
-    return arity;
-}
-
-int Method::NumReturnValues()
-{
-    return numReturnValues;
-}
-
-bool Method::IsReturningReference()
-{
-    return returnsReference;
+    prepareInstruction(ip);
 }
 
 QString Method::getName()
 {
     return this->name;
+}
+
+int Method::localVarCount()
+{
+    return Locals.count();
 }
 
 bool Method::hasSlot(QString name)
@@ -138,7 +132,7 @@ IMethod *MethodClass::Apply = new ApplyM();
 
 IMethod *MethodClass::lookupMethod(QString name)
 {
-    if(name == QString::fromStdWString(L"تنفيذها"))
+    if(name == VMId::get(RId::Invoke))
         return MethodClass::Apply;
     return NULL;
 }

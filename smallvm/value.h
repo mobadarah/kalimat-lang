@@ -101,6 +101,7 @@ struct Value
     double unboxDouble()  const;
     bool unboxBool()  const;
     IObject *unboxObj()  const;
+    IClass *unboxClass() const;
     VArray *unboxArray() const;
     MultiDimensionalArray<Value *> *unboxMultiDimensionalArray() const;
     VMap *unboxMap()  const;
@@ -160,6 +161,8 @@ public:
     static ValueClass *c_asciiz; // Your standard C ascii null-terminated string
     static ValueClass *c_wstr;  // C wide string, pointer to wchar_t
     static ValueClass *c_ptr;
+
+    static void init();
 };
 
 #endif // VALUE_H

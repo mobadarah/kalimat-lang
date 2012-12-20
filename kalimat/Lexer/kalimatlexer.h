@@ -90,7 +90,7 @@ const int REPEAT = 79;
 const int THEPROC = 80;
 const int THEFUNCTION = 81;
 const int KEYWORD_CUTOFF = 81; // As long as the ID of the token is <= KEYWORD_CUTOFF, the
-                               // syntax hilighter will consider it a keyword.
+                               // syntax highlighter will consider it a keyword.
 const int NUM_LITERAL = 91;
 const int ADD_OP = 92;
 const int SUB_OP = 93;
@@ -129,6 +129,7 @@ const int LAMBDA = 122;
 const int WHITESPACE = TokenNone;
 
 QString TokenNameFromId(int id);
+QString TokenLexemeFromId(int id);
 
 class KalimatLexer : public Lexer
 {
@@ -175,6 +176,7 @@ class KalimatLexer : public Lexer
 public:
     KalimatLexer();
     static QMap<int, QString> tokenNameMap;
+    static QMap<int, QString> keywordLexemes;
 };
 
 class ColonUnsupportedInIdentifiersException
