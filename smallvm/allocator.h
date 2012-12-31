@@ -28,13 +28,14 @@
     #include "scheduler.h"
 #endif
 
+#ifndef PROCESSITERATOR_H
+    #include "processiterator.h"
+#endif
+
 #include <QStack>
 #include <QQueue>
+#include <QMutex>
 
-const int MEGA = 1024 * 1024;
-const double GC_FACTOR = 0.75;
-const double HEAP_GROWTH_FACTOR = 1.4;
-const int NORMAL_MAX_HEAP = 1*MEGA;
 class Allocator
 {
     QSet<Value *> heap;
@@ -52,9 +53,18 @@ class Allocator
     QHash<int, Value*> *constantPool;
     QSet<Scheduler *> schedulers;
     QSet<QMap<QString, Value *> *> otherFrames;
+
+    // only for stoptheworld and starttheworld
+    VM *vm;
+
+    // We can't have more than one thread trying to GC at the same time
+    QMutex gcLock;
+
+    // The heap is shared, no more than one thread can allocate
+    QMutex heapAllocationLock;
 public:
     Allocator(QHash<int, Value*> *constantPool,
-              QSet<Scheduler *> schedulers);
+              QSet<Scheduler *> schedulers, VM *vm);
 
     ~Allocator();
 
@@ -88,6 +98,7 @@ public:
 
 private:
     void mark();
+    void markProcess(Process * proc, QStack<Value *> &reachable);
     void sweep();
 
     Value *allocateNewValue(bool gcMonitor=true);

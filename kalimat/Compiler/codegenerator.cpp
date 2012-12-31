@@ -57,9 +57,16 @@ QString CodeGenerator::getStringConstantsAsOpCodes()
         QString sym = i.value();
         QString data = i.key();
 
-        data = base64encode(data);
 
-        ret.append(QString(".strconst %1 %2").arg(sym).arg(data));
+        QString encoding = base64encode(data);
+
+        /*
+          Uncomment this only when debugging! Having arbitrary strings in the assembly code
+          stops the Pascal code (in the .exe creation component) from loading it correctly
+          */
+        //ret.append(QString("// %1 :: %2").arg(sym).arg(data.replace("\n","\\n")));
+
+        ret.append(QString(".strconst %1 %2").arg(sym).arg(encoding));
         ++i;
     }
     ret.append("");
@@ -572,7 +579,7 @@ void CodeGenerator::generateFFIProceduralDeclaration(shared_ptr<FFIProceduralDec
     }
     else
     {
-        gen(decl, QString::fromStdWString(L"pushc معدوم.سي"));
+        gen(decl, QString("pushc %1").arg(VMId::get(RId::c_void)));
     }
 
     gen(decl, "pushl %argTypeArr");
@@ -2456,7 +2463,7 @@ void CodeGenerator::generatePattern(shared_ptr<Pattern> pattern,
     }
     else
     {
-        error(CompilerException(currentFileName,pattern, UnimplementedPatternForm).arg(pattern->toString()));
+        error(CompilerException(currentFileName,pattern, UnimplementedPatternForm1).arg(pattern->toString()));
     }
 }
 
@@ -3080,6 +3087,7 @@ void CodeGenerator::generateLambdaExpression(shared_ptr<LambdaExpression> expr)
                                                   procName, fields, proto, QVector<shared_ptr<ClassInternalDecl> >(),
                                                   QMap<QString, shared_ptr<TypeExpression> >()));
 
+        klass->_ancestorName = idOf(Token(), "%lambda");
         shared_ptr<VarAccess> recvName = varOf(Token(), "%this");
         shared_ptr<Identifier> execName(new Identifier(Token(), VMId::get(RId::Invoke)));
         for(int i=0; i< expr->freeVariableCount(); ++i)
@@ -3125,9 +3133,30 @@ QString CodeGenerator::typeExpressionToAssemblyTypeId(shared_ptr<TypeExpression>
                 = dynamic_pointer_cast<PointerTypeExpression>(expr);
         return QString("*%1").arg(typeExpressionToAssemblyTypeId(p->pointeeType()));
     }
+    else if(isa<FunctionTypeExpression>(expr))
+    {
+        shared_ptr<FunctionTypeExpression> f
+                = dynamic_pointer_cast<FunctionTypeExpression>(expr);
+        QStringList args;
+        QString arrow;
+        QString ret;
+        for(int i=0; i<f->argTypes.count(); ++i)
+        {
+            args.append(typeExpressionToAssemblyTypeId(f->argTypes[i]));
+        }
+        if(f->retType())
+        {
+            arrow = "->";
+            ret = typeExpressionToAssemblyTypeId(f->retType());
+        }
+        return QString ("^(%1)%2%3")
+                .arg(args.join(","))
+                .arg(arrow)
+                .arg(ret);
+    }
     else
     {
-        error(CompilerException(currentFileName,expr, UnimplementedTypeForm));
+        error(CompilerException(currentFileName,expr, UnimplementedTypeForm1).arg(expr->toString()));
     }
     return "";
 }

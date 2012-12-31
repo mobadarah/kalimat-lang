@@ -28,7 +28,7 @@ private:
     QVector<Instruction> instructions;
     QMap<QString, int> labels;
 
-    QMap<int, int> fastLabels;
+    QHash<int, int> fastLabels;
     int arity;
     int numReturnValues; // 0, 1 or -1 meaning don't check
     bool returnsReference;

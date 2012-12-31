@@ -96,24 +96,46 @@ struct Value
     QString vstrVal;
     Value();
     ~Value();
-    int unboxInt() const;
-    long unboxLong() const;
-    double unboxDouble()  const;
-    bool unboxBool()  const;
-    IObject *unboxObj()  const;
-    IClass *unboxClass() const;
-    VArray *unboxArray() const;
-    MultiDimensionalArray<Value *> *unboxMultiDimensionalArray() const;
-    VMap *unboxMap()  const;
-    void *unboxRaw()  const;
-    QString unboxStr() const;
-    Reference *unboxRef() const;
-    Channel *unboxChan() const;
-    QObject *unboxQObj() const;
+    inline int unboxInt() const { return v.intVal; }
+    inline long unboxLong() const { return v.longVal; }
+    inline double unboxDouble()  const { return v.doubleVal; }
+    inline bool unboxBool() const { return v.boolVal; }
+    inline IObject *unboxObj()  const { return v.objVal; }
+    inline IClass *unboxClass() const { return dynamic_cast<IClass *>(unboxObj()); }
+    inline VArray *unboxArray() const { return v.arrayVal; }
+    inline MultiDimensionalArray<Value *> *unboxMultiDimensionalArray() const
+    {
+        return v.multiDimensionalArrayVal;
+    }
+    inline VMap *unboxMap()  const { return v.mapVal; }
+    inline void *unboxRaw()  const { return v.rawVal; }
+    inline QString unboxStr() const { return vstrVal; }
+    inline Reference *unboxRef() const { return v.refVal; }
+    inline Channel *unboxChan() const { return v.channelVal; }
+    inline QObject *unboxQObj() const { return v.qobjVal; }
     QString toString() const;
 
-    double unboxNumeric();
-    VIndexable *unboxIndexable() const;
+    inline double unboxNumeric()
+    {
+        if(tag == Int)
+            return unboxInt();
+        if(tag == Double)
+            return unboxDouble();
+        if(tag == Long)
+            return unboxLong();
+        // This should not be called
+        return 0.0;
+    }
+
+    inline VIndexable *unboxIndexable() const
+    {
+        if(tag == ArrayVal)
+            return unboxArray();
+        if(tag == MapVal)
+            return unboxMap();
+        // This should not be called
+        return NULL;
+    }
     static Value *NullValue;
 };
 
@@ -150,6 +172,7 @@ public:
     static ValueClass *NullType;
     static ValueClass *ChannelType;
     static ValueClass *QObjectType;
+    static ValueClass *LambdaType;
     static IClass *ActivationFrameType;
 
     // For FFI
@@ -160,6 +183,7 @@ public:
     static ValueClass *c_char;
     static ValueClass *c_asciiz; // Your standard C ascii null-terminated string
     static ValueClass *c_wstr;  // C wide string, pointer to wchar_t
+    static ValueClass *c_void;
     static ValueClass *c_ptr;
 
     static void init();

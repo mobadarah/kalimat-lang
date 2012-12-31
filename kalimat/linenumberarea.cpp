@@ -74,9 +74,17 @@ void LineNumberArea::update(const QRect &)
 int LineNumberArea::getWidth()
 {
     int ln = highest_line>9? highest_line : 99;
-    QString str = QString("%1").arg(ln);
-    int width = fontMetrics().width(str) + 5;
+    QString str = QString("%1m").arg(ln);
+    int width = fontMetrics().width(str) + 3;
     return width;
+}
+
+void LineNumberArea::toggleBreakPoint(int line)
+{
+    if(breakPointMarks.contains(line))
+        breakPointMarks.remove(line);
+    else
+        breakPointMarks.insert(line);
 }
 
 void LineNumberArea::paintEvent(QPaintEvent *event)
@@ -122,9 +130,23 @@ void LineNumberArea::paintEvent(QPaintEvent *event)
         // line. 3 is a magic padding number. drawText(x, y, text).
 
         QString str= QString("%1").arg(line_count);
+
+        int x = width() - (font_metrics.width(str) + 3);
+        int y = round(position.y()) - contents_y + font_metrics.ascent()+2;
+        if(breakPointMarks.contains(line_count-1))
+        {
+            QBrush oldBrush = painter.brush();
+            painter.setBrush(QBrush(Qt::darkRed));
+            QRect rct(3,
+                      y - font_metrics.ascent(),
+                      font_metrics.width("O"),
+                      font_metrics.height());
+            painter.drawEllipse(rct.center(), rct.width()/2, rct.width()/2);
+            painter.setBrush(oldBrush);
+        }
         line_count++;
-        painter.drawText(width() - (font_metrics.width(str) + 3),
-                         round(position.y()) - contents_y + font_metrics.ascent()+2,
+        painter.drawText(x,
+                         y,
                          str);
 
         // Remove the bold style if it was set previously.

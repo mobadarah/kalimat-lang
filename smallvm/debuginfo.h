@@ -25,6 +25,7 @@ class DebugInfo
     QMap<CodeDocument *, QMap<int, InstructionLocation> > info;
     QMap<QString, QMap<int, LineLocation> > reverseInfo;
     QMap<CodeDocument *, QSet<int> > returnLines;
+    QMap<LineLocation, InstructionLocation> firstInstructionInLine;
 public:
     DebugInfo();
     void setInstructionForLine(CodeDocument *doc, int lineNo, QString methodName, int offset);

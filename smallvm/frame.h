@@ -28,7 +28,7 @@ struct FrameClass : public EasyForeignClass
 {
     Allocator *allocator;
 
-    FrameClass(QString className);
+    FrameClass(QString className, VM *vm);
     virtual Value *dispatch(Process *proc, int id, QVector<Value *>args);
     virtual IObject *newValue(Allocator *allocator);
 };
@@ -52,7 +52,7 @@ struct Frame : public IObject
     Frame(const Frame &other);
 
     virtual ~Frame();
-    Instruction getPreviousRunningInstruction();
+    const Instruction &getPreviousRunningInstruction();
     void prepareFastLocals();
 
     inline Value *local(const QString &name)

@@ -94,6 +94,7 @@ public:
     ~RunWindow();
     void Init(QString program, QMap<QString, QString> stringConstants, QSet<Breakpoint> breakPoints, DebugInfo debugInfo);
     void InitVMPrelude(VM *vm);
+    void RegisterGuiControls(VM *vm);
     void RegisterQtTypes(VM *vm);
     void assert(Process *proc,  bool condition, VMErrorType errorType, QString errorMsg);
     QString pathOfRunningProgram();
@@ -154,7 +155,7 @@ public:
     void beginInput();
     void Run();
     void RunGUIScheduler();
-    void singleStep(Process *proc);
+    //void singleStep(Process *proc);
     friend class WindowPrintMethod;
     friend class WindowReadMethod;
     void EmitGuiSchedule();
@@ -164,6 +165,7 @@ signals:
     void errorSignal(VMError err);
 private slots:
     void errorEvent(VMError err);
+    void timerEvent(QTimerEvent *);
     void do_gui_schedule(GUISchedulerEvent *);
     void mousePressEvent(QMouseEvent *);
     void mouseReleaseEvent(QMouseEvent *);
@@ -178,6 +180,5 @@ private slots:
     void parentDestroyed(QObject *);
     void on_actionGC_triggered();
 };
-
 
 #endif // RUNWINDOW_H

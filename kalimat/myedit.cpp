@@ -48,6 +48,7 @@ MyEdit::MyEdit(MainWindow *owner) : QTextEdit()
     connect(this, SIGNAL(textChanged()), SLOT(textChangedEvent()));
     connect(this,  SIGNAL(cursorPositionChanged()), SLOT(selectionChangedEvent()));
     setRtl();
+    document()->setDefaultCursorMoveStyle(Qt::VisualMoveStyle);
     lastInputChar = "";
     _line = _column = 0;
 
@@ -59,6 +60,12 @@ void MyEdit::updateLineNumberAreaFont()
 {
     LineNumberArea *lna = dynamic_cast<LineNumberArea *>(lineNumberArea);
     lna->setFontPointSize(this->font().pointSize() - 3);
+}
+
+void MyEdit::toggleBreakpoint(int line)
+{
+    lineNumberArea->toggleBreakPoint(line);
+    lineNumberArea->update();
 }
 
 void MyEdit::updateLineNumberAreaWidth(int /* newBlockCount */)
@@ -635,7 +642,8 @@ void MyEdit::colonBehavior(QKeyEvent *ev)
     textCursor().endEditBlock();
     if(!deindenting)
     {
-        owner->triggerAutocomplete(this);
+        // todo: fix then when fixing autocomplete
+        // owner->triggerAutocomplete(this);
     }
 }
 

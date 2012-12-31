@@ -44,6 +44,7 @@ ValueClass *BuiltInTypes::ArrayRefType = NULL;
 ValueClass *BuiltInTypes::NullType = NULL;
 ValueClass *BuiltInTypes::ChannelType = NULL;
 ValueClass *BuiltInTypes::QObjectType = NULL;
+ValueClass *BuiltInTypes::LambdaType = NULL;
 IClass *BuiltInTypes::ActivationFrameType = NULL;
 
 ValueClass *BuiltInTypes::c_int = NULL;
@@ -53,6 +54,7 @@ ValueClass *BuiltInTypes::c_double = NULL;
 ValueClass *BuiltInTypes::c_char = NULL;
 ValueClass *BuiltInTypes::c_asciiz = NULL;
 ValueClass *BuiltInTypes::c_wstr = NULL;
+ValueClass *BuiltInTypes::c_void = NULL;
 ValueClass *BuiltInTypes::c_ptr= NULL;
 
 void BuiltInTypes::init()
@@ -84,7 +86,7 @@ void BuiltInTypes::init()
     NullType = new ValueClass(VMId::get(RId::NullType), BuiltInTypes::ObjectType);
     ChannelType = new ValueClass(VMId::get(RId::Channel), BuiltInTypes::ObjectType);
     QObjectType = new ValueClass(VMId::get(RId::QObject), BuiltInTypes::ObjectType);
-    ActivationFrameType = new FrameClass(VMId::get(RId::ActivationRecord));
+    LambdaType = new ValueClass("%lambda", BuiltInTypes::ObjectType);
 
     c_int = new ValueClass(VMId::get(RId::c_int32), BuiltInTypes::ObjectType);
     c_long = new ValueClass(VMId::get(RId::c_long), BuiltInTypes::ObjectType);
@@ -94,7 +96,7 @@ void BuiltInTypes::init()
     c_asciiz = new ValueClass(VMId::get(RId::c_ascii), BuiltInTypes::ObjectType);
     c_wstr = new ValueClass(VMId::get(RId::c_wstr), BuiltInTypes::ObjectType);
     c_ptr= new ValueClass(VMId::get(RId::c_pointer), BuiltInTypes::ObjectType);
-
+    c_void = new ValueClass(VMId::get(RId::c_void), BuiltInTypes::ObjectType);
 }
 
 Value *Value::NullValue = NULL;
@@ -176,97 +178,6 @@ void Object::setSlotValue(QString name, Value *val)
     _slots[name] = val;
 }
 
-int Value::unboxInt() const
-{
-    return v.intVal;
-}
-
-long Value::unboxLong() const
-{
-    return v.longVal;
-}
-
-double Value::unboxDouble() const
-{
-    return v.doubleVal;
-}
-
-double Value::unboxNumeric()
-{
-    if(tag == Int)
-        return unboxInt();
-    if(tag == Double)
-        return unboxDouble();
-    if(tag == Long)
-        return unboxLong();
-    // This should not be called
-    return 0.0;
-}
-
-VIndexable *Value::unboxIndexable() const
-{
-    if(tag == ArrayVal)
-        return unboxArray();
-    if(tag == MapVal)
-        return unboxMap();
-    // This should not be called
-    return NULL;
-}
-
-bool Value::unboxBool() const
-{
-    return v.boolVal;
-}
-
-IObject *Value::unboxObj() const
-{
-    return v.objVal;
-}
-
-IClass *Value::unboxClass() const
-{
-    return dynamic_cast<IClass *>(unboxObj());
-}
-
-VArray *Value::unboxArray() const
-{
-    return v.arrayVal;
-}
-
-VMap *Value::unboxMap() const
-{
-    return v.mapVal;
-}
-
-MultiDimensionalArray<Value *> *Value::unboxMultiDimensionalArray() const
-{
-    return v.multiDimensionalArrayVal;
-}
-
-QString Value::unboxStr() const
-{
-    return vstrVal;
-}
-
-void *Value::unboxRaw() const
-{
-    return v.rawVal;
-}
-
-Reference *Value::unboxRef() const
-{
-    return v.refVal;
-}
-
-Channel *Value::unboxChan() const
-{
-    return v.channelVal;
-}
-
-QObject *Value::unboxQObj() const
-{
-    return v.qobjVal;
-}
 
 QString ArrayToString(VArray *arr)
 {

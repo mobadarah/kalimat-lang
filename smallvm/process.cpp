@@ -68,22 +68,22 @@ void Process::select(QVector<Channel *> allChans, QVector<Value *> parameters, i
         int index = readyChans[choice];
         if(index < nsend)
         {
-            allChans[index]->send(parameters[index], this);
+            allChans[index]->sendNoLock(parameters[index], this);
         }
         else
         {
-            allChans[index]->receive(this);
+            allChans[index]->receiveNoLock(this);
         }
     }
     else
     {
         for(int i=0; i<nsend; i++)
         {
-            allChans[i]->send(parameters[i], this);
+            allChans[i]->sendNoLock(parameters[i], this);
         }
         for(int i=nsend; i<allChans.count(); i++)
         {
-            allChans[i]->receive(this);
+            allChans[i]->receiveNoLock(this);
         }
     }
 }
@@ -151,16 +151,41 @@ int Process::popIntOrCoercedDouble()
     Stack<Value *> &stack = this->currentFrame()->OperandStack;
     if(stack.empty())
         this->signal(InternalError1, "Empty operand stack when reading integer or integer-coercible value");
+
     Value *v = stack.top();
+
     if(v->tag != Int && v->tag != Double)
         this->signal(TypeError2, BuiltInTypes::NumericType->getName(), v->type->getName());
-    v = stack.pop();
-    int ret;
+
     if(v->tag == Double)
-        ret = (int) v->unboxDouble();
+        return (int) v->unboxDouble();
     else
-        ret = v->unboxInt();
-    return ret;
+        return v->unboxInt();
+}
+
+inline int Process::popInt()
+{
+    Stack<Value *> &stack = this->currentFrame()->OperandStack;
+    if(stack.empty())
+        this->signal(InternalError1, "Empty operand stack when reading integer or integer-coercible value");
+
+    Value *v = stack.pop();
+    if(v->tag != Int)
+        this->signal(TypeError2, BuiltInTypes::NumericType->getName(), v->type->getName());
+    return v->unboxInt();
+}
+
+inline bool Process::popBool()
+{
+    Stack<Value *> &stack = this->currentFrame()->OperandStack;
+    if(stack.empty())
+        this->signal(InternalError1, "Empty operand stack when reading boolean value");
+
+    Value *v = stack.pop();
+    if(v->tag != Boolean)
+        this->signal(TypeError2, BuiltInTypes::BoolType->getName(), v->type->getName());
+
+    return v->unboxBool();
 }
 
 double Process::popDoubleOrCoercedInt()
@@ -192,10 +217,29 @@ void Process::RunTimeSlice(int slice, VM *vm, Scheduler *caller)
 
         RunSingleInstruction();
 
+        if(vm->debugger->currentBreakCondition(currentFrame()->ip,
+                                                currentFrame(),
+                                                this))
+        {
+            DoBreak();
+        }
+
         timeSlice--;
         // A breakpoint might pause/stop the VM, we then must stop this function at once
         //if(!vm->isRunning())
         //    return;
+    }
+}
+
+void Process::RunUntilReturn()
+{
+    assert1(stack->next, InternalError1, "RunUntilReturn: must have something to return to");
+    Frame *prev  = stack->next;
+    while(stack != prev)
+    {
+        if(this->isFinished())
+            break;
+        RunSingleInstruction();
     }
 }
 
@@ -206,8 +250,7 @@ void Process::migrateTo(Scheduler *scheduler)
 
     if(this->state != AwakeProcess)
         signal(InternalError1, "Cannot migrate process unless it's active");
-    //owner->lock.lock();
-    //qDebug("locked owner in migrate");
+
     scheduler->lock.lock();
     //qDebug("locked other in migrate");
 
@@ -218,9 +261,6 @@ void Process::migrateTo(Scheduler *scheduler)
 
     scheduler->lock.unlock();
     //qDebug("unlocked other in migrate");
-    //oldOwner->lock.unlock();
-    //qDebug("unlocked owner in migrate");
-
 
     /*
     if(owner == &vm->mainScheduler)
@@ -241,12 +281,15 @@ void Process::RunSingleInstruction()
     const Instruction &i = frame->currentMethod->Get(frame->ip);
 
     /*
+    //if(vm->traceInstructions)
+    {
     qDebug() << QString("Running '%1', IP=%2, method=%3, process=%4, scheduler =%5")
              .arg(InstructionToString(i))
-             .arg(frame.ip)
-             .arg(frame.currentMethod->getName())
+             .arg(frame->ip)
+             .arg(frame->currentMethod->getName())
              .arg((long) this)
              .arg((owner ==(&vm->mainScheduler))?QString("main"): QString("gui"));
+    }
     //*/
     frame->ip++;
 
@@ -650,12 +693,12 @@ void Process::DoAdd()
 
 void Process::DoSub()
 {
-    BuiltInArithmeticOp(VMId::get(RId::Subtraction), sub_int, sub_long, sub_double);
+    BuiltInArithmeticOp(RId::Subtraction, sub_int, sub_long, sub_double);
 }
 
 void Process::DoMul()
 {
-    BuiltInArithmeticOp(VMId::get(RId::Multiplication), mul_int, mul_long, mul_double);
+    BuiltInArithmeticOp(RId::Multiplication, mul_int, mul_long, mul_double);
 }
 
 void Process::DoDiv()
@@ -723,9 +766,8 @@ void Process::DoJmpVal()
 
 void Process::DoIf(const QString &trueLabel, const QString &falseLabel, int fastTrueLabel, int fastFalseLabel)
 {
-    Value *v = currentFrame()->OperandStack.pop();
-    assert2(v->tag == Boolean, TypeError2, BuiltInTypes::BoolType, v->type);
-    test(v->unboxBool(), trueLabel, falseLabel, fastTrueLabel, fastFalseLabel);
+    bool v = popBool();
+    test(v, trueLabel, falseLabel, fastTrueLabel, fastFalseLabel);
 }
 
 void Process::DoLt()
@@ -838,7 +880,6 @@ void Process::CallImpl(Method *method, bool wantValueNotRef, int arity, CallStyl
     }
 
     frame->returnReferenceIfRefMethod = !wantValueNotRef;
-    //frame->OperandStack.reserve(marity);
     if(marity <= 10)
     {
         for(int i=method->Arity()-1; i>=0; i--)
@@ -856,7 +897,6 @@ void Process::CallImpl(Method *method, bool wantValueNotRef, int arity, CallStyl
         }
         delete[] args;
     }
-
 }
 
 void Process::DoCallMethod(const QString &SymRef, int SymRefLabel, int arity, CallStyle callStyle)
@@ -878,6 +918,7 @@ void Process::DoCallMethod(const QString &SymRef, int SymRefLabel, int arity, Ca
             noSuchMethodTrapFound = true;
     }
     */
+
     assert2(_method!=NULL, NoSuchMethod2, SymRef, receiver->type->getName());
 
     assert1(!noSuchMethodTrapFound || arity !=-1, InternalError1, "Calling with %nosuchmethod needs the arity to be specified in the instruction");
@@ -955,6 +996,7 @@ void Process::CallSpecialMethod(IMethod *method, QVector<Value *> args)
         Value *ret = fm->invoke(this, args);
         if(ret != NULL)
             currentFrame()->OperandStack.push(ret);
+
         return;
     }
     ApplyM *apply = dynamic_cast<ApplyM *>(method);
@@ -966,6 +1008,11 @@ void Process::CallSpecialMethod(IMethod *method, QVector<Value *> args)
         // todo:
         //IMethod *calee = popMethod();
         //VArray *argList = popArray();
+        //if(owner != &vm->mainScheduler)
+        //{
+        //   // qDebug() << "CallExternal finished";
+        //   migrateBackFromGui();
+        //}
     }
 
     assert1(false, InternalError, "CallSpecialMethod is not implemented for this type of method");
@@ -1016,20 +1063,32 @@ void Process::DoApply()
     CallImpl(method, true, args->count(), NormalCall);
 }
 
+void Process::startMigrationToGui()
+{
+    Frame *frame = currentFrame();
+    frame->ip--;
+    this->wannaMigrateTo = &vm->guiScheduler;
+    this->timeSlice = 0;
+}
+
+void Process::migrateBackFromGui()
+{
+    this->wannaMigrateTo = &vm->mainScheduler;
+    this->timeSlice = 0;
+}
+
 void Process::DoCallExternal(const QString &symRef, int SymRefLabel, int arity)
 {
-    assert1(constantPool().contains(SymRefLabel), NoSuchExternalMethod1, symRef);
+    Value *v = constantPool().value(SymRefLabel, NULL);
+    assert1(v, NoSuchExternalMethod1, symRef);
 
-    ExternalMethod *method = (ExternalMethod*) constantPool()[SymRefLabel]->v.objVal;
+    ExternalMethod *method = (ExternalMethod*) v->v.objVal;
     assert3(arity == -1 || method->Arity() ==-1 || arity == method->Arity(), WrongNumberOfArguments3,
            symRef, str(arity), str(method->Arity()));
 
     if(method->mustRunInGui && owner != &vm->guiScheduler)
     {
-        Frame *frame = currentFrame();
-        frame->ip--;
-        this->wannaMigrateTo = &vm->guiScheduler;
-        this->timeSlice = 0;
+        startMigrationToGui();
         return;
     }
 
@@ -1037,16 +1096,15 @@ void Process::DoCallExternal(const QString &symRef, int SymRefLabel, int arity)
     if(method->mustRunInGui && owner != &vm->mainScheduler)
     {
         // qDebug() << "CallExternal finished";
-        this->wannaMigrateTo = &vm->mainScheduler;
-        this->timeSlice = 0;
+        migrateBackFromGui();
     }
 }
 
 void Process::DoSetField(const QString &SymRef)
 {
     // ...obj val  => ...
-    Value *v = currentFrame()->OperandStack.pop();
-    Value *objVal = currentFrame()->OperandStack.pop();
+    Value *v = popValue();
+    Value *objVal = popValue();
 
     assert0(objVal->tag != NullVal, SettingFieldOnNull);
     assert1(objVal->tag == ObjectVal, SettingFieldOnNonObject1, objVal->type->toString());
@@ -1059,7 +1117,7 @@ void Process::DoSetField(const QString &SymRef)
 void Process::DoGetField(const QString &SymRef)
 {
     // ...object => val
-    Value *objVal = currentFrame()->OperandStack.pop();
+    Value *objVal = popValue();
 
     assert0(objVal->tag != NullVal, GettingFieldOnNull);
     assert1(objVal->tag == ObjectVal, GettingFieldOnNonObject1, objVal->type->toString());
@@ -1073,7 +1131,7 @@ void Process::DoGetField(const QString &SymRef)
 void Process::DoGetFieldRef(const QString &SymRef)
 {
     // ...object => ...fieldRef
-    Value *objVal = currentFrame()->OperandStack.pop();
+    Value *objVal = popValue();
 
     assert0(objVal->tag != NullVal, GettingFieldOnNull);
     assert1(objVal->tag == ObjectVal, GettingFieldOnNonObject1, objVal->type->getName());
@@ -1101,9 +1159,9 @@ void Process::DoSetArr()
     */
 
 
-    Value *v = currentFrame()->OperandStack.pop();
-    Value *index = currentFrame()->OperandStack.pop();
-    Value *arrVal = currentFrame()->OperandStack.pop();
+    Value *v = popValue();
+    Value *index = popValue();
+    Value *arrVal = popValue();
 
     assert0(arrVal->tag == ArrayVal
            || arrVal->tag == MapVal
@@ -1137,8 +1195,8 @@ void Process::DoGetArr()
 
     // ...arr index => ...value
     /*
-    Value *index = currentFrame()->OperandStack.pop();
-    Value *arrVal= currentFrame()->OperandStack.pop();
+    Value *index = popValue();
+    Value *arrVal= popValue();
 
     assert(arrVal->tag == ArrayVal, SubscribingNonArray);
     assert(index->tag == Int, SubscribtMustBeInteger);
@@ -1150,8 +1208,8 @@ void Process::DoGetArr()
     Value *v = arr->Elements[i-1];
     currentFrame()->OperandStack.push(v);
     */
-    Value *index = currentFrame()->OperandStack.pop();
-    Value *arrVal= currentFrame()->OperandStack.pop();
+    Value *index = popValue();
+    Value *arrVal= popValue();
 
     assert0(arrVal->tag == ArrayVal
            || arrVal->tag == MapVal,
@@ -1183,8 +1241,8 @@ void Process::DoGetArrRef()
 {
     // todo: Sync DoGetArrRef with moving to VIndexable, support strings
     // ...arr index => ...arrref
-    Value *index  = currentFrame()->OperandStack.pop();
-    Value *arrVal= currentFrame()->OperandStack.pop();
+    Value *index  = popValue();
+    Value *arrVal= popValue();
 
     assert0(arrVal->tag == ArrayVal, SubscribingNonArray);
     assert0(index->tag == Int, SubscribtMustBeInteger);
@@ -1199,18 +1257,34 @@ void Process::DoGetArrRef()
 
 void Process::DoNew(const QString &SymRef, int SymRefLabel)
 {
-    assert1(constantPool().contains(SymRefLabel), NoSuchClass1, SymRef);
-    Value *classObj = (Value*) constantPool()[SymRefLabel];
+    Value *classObj = constantPool().value(SymRefLabel, NULL);
+    assert1(classObj != NULL, NoSuchClass1, SymRef);
+
     IClass *theClass = dynamic_cast<IClass *>(classObj->v.objVal);
     assert1(theClass != NULL, NameDoesntIndicateAClass1, SymRef);
+
+    ForeignClass *fc = dynamic_cast<ForeignClass *>(theClass);
+
+    if(fc && owner != &vm->guiScheduler)
+    {
+        startMigrationToGui();
+        return;
+    }
+
     Value *newObj = allocator().newObject(theClass);
     currentFrame()->OperandStack.push(newObj);
+
+    if(fc && owner != &vm->mainScheduler)
+    {
+        migrateBackFromGui();
+        return;
+    }
 }
 
 void Process::DoNewArr()
 {
     assert2(__top()->tag == Int, TypeError2, BuiltInTypes::IntType, __top()->type);
-    int size = currentFrame()->OperandStack.pop()->unboxInt();
+    int size = popInt();
 
     Value *newArr = allocator().newArray(size);
     currentFrame()->OperandStack.push(newArr);
@@ -1223,7 +1297,7 @@ void Process::DoArrLength()
            || __top()->tag == MapVal
            || __top()->tag == StringVal, TypeError2, BuiltInTypes::IndexableType, __top()->type);
 
-    Value *arrVal= currentFrame()->OperandStack.pop();
+    Value *arrVal= popValue();
     if(arrVal->tag == StringVal)
     {
         Value *len = allocator().newInt(arrVal->unboxStr().length());
@@ -1240,9 +1314,7 @@ void Process::DoArrLength()
 void Process::DoNewMD_Arr()
 {
     // ... dimensions => ... md_arr
-    assert2(__top()->tag == ArrayVal, TypeError2, BuiltInTypes::ArrayType, __top()->type);
-    Value *arrVal= currentFrame()->OperandStack.pop();
-    VArray *arr = arrVal->unboxArray();
+    VArray *arr = popArray();
     QVector<int> dimensions;
     for(int i=0; i<arr->count(); i++)
     {
@@ -1450,26 +1522,39 @@ void Process::DoSelect()
 
 void Process::DoBreak()
 {
-    vm->stopTheWorld();
+    timeSlice = 0;
+    vm->destroyTheWorld(owner);
 
     // Restore the original instruction for when/if we resume
-    QString curMethodName = currentFrame()->currentMethod->getName();
-    currentFrame()->ip--;
+
     int ip = currentFrame()->ip;
+    QString curMethodName = currentFrame()->currentMethod->getName();
     if(vm->breakPoints.contains(curMethodName) &&
-            vm->breakPoints[curMethodName].contains(ip))
+            vm->breakPoints[curMethodName].contains(ip-1))
     {
+
+        currentFrame()->ip--;
+        ip--;
         Instruction i = vm->breakPoints[curMethodName][ip];
         currentFrame()->currentMethod->Set(ip, i);
     }
     else
     {
-        signal(InternalError);
+        //signal(InternalError);
+    }
+
+    int offset = currentFrame()->ip;
+    if(vm->isBreakpointOneShot(curMethodName, offset))
+    {
+        vm->clearBreakPoint(curMethodName, offset);
     }
 
     if(vm->debugger)
     {
-        vm->debugger->Break(curMethodName, currentFrame()->ip, currentFrame(), this);
+        if(owner == &vm->guiScheduler)
+            vm->debugger->Break(offset, currentFrame(), this);
+        else
+            vm->debugger->postBreak(offset, currentFrame(), this);
     }
 }
 
@@ -1612,7 +1697,7 @@ void Process::BuiltInAddOp(int (*intFunc)(int,int),
     currentFrame()->OperandStack.push(v3);
 }
 
-void Process::BuiltInArithmeticOp(const QString &opName,
+inline void Process::BuiltInArithmeticOp(RId::RuntimeId opName,
                              int (*intFunc)(int,int),
                              long (*longFunc)(long, long),
                              double (*doubleFunc)(double,double))
@@ -1629,7 +1714,7 @@ void Process::BuiltInArithmeticOp(const QString &opName,
 
     assert3((v1->tag == v2->tag) &&
            (v1->tag == Int || v1->tag == Long || v1->tag == Double),
-           NumericOperationOnNonNumber3 , opName, v1->type->toString(), v2->type->toString());
+           NumericOperationOnNonNumber3 , VMId::get(opName), v1->type->toString(), v2->type->toString());
 
     Value *v3 = NULL;
 

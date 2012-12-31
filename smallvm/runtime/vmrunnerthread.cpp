@@ -11,18 +11,32 @@ void VMRunthread::run()
 {
     try
     {
+        int pos,  len, oldPos = -1, oldLen = -1;
         while(rw->state == rwNormal || rw->state ==rwTextInput)
         {
-
-            vm->mainScheduler.waitRunning(100);
-            if(vm->mainScheduler.RunStep())
+            if(vm->destroyTheWorldFlag)
             {
-                //rw->redrawWindow();
+                if(vm->destroyer != &vm->mainScheduler)
+                    vm->worldDestruction.release();
+                break;
             }
-            /*
-                if(vm->isDone())
-                    rw->client->programStopped(rw);
-                */
+            bool visualize = client->isWonderfulMonitorEnabled();
+            if(visualize)
+                vm->mainScheduler.RunStep(true);
+            else
+                vm->mainScheduler.RunStep();
+
+            if(visualize && vm->getMainProcess() && vm->getMainProcess()->state == AwakeProcess)
+            {
+                client->postMarkCurrentInstruction(vm, vm->getMainProcess(), &pos, &len);
+                if((oldPos != pos ) && (oldLen != len))
+                {
+                    mySleep(client->wonderfulMonitorDelay());
+                }
+            }
+            oldPos = pos;
+            oldLen = len;
+
         }
         rw->update();// Final update, in case the last instruction didn't update things in time.
     }

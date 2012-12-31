@@ -1847,7 +1847,7 @@ shared_ptr<FFIProceduralDecl> KalimatParser::ffiProcDecl()
         match(SYMBOL);
         if(LA(STR_LITERAL))
         {
-            shared_ptr<StrLiteral> s(new StrLiteral(lookAhead, lookAhead.Lexeme));
+            shared_ptr<StrLiteral> s(new StrLiteral(lookAhead, prepareStringLiteral(lookAhead.Lexeme)));
             symbol = s->value();
             match(STR_LITERAL);
         }
@@ -1868,7 +1868,7 @@ shared_ptr<FFIProceduralDecl> KalimatParser::ffiProcDecl()
         }
     }
     match(RPAREN);
-    return shared_ptr<FFIProceduralDecl>(new FFIProceduralDecl(pos, false, true, fname->name(), symbol, retType, argTypes));
+    return shared_ptr<FFIProceduralDecl>(new FFIProceduralDecl(pos, true, false, fname->name(), symbol, retType, argTypes));
 }
 
 bool KalimatParser::LA_first_expression()

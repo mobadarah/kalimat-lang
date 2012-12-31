@@ -16,6 +16,7 @@ VMError::VMError()
 : QObject()
 {
     this->type = NoError;
+    this->callStack = NULL;
 }
 
 VMError::VMError(VMErrorType type, Process *process, Scheduler *scheduler, Frame *callStack)
@@ -51,6 +52,7 @@ VMError::VMError(VMErrorType type)
     : QObject()
 {
     this->type = type;
+    this->callStack = NULL;
 }
 
 VMError &VMError::arg(QString s)

@@ -75,7 +75,8 @@ SOURCES += main.cpp \
     idemessages.cpp \
     ../smallvm/scheduler.cpp \
     ../smallvm/blockingqueue.cpp \
-    ../smallvm/instructionrunners.cpp
+    ../smallvm/instructionrunners.cpp \
+    stepstopcondition.cpp
 HEADERS += mainwindow.h \
     Lexer/token.h \
     Lexer/statemachine.h \
@@ -127,7 +128,8 @@ HEADERS += mainwindow.h \
     ../smallvm/runtime/vmrunnerthread.h \
     idemessages.h \
     ../smallvm/blockingqueue.h \
-    ../smallvm/vmerror.h
+    ../smallvm/vmerror.h \
+    stepstopcondition.h
 
 FORMS += mainwindow.ui \
     savechangedfiles.ui \

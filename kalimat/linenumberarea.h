@@ -31,10 +31,12 @@ THE SOFTWARE
 #define LINENUMBERAREA_H
 
 #include <QWidget>
+#include <QSet>
 #include "myedit.h"
 
 class LineNumberArea : public QWidget
 {
+    QSet<int> breakPointMarks;
 public:
     int highest_line;
 public:
@@ -44,6 +46,7 @@ public:
     void setFontPointSize(int f);
     void update(const QRect &);
     int getWidth();
+    void toggleBreakPoint(int line);
    /* QSize sizeHint() const {
         return QSize(edit->lineNumberAreaWidth(), 0);
     }*/

@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>782</width>
-    <height>647</height>
+    <height>895</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -856,6 +856,9 @@
    <property name="shortcut">
     <string>F9</string>
    </property>
+   <property name="visible">
+    <bool>true</bool>
+   </property>
   </action>
   <action name="action_resume">
    <property name="icon">
@@ -867,6 +870,9 @@
    </property>
    <property name="shortcut">
     <string>F5</string>
+   </property>
+   <property name="visible">
+    <bool>true</bool>
    </property>
   </action>
   <action name="action_step">
@@ -880,6 +886,9 @@
    <property name="shortcut">
     <string>F11</string>
    </property>
+   <property name="visible">
+    <bool>true</bool>
+   </property>
   </action>
   <action name="action_step_procedure">
    <property name="icon">
@@ -892,6 +901,9 @@
    <property name="shortcut">
     <string>F10</string>
    </property>
+   <property name="visible">
+    <bool>true</bool>
+   </property>
   </action>
   <action name="action_step_parameters">
    <property name="icon">
@@ -903,6 +915,9 @@
    </property>
    <property name="shortcut">
     <string>Shift+F10</string>
+   </property>
+   <property name="visible">
+    <bool>true</bool>
    </property>
   </action>
   <action name="actionMake_exe">

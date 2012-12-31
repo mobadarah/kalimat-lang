@@ -46,8 +46,8 @@ struct Instruction
     Value *Arg;
     QString SymRef;
     int SymRefLabel;
-    QString True, False;
-    int fastTrue, fastFalse;
+     QString True, False;
+    int fastTrue , fastFalse;
     CallStyle callStyle;
     int extra;
 

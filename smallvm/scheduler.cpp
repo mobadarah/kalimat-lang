@@ -3,14 +3,21 @@
 #include "vm.h"
 #include "runtime/runwindow.h"
 
+#include <queue>
+using namespace std;
+#include <QApplication>
 Scheduler::Scheduler(VM *vm)
     :vm(vm)
 {
+    stopForGc = false;
+    releasedGcSemaphore = false;
+    runningNow = NULL;
 }
 
 void Scheduler::restartOwner()
 {
-    runWindow->EmitGuiSchedule();
+    //runWindow->EmitGuiSchedule();
+    qApp->processEvents(QEventLoop::AllEvents);
 }
 
 void Scheduler::attachProcess(Process *proc)
@@ -74,11 +81,22 @@ int Scheduler::activateElapsedTimers()
 
 bool Scheduler::schedule()
 {
-    // _isRunning should be true if we have have processes in the running queue or timerWaiting queue
 
+    if(stopForGc)
+    {
+        if(!releasedGcSemaphore)
+        {
+            releasedGcSemaphore = true;
+            vm->gcCanStart.release();
+        }
+        return false;
+    }
+
+    // _isRunning should be true if we have have processes in the running queue or timerWaiting queue
     int ntimer = activateElapsedTimers();
     _isRunning = ntimer;
 
+    runningNow = NULL;
     if(!running.empty())
     {
         _isRunning = 1; // (*).... we check the running queue and find it non-empty
@@ -88,7 +106,6 @@ bool Scheduler::schedule()
     if(!sleeping.empty())
         _isRunning = 1;
 
-    runningNow = NULL;
     return false;
 }
 
@@ -106,20 +123,26 @@ bool Scheduler::RunStep(bool singleInstruction, int maxtimeSclice)
 
     runningNow->RunTimeSlice(n, vm, this);
 
-    lock.lock();
-
-    if(runningNow->isFinished())
+    // We shall wait until a sleeping or timerWaiting process
+    // awakens before deleting it, since other parts of the
+    // VM still have business to do with that process
+    if(runningNow->isFinished() && runningNow->state == AwakeProcess)
     {
         // If it's finished then it doesn't need to be put back in any queues, doesn't
         // need to migrate to another scheduler, and should be completely removed
+
+        // setting runningNow to null is important because the GC looks in runningNow in
+        // addition to the various queues for root objects
         delete runningNow;
         runningNow = NULL;
     }
     else if(runningNow->wannaMigrateTo != NULL && runningNow->wannaMigrateTo != this)
     {
+        //vm->migrationToken.lock();
         Scheduler *temp = runningNow->wannaMigrateTo;
         runningNow->wannaMigrateTo = NULL;
         runningNow->migrateTo(temp);
+        //vm->migrationToken.unlock();
     }
     else
     {
@@ -137,13 +160,14 @@ bool Scheduler::RunStep(bool singleInstruction, int maxtimeSclice)
         // return it to the running queue
         if(runningNow->state == AwakeProcess)
         {
+            lock.lock();
             running.push_back(runningNow);
+            lock.unlock();
         }
 
     }
 
     runningNow = NULL;
-    lock.unlock();
 
     return true;
 }
@@ -156,10 +180,11 @@ void Scheduler::finishUpRunningProcess()
     }
 }
 
-QSet<QQueue<Process *> *> Scheduler::getProcesses()
+ProcessIterator *Scheduler::getProcesses()
 {
-    //return setOf(&running, &sleeping, &timerWaiting);
-    return QSet<QQueue<Process *> *>();
+    // Don't forget to delete at call site
+    // todo: consider chaching it for each GC cycle
+    return new SchedulerProcessIterator(*this);
 }
 
 Frame *Scheduler::launchProcess(Method *method)
@@ -206,7 +231,7 @@ void Scheduler::makeItWaitTimer(Process *proc, int ms)
 {
     proc->state = TimerWaitingProcess;
     proc->timeSlice = 0;
-    proc->timeToWake = clock() + ms * CLOCKS_PER_SEC / 1000;
+    proc->timeToWake = clock() + (clock_t) (((double) ms / 1000.0) * CLOCKS_PER_SEC);
     bool added = false;
     int posToInsertAt= 0;
 

@@ -12,6 +12,8 @@
 #include "parserengine.h"
 #include "../runtime_identifiers.h"
 
+#include "guicontrols.h" // for ButtonGroupForeignClass
+
 #include <QApplication>
 #include <QDialog>
 #include <QPushButton>
@@ -22,7 +24,10 @@
 #include <QScrollArea>
 #include <QGroupBox>
 #include <QVBoxLayout>
-
+#include <QListWidget>
+#include <QComboBox>
+#include <QRadioButton>
+#include <QButtonGroup>
 #include <QString>
 #include <QMap>
 #include <QPainter>
@@ -229,7 +234,6 @@ void DrawRectProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
 
     pen.setColor(oldcolor);
     p.setPen(pen);
-
 
     w->redrawWindow();
 }
@@ -1074,9 +1078,15 @@ void AddressOfProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
 {
     Value *v = popValue(stack, proc, w, vm);
     ffi_type *type;
-    kalimat_to_ffi_type(v->type, type, vm);
+    IClass *guessedType;
+    default_C_Type_Of(v->type, guessedType);
+    if(guessedType == NULL)
+    {
+        proc->signal(InternalError1, QString("Cannot take address of value of type: '%1'").arg(v->type->toString()));
+    }
+    kalimat_to_ffi_type(guessedType, type, vm);
     void *ptr = malloc(type->size);
-    kalimat_to_ffi_value(v->type, v, type, ptr, vm);
+    kalimat_to_ffi_value(v->type, v, type, ptr, proc, vm);
     //todo:
     stack.push(vm->GetAllocator().newRaw(ptr, new PointerClass(v->type)));
 }
@@ -1139,6 +1149,13 @@ Value *popValue(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
     verifyStackNotEmpty(stack, proc, vm);
     Value *v = stack.pop();
     return v;
+}
+
+Value *newGuiObject(void *ptr, IClass *type, VM *vm)
+{
+    IObject *obj = type->newValue(&vm->GetAllocator());
+    obj->setSlotValue("handle", vm->GetAllocator().newRaw(ptr, BuiltInTypes::ObjectType));
+    return vm->GetAllocator().newObject(obj, type);
 }
 
 QString popString(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
@@ -1352,6 +1369,14 @@ void GetProcAddressProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *
     stack.push(ret);
 }
 
+void TestMakeCArrayProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+{
+    int *a = new int[5];
+    for(int i=0; i<5; i++)
+        a[i] = 10 - i;
+    stack.push(vm->GetAllocator().newRaw(a, BuiltInTypes::c_ptr));
+}
+
 void InvokeForeignProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
 {
     void *funcPtr = popRaw(stack, proc, w, vm, BuiltInTypes::ExternalMethodType);
@@ -1385,7 +1410,7 @@ void InvokeForeignProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *v
         }
     }
 
-    Value *ret = CallForeign(funcPtr, argz, retType, kargTypes, guessArgTypes, vm);
+    Value *ret = CallForeign(funcPtr, argz, retType, kargTypes, guessArgTypes, proc, vm);
     if(ret)
         stack.push(ret);
     else
@@ -1471,6 +1496,499 @@ void MigrateBackFromGuiThreadProc(Stack<Value *> &stack, Process *proc, RunWindo
     //proc->migrateTo(&vm->mainScheduler);
     proc->wannaMigrateTo = &vm->mainScheduler;
     proc->timeSlice = 0;
+}
+
+void ImageRotatedProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+{
+    IClass *type;
+    QImage *handle = popGuiReceiver<QImage *>(stack, type, proc, w, vm);
+    double degrees = popDoubleOrCoercable(stack, proc, w, vm);
+
+    QTransform trans;
+    double width, height;
+    QImage *img2;
+
+    width = handle->width()/2;
+    height = handle->height() /2 ;
+
+    // negative because of 'Arabic' coordinate system
+    trans = trans.translate(width,height).rotate(-degrees).translate(-width,-height);
+    img2 = new QImage(handle->width(),handle->height(), handle->format());
+
+    QPainter p(img2);
+    QBrush brsh(handle->pixel(0,0));
+    p.setBrush(brsh);
+    p.fillRect(0,0,handle->width(), handle->height(), handle->pixel(0,0));
+    p.translate(width, height);
+    p.rotate(-degrees);
+    p.translate(-width, -height);
+    p.drawImage(0,0, *handle);
+
+    Value *ret = newGuiObject(img2, type, vm);
+    stack.push(ret);
+}
+
+void ImageScaledProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+{
+    IClass *type;
+    QImage *handle = popGuiReceiver<QImage *>(stack, type, proc, w, vm);
+    double s1= popDoubleOrCoercable(stack, proc, w, vm);
+    double s2= popDoubleOrCoercable(stack, proc, w, vm);
+
+    QTransform trans = trans.scale(s1, s2);
+    QImage *img2 = new QImage(handle->transformed(trans));
+
+    Value *ret = newGuiObject(img2, type, vm);
+    stack.push(ret);
+}
+
+void ImageDrawLineProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+{
+    IClass *type;
+    QImage *handle = popGuiReceiver<QImage *>(stack, type, proc, w, vm);
+
+    int x1 = popIntOrCoercable(stack, proc, w, vm);
+    int y1 = popIntOrCoercable(stack, proc, w, vm);
+    int x2 = popIntOrCoercable(stack, proc, w, vm);
+    int y2 = popIntOrCoercable(stack, proc, w, vm);
+
+    {
+        QPainter p(handle);
+        p.drawLine(x1,y1,x2,y2);
+    }
+}
+
+void ImageFlippedProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+{
+    IClass *type;
+    QImage *handle = popGuiReceiver<QImage *>(stack, type, proc, w, vm);
+    double s1 = popDoubleOrCoercable(stack, proc, w, vm);
+    double s2 = popDoubleOrCoercable(stack, proc, w, vm);
+
+    if(s1>0)
+        s1 = 1;
+    else if(s1<0)
+        s1 = -1;
+    if(s2>0)
+        s2 = 1;
+    else if(s2<0)
+        s2 = -1;
+
+    QTransform trans = trans.scale(s1, s2);
+    QImage *img2 = new QImage(handle->transformed(trans));
+
+    Value *ret = newGuiObject(img2, type, vm);
+    stack.push(ret);
+}
+
+void ImageCopiedProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+{
+    IClass *type;
+    QImage *handle = popGuiReceiver<QImage *>(stack, type, proc, w, vm);
+
+    QImage *img2 = new QImage(handle->copy());
+
+    Value *ret = newGuiObject(img2, type, vm);
+    stack.push(ret);
+}
+
+void ImageSetPixelColorProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+{
+    IClass *type;
+    QImage *handle = popGuiReceiver<QImage *>(stack, type, proc, w, vm);
+    int x = popIntOrCoercable(stack, proc, w, vm);
+    int y = popIntOrCoercable(stack, proc, w, vm);
+    int clr = popIntOrCoercable(stack, proc, w, vm);
+
+    handle->setPixel(x,y, clr);
+}
+
+void ImagePixelColorProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+{
+    IClass *type;
+    QImage *handle = popGuiReceiver<QImage *>(stack, type, proc, w, vm);
+    int x = popIntOrCoercable(stack, proc, w, vm);
+    int y = popIntOrCoercable(stack, proc, w, vm);
+    int clr = handle->pixel(x, y);
+
+    stack.push(vm->GetAllocator().newInt(clr));
+}
+
+void ImageWidthProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+{
+    IClass *type;
+    QImage *handle = popGuiReceiver<QImage *>(stack, type, proc, w, vm);
+
+    stack.push(vm->GetAllocator().newInt(handle->width()));
+}
+
+void ImageHeightProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+{
+    IClass *type;
+    QImage *handle = popGuiReceiver<QImage *>(stack, type, proc, w, vm);
+
+    stack.push(vm->GetAllocator().newInt(handle->height()));
+}
+
+void ImageDrawTextProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+{
+    IClass *type;
+    QImage *handle = popGuiReceiver<QImage *>(stack, type, proc, w, vm);
+    QString text = popString(stack, proc, w, vm);
+    int x = popIntOrCoercable(stack, proc, w, vm);
+    int y = popIntOrCoercable(stack, proc, w, vm);
+
+    QPainter p(handle);
+    p.setFont(QFont("Arial", 12));
+    p.drawText(x, y, text);
+}
+
+void ForeignWindowMaximizeProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+{
+    IClass *type;
+    QWidget *win = popGuiReceiver<QWidget *>(stack, type, proc, w, vm);
+
+    win->setWindowState(Qt::WindowMaximized);
+}
+
+void ForeignWindowMoveToProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+{
+    IClass *type;
+    QWidget *win = popGuiReceiver<QWidget *>(stack, type, proc, w, vm);
+    int x = popIntOrCoercable(stack, proc, w, vm);
+    int y = popIntOrCoercable(stack, proc, w, vm);
+
+    win->move(x, y);
+}
+
+void ForeignWindowAddProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+{
+    IClass *type;
+    QWidget *widget = popGuiReceiver<QWidget *>(stack, type, proc, w, vm);
+    QWidget *control = popGuiReceiver<QWidget *>(stack, type, proc, w, vm);
+
+    control->setParent(widget);
+    QFont f = control->font();
+    control->setFont(QFont(f.family(), f.pointSize()+3));
+    control->show();
+}
+
+void ForeignWindowSetSizeProc(Stack<Value *> &stack, Process *proc, RunWindow *rw, VM *vm)
+{
+    IClass *type;
+    QWidget *widget = popGuiReceiver<QWidget *>(stack, type, proc, rw, vm);
+    int w = popIntOrCoercable(stack, proc, rw, vm);
+    int h = popIntOrCoercable(stack, proc, rw, vm);
+
+    int wdiff = widget->width() - w;
+    for(int i=0; i<widget->children().count(); i++)
+    {
+        QWidget *c = dynamic_cast<QWidget *>(widget->children().at(i));
+        if(c)
+            c->move(c->x() - wdiff, c->y());
+    }
+
+    // make it so resizing make the righ side fixed, not
+    // left side
+    int left = widget->pos().x() + widget->width() - w;
+    int top = widget->pos().y();
+    widget->setFixedSize(w, h);
+    widget->move(left, top);
+}
+
+void ForeignWindowSetTitleProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+{
+    IClass *type;
+    QWidget *widget = popGuiReceiver<QWidget *>(stack, type, proc, w, vm);
+    QString t = popString(stack, proc, w, vm);
+
+    widget->setWindowTitle(t);
+}
+
+void ControlSetTextProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+{
+    IClass *type;
+    QWidget *widget = popGuiReceiver<QWidget *>(stack, type, proc, w, vm);
+    QString str = popString(stack, proc, w, vm);
+    widget->setWindowTitle(str);
+}
+
+void ControlSetSizeProc(Stack<Value *> &stack, Process *proc, RunWindow *rw, VM *vm)
+{
+    IClass *type;
+    QWidget *widget = popGuiReceiver<QWidget *>(stack, type, proc, rw, vm);
+    int w = popIntOrCoercable(stack, proc, rw, vm);
+    int h = popIntOrCoercable(stack, proc, rw, vm);
+
+    int originalx = widget->x() + widget->width();
+    widget->resize(w, h);
+
+    originalx -= widget->width();
+    widget->move(originalx, widget->y());
+}
+
+void ControlSetLocationProc(Stack<Value *> &stack, Process *proc, RunWindow *rw, VM *vm)
+{
+    IClass *type;
+    QWidget *widget = popGuiReceiver<QWidget *>(stack, type, proc, rw, vm);
+    int x = popIntOrCoercable(stack, proc, rw, vm);
+    int y = popIntOrCoercable(stack, proc, rw, vm);
+
+    rw->paintSurface->TX(x);
+    x -= widget->width();
+    widget->move(x, y);
+}
+
+void ButtonSetTextProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+{
+    IClass *type;
+    QPushButton *handle = popGuiReceiver<QPushButton *>(stack, type, proc, w, vm);
+    QString s = popString(stack, proc, w, vm);
+    handle->setText(s);
+}
+
+void ButtonTextProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+{
+    IClass *type;
+    QPushButton *handle = popGuiReceiver<QPushButton *>(stack, type, proc, w, vm);
+
+    stack.push(vm->GetAllocator().newString(handle->text()));
+}
+
+void ControlTextProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+{
+    IClass *type;
+    QWidget *widget = popGuiReceiver<QWidget *>(stack, type, proc, w, vm);
+    stack.push(vm->GetAllocator().newString(widget->windowTitle()));
+}
+
+void TextboxSetTextProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+{
+    IClass *type;
+    QTextEdit *handle = popGuiReceiver<QTextEdit *>(stack, type, proc, w, vm);
+    QString text = popString(stack, proc, w, vm);
+    handle->document()->setPlainText(text);
+}
+
+void TextboxTextProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+{
+    IClass *type;
+    QTextEdit *handle = popGuiReceiver<QTextEdit *>(stack, type, proc, w, vm);
+    stack.push(vm->GetAllocator().newString(handle->document()->toPlainText()));
+}
+
+void TextboxAppendTextProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+{
+    IClass *type;
+    QTextEdit *handle = popGuiReceiver<QTextEdit *>(stack, type, proc, w, vm);
+    QString text = popString(stack, proc, w, vm);
+    handle->append(text);
+}
+
+void LineEditSetTextProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+{
+    IClass *type;
+    QLineEdit *handle = popGuiReceiver<QLineEdit *>(stack, type, proc, w, vm);
+    QString text = popString(stack, proc, w, vm);
+    handle->setText(text);
+}
+
+void LineEditTextProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+{
+    IClass *type;
+    QLineEdit *handle = popGuiReceiver<QLineEdit *>(stack, type, proc, w, vm);
+    stack.push(vm->GetAllocator().newString(handle->text()));
+}
+
+void LineEditAppendTextProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+{
+    IClass *type;
+    QLineEdit *handle = popGuiReceiver<QLineEdit *>(stack, type, proc, w, vm);
+    QString text = popString(stack, proc, w, vm);
+    handle->setText(handle->text() + text);
+}
+
+void ListboxAddProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+{
+    IClass *type;
+    QListWidget *handle = popGuiReceiver<QListWidget *>(stack, type, proc, w, vm);
+    QString text = popString(stack, proc, w, vm);
+    handle->addItem(text);
+}
+
+void ListboxInsertItemProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+{
+    IClass *type;
+    QListWidget *handle = popGuiReceiver<QListWidget *>(stack, type, proc, w, vm);
+    QString text = popString(stack, proc, w, vm);
+    int index = popInt(stack, proc, w, vm);
+
+    handle->insertItem(index, text);
+}
+
+void ListboxGetItemProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+{
+    IClass *type;
+    QListWidget *handle = popGuiReceiver<QListWidget *>(stack, type, proc, w, vm);
+    int index = popInt(stack, proc, w, vm);
+
+    stack.push(vm->GetAllocator().newString(handle->item(index)->text()));
+}
+
+void ComboBoxSetTextProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+{
+    IClass *type;
+    QComboBox *handle = popGuiReceiver<QComboBox *>(stack, type, proc, w, vm);
+    QString text = popString(stack, proc, w, vm);
+    handle->setEditText(text);
+}
+
+void ComboBoxTextProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+{
+    IClass *type;
+    QComboBox *handle = popGuiReceiver<QComboBox *>(stack, type, proc, w, vm);
+    stack.push(vm->GetAllocator().newString(handle->currentText()));
+}
+
+void ComboBoxAddProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+{
+    IClass *type;
+    QComboBox *handle = popGuiReceiver<QComboBox *>(stack, type, proc, w, vm);
+    Value *v = popValue(stack, proc, w, vm);
+    handle->addItem(v->toString());
+}
+
+void ComboBoxInsertItemProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+{
+    IClass *type;
+    QComboBox *handle = popGuiReceiver<QComboBox *>(stack, type, proc, w, vm);
+    Value *v = popValue(stack, proc, w, vm);
+    int index = popInt(stack, proc, w, vm);
+
+    handle->insertItem(index, v->toString());
+}
+
+void ComboBoxGetItemProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+{
+    IClass *type;
+    QComboBox *handle = popGuiReceiver<QComboBox *>(stack, type, proc, w, vm);
+    int index = popInt(stack, proc, w, vm);
+    stack.push(vm->GetAllocator().newString(handle->itemText(index)));
+}
+
+void ComboBoxSetEditableProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+{
+    IClass *type;
+    QComboBox *handle = popGuiReceiver<QComboBox *>(stack, type, proc, w, vm);
+    bool editable = popBool(stack, proc, w, vm);
+    handle->setEditable(editable);
+}
+
+void LabelSetTextProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+{
+    IClass *type;
+    QLabel *handle = popGuiReceiver<QLabel *>(stack, type, proc, w, vm);
+    QString text = popString(stack, proc, w, vm);
+    handle->setText(text);
+}
+
+void LabelTextProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+{
+    IClass *type;
+    QLabel *handle = popGuiReceiver<QLabel *>(stack, type, proc, w, vm);
+    stack.push(vm->GetAllocator().newString(handle->text()));
+}
+
+void CheckboxSetTextProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+{
+    IClass *type;
+    QCheckBox *handle = popGuiReceiver<QCheckBox *>(stack, type, proc, w, vm);
+    QString text = popString(stack, proc, w, vm);
+    handle->setText(text);
+}
+
+void CheckboxTextProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+{
+    IClass *type;
+    QCheckBox *handle = popGuiReceiver<QCheckBox *>(stack, type, proc, w, vm);
+    stack.push(vm->GetAllocator().newString(handle->text()));
+}
+
+void CheckboxSetValueProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+{
+    IClass *type;
+    QCheckBox *handle = popGuiReceiver<QCheckBox *>(stack, type, proc, w, vm);
+    int value = popInt(stack, proc, w, vm);
+    handle->setCheckState((Qt::CheckState)value);
+}
+
+void CheckboxValueProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+{
+    IClass *type;
+    QCheckBox *handle = popGuiReceiver<QCheckBox *>(stack, type, proc, w, vm);
+    stack.push(vm->GetAllocator().newInt(handle->checkState()));
+}
+
+void RadioButtonSetTextProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+{
+    IClass *type;
+    QRadioButton *handle = popGuiReceiver<QRadioButton *>(stack, type, proc, w, vm);
+    QString text = popString(stack, proc, w, vm);
+    handle->setText(text);
+}
+
+void RadioButtonTextProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+{
+    IClass *type;
+    QRadioButton *handle = popGuiReceiver<QRadioButton *>(stack, type, proc, w, vm);
+    stack.push(vm->GetAllocator().newString(handle->text()));
+}
+
+void RadioButtonSetValueProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+{
+    IClass *type;
+    QRadioButton *handle = popGuiReceiver<QRadioButton *>(stack, type, proc, w, vm);
+    bool value = popBool(stack, proc, w, vm);
+    handle->setChecked(value);
+}
+
+void RadioButtonValueProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+{
+    IClass *type;
+    QRadioButton *handle = popGuiReceiver<QRadioButton *>(stack, type, proc, w, vm);
+    stack.push(vm->GetAllocator().newBool(handle->isChecked()));
+}
+
+void ButtonGroupAddProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+{
+    IClass *type, *type2;
+    QButtonGroup *handle = popGuiReceiver<QButtonGroup *>(stack, type, proc, w, vm);
+
+    verifyStackNotEmpty(stack, proc, vm);
+    Value *btn = stack.top();
+
+    QAbstractButton *button = popGuiReceiver<QAbstractButton *>(stack, type2, proc, w, vm);
+
+    if(!button)
+        throw VMError(InternalError);
+
+    button->setProperty("valueptr", QVariant::fromValue<void *>(btn));
+    int theId = ((ButtonGroupForeignClass *) type)->runningIdCount++;
+
+    handle->addButton(button, theId);
+    stack.push(vm->GetAllocator().newInt(theId));
+}
+
+void ButtonGroupGetButtonProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+{
+    IClass *type;
+    QButtonGroup *handle = popGuiReceiver<QButtonGroup *>(stack, type, proc, w, vm);
+    int theId = popInt(stack, proc, w, vm);
+
+    QAbstractButton *button = handle->button(theId);
+
+    Value *btnObj = (Value *) button->property("valueptr").value<void *>();
+    stack.push(btnObj);
 }
 
 void setupChildren(QGridLayout *layout,Value *v, Reference *ref, QString label, int row, VM *vm)

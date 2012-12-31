@@ -65,7 +65,6 @@ public:
         {
             _monitor.wakeAll();
         }
-
         return true;
     }
     bool push_front(Data data) { return EnqueueFront(data); }
@@ -122,6 +121,17 @@ public:
         return true;
     }
 
+    bool UnsafeDequeue(Data& value, unsigned long time = ULONG_MAX)
+    {
+        if(!_queue.empty())
+        {
+            value = _queue.front();
+            _queue.pop_front();
+            return true;
+        }
+        return false;
+    }
+
     bool TryDequeue(Data& value, unsigned long time = ULONG_MAX)
     {
         QMutexLocker locker(&_mutex);
@@ -141,6 +151,8 @@ public:
         _queue.pop_front();
         return true;
     }
+    typename std::deque<Data>::const_iterator begin() { return _queue.begin();}
+    typename std::deque<Data>::const_iterator end() { return _queue.end();}
 };
 
 #endif // BLOCKINGQUEUE_H

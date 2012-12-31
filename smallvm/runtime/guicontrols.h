@@ -43,7 +43,7 @@ class ImageForeignClass : public EasyForeignClass
     Allocator *allocator;
     RunWindow *rw;
 public:
-    ImageForeignClass(QString name, RunWindow *rw);
+    ImageForeignClass(QString name, RunWindow *rw, VM *vm);
     IObject *newValue(Allocator *allocator);
     Value *dispatch(Process *proc, int id, QVector<Value *>args);
 };
@@ -52,7 +52,7 @@ class WindowForeignClass : public EasyForeignClass
 {
     RunWindow *rw;
 public:
-    WindowForeignClass(QString name, RunWindow *rw);
+    WindowForeignClass(QString name, RunWindow *rw, VM *vm);
     IObject *newValue(Allocator *allocator);
     Value *dispatch(Process *proc, int id, QVector<Value *>args);
 };
@@ -76,7 +76,7 @@ protected:
     RunWindow *rw; // for TX
     Allocator *allocator;
 public:
-    ControlForeignClass(QString name, RunWindow *rw);
+    ControlForeignClass(QString name, RunWindow *rw, VM *vm);
     virtual IObject *newValue(Allocator *allocator);
     virtual Value *dispatch(Process *proc, int id, QVector<Value *>args);
 };
@@ -85,7 +85,7 @@ class ButtonForeignClass : public ControlForeignClass
 {
     Q_OBJECT
 public:
-    ButtonForeignClass(QString name, RunWindow *rw);
+    ButtonForeignClass(QString name, RunWindow *rw, VM *vm);
     IObject *newValue(Allocator *allocator);
     Value *dispatch(Process *proc, int id, QVector<Value *>args);
 public slots:
@@ -96,7 +96,7 @@ class TextboxForeignClass : public ControlForeignClass
 {
     Q_OBJECT
 public:
-    TextboxForeignClass(QString name, RunWindow *rw);
+    TextboxForeignClass(QString name, RunWindow *rw, VM *vm);
     IObject *newValue(Allocator *allocator);
     Value *dispatch(Process *proc, int id, QVector<Value *>args);
 public slots:
@@ -107,7 +107,7 @@ class LineEditForeignClass : public ControlForeignClass
 {
     Q_OBJECT
 public:
-    LineEditForeignClass(QString name, RunWindow *rw);
+    LineEditForeignClass(QString name, RunWindow *rw, VM *vm);
     IObject *newValue(Allocator *allocator);
     Value *dispatch(Process *proc, int id, QVector<Value *>args);
 public slots:
@@ -119,7 +119,7 @@ class ListboxForeignClass : public ControlForeignClass
 {
     Q_OBJECT
 public:
-    ListboxForeignClass(QString name, RunWindow *rw);
+    ListboxForeignClass(QString name, RunWindow *rw, VM *vm);
     IObject *newValue(Allocator *allocator);
     Value *dispatch(Process *proc, int id, QVector<Value *>args);
 public slots:
@@ -130,7 +130,7 @@ class ComboboxForeignClass : public ControlForeignClass
 {
     Q_OBJECT
 public:
-    ComboboxForeignClass(QString name, RunWindow *rw);
+    ComboboxForeignClass(QString name, RunWindow *rw, VM *vm);
     IObject *newValue(Allocator *allocator);
     Value *dispatch(Process *proc, int id, QVector<Value *>args);
 public slots:
@@ -142,7 +142,7 @@ class LabelForeignClass : public ControlForeignClass
 {
     Q_OBJECT
 public:
-    LabelForeignClass(QString name, RunWindow *rw);
+    LabelForeignClass(QString name, RunWindow *rw, VM *vm);
     IObject *newValue(Allocator *allocator);
     Value *dispatch(Process *proc, int id, QVector<Value *>args);
 };
@@ -151,7 +151,7 @@ class CheckboxForeignClass : public ControlForeignClass
 {
     Q_OBJECT
 public:
-    CheckboxForeignClass(QString name, RunWindow *rw);
+    CheckboxForeignClass(QString name, RunWindow *rw, VM *vm);
     IObject *newValue(Allocator *allocator);
     Value *dispatch(Process *proc, int id, QVector<Value *>args);
 public slots:
@@ -162,7 +162,7 @@ class RadioButtonForeignClass : public ControlForeignClass
 {
     Q_OBJECT
 public:
-    RadioButtonForeignClass(QString name, RunWindow *rw);
+    RadioButtonForeignClass(QString name, RunWindow *rw, VM *vm);
     IObject *newValue(Allocator *allocator);
     Value *dispatch(Process *proc, int id, QVector<Value *>args);
 public slots:
@@ -174,9 +174,10 @@ class ButtonGroupForeignClass : public QObject, public EasyForeignClass
     Q_OBJECT
     RunWindow *rw;
     Allocator *allocator;
+public:
     int runningIdCount;
 public:
-    ButtonGroupForeignClass(QString name, RunWindow *rw);
+    ButtonGroupForeignClass(QString name, RunWindow *rw, VM *vm);
     IObject *newValue(Allocator *allocator);
     Value *dispatch(Process *proc, int id, QVector<Value *>args);
 public slots:

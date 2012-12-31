@@ -15,7 +15,7 @@
 #include <QKeyEvent>
 
 class MainWindow;
-
+class LineNumberArea;
 bool isParen(QString s );
 bool isOpenParen(QString s );
 bool isClosedParen(QString s );
@@ -60,12 +60,14 @@ public:
     void eraseFromBeginOfLine(LineInfo li, int toErase);
     void deindentLine(int line, int by);
     void updateLineNumberAreaFont();
+
+    void toggleBreakpoint(int line);
     bool eventFilter(QObject *sender, QEvent *event);
 
     const QVector<Token> lexizeWithRecovery();
     Token getMatchingParen(int indexOfTok, Token &tok);
 private:
-    QWidget *lineNumberArea;
+    LineNumberArea *lineNumberArea;
 protected:
     void resizeEvent(QResizeEvent *event);
 signals:

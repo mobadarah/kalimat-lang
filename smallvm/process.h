@@ -17,6 +17,10 @@
     #include "vmerror.h"
 #endif
 
+#ifndef RUNTIMEIDENTIFIERS_H
+    #include "runtime_identifiers.h"
+#endif
+
 #include <QStack>
 #include <QVector>
 #include <QMap>
@@ -126,8 +130,12 @@ public:
 public:
     const Instruction &getCurrentInstruction();
     void RunTimeSlice(int slice, VM *vm, Scheduler *caller);
+    void RunUntilReturn();
     void RunSingleInstruction();
     void migrateTo(Scheduler *scheduler);
+private:
+    void startMigrationToGui();
+    void migrateBackFromGui();
 public:
     void signal(VMErrorType toSignal);
     void signal(VMErrorType toSignal, QString arg0);
@@ -210,7 +218,7 @@ public:
     Value *_div(Value *, Value *);
     void Pop_Md_Arr_and_indexes(MultiDimensionalArray<Value *> *&theArray, QVector<int> &indexes);
 
-    void BuiltInArithmeticOp(const QString &opName, int (*intFunc)(int,int),
+    inline void BuiltInArithmeticOp(RId::RuntimeId opName, int (*intFunc)(int,int),
                              long (*longFunc)(long, long),
                              double (*doubleFunc)(double,double));
     void BuiltInComparisonOp(bool  (*intFunc)(int,int),
@@ -241,6 +249,8 @@ private:
     }
 
     int popIntOrCoercedDouble();
+    inline int popInt();
+    inline bool popBool();
     double popDoubleOrCoercedInt();
     IMethod *popMethod();
     VArray *popArray();

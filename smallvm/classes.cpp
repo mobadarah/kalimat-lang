@@ -125,3 +125,92 @@ QString PointerClass::toString()
 {
     return getName();
 }
+
+FunctionClass::FunctionClass(IClass *retType, QVector<IClass *> argTypes)
+    :retType(retType),
+      argTypes(argTypes)
+{
+}
+
+bool FunctionClass::hasSlot(QString name)
+{
+    return false;
+}
+
+QList<QString> FunctionClass::getSlotNames()
+{
+    return QList<QString>();
+}
+
+Value *FunctionClass::getSlotValue(QString name)
+{
+    return NULL;
+}
+
+void FunctionClass::setSlotValue(QString name, Value *val)
+{
+
+}
+
+QString FunctionClass::getName()
+{
+    QString kind = retType? _ws(L"دالة"): _ws(L"إجراء");
+    QStringList args;
+    for(int i=0; i<argTypes.count(); ++i)
+    {
+        args.append(argTypes[i]->getName());
+    }
+
+    return QString("%1(%2) %3")
+            .arg(kind)
+            .arg(args.join(", "))
+            .arg(retType? retType->getName(): "");
+}
+
+bool FunctionClass::hasField(QString name)
+{
+    return false;
+}
+
+IClass *FunctionClass::baseClass()
+{
+    return BuiltInTypes::ObjectType;
+}
+
+bool FunctionClass::subclassOf(IClass *c)
+{
+    // We assume "Function" is invariant
+    // todo: revise this decision
+    if(c == BuiltInTypes::ObjectType)
+        return true;
+    FunctionClass *f2 = dynamic_cast<FunctionClass*>(c);
+    if(!f2)
+        return false;
+
+    return f2 == this;
+}
+
+IMethod *FunctionClass::lookupMethod(QString name)
+{
+    return baseClass()->lookupMethod(name);
+}
+
+IObject *FunctionClass::newValue(Allocator *allocator)
+{
+    throw VMError(InternalError);
+}
+
+bool FunctionClass::getFieldAttribute(QString attr, Value *&ret, Allocator *allocator)
+{
+    return false;
+}
+
+QVector<PropertyDesc> FunctionClass::getProperties()
+{
+    return QVector<PropertyDesc>();
+}
+
+QString FunctionClass::toString()
+{
+    return getName();
+}

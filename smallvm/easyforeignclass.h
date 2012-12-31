@@ -25,6 +25,7 @@ public:
     int Arity();
 };
 
+class VM;
 class EasyForeignClass : public ForeignClass
 {
 protected:
@@ -32,8 +33,14 @@ protected:
     QSet<QString> fields;
     QMap<QString, int> methodIds;
     QMap<QString, int> methodArities;
+    QMap<QString, IMethod *> vmMethods;
+    VM *vm;
 public:
+    EasyForeignClass(QString className, VM *vm);
     EasyForeignClass(QString className);
+
+    void attachVmMethod(QString methodName);
+    void attachVmMethod(QString className, QString methodName);
     virtual Value *dispatch(Process *proc, int id, QVector<Value *>args) = 0;
     virtual IObject *newValue(Allocator *allocator) = 0;
     virtual bool getFieldAttribute(QString attr, Value *&ret, Allocator *allocator) {return false;}

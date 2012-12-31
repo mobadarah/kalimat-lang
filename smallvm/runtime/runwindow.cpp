@@ -67,8 +67,10 @@ void RunWindow::setup(QString pathOfProgramsFile, VMClient *client)
 void RunWindow::closeEvent(QCloseEvent *ev)
 {
     suspend();
+    /*
     if(vm != NULL)
         vm->gc();
+    */
     client->programStopped(this);
     if(parentWidget() == NULL)
     {
@@ -88,7 +90,7 @@ RunWindow::~RunWindow()
     delete ui;
     if(vm != NULL)
     {
-        vm->gc();
+        // vm->gc();
         delete vm;
     }
     delete readMethod;
@@ -222,6 +224,10 @@ void RunWindow::Init(QString program, QMap<QString, QString> stringConstants, QS
         vm->Register("migrate_to_gui_thread", new WindowProxyMethod(this, vm, MigrateToGuiThreadProc));
         vm->Register("migrate_back_from_gui_thread", new WindowProxyMethod(this, vm, MigrateBackFromGuiThreadProc));
 
+        vm->Register("test_make_c_array", new WindowProxyMethod(this, vm, TestMakeCArrayProc));
+
+        RegisterGuiControls(vm);
+
         for(int i=0; i<stringConstants.keys().count(); i++)
         {
 
@@ -249,41 +255,47 @@ void RunWindow::Init(QString program, QMap<QString, QString> stringConstants, QS
             BuiltInTypes::SpriteType,
             BuiltInTypes::WindowType,
             BuiltInTypes::NullType,
-            BuiltInTypes::c_int,
+            BuiltInTypes::LambdaType,
 
+            BuiltInTypes::c_int,
             BuiltInTypes::c_long,
             BuiltInTypes::c_float,
             BuiltInTypes::c_double,
-            BuiltInTypes::c_char,
 
+            BuiltInTypes::c_char,
             BuiltInTypes::c_asciiz,
             BuiltInTypes::c_wstr,
+            BuiltInTypes::c_void,
+
             BuiltInTypes::c_ptr
 
                              };
         // todo: handle built-in file type
-        const int numBuiltIns = 23;
+        const int numBuiltIns = 25;
         for(int i=0; i<numBuiltIns; i++)
         {
             vm->RegisterType(builtIns[i]->getName(), builtIns[i]);
         }
-        vm->RegisterType("ForeignWindow", new WindowForeignClass(VMId::get(RId::ForeignWindow), this));
-        vm->RegisterType(VMId::get(RId::Button), new ButtonForeignClass (VMId::get(RId::Button), this));
-        vm->RegisterType(VMId::get(RId::TextBox), new TextboxForeignClass(VMId::get(RId::TextBox), this));
-        vm->RegisterType(VMId::get(RId::TextLine), new LineEditForeignClass(VMId::get(RId::TextLine), this));
-        vm->RegisterType(VMId::get(RId::ListBox), new ListboxForeignClass(VMId::get(RId::ListBox), this));
-        vm->RegisterType(VMId::get(RId::Label), new LabelForeignClass(VMId::get(RId::Label), this));
-        vm->RegisterType(VMId::get(RId::CheckBox), new CheckboxForeignClass(VMId::get(RId::CheckBox), this));
-        vm->RegisterType(VMId::get(RId::RadioButton), new RadioButtonForeignClass(VMId::get(RId::RadioButton), this));
-        vm->RegisterType(VMId::get(RId::ButtonGroup), new ButtonGroupForeignClass(VMId::get(RId::ButtonGroup), this));
-        vm->RegisterType(VMId::get(RId::ComboBox), new ComboboxForeignClass(VMId::get(RId::ComboBox), this));
-        vm->RegisterType(VMId::get(RId::Image), new ImageForeignClass(VMId::get(RId::Image), this));
-        vm->RegisterType(VMId::get(RId::ParseResultClass), new ParseResultClass(VMId::get(RId::ParseResultClass)));
-        vm->RegisterType(VMId::get(RId::Parser), new ParserClass(VMId::get(RId::Parser), this, dynamic_cast<ParseResultClass *>(vm->GetType(VMId::get(RId::ParseResultClass))->unboxClass())));
-        vm->RegisterType(VMId::get(RId::ActivationRecord), BuiltInTypes::ActivationFrameType);
-        ((FrameClass *) BuiltInTypes::ActivationFrameType)->allocator = &vm->GetAllocator();
 
         InitVMPrelude(vm);
+
+        vm->RegisterType("ForeignWindow", new WindowForeignClass(VMId::get(RId::ForeignWindow), this, vm));
+        vm->RegisterType(VMId::get(RId::Button), new ButtonForeignClass (VMId::get(RId::Button), this, vm));
+        vm->RegisterType(VMId::get(RId::TextBox), new TextboxForeignClass(VMId::get(RId::TextBox), this, vm));
+        vm->RegisterType(VMId::get(RId::TextLine), new LineEditForeignClass(VMId::get(RId::TextLine), this, vm));
+        vm->RegisterType(VMId::get(RId::ListBox), new ListboxForeignClass(VMId::get(RId::ListBox), this, vm));
+        vm->RegisterType(VMId::get(RId::Label), new LabelForeignClass(VMId::get(RId::Label), this, vm));
+        vm->RegisterType(VMId::get(RId::CheckBox), new CheckboxForeignClass(VMId::get(RId::CheckBox), this, vm));
+        vm->RegisterType(VMId::get(RId::RadioButton), new RadioButtonForeignClass(VMId::get(RId::RadioButton), this, vm));
+        vm->RegisterType(VMId::get(RId::ButtonGroup), new ButtonGroupForeignClass(VMId::get(RId::ButtonGroup), this, vm));
+        vm->RegisterType(VMId::get(RId::ComboBox), new ComboboxForeignClass(VMId::get(RId::ComboBox), this, vm));
+        vm->RegisterType(VMId::get(RId::Image), new ImageForeignClass(VMId::get(RId::Image), this, vm));
+        vm->RegisterType(VMId::get(RId::ParseResultClass), new ParseResultClass(VMId::get(RId::ParseResultClass)));
+        vm->RegisterType(VMId::get(RId::Parser), new ParserClass(VMId::get(RId::Parser), this, dynamic_cast<ParseResultClass *>(vm->GetType(VMId::get(RId::ParseResultClass))->unboxClass())));
+
+        BuiltInTypes::ActivationFrameType = new FrameClass(VMId::get(RId::ActivationRecord), vm);
+        vm->RegisterType(VMId::get(RId::ActivationRecord), BuiltInTypes::ActivationFrameType);
+        ((FrameClass *) BuiltInTypes::ActivationFrameType)->allocator = &vm->GetAllocator();
 
         vm->Load(program);
         for(QSet<Breakpoint>::const_iterator i=breakPoints.begin(); i!=breakPoints.end(); ++i)
@@ -312,6 +324,82 @@ void RunWindow::Init(QString program, QMap<QString, QString> stringConstants, QS
     }
 }
 
+void RunWindow::RegisterGuiControls(VM *vm)
+{
+    // Images
+    vm->Register("image_rotated", new WindowProxyMethod(this, vm, ImageRotatedProc));
+    vm->Register("image_scaled", new WindowProxyMethod(this, vm, ImageScaledProc));
+    vm->Register("image_drawline", new WindowProxyMethod(this, vm, ImageDrawLineProc));
+    vm->Register("image_flipped", new WindowProxyMethod(this, vm, ImageFlippedProc));
+    vm->Register("image_copied", new WindowProxyMethod(this, vm, ImageCopiedProc));
+    vm->Register("image_setpixelcolor", new WindowProxyMethod(this, vm, ImageSetPixelColorProc));
+    vm->Register("image_pixelcolor", new WindowProxyMethod(this, vm, ImagePixelColorProc));
+    vm->Register("image_width", new WindowProxyMethod(this, vm, ImageWidthProc));
+    vm->Register("image_height", new WindowProxyMethod(this, vm, ImageHeightProc));
+    vm->Register("image_drawtext", new WindowProxyMethod(this, vm, ImageDrawTextProc));
+
+    // Windows
+    vm->Register("foreignwindow_maximize", new WindowProxyMethod(this, vm, ForeignWindowMaximizeProc));
+    vm->Register("foreignwindow_moveto", new WindowProxyMethod(this, vm, ForeignWindowMoveToProc));
+    vm->Register("foreignwindow_add", new WindowProxyMethod(this, vm, ForeignWindowAddProc));
+    vm->Register("foreignwindow_setsize", new WindowProxyMethod(this, vm, ForeignWindowSetSizeProc));
+    vm->Register("foreignwindow_settitle", new WindowProxyMethod(this, vm, ForeignWindowSetTitleProc));
+
+    // Controls
+    vm->Register("control_settext", new WindowProxyMethod(this, vm, ControlSetTextProc));
+    vm->Register("control_setsize", new WindowProxyMethod(this, vm, ControlSetSizeProc));
+    vm->Register("control_setlocation", new WindowProxyMethod(this, vm, ControlSetLocationProc));
+    vm->Register("control_text", new WindowProxyMethod(this, vm, ControlTextProc));
+
+    // Buttons
+    vm->Register("button_settext", new WindowProxyMethod(this, vm, ButtonSetTextProc));
+    vm->Register("button_text", new WindowProxyMethod(this, vm, ButtonTextProc));
+
+    // TextBox
+    vm->Register("textbox_settext", new WindowProxyMethod(this, vm, TextboxSetTextProc));
+    vm->Register("textbox_text", new WindowProxyMethod(this, vm, TextboxTextProc));
+    vm->Register("textbox_appendtext", new WindowProxyMethod(this, vm, TextboxAppendTextProc));
+
+    // LineEdit
+    vm->Register("lineedit_settext", new WindowProxyMethod(this, vm, LineEditSetTextProc));
+    vm->Register("lineedit_text", new WindowProxyMethod(this, vm, LineEditTextProc));
+    vm->Register("lineedit_appendtext", new WindowProxyMethod(this, vm, LineEditAppendTextProc));
+
+    // ListBox
+    vm->Register("listbox_add", new WindowProxyMethod(this, vm, ListboxAddProc));
+    vm->Register("listbox_insertitem", new WindowProxyMethod(this, vm, ListboxInsertItemProc));
+    vm->Register("listbox_getitem", new WindowProxyMethod(this, vm, ListboxGetItemProc));
+
+    // Combo box
+    vm->Register("combobox_settext", new WindowProxyMethod(this, vm, ComboBoxSetTextProc));
+    vm->Register("combobox_text", new WindowProxyMethod(this, vm, ComboBoxTextProc));
+    vm->Register("combobox_add", new WindowProxyMethod(this, vm, ComboBoxAddProc));
+    vm->Register("combobox_insertitem", new WindowProxyMethod(this, vm, ComboBoxInsertItemProc));
+    vm->Register("combobox_getitem", new WindowProxyMethod(this, vm, ComboBoxGetItemProc));
+    vm->Register("combobox_seteditable", new WindowProxyMethod(this, vm, ComboBoxSetEditableProc));
+
+    // Labels
+    vm->Register("label_settext", new WindowProxyMethod(this, vm, LabelSetTextProc));
+    vm->Register("label_text", new WindowProxyMethod(this, vm, LabelTextProc));
+
+    // Check box
+    vm->Register("checkbox_settext", new WindowProxyMethod(this, vm, CheckboxSetTextProc));
+    vm->Register("checkbox_text", new WindowProxyMethod(this, vm, CheckboxTextProc));
+    vm->Register("checkbox_setvalue", new WindowProxyMethod(this, vm, CheckboxSetValueProc));
+    vm->Register("checkbox_value", new WindowProxyMethod(this, vm, CheckboxValueProc));
+
+    // Radio button
+    vm->Register("radiobutton_settext", new WindowProxyMethod(this, vm, RadioButtonSetTextProc));
+    vm->Register("radiobutton_text", new WindowProxyMethod(this, vm, RadioButtonTextProc));
+    vm->Register("radiobutton_setvalue", new WindowProxyMethod(this, vm, RadioButtonSetValueProc));
+    vm->Register("radiobutton_value", new WindowProxyMethod(this, vm, RadioButtonValueProc));
+
+    // Button group
+    vm->Register("buttongroup_add", new WindowProxyMethod(this, vm, ButtonGroupAddProc));
+    vm->Register("buttongroup_getbutton", new WindowProxyMethod(this, vm, ButtonGroupGetButtonProc));
+
+}
+
 void RunWindow::setBreakpoint(Breakpoint b, const DebugInfo &debugInfo)
 {
     CodeDocument *doc = b.doc;
@@ -335,6 +423,7 @@ void RunWindow::InitVMPrelude(VM *vm)
     vm->Load(prelude);
 }
 
+/*
 void RunWindow::singleStep(Process *proc)
 {
     int pos,  len, oldPos = -1, oldLen = -1;
@@ -345,9 +434,9 @@ void RunWindow::singleStep(Process *proc)
             bool visualize = client->isWonderfulMonitorEnabled();
 
             if(visualize)
-                client->markCurrentInstruction(vm, proc, pos, len);
+                client->markCurrentInstruction(vm, proc, &pos, &len);
 
-            proc->RunSingleInstruction();
+            vm->guiScheduler.RunStep(true);
             redrawWindow();
 
             if(visualize
@@ -371,7 +460,7 @@ void RunWindow::singleStep(Process *proc)
         this->close();
     }
 }
-
+*/
 void RunWindow::EmitGuiSchedule()
 {
     emit guiSchedule(new GUISchedulerEvent);
@@ -410,19 +499,64 @@ void RunWindow::RunGUIScheduler()
     }
 }
 
+void RunWindow::timerEvent(QTimerEvent *)
+{
+    if(state == rwNormal || state ==rwTextInput)
+    {
+        vm->guiScheduler.waitRunningOnce(30);
+        if(vm->guiScheduler.RunStep())
+        {
+            redrawWindow();
+        }
+    }
+    else
+    {
+        killTimer(timerID);
+    }
+}
+
 void RunWindow::Run()
 {
-    // int pos,  len, oldPos = -1, oldLen = -1;
     try
     {
+        vm->vmThread->client = client;
+        vm->destroyTheWorldFlag = false;
+        vm->destroyer = NULL;
         vm->vmThread->start();
-
+        //timerID = startTimer(0);
+         //int x = 0;
         //*
+          int pos,  len, oldPos = -1, oldLen = -1;
+
           while((state == rwNormal || state ==rwTextInput))
           {
               //vm->guiScheduler.waitRunning(100);
-              vm->guiScheduler.RunStep();
+              if(vm->destroyTheWorldFlag)
+              {
+                  if(vm->destroyer!=&vm->guiScheduler)
+                    vm->worldDestruction.release();
+                  break;
+              }
+
+              bool visualize = client->isWonderfulMonitorEnabled();
+              if(visualize)
+                  vm->guiScheduler.RunStep(true);
+              else
+                  vm->guiScheduler.RunStep(70);
+
               redrawWindow();
+              if(visualize && vm->getMainProcess() && vm->getMainProcess()->state == AwakeProcess)
+              {
+                  client->markCurrentInstruction(vm, vm->getMainProcess(), &pos, &len);
+                  if((oldPos != pos ) && (oldLen != len))
+                  {
+                      QTime dieTime = QTime::currentTime().addMSecs(client->wonderfulMonitorDelay());
+                      while( QTime::currentTime() < dieTime )
+                          QCoreApplication::processEvents(QEventLoop::AllEvents, 30);
+                  }
+              }
+              oldPos = pos;
+              oldLen = len;
               qApp->processEvents(QEventLoop::AllEvents);
           }
           update();
@@ -853,5 +987,5 @@ QString RunWindow::translate_error(VMError err)
 
 void RunWindow::on_actionGC_triggered()
 {
-    vm->gc();
+    // vm->gc();
 }

@@ -46,6 +46,17 @@ public:
     Scheduler mainScheduler;
     Scheduler guiScheduler;
     VMRunthread *vmThread;
+
+    // If two threads try to migrate processes to each other at the same time
+    // we would have a deadlock since each process locks itself, then calls migrateTo()
+    // which locks the other.
+    // Therefore we will use a global mutext to ensure only one thread is migrating
+    // a process of theirs at a time
+    bool traceInstructions;
+    QSemaphore gcCanStart;
+    QSemaphore worldDestruction;
+    bool destroyTheWorldFlag;
+    Scheduler *destroyer;
 private:
 
     // The allocator must be declared after the 'constantPool', 'stack', and 'mainScheduler'
@@ -64,6 +75,7 @@ private:
     // Map Method name -> offset -> instruction
     // This will store the original instruction before we replace it with a 'break'
     QMap<QString, QMap<int, Instruction> > breakPoints;
+    QMap<QString, QMap<int, bool> > _isBreakpointOneShot;
     Debugger *debugger;
     Process *_mainProcess;
 public:
@@ -83,10 +95,13 @@ public:
     Value *GetGlobal(QString symRef);
 
     Value *GetType(QString symref);
+    IMethod *GetMethod(QString symRef);
+    IClass *parseTypeId(QString typeId, int &pos);
 
     void ActivateEvent(QString evName, QVector<Value *> args);
 
     Allocator &GetAllocator();
+    inline Process *getMainProcess() { return _mainProcess; }
     void gc();
 
     Frame *launchProcess(Method *method);
@@ -96,8 +111,9 @@ public:
     bool hasRegisteredEventHandler(QString evName);
     void setDebugger(Debugger *);
     void clearAllBreakPoints();
-    void setBreakPoint(QString methodName, int offset);
+    void setBreakPoint(QString methodName, int offset, bool oneShot=false);
     void clearBreakPoint(QString methodName, int offset);
+    bool isBreakpointOneShot(QString methodName, int offset);
 
     // returns true if the process is in a valid running position
     bool getCodePos(Process *proc, QString &method, int &offset, Frame *&frame);
@@ -129,6 +145,7 @@ private:
 public:
     void stopTheWorld();
     void startTheWorld();
+    void destroyTheWorld(Scheduler *owner);
 };
 
 #endif // VM_H

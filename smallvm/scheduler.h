@@ -7,7 +7,8 @@
 #include <QSemaphore>
 
 #include "blockingqueue.h"
-
+#include "processiterator.h"
+#include <deque>
 /*
     A scheduler runss processes. Each scheduler is associated with a thread which usually activates it by
     calling various methods. It has two primary methods:
@@ -34,20 +35,21 @@ class Process;
 class VM;
 class Frame;
 class Method;
-
+class VMClient;
 class RunWindow;
 class Scheduler
 {
     BlockingQueue<Process *> running;
     QQueue<Process *> sleeping;
     QQueue<Process *> timerWaiting;
-
-     int _isRunning;
+    int _isRunning;
 public:
     Process *runningNow;
     VM *vm;
     QMutex lock;
     RunWindow *runWindow;
+    bool stopForGc;
+    bool releasedGcSemaphore;
 public:
     Scheduler(VM *vm);
     void restartOwner();
@@ -62,7 +64,7 @@ public:
     bool RunStep(bool singleInstruction=false, int maxtimeSclice=30);
     void finishUpRunningProcess();
 
-    QSet<QQueue<Process *> *> getProcesses();
+    ProcessIterator *getProcesses();
 
     Frame *launchProcess(Method *method);
     Frame *launchProcess(Method *method, Process *&proc);
@@ -73,6 +75,68 @@ public:
     bool hasInterrupts();
     bool isDone();
     bool isRunning();
+
+    friend class SchedulerProcessIterator;
+};
+
+class SchedulerProcessIterator : public ProcessIterator
+{
+    int state; // 0-> running, 1 -> sleeping, 2-> timerWaiting
+    Scheduler &sched;
+    std::deque<Process *>::const_iterator runIter;
+    QQueue<Process *>::const_iterator otherIter;
+public:
+    SchedulerProcessIterator(Scheduler &scheduler)
+        :sched(scheduler)
+    {
+        state = 0;
+        runIter = sched.running.begin();
+    }
+    bool hasMoreProcesses()
+    {
+        if(state == 0)
+        {
+            if(runIter != sched.running.end())
+                return true;
+            else
+            {
+                state = 1;
+                otherIter = sched.sleeping.begin();
+                return hasMoreProcesses();
+            }
+        }
+        else if(state == 1)
+        {
+            if(otherIter != sched.sleeping.end())
+                return true;
+            else
+            {
+                state = 2;
+                otherIter = sched.timerWaiting.begin();
+                return hasMoreProcesses();
+            }
+        }
+        else
+        {
+            return otherIter != sched.timerWaiting.end();
+        }
+    }
+    Process *getProcess()
+    {
+        Process *temp;
+        if(state == 0)
+        {
+            temp = *runIter;
+            ++runIter;
+            return temp;
+        }
+        else
+        {
+            temp = *otherIter;
+            ++otherIter;
+            return temp;
+        }
+    }
 };
 
 #endif // SCHEDULER_H

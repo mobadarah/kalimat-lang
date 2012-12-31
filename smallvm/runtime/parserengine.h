@@ -52,6 +52,17 @@ struct ParseResult
 
     }
     ParseResult() {}
+    ParseResult(const ParseResult &other)
+        :pos(other.pos), v(other.v)
+    {
+
+    }
+    ParseResult &operator=(const ParseResult &other)
+    {
+        pos = other.pos;
+        v = other.v;
+        return *this;
+    }
 };
 
 struct ParserObj : public Object

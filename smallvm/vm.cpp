@@ -23,7 +23,7 @@ Translation<ArgErr::ArgError> VM::argumentErrors(":/runlib_errors.txt");
 VM::VM()
     :mainScheduler(this),
       guiScheduler(this),
-     allocator(&constantPool, setOf(&mainScheduler))
+     allocator(&constantPool, setOf(&mainScheduler, &guiScheduler), this)
 {
     qRegisterMetaType<VMError>("VMError");
 }
@@ -45,6 +45,8 @@ void VM::Init()
 
     startTheWorld();
     debugger = NULL;
+    traceInstructions = false;
+    destroyTheWorldFlag = false;
 }
 
 Frame *VM::launchProcess(Method *method)
@@ -96,7 +98,7 @@ void VM::assert(Process *proc, bool cond, VMErrorType toSignal, QString arg0, QS
 
 void VM::signalWithStack(Process *proc, VMError err)
 {
-    stopTheWorld();
+    // stopTheWorld();
     // todo: why this condition??
     //if(!running.empty())
     //    err.callStack = proc->stack;
@@ -107,7 +109,7 @@ void VM::signalWithStack(Process *proc, VMError err)
 
 void VM::signal(Process *proc, VMErrorType err)
 {
-    stopTheWorld();
+    // stopTheWorld();
     if(proc)
         _lastError = VMError(err, proc, proc->owner, proc->stack);
     else
@@ -118,7 +120,7 @@ void VM::signal(Process *proc, VMErrorType err)
 
 void VM::signal(Process *proc, VMErrorType err, QString arg0)
 {
-    stopTheWorld();
+    // stopTheWorld();
     if(proc)
         _lastError = VMError(err, proc, proc->owner, proc->stack).arg(arg0);
     else
@@ -128,7 +130,7 @@ void VM::signal(Process *proc, VMErrorType err, QString arg0)
 
 void VM::signal(Process *proc, VMErrorType err, QString arg0, QString arg1)
 {
-    stopTheWorld();
+    // stopTheWorld();
     if(proc)
         _lastError = VMError(err, proc, proc->owner, proc->stack).arg(arg0).arg(arg1);
     else
@@ -138,7 +140,7 @@ void VM::signal(Process *proc, VMErrorType err, QString arg0, QString arg1)
 
 void VM::signal(Process *proc, VMErrorType err, QString arg0, QString arg1, QString arg2)
 {
-    stopTheWorld();
+    // stopTheWorld();
     if(proc)
         _lastError = VMError(err, proc, proc->owner, proc->stack).arg(arg0).arg(arg1).arg(arg2);
     else
@@ -187,7 +189,7 @@ void VM::clearAllBreakPoints()
     breakPoints.clear();
 }
 
-void VM::setBreakPoint(QString methodName, int offset)
+void VM::setBreakPoint(QString methodName, int offset, bool oneShot)
 {
     /*
       The method in which we want to break may not exist in the VM image
@@ -205,6 +207,7 @@ void VM::setBreakPoint(QString methodName, int offset)
         return;
     Instruction newI = method->Get(offset);
     breakPoints[methodName][offset] = newI;
+    _isBreakpointOneShot[methodName][offset] = oneShot;
 
     newI.opcode = Break;
     method->Set(offset, newI);
@@ -215,6 +218,11 @@ void VM::clearBreakPoint(QString methodName, int offset)
     int methodLabel = constantPoolLabeller.labelOf(methodName);
     Method *method = (Method*) constantPool[methodLabel]->v.objVal;
     method->Set(offset, breakPoints[methodName][offset]);
+}
+
+bool VM::isBreakpointOneShot(QString methodName, int offset)
+{
+    return _isBreakpointOneShot[methodName][offset];
 }
 
 bool VM::getCodePos(Process *proc, QString &method, int &offset, Frame *&frame)
@@ -279,39 +287,118 @@ Value *VM::GetGlobal(QString symRef)
     return globalFrame().value(symRef);
 }
 
+#define MATCH(a) if(typeId[pos] == a) \
+{    pos++; } \
+else \
+{ signal(NULL, InternalError1, "Cannot parse type id");}
+
+IClass *VM::parseTypeId(QString typeId, int &pos)
+{
+        if(typeId[pos] == '*')
+        {
+            pos++;
+            IClass *pointee= parseTypeId(typeId, pos);
+            return new PointerClass(pointee);
+        }
+        else if(typeId[pos] == '^')
+        {
+            QVector<IClass *> args;
+            IClass *ret = NULL;
+            MATCH('^');
+            MATCH('(');
+            if(typeId[pos] == ')')
+            {
+                MATCH(')');
+            }
+            else
+            {
+                IClass *arg = parseTypeId(typeId, pos);
+                args.append(arg);
+                while(typeId[pos] == ',')
+                {
+                    MATCH(',');
+                    arg = parseTypeId(typeId, pos);
+                    args.append(arg);
+                }
+                MATCH(')');
+            }
+            if(typeId[pos] == '-')
+            {
+                MATCH('-');
+                MATCH('>');
+                ret = parseTypeId(typeId, pos);
+            }
+            else
+            {
+                ret = BuiltInTypes::c_void;
+            }
+
+            return new FunctionClass(ret, args);
+        }
+        else
+        {
+            // It's a normal Id
+            QString id = "";
+            while(pos < typeId.length()
+                  && !QString(")(,->*^").contains(typeId[pos]))
+            {
+                id+= typeId.mid(pos++, 1);
+            }
+            int vmTypeIdLabel = constantPoolLabeller.labelOf(id);
+            if(!constantPool.contains(vmTypeIdLabel))
+                signal(NULL, InternalError1, QString("VM::GetType Cannot find type:%1").arg(id));
+            Value *v = constantPool[vmTypeIdLabel];
+            if(!(v->type == BuiltInTypes::ClassType))
+                signal(NULL, InternalError1, QString("VM::GetType: Constant pool entry '%1' not a type").arg(id));
+            return v->unboxClass();
+        }
+
+}
+
 Value *VM::GetType(QString vmTypeId)
 {
-    if(vmTypeId.startsWith("*"))
+    int pos = 0;
+    int vmTypeIdLabel = constantPoolLabeller.labelOf(vmTypeId);
+    if(constantPool.contains(vmTypeIdLabel))
     {
-        IClass *pointee = (IClass *) GetType(vmTypeId.mid(1))->unboxObj();
-        // todo: Currently we do not allow the GC to claim our new pointer type
-        // should we unload it at some point?
-        // todo: intern pointer types
-        return allocator.newObject(new PointerClass(pointee), BuiltInTypes::ClassType, false);
-    }
-    else
-    {
-        int vmTypeIdLabel = constantPoolLabeller.labelOf(vmTypeId);
-        if(!constantPool.contains(vmTypeIdLabel))
-            signal(NULL, InternalError1, QString("VM::GetType Cannot find type:%1").arg(vmTypeId));
         Value *v = constantPool[vmTypeIdLabel];
         if(!(v->type == BuiltInTypes::ClassType))
             signal(NULL, InternalError1, QString("VM::GetType: Constant pool entry '%1' not a type").arg(vmTypeId));
         return v;
     }
+
+    IClass *c = parseTypeId(vmTypeId, pos);
+
+    /* todo: we here allocate a new object to hold simple classes from class ids
+      (from the constant pool) instead of reusing the value in the constant pool
+      this might lead to trouble if we compare Value*'s that represent classes
+      by address
+      */
+    Value *v = allocator.newObject(c, BuiltInTypes::ClassType, false);
+    assert(NULL, pos == vmTypeId.length(), InternalError1, "Parsing typeId: position didn't reach end of input");
+    return v;
+}
+
+IMethod *VM::GetMethod(QString symRef)
+{
+    int vmMethodLabel = constantPoolLabeller.labelOf(symRef);
+    if(vmMethodLabel <0)
+        signal(NULL, InternalError1, QString("VM::GetMethod() could not find method %1").arg(symRef));
+
+    Value *v = constantPool.value(vmMethodLabel, NULL);
+    if(!v || v->tag != ObjectVal)
+        signal(NULL, InternalError1, QString("VM::GetMethod() could not find method %1").arg(symRef));
+
+    IMethod *m = dynamic_cast<IMethod *>(v->unboxObj());
+    if(!m)
+        signal(NULL, InternalError1, QString("VM::GetMethod() object '%1' not a method").arg(symRef));
+    return m;
 }
 
 Allocator &VM::GetAllocator()
 {
     return allocator;
 }
-
-void VM::gc()
-{
-    allocator.gc();
-}
-
-
 
 /*
 proc PrintLine(x, y):
@@ -860,15 +947,37 @@ void VM::patchupInheritance(QMap<ValueClass *, QString> inheritanceList)
     }
 }
 
+void VM::gc()
+{
+    allocator.gc();
+}
+
 void VM::stopTheWorld()
 {
+    guiScheduler.stopForGc = true;
+    mainScheduler.stopForGc = true;
 
+    gcCanStart.acquire(1); // later: numThreads-1
+    qDebug("VM::stopTheWorld() called");
 }
 
 void VM::startTheWorld()
 {
 
+    guiScheduler.releasedGcSemaphore = false;
+    mainScheduler.releasedGcSemaphore = false;
+
+    guiScheduler.stopForGc = false;
+    mainScheduler.stopForGc = false;
+
 }
+
+void VM::destroyTheWorld(Scheduler *owner)
+{
+    destroyTheWorldFlag = true;
+    worldDestruction.acquire(1);
+}
+
 
 bool VM::isRunning()
 {
@@ -885,3 +994,4 @@ void VM::reactivate()
 {
     startTheWorld();
 }
+

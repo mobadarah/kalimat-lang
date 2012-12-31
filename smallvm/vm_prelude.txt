@@ -294,12 +294,12 @@ callex builtinconstant
 ret
 .endmethod
 
-.method رقم 1 1
+.method رقمي 1 1
 callex stringisnumeric
 ret
 .endmethod
 
-.method حرف 1 1
+.method حرفي 1 1
 callex stringisalphabetic
 ret
 .endmethod
@@ -396,6 +396,11 @@ ret
 	ret
 .endmethod
 
+//.method testMakeCArray 0 1
+//	callex test_make_c_array
+//	ret
+// .endmethod
+
 .method مشار.إليه 1 1
 	callex contentof
 	ret
@@ -464,12 +469,251 @@ call thiscp
 ret
 .endmethod
 
-.method هاجر.لخيط.الرسوم 0 0
-callex migrate_to_gui_thread
+// .method هاجر.لخيط.الرسوم 0 0
+// callex migrate_to_gui_thread
+// ret
+// .endmethod
+
+// .method عد.من.خيط.الرسوم 0 0
+// callex migrate_back_from_gui_thread
+// ret
+// .endmethod
+
+.method %صورة_تدويرها 2 1
+callex image_rotated
 ret
 .endmethod
 
-.method عد.من.خيط.الرسوم 0 0
-callex migrate_back_from_gui_thread
+.method %صورة_ممطوطة 3 1
+callex image_scaled
 ret
 .endmethod
+
+.method %صورة_خط 5 0
+callex image_drawline
+ret
+.endmethod
+
+.method %صورة_قلبها 3 1
+callex image_flipped
+ret
+.endmethod
+
+.method %صورة_نسخة.منها 1 1
+callex image_copied
+ret
+.endmethod
+
+.method %صورة_حدد.لون.النقطة 4 0
+callex image_setpixelcolor
+ret
+.endmethod
+
+.method %صورة_لون.النقطة 3 1
+callex image_pixelcolor
+ret
+.endmethod
+
+.method %صورة_عرضها 1 1
+callex image_width
+ret
+.endmethod
+
+.method %صورة_ارتفاعها 1 1
+callex image_height
+ret
+.endmethod
+
+.method %صورة_نص 4 0
+callex image_drawtext
+ret
+.endmethod
+
+.method %نافذة_كبر 1 0
+callex foreignwindow_maximize
+ret
+.endmethod
+
+.method %نافذة_تحرك.إلى 3 0
+callex foreignwindow_moveto
+ret
+.endmethod
+
+.method %نافذة_اضف 2 0
+callex foreignwindow_add
+ret
+.endmethod
+
+.method %نافذة_حدد.الحجم 3 0
+callex foreignwindow_setsize
+ret
+.endmethod
+
+.method %نافذة_حدد.العنوان 2 0
+callex foreignwindow_settitle
+ret
+.endmethod
+
+.method %control_حدد.النص 2 0
+callex control_settext
+ret
+.endmethod
+
+.method %control_حدد.الحجم 3 0
+callex control_setsize
+ret
+.endmethod
+.method %control_حدد.المكان 3 0
+callex control_setlocation
+ret
+.endmethod
+.method %control_نصه 1 1
+callex control_text
+ret
+.endmethod
+
+.method %زر_حدد.النص 2 0
+callex button_settext
+ret
+.endmethod
+
+.method %زر_نصه 1 1
+callex button_text
+ret
+.endmethod
+
+.method %صندوق.نصي_حدد.النص 2 0
+callex textbox_settext
+ret
+.endmethod
+
+.method %صندوق.نصي_نصه 1 1
+callex textbox_text
+ret
+.endmethod
+
+.method %صندوق.نصي_الحق.نص 2 0
+callex textbox_appendtext
+ret
+.endmethod
+
+.method %سطر.نصي_حدد.النص 2 0
+callex lineedit_settext
+ret
+.endmethod
+
+.method %سطر.نصي_نصه 1 1
+callex lineedit_text
+ret
+.endmethod
+
+.method %سطر.نصي_الحق.نص 2 0
+callex lineedit_appendtext
+ret
+.endmethod
+
+.method %صندوق.سرد_اضف 2 0
+callex listbox_add
+ret
+.endmethod
+
+.method %صندوق.سرد_اضف.في 3 0
+callex listbox_insertitem
+ret
+.endmethod
+
+.method %صندوق.سرد_عنصر.رقم 2 1
+callex listbox_getitem
+ret
+.endmethod
+
+.method %صندوق.مركب_حدد.النص 2 0
+callex combobox_settext
+ret
+.endmethod
+
+.method %صندوق.مركب_نصه 1 1
+callex combobox_text
+ret
+.endmethod
+
+.method %صندوق.مركب_اضف 2 0
+callex combobox_add
+ret
+.endmethod
+
+.method %صندوق.مركب_اضف.في 3 0
+callex combobox_insertitem
+ret
+.endmethod
+
+.method %صندوق.مركب_عنصر.رقم 2 1
+callex combobox_getitem
+ret
+.endmethod
+
+.method %صندوق.مركب_حدد.أيحرر 2 1
+callex combobox_seteditable
+ret
+.endmethod
+
+.method %علامة.نصية_حدد.النص 2 0
+callex label_settext
+ret
+.endmethod
+
+.method %علامة.نصية_نصه 1 1
+callex label_text
+ret
+.endmethod
+
+.method %صندوق.استبيان_حدد.النص 2 0
+callex checkbox_settext
+ret
+.endmethod
+
+.method %صندوق.استبيان_نصه 1 1
+callex checkbox_text
+ret
+.endmethod
+
+.method %صندوق.استبيان_حدد.القيمة 2 0
+callex checkbox_setvalue
+ret
+.endmethod
+
+.method %صندوق.استبيان_قيمته 1 1
+callex checkbox_value
+ret
+.endmethod
+
+.method %صندوق.اختيار_حدد.النص 2 0
+callex radiobutton_settext
+ret
+.endmethod
+
+.method %صندوق.اختيار_نصه 1 1
+callex radiobutton_text
+ret
+.endmethod
+
+.method %صندوق.اختيار_حدد.القيمة 2 0
+callex radiobutton_setvalue
+ret
+.endmethod
+
+.method %صندوق.اختيار_قيمته 1 1
+callex radiobutton_value
+ret
+.endmethod
+
+.method %مجموعة.اختيارات_اضف 2 1
+callex buttongroup_add
+ret
+.endmethod
+
+.method %مجموعة.اختيارات_الزر.الموسوم 2 1
+callex buttongroup_getbutton
+ret
+.endmethod
+

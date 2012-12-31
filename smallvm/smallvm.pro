@@ -89,7 +89,8 @@ HEADERS += value.h \
     scheduler.h \
     blockingqueue.h \
     instructionrunners.h \
-    stack.h
+    stack.h \
+    processiterator.h
 FORMS +=  runtime/runwindow.ui
 
 RESOURCES += \

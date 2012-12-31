@@ -32,6 +32,14 @@ template<class T> QSet<T> setOf(T t1)
     return ret;
 }
 
+template<class T> QSet<T> setOf(T t1, T t2)
+{
+    QSet<T> ret;
+    ret.insert(t1);
+    ret.insert(t2);
+    return ret;
+}
+
 template<class T> QSet<T> setOf(T t1, T t2, T t3)
 {
     QSet<T> ret;

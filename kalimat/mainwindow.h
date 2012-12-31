@@ -29,6 +29,8 @@
 #include "Parser/KalimatParserError.h"
 #include "AutoComplete/analyzer.h"
 #include "idemessages.h"
+#include "stepstopcondition.h"
+
 #include <QQueue>
 #include <QGraphicsView>
 #include <QActionGroup>
@@ -50,9 +52,13 @@ enum StepMode
     StepSingle, StepCall, StepParams
 };
 
-struct StepStopCondition
+struct NullaryStepStopCondition : public StepStopCondition
 {
-    virtual bool stopNow(CodeDocument *doc1, int line1, Frame *frame1, CodeDocument *doc2, int line2, Frame *frame2)=0;
+    bool stopNow(int offset, Frame *frame, Process *process)
+    {
+        return false;
+    }
+    static NullaryStepStopCondition *instance();
 };
 
 class MainWindow : public QMainWindow, public DocumentClient, public VMClient
@@ -117,7 +123,8 @@ public:
     int wonderfulMonitorDelay();
     CodePosition getPositionOfRunningInstruction(Frame *f);
     CodePosition getPositionOfInstruction(QString method, int offset);
-    void markCurrentInstruction(VM *vm, Process *proc, int &pos, int &length);
+
+    void postMarkCurrentInstruction(VM *vm, Process *proc, int *pos, int *length);
 
     void handleVMError(VMError err);
     void highlightRunningInstruction(Frame *f);
@@ -130,10 +137,13 @@ public:
     void visualizeCallStacks(QSet<QQueue<Process *> *> callStacks, QGraphicsView *view);
     void visualizeCallStack(Frame *callStack, QGraphicsView *view);
 
+    void markCurrentInstruction(VM *vm, Process *proc, int *pos, int *length);
+
     void outputMsg(QString s);
     QString translateParserError(ParserException ex);
 
-    void Break(QString methodName, int offset, Frame *frame, Process *process);
+    void Break(int offset, Frame *frame, Process *process);
+    void postBreak(int offset, Frame *frame, Process *process);
     void programStopped(RunWindow *);
     bool eventFilter(QObject *sender, QEvent *event);
 
@@ -149,8 +159,6 @@ private:
     QActionGroup *speedGroup;
     Ui::MainWindow *ui;
     SyntaxHighlighter *syn;
-    VM vm;
-    RunWindow *stoppedRunWindow;
     QMap<KalimatParserError, QString> parserErrorMap;
     void show_error(QString message);
     virtual void LoadDocIntoWidget(CodeDocument *doc, QWidget *widget);
@@ -173,11 +181,20 @@ private:
     Breakpoint stoppedAtBreakPoint;
     Process *currentDebuggerProcess;
     bool atBreak;
+    StepStopCondition *currentStepStopCondition;
+    RunWindow *stoppedRunWindow;
 
-    void genericStep(Process *proc, StepStopCondition &cond);
+    void genericStep(Process *proc, StepStopCondition *cond);
     void step(Process *proc);
+    void stepOver(Process *proc);
     void setDebuggedProcess(Process *);
+    bool currentBreakCondition(int offset, Frame *frame, Process *process);
+signals:
+    void markCurrentInstructionEvent(VM *vm, Process *proc, int *pos, int *length);
+    void breakEvent(int offset, Frame *frame, Process *process);
 private slots:
+    void breakSlot(int offset, Frame *frame, Process *process);
+    void markCurrentInstructionSlot(VM *vm, Process *proc, int *pos, int *length);
     void on_actionGo_to_position_triggered();
     void on_actionCompile_without_tags_triggered();
     void on_btnReplaceNext_clicked();

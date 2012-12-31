@@ -49,6 +49,16 @@
 
 MainWindow *MainWindow::that = NULL;
 
+NullaryStepStopCondition *NullaryStepStopCondition::instance()
+{
+    static NullaryStepStopCondition *inst = NULL;
+    if(!inst)
+    {
+        inst = new NullaryStepStopCondition();
+    }
+    return inst;
+}
+
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent),
       codeAnalyzer(Ide::msg),
@@ -143,6 +153,14 @@ MainWindow::MainWindow(QWidget *parent)
 
     generatingProgramModel = false;
     codeModelUpdateTimerId = startTimer(codeModelUpdateInterval);
+
+    connect(this, SIGNAL(markCurrentInstructionEvent(VM*,Process*,int*,int*)),
+            this, SLOT(markCurrentInstructionSlot(VM*,Process*,int*,int*)),
+            Qt::BlockingQueuedConnection);
+
+    connect(this, SIGNAL(breakEvent(int,Frame*,Process*)),this,
+            SLOT(breakSlot(int,Frame*,Process*)));
+    currentStepStopCondition = NullaryStepStopCondition::instance();
 }
 
 void MainWindow::outputMsg(QString s)
@@ -327,7 +345,6 @@ void MainWindow::setFunctionNavigationComboSelection(QTextEdit *editor)
 
 void MainWindow::timerEvent(QTimerEvent *event)
 {
-
     on_actionUpdate_code_model_triggered();
 }
 
@@ -516,16 +533,22 @@ void MainWindow::on_actionCompile_triggered()
     }
     catch(CompilerException ex)
     {
-        ui->outputView->append(ex.getMessage());
+        show_error(ex.getMessage());
+
         if(doc != NULL)
         {
-            CodeDocument *dc = doc;
-            if(ex.source)
+            CodeDocument *dc = NULL;
+
+            if(ex.source && ex.source->getPos().tag != NULL)
             {
-                if(ex.source->getPos().tag != NULL)
-                {
-                    dc = (CodeDocument *) ex.source->getPos().tag;
-                }
+                dc = (CodeDocument *) ex.source->getPos().tag;
+            }
+            else if(ex.source)
+            {
+                dc = docContainer->getDocumentFromPath(ex.fileName, true);
+            }
+            if(dc)
+            {
                 highlightLine(dc->getEditor(), ex.source->getPos().Pos);
             }
         }
@@ -570,15 +593,24 @@ void MainWindow::on_actionCompile_without_tags_triggered()
     }
     catch(CompilerException ex)
     {
-        ui->outputView->append(ex.getMessage());
+        show_error(ex.getMessage());
+
         if(doc != NULL)
         {
-            CodeDocument *dc = doc;
-            if(ex.source->getPos().tag != NULL)
+            CodeDocument *dc = NULL;
+
+            if(ex.source && ex.source->getPos().tag != NULL)
             {
                 dc = (CodeDocument *) ex.source->getPos().tag;
             }
-            highlightLine(dc->getEditor(), ex.source->getPos().Pos);
+            else if(ex.source)
+            {
+                dc = docContainer->getDocumentFromPath(ex.fileName, true);
+            }
+            if(dc)
+            {
+                highlightLine(dc->getEditor(), ex.source->getPos().Pos);
+            }
         }
     }
 }
@@ -854,6 +886,9 @@ void MainWindow::visualizeCallStack(Frame *callStack, QGraphicsView *view)
         for(int j=0; j<f->currentMethod->Locals.count(); j++)
         {
             QString var = f->currentMethod->Locals.keys().at(j);
+            Value *v = f->local(var);
+            if(!v)
+                continue;
             QString val = f->local(var)->toString();
             if(var.startsWith("%"))
                 continue;
@@ -881,16 +916,30 @@ void MainWindow::visualizeCallStack(Frame *callStack, QGraphicsView *view)
     view->setAlignment(Qt::AlignRight| Qt::AlignTop);
     view->setLayoutDirection(Qt::RightToLeft);
     ui->tabWidget->setCurrentWidget(ui->graphicsView);
+    QGraphicsScene *oldScene = view->scene();
+    if(oldScene)
+        delete oldScene;
     view->setScene(scene);
 }
 
-void MainWindow::markCurrentInstruction(VM *vm, Process *proc, int &pos, int &length)
+void MainWindow::postMarkCurrentInstruction(VM *vm, Process *proc, int *pos, int *length)
+{
+    emit markCurrentInstructionEvent(vm, proc, pos, length);
+}
+
+void MainWindow::markCurrentInstructionSlot(VM *vm, Process *proc, int *pos, int *length)
+{
+    markCurrentInstruction(vm, proc, pos, length);
+}
+
+void MainWindow::markCurrentInstruction(VM *vm, Process *proc, int *pos, int *length)
 {
     if(!proc->isFinished())
     {
         const Instruction &i = proc->getCurrentInstruction();
         // todo: critical: call stack in wonderful monitor
-        // visualizeCallStacks(vm->mainScheduler.getCallStacks(), ui->graphicsView);
+        //visualizeCallStacks(vm->mainScheduler.getCallStacks(), ui->graphicsView);
+        visualizeCallStack(vm->getMainProcess()->stack, ui->graphicsView);
         int key = i.extra;
         if(key ==-1)
             return;
@@ -901,9 +950,9 @@ void MainWindow::markCurrentInstruction(VM *vm, Process *proc, int &pos, int &le
             QTextEdit *editor = p.doc->getEditor();
 
             ui->editorTabs->setCurrentWidget(editor);
-            pos = p.pos;
-            length = p.ast->getPos().Lexeme.length();
-            highlightToken(editor, pos, length);
+            *pos = p.pos;
+            *length = p.ast->getPos().Lexeme.length();
+            highlightToken(editor, *pos, *length);
         }
     }
 }
@@ -944,7 +993,8 @@ void MainWindow::highlightRunningInstruction(Frame *f, QColor clr)
 
 CodePosition MainWindow::getPositionOfRunningInstruction(Frame *f)
 {
-    Instruction i = f->getPreviousRunningInstruction();
+    //const Instruction &i = f->getPreviousRunningInstruction();
+    const Instruction &i = f->currentMethod->Get(f->ip);
     int key = i.extra;
     CodePosition p = PositionInfo[key];
     return p;
@@ -1291,16 +1341,32 @@ void MainWindow::on_action_autoFormat_triggered()
     }
 }
 
-void MainWindow::Break(QString methodName, int offset, Frame *frame, Process *process)
+void MainWindow::breakSlot(int offset, Frame *frame, Process *process)
+{
+    Break(offset, frame, process);
+}
+
+void MainWindow::postBreak(int offset, Frame *frame, Process *process)
+{
+    emit breakEvent(offset, frame, process);
+}
+
+void MainWindow::Break(int offset, Frame *frame, Process *process)
 {
     this->setWindowTitle(Ide::msg[IdeMsg::BreakpointReached]);
-    this->activateWindow();
+    //this->activateWindow();
     atBreak = true;
+    if(currentStepStopCondition != NullaryStepStopCondition::instance())
+    {
+        delete currentStepStopCondition;
+        currentStepStopCondition = NullaryStepStopCondition::instance();
+    }
 
     //highlightRunningInstruction(frame, QColor(255, 0,0));
 
     CodeDocument *doc;
     int line;
+    QString methodName = frame->currentMethod->getName();
     if(debugInfo.lineFromInstruction(methodName, offset, doc, line))
     {
         stoppedAtBreakPoint = Breakpoint(doc, line);
@@ -1314,74 +1380,39 @@ void MainWindow::Break(QString methodName, int offset, Frame *frame, Process *pr
     }
 }
 
-void MainWindow::genericStep(Process *proc, StepStopCondition &cond)
+bool MainWindow::currentBreakCondition(int offset, Frame *frame, Process *process)
 {
-    if(!currentDebuggerProcess)
+    return currentStepStopCondition->stopNow(offset, frame, process);
+}
+
+
+void MainWindow::genericStep(Process *proc, StepStopCondition *cond)
+{
+    if(!stoppedRunWindow)
         return;
-    VM *vm = stoppedRunWindow->getVM();
-    if(currentDebuggerProcess->isFinished())
+    if(!proc)
+        return;
+    if(proc->isFinished())
         return;
 
-    CodeDocument *doc;
-    int line;
-    Frame *frame;
-
-    int offset;
-    QString method;
-
-    vm->getCodePos(currentDebuggerProcess, method, offset, frame);
-    if(!debugInfo.lineFromInstruction(method, offset, doc, line))
-    {
-        CodePosition p = getPositionOfRunningInstruction(frame);
-        if(p.doc == NULL)
-            return;
-        doc = p.doc;
-        line = p.ast->getPos().Line;
-    }
+    currentStepStopCondition = cond;
     // دايزر! انطلق
-    vm->reactivate();
     atBreak = false;
-    while(true)
-    {
-        if(currentDebuggerProcess->isFinished())
-            break;
-        stoppedRunWindow->singleStep(currentDebuggerProcess);
-
-        CodeDocument *doc2;
-        int line2;
-        Frame *frame2;
-        vm->getCodePos(proc, method, offset, frame2);
-
-        if(!debugInfo.lineFromInstruction(method, offset, doc2, line2))
-        {
-            CodePosition p = getPositionOfRunningInstruction(frame2);
-            if(p.doc == NULL)
-                break;
-            doc2 = p.doc;
-            line2 = p.ast->getPos().Line;
-        }
-
-        if(cond.stopNow(doc, line, frame, doc2, line2, frame2))
-        {
-            Break(method, offset, frame2, currentDebuggerProcess);
-            break;
-        }
-        doc = doc2;
-        line = line2;
-        frame = frame2;
-    }
+    stoppedRunWindow->resume();
+    stoppedRunWindow->Run();
 }
 
 void MainWindow::step(Process *proc)
 {
+    CodePosition p = getPositionOfRunningInstruction(proc->currentFrame());
+    StepStopCondition *cond = new SingleStepCondition(p.doc, p.ast->getPos().Line, proc->currentFrame(), this);
+    genericStep(proc, cond);
+}
 
-    struct StopOnOtherLine : public StepStopCondition
-    {
-        bool stopNow(CodeDocument *doc1, int line1, Frame *frame1, CodeDocument *doc2, int line2, Frame *frame2)
-        {
-            return (line1 != line2 || frame1 != frame2 || doc1 != doc2);
-        }
-    } cond;
+void MainWindow::stepOver(Process *proc)
+{
+    CodePosition p = getPositionOfRunningInstruction(proc->currentFrame());
+    StepStopCondition *cond = new StepOverCondition(p.doc, p.ast->getPos().Line, proc->currentFrame(), this);
     genericStep(proc, cond);
 }
 
@@ -1393,6 +1424,9 @@ void MainWindow::setDebuggedProcess(Process *p)
 void MainWindow::programStopped(RunWindow *rw)
 {
     currentDebuggerProcess = NULL;
+    atBreak = false;
+    currentStepStopCondition = NullaryStepStopCondition::instance();
+    stoppedRunWindow = NULL;
 }
 
 void MainWindow::on_action_breakpoint_triggered()
@@ -1416,11 +1450,13 @@ void MainWindow::on_action_breakpoint_triggered()
 
     if(enabled)
     {
-        highlightLine(editor, editor->textCursor().position(), QColor(170, 170, 170));
+        editor->toggleBreakpoint(line);
+        //highlightLine(editor, editor->textCursor().position(), QColor(170, 170, 170));
     }
     else
     {
-        removeLineHighlights(editor, line);
+        //removeLineHighlights(editor, line);
+        editor->toggleBreakpoint(line);
     }
 }
 
@@ -1442,10 +1478,10 @@ void MainWindow::on_action_resume_triggered()
         highlightLine(editor, editor->textCursor().position(), QColor(170, 170, 170));
         atBreak = false;
         stoppedRunWindow->resume();
-        stoppedRunWindow->reactivateVM();
-        stoppedRunWindow->singleStep(currentDebuggerProcess);
-        stoppedRunWindow->setBreakpoint(stoppedAtBreakPoint, debugInfo);
         stoppedRunWindow->Run();
+        //stoppedRunWindow->singleStep(currentDebuggerProcess);
+        stoppedRunWindow->setBreakpoint(stoppedAtBreakPoint, debugInfo);
+        //stoppedRunWindow->Run();
     }
     catch(VMError err)
     {
@@ -1459,37 +1495,7 @@ void MainWindow::on_action_step_triggered()
 
 void MainWindow::on_action_step_procedure_triggered()
 {
-
-    if(!currentDebuggerProcess)
-        return; // We're not actually debugging a program
-    VM *vm = stoppedRunWindow->getVM();
-
-    Frame *frame;
-
-    int offset;
-    QString method;
-
-    if(vm->getCodePos(currentDebuggerProcess, method, offset, frame))
-    {
-
-        if(frame->currentMethod->Get(frame->ip).opcode == Ret)
-        {
-            step(currentDebuggerProcess);
-            return;
-        }
-        // Todo: we should check frame level equality instead of actual
-        // frame equality in order to work well with tail-call elimination
-        struct StopOnOtherLineSameFrameLevel : public StepStopCondition
-        {
-            Frame *originalFrame;
-            bool stopNow(CodeDocument *doc1, int line1, Frame *frame1, CodeDocument *doc2, int line2, Frame *frame2)
-            {
-                return ((line1 != line2)  && (frame2 == originalFrame));
-            }
-        } cond;
-        cond.originalFrame = frame;
-        genericStep(currentDebuggerProcess, cond);
-    }
+    stepOver(currentDebuggerProcess);
 }
 
 void MainWindow::on_actionMake_exe_triggered()
@@ -1904,7 +1910,7 @@ void MainWindow::on_action_about_kalimat_triggered()
 void MainWindow::on_actionUpdate_code_model_triggered()
 {
 
-    if(generatingProgramModel)
+    if(true || generatingProgramModel)
         return;
     generatingProgramModel = true;
     if(!currentEditor())

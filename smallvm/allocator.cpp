@@ -7,16 +7,27 @@
 
 #include "vm_incl.h"
 #include "allocator.h"
+#include "vm.h"
 
-const int intCacheSize = 40;
+#include <QDebug>
+#include <time.h>
+
+const int intCacheSize = 256;
+const int MEGA = 1024 * 1024;
+const double GC_FACTOR = 0.75;
+const double HEAP_GROWTH_FACTOR = 1.4;
+//const int NORMAL_MAX_HEAP = 1*MEGA;
+const int NORMAL_MAX_HEAP = 1024 * 50;
+
 //Value *Allocator::_true = NULL;
 //Value *Allocator::_false = NULL;
 //Value *Allocator::_ints[intCacheSize];
 
-Allocator::Allocator(QHash<int, Value *> *constantPool, QSet<Scheduler *>schedulers)
+Allocator::Allocator(QHash<int, Value *> *constantPool, QSet<Scheduler *>schedulers, VM *vm)
 {
     this->constantPool = constantPool;
     this->schedulers = schedulers;
+    this->vm = vm;
     currentAllocationInBytes = 0;
     maxAllocationInBytes = NORMAL_MAX_HEAP;
 
@@ -62,16 +73,30 @@ Value *Allocator::allocateNewValue(bool gcMonitor)
     Value *ret = new Value();
     if(ret!=NULL)
     {
-        if(gcMonitor)
+        heapAllocationLock.lock();
+        heap.insert(ret);
+        currentAllocationInBytes += sizeof(Value);
+        if(!gcMonitor)
         {
-            makeGcMonitored(ret);
+            protectedValues.insert(ret);
         }
+        heapAllocationLock.unlock();
     }
     else
     {
         //TODO: Signal out of memory
     }
     return ret;
+}
+
+void Allocator::makeGcMonitored(Value *v)
+{
+    protectedValues.remove(v);
+}
+
+void Allocator::stopGcMonitoring(Value *v)
+{
+    protectedValues.insert(v);
 }
 
 Value *Allocator::newInt(int i)
@@ -283,25 +308,36 @@ Value *Allocator::newQObject(QObject *qobj)
     return ret;
 }
 
-void Allocator::makeGcMonitored(Value *v)
-{
-//    if(!heap.contains(v))
-//        currentAllocationInBytes += sizeof(Value);
-    protectedValues.remove(v);
-}
-
-void Allocator::stopGcMonitoring(Value *v)
-{
-//    if(heap.contains(v))
-//        currentAllocationInBytes -= sizeof(Value);
-    protectedValues.insert(v);
-}
-
 void Allocator::gc()
 {
-    return;
-    mark();
-    sweep();
+    /* We use gcLock because we don't want two threads to enter GC at the same time, because
+      in that case vm->stoptheworld() would deadlock.
+
+      However we cannot just use lock(); since there is a case where
+      1- Both threads enter GC
+      2- one takes the lock and the other waits
+      3- But the waiting thread cannot release the semaphore waited for by stopTheWorld, thus deadlock
+
+      Using tryLock means "exit gc without doing anything if the other thread is GCing", which is what
+      we wanted anyway.
+
+      */
+    if(gcLock.tryLock())
+    {
+        vm->traceInstructions = true;
+        vm->stopTheWorld();
+
+        // clock_t t1 = clock();
+        // qDebug("Running GC ---------------------------------------");
+        mark();
+        sweep();
+        // clock_t t2 = clock();
+        // qDebug() << "Finished GC --------------------------------------- took "
+        //          <<  (double) (t2 - t1) / (double) CLOCKS_PER_SEC  << " seconds.";
+        vm->traceInstructions = false;
+        vm->startTheWorld();
+        gcLock.unlock();
+    }
 }
 
 void Allocator::mark()
@@ -332,31 +368,16 @@ void Allocator::mark()
     for(QSet<Scheduler *>::const_iterator iter1=schedulers.begin(); iter1 != schedulers.end(); ++iter1)
     {
         Scheduler *sched = (*iter1);
-        QSet<QQueue<Process *> *> qs = sched->getProcesses();
-        for(QSet<QQueue<Process *> *>::const_iterator queueIter= qs.begin(); queueIter != qs.end(); ++queueIter)
+        if(sched->runningNow)
+            markProcess(sched->runningNow, reachable);
+
+        ProcessIterator *iter = sched->getProcesses();
+        while(iter->hasMoreProcesses())
         {
-            const QQueue<Process *> &q = *(*queueIter);
-            for(QQueue<Process *>::const_iterator iter=q.begin(); iter!=q.end(); ++iter)
-            {
-                const Frame *stack = (*iter)->stack;
-                while(stack != NULL)
-                {
-                    const Frame &f = *stack;
-                    for(int j=0; j<f.fastLocalCount; j++)
-                    {
-                        reachable.push(f.fastLocals[j]);
-                    }
-                    for(Stack<Value *>::const_iterator j=f.OperandStack.begin(); j !=f.OperandStack.end(); ++j)
-                    {
-                        reachable.push(*j);
-                    }
-                    stack = stack->next;
-                }
-            }
+            markProcess(iter->getProcess(), reachable);
         }
-
+        delete iter;
     }
-
 
     while(!reachable.empty())
     {
@@ -374,6 +395,18 @@ void Allocator::mark()
                 Value *v2 = elements->Elements[i];
                 if(!v2->mark)
                     reachable.push(v2);
+            }
+        }
+        if(v->tag == ChannelVal)
+        {
+            const Channel *chan = v->unboxChan();
+            for(QMap<Process *, Value *>::const_iterator i = chan->data.begin(); i!= chan->data.end(); ++i)
+            {
+                reachable.push(i.value());
+            }
+            for(int i=0; i<chan->nullProcessQ.count(); ++i)
+            {
+                reachable.push(chan->nullProcessQ.at(i));
             }
         }
         if(v->tag == MapVal)
@@ -425,8 +458,45 @@ void Allocator::mark()
     }
 }
 
+void Allocator::markProcess(Process *proc, QStack<Value *> &reachable)
+{
+    const Frame *stack = proc->stack;
+    while(stack != NULL)
+    {
+        const Frame &f = *stack;
+        for(int j=0; j<f.fastLocalCount; j++)
+        {
+            Value *v = f.fastLocals[j];
+            if(!v)
+            {
+                // This is a region reserved in 'fastLocals' for a variable
+                // that has not yet been set
+                continue;
+            }
+            reachable.push(f.fastLocals[j]);
+        }
+        for(Stack<Value *>::const_iterator j=f.OperandStack.begin(); j !=f.OperandStack.end(); ++j)
+        {
+           reachable.push(*j);
+        }
+        stack = stack->next;
+    }
+}
+
 void Allocator::sweep()
 {
+
+    //*
+     static clock_t lastgc = -1;
+
+    if(lastgc==-1)
+        lastgc = clock();
+
+    clock_t now = clock();
+
+    qDebug() << "Last GC since " << (double) (now - lastgc) / (double) CLOCKS_PER_SEC << " ms.";
+    lastgc = now;
+    //*/
     QVector<Value *> toDel;
     QSet<Value *>::const_iterator i;
     for (i = heap.begin(); i != heap.end(); ++i)
@@ -439,10 +509,12 @@ void Allocator::sweep()
             toDel.append(v);
         }
     }
+    qDebug() << "Deleting: " <<  toDel.count() << " elements. Heap size: " << heap.count();
     for(int i=0; i<toDel.count(); i++)
     {
         Value *v = toDel[i];
         heap.remove(v);
         delete v;
     }
+    qDebug() << "Heap size now: " << heap.count();
 }

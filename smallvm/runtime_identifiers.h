@@ -39,6 +39,7 @@ namespace RId
         c_ascii,
         c_wstr,
         c_pointer,
+        c_void,
         ForeignWindow,
         Button,
         TextBox,

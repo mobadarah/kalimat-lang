@@ -10,8 +10,8 @@
 #include "allocator.h"
 #include "runtime_identifiers.h"
 
-FrameClass::FrameClass(QString className)
-    : EasyForeignClass(className)
+FrameClass::FrameClass(QString className, VM *vm)
+    : EasyForeignClass(className, vm)
 {
     _method(VMId::get(RId::LocalVar),
             0, 1);
@@ -77,11 +77,12 @@ Frame::~Frame()
 {
     if(fastLocals && fastLocals != fastLocalsStatic)
     {
+        //qDebug("~Frame calling delete[]");
         delete[] fastLocals;
     }
 }
 
-Instruction Frame::getPreviousRunningInstruction()
+const Instruction &Frame::getPreviousRunningInstruction()
 {
     const int n = currentMethod->InstructionCount();
     if(ip>=1 && ip-1 < n)

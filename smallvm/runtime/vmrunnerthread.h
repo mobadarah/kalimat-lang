@@ -7,16 +7,8 @@
 #include <QMutex>
 
 class VM;
+class VMClient;
 class RunWindow;
-
-struct ObjContainer
-{
-    QObject *content;
-    QWaitCondition cond;
-    ObjContainer() : content(NULL) { }
-};
-
-typedef QObject *(*OBJ_MAKER)();
 
 class VMRunthread : public QThread
 {
@@ -25,6 +17,7 @@ class VMRunthread : public QThread
     RunWindow *rw;
 public:
     QMutex mutex;
+    VMClient *client;
 public:
     VMRunthread(VM *vm, RunWindow *rw);
     void run();

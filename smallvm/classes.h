@@ -18,6 +18,7 @@ struct IObject
     virtual Value *getSlotValue(QString name)=0;
     virtual void setSlotValue(QString name, Value *val)=0;
     virtual QString toString() =0;
+    virtual ~IObject() {}
 };
 
 struct Object : public IObject
@@ -32,6 +33,7 @@ public:
     // For when we need to traverse slots in order of definition
     // todo: this should be in the class, to save memory
     QVector<QString> slotNames;
+    virtual ~Object() {}
 };
 
 struct IMethod : public IObject
@@ -153,6 +155,17 @@ private:
     static IMethod *ffiMethodProxy;
 };
 
+/*
+  Represents pointer types for ffi
+  The type can be reified by using the 'typefromid' external method and using an
+  ID starting with an asterisk
+
+  pushc %str1;  *c_int
+  typefromid
+
+  would have a type of pointer to c_int on the stack
+*/
+
 struct PointerClass : public IClass
 {
     IClass *pointee;
@@ -173,7 +186,43 @@ struct PointerClass : public IClass
     virtual bool getFieldAttribute(QString attr, Value *&ret, Allocator *allocator);
     virtual QVector<PropertyDesc> getProperties();
     QString toString();
+};
 
+/*
+  Represents lambda types for ffi
+
+  The type can be reified by using the 'typefromid' external method and using an
+  ID int the form ^(t1,t2,t3)->retType
+  The parser for those types of ids is very sensetive: use exact format with no spaces!
+
+  pushc %str1;  ^(c_int,c_int)->c_long
+  typefromid
+
+  would have the corresponding function type on the stack
+*/
+
+struct FunctionClass : public IClass
+{
+    IClass *retType;
+    QVector<IClass *> argTypes;
+    FunctionClass(IClass *retType, QVector<IClass *> argTypes);
+
+    // IObject
+    virtual bool hasSlot(QString name);
+    virtual QList<QString> getSlotNames();
+    virtual Value *getSlotValue(QString name);
+    virtual void setSlotValue(QString name, Value *val);
+
+    //IClass
+    QString getName();
+    virtual bool hasField(QString name);
+    IClass *baseClass();
+    virtual bool subclassOf(IClass *c);
+    virtual IMethod *lookupMethod(QString name);
+    virtual IObject *newValue(Allocator *allocator);
+    virtual bool getFieldAttribute(QString attr, Value *&ret, Allocator *allocator);
+    virtual QVector<PropertyDesc> getProperties();
+    QString toString();
 };
 
 #endif // CLASSES_H
