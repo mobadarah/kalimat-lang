@@ -8,6 +8,7 @@
 class MetaClass : public EasyForeignClass
 {
     Allocator *allocator;
+    IMethod *newObject;
 public:
     MetaClass(QString name, Allocator *allocator);
     virtual IObject *newValue(Allocator *allocator);
@@ -18,6 +19,7 @@ public:
     // because a metaclass can be used to create new objects
     // and thus needs an allocator
     void setAllocator(Allocator *allocator);
+    inline Allocator *getAllocator() { return allocator; }
 };
 
 #endif // METACLASS_H

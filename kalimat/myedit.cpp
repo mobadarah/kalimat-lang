@@ -65,7 +65,7 @@ void MyEdit::updateLineNumberAreaFont()
 void MyEdit::toggleBreakpoint(int line)
 {
     lineNumberArea->toggleBreakPoint(line);
-    lineNumberArea->update();
+    lineNumberArea->repaint();
 }
 
 void MyEdit::updateLineNumberAreaWidth(int /* newBlockCount */)

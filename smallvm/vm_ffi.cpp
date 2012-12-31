@@ -195,6 +195,10 @@ void kalimat_to_ffi_type(IClass *kalimatType, ffi_type *&type, VM *vm)
     {
         makeStructFromKalimatClass(kalimatType, type, vm);
     }
+    else
+    {
+        type = NULL;
+    }
 }
 
 void kalimat_to_ffi_value(IClass *kalimatType, Value *v, ffi_type *type, void *&value, Process *proc, VM *vm)
@@ -449,7 +453,7 @@ void default_C_Type_Of(IClass *kalimatType, IClass *&c_KalimatType)
     }
     else
     {
-        kalimatType = NULL;
+        c_KalimatType = kalimatType;
     }
 }
 

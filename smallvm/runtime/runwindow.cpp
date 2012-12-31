@@ -279,6 +279,10 @@ void RunWindow::Init(QString program, QMap<QString, QString> stringConstants, QS
 
         InitVMPrelude(vm);
 
+        // Meta class
+        vm->Register("class_newobject", new WindowProxyMethod(this, vm, ClassNewObjectProc));
+        BuiltInTypes::ClassType->attachVmMethod(vm, VMId::get(RId::NewObject));
+
         vm->RegisterType("ForeignWindow", new WindowForeignClass(VMId::get(RId::ForeignWindow), this, vm));
         vm->RegisterType(VMId::get(RId::Button), new ButtonForeignClass (VMId::get(RId::Button), this, vm));
         vm->RegisterType(VMId::get(RId::TextBox), new TextboxForeignClass(VMId::get(RId::TextBox), this, vm));
@@ -397,7 +401,6 @@ void RunWindow::RegisterGuiControls(VM *vm)
     // Button group
     vm->Register("buttongroup_add", new WindowProxyMethod(this, vm, ButtonGroupAddProc));
     vm->Register("buttongroup_getbutton", new WindowProxyMethod(this, vm, ButtonGroupGetButtonProc));
-
 }
 
 void RunWindow::setBreakpoint(Breakpoint b, const DebugInfo &debugInfo)

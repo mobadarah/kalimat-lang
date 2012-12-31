@@ -217,7 +217,7 @@ void Process::RunTimeSlice(int slice, VM *vm, Scheduler *caller)
 
         RunSingleInstruction();
 
-        if(vm->debugger->currentBreakCondition(currentFrame()->ip,
+        if(vm->debugger->currentBreakCondition(currentFrame()?currentFrame()->ip : -1,
                                                 currentFrame(),
                                                 this))
         {

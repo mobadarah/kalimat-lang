@@ -41,6 +41,8 @@ public:
 
     void attachVmMethod(QString methodName);
     void attachVmMethod(QString className, QString methodName);
+    void attachVmMethod(VM *vm, QString className, QString methodName);
+    void attachVmMethod(VM *vm, QString methodName);
     virtual Value *dispatch(Process *proc, int id, QVector<Value *>args) = 0;
     virtual IObject *newValue(Allocator *allocator) = 0;
     virtual bool getFieldAttribute(QString attr, Value *&ret, Allocator *allocator) {return false;}

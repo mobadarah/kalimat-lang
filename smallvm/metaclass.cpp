@@ -4,16 +4,12 @@
 #include "metaclass.h"
 #include "vmerror.h"
 #include "runtime_identifiers.h"
+#include "runtime/windowproxymethod.h"
 
 MetaClass::MetaClass(QString name, Allocator *allocator)
     :EasyForeignClass(name)
 {
     this->allocator = allocator;
-
-    methodIds[VMId::get(RId::NewObject)] =
-            0;
-    methodArities[VMId::get(RId::NewObject)] =
-            1;
 }
 
 void MetaClass::setAllocator(Allocator *allocator)
@@ -38,6 +34,7 @@ QVector<PropertyDesc> MetaClass::getProperties()
 
 Value *MetaClass::dispatch(Process *proc, int id, QVector<Value *> args)
 {
+    /*
     if(id == 0)
     {
         IObject *theClassObj = args[0]->unboxObj();
@@ -51,5 +48,6 @@ Value *MetaClass::dispatch(Process *proc, int id, QVector<Value *> args)
             throw VMError(InternalError);
         }
     }
+    */
     return NULL;
 }

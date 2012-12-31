@@ -43,14 +43,24 @@ bool EasyForeignClass::hasField(QString name)
 
 void EasyForeignClass::attachVmMethod(QString className, QString methodName)
 {
-    QString internalName = QString("%%1_%2").arg(className).arg(methodName);
-    IMethod *method = vm->GetMethod(internalName);
-    vmMethods[methodName] = method;
+    attachVmMethod(vm, className, methodName);
 }
 
 void EasyForeignClass::attachVmMethod(QString methodName)
 {
     attachVmMethod(this->getName(), methodName);
+}
+
+void EasyForeignClass::attachVmMethod(VM *vm, QString className, QString methodName)
+{
+    QString internalName = QString("%%1_%2").arg(className).arg(methodName);
+    IMethod *method = vm->GetMethod(internalName);
+    vmMethods[methodName] = method;
+}
+
+void EasyForeignClass::attachVmMethod(VM *vm, QString methodName)
+{
+    attachVmMethod(vm, this->getName(), methodName);
 }
 
 IMethod *EasyForeignClass::lookupMethod(QString name)

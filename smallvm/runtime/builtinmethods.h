@@ -15,10 +15,12 @@ class RunWindow;
 #include "../smallvm/vm.h"
 #endif
 
+#ifndef WINDOWPROXYMETHOD_H
+#include "windowproxymethod.h"
+#endif
+
 Sprite *GetSpriteFromValue(Value * v);
 Value *MakeSpriteValue(Sprite *sprite, Allocator *alloc);
-
-typedef void (*VM_PROC)(Stack<Value *> &, Process *proc, RunWindow *, VM *);
 
 void PrintProc(Stack<Value *> &, Process *proc, RunWindow *, VM *);
 void PushReadChanProc(Stack<Value *> &stack, Process *, RunWindow *w, VM *);
@@ -191,6 +193,8 @@ void RadioButtonValueProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM
 void ButtonGroupAddProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm);
 void ButtonGroupGetButtonProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm);
 
+void ClassNewObjectProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm);
+
 double verifyNumeric(Value *v, RunWindow *w); // TODO: make this a method of RunWindow
 int popIntOrCoercable(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm);
 double popDoubleOrCoercable(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm);
@@ -223,16 +227,6 @@ public:
 public:
     WindowReadMethod(RunWindow *parent, VM *vm);
     void operator()(Stack<Value *> &operandStack, Process *);
-};
-
-class WindowProxyMethod : public ExternalMethod
-{
-    RunWindow *parent;
-    VM_PROC proc;
-    VM *vm;
-public:
-    WindowProxyMethod(RunWindow *parent, VM *vm, VM_PROC proc, bool mustRunInGui=true);
-    void operator()(Stack<Value *> &operandStack, Process *process);
 };
 
 #endif // BUILTINMETHODS_H

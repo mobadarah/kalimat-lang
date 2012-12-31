@@ -161,6 +161,9 @@ MainWindow::MainWindow(QWidget *parent)
     connect(this, SIGNAL(breakEvent(int,Frame*,Process*)),this,
             SLOT(breakSlot(int,Frame*,Process*)));
     currentStepStopCondition = NullaryStepStopCondition::instance();
+
+    // No .exes for now
+    ui->actionMake_exe->setVisible(false);
 }
 
 void MainWindow::outputMsg(QString s)
@@ -1479,6 +1482,13 @@ void MainWindow::on_action_resume_triggered()
         atBreak = false;
         stoppedRunWindow->resume();
         stoppedRunWindow->Run();
+
+        // We need to check again since stoppedRunWindow::Run()
+        // might encounter and exception and close, thus
+        // notifying the MainWindow that execution has
+        // stopped and setting stoppedRunWindow to NULL
+        if(!stoppedRunWindow)
+            return;
         //stoppedRunWindow->singleStep(currentDebuggerProcess);
         stoppedRunWindow->setBreakpoint(stoppedAtBreakPoint, debugInfo);
         //stoppedRunWindow->Run();

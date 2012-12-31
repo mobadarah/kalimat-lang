@@ -106,19 +106,6 @@ void WindowReadMethod::operator ()(Stack<Value *> &operandStack, Process *proc)
                       // here we suspend the instruction loop...
 }
 
-WindowProxyMethod::WindowProxyMethod(RunWindow *parent, VM *vm, VM_PROC proc, bool mustRunInGui)
-{
-    this->vm = vm;
-    this->parent = parent;
-    this->proc = proc;
-    this->mustRunInGui = mustRunInGui;
-}
-
-void WindowProxyMethod::operator ()(Stack<Value *> &operandStack, Process *process)
-{
-    proc(operandStack, process, parent, vm);
-}
-
 void SetCursorPosProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
 {
     int line = popInt(stack, proc, w, vm);
@@ -1080,11 +1067,14 @@ void AddressOfProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
     ffi_type *type;
     IClass *guessedType;
     default_C_Type_Of(v->type, guessedType);
-    if(guessedType == NULL)
+
+    kalimat_to_ffi_type(guessedType, type, vm);
+
+    if(type == NULL)
     {
         proc->signal(InternalError1, QString("Cannot take address of value of type: '%1'").arg(v->type->toString()));
     }
-    kalimat_to_ffi_type(guessedType, type, vm);
+
     void *ptr = malloc(type->size);
     kalimat_to_ffi_value(v->type, v, type, ptr, proc, vm);
     //todo:
@@ -1535,7 +1525,8 @@ void ImageScaledProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
     double s1= popDoubleOrCoercable(stack, proc, w, vm);
     double s2= popDoubleOrCoercable(stack, proc, w, vm);
 
-    QTransform trans = trans.scale(s1, s2);
+    QTransform trans;
+    trans = trans.scale(s1, s2);
     QImage *img2 = new QImage(handle->transformed(trans));
 
     Value *ret = newGuiObject(img2, type, vm);
@@ -1574,7 +1565,8 @@ void ImageFlippedProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm
     else if(s2<0)
         s2 = -1;
 
-    QTransform trans = trans.scale(s1, s2);
+    QTransform trans;
+    trans = trans.scale(s1, s2);
     QImage *img2 = new QImage(handle->transformed(trans));
 
     Value *ret = newGuiObject(img2, type, vm);
@@ -1989,6 +1981,21 @@ void ButtonGroupGetButtonProc(Stack<Value *> &stack, Process *proc, RunWindow *w
 
     Value *btnObj = (Value *) button->property("valueptr").value<void *>();
     stack.push(btnObj);
+}
+
+void ClassNewObjectProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+{
+    Value *v = popValue(stack, proc, w, vm);
+    IObject *theClassObj = v->unboxObj();
+    IClass *theClass = dynamic_cast<IClass *>(theClassObj);
+    if(theClass)
+    {
+        stack.push(vm->GetAllocator().newObject(theClass->newValue(&vm->GetAllocator()), theClass));
+    }
+    else
+    {
+        throw VMError(InternalError);
+    }
 }
 
 void setupChildren(QGridLayout *layout,Value *v, Reference *ref, QString label, int row, VM *vm)

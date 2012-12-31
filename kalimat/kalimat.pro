@@ -76,7 +76,8 @@ SOURCES += main.cpp \
     ../smallvm/scheduler.cpp \
     ../smallvm/blockingqueue.cpp \
     ../smallvm/instructionrunners.cpp \
-    stepstopcondition.cpp
+    stepstopcondition.cpp \
+    ../smallvm/runtime/windowproxymethod.cpp
 HEADERS += mainwindow.h \
     Lexer/token.h \
     Lexer/statemachine.h \
