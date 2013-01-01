@@ -51,6 +51,9 @@ struct Frame : public IObject
     Frame(Method *method, int ip);
     Frame(const Frame &other);
 
+    void Init(Method *method);
+    void Init(Method *method, int ip);
+
     virtual ~Frame();
     const Instruction &getPreviousRunningInstruction();
     void prepareFastLocals();

@@ -56,22 +56,43 @@ Frame::Frame()
 }
 
 Frame::Frame(Method *method)
+    :currentMethod(method),
+      ip(0),
+      returnReferenceIfRefMethod(true),
+      next(NULL)
 {
-    currentMethod = method;
-    ip = 0;
-    returnReferenceIfRefMethod = true;
-    next = NULL;
     prepareFastLocals();
 }
 
 Frame::Frame(Method *method, int ip)
+    :currentMethod(method),
+      ip(ip),
+      returnReferenceIfRefMethod(true),
+      next(NULL)
 {
+    prepareFastLocals();
+}
+
+void Frame::Init(Method *method)
+{
+    Init(method, 0);
+}
+
+void Frame::Init(Method *method, int ip)
+{
+    OperandStack.clear();
     currentMethod = method;
     this->ip = ip;
     returnReferenceIfRefMethod = true;
     next = NULL;
+    if(fastLocals && fastLocals != fastLocalsStatic)
+    {
+        delete[] fastLocals;
+    }
     prepareFastLocals();
 }
+
+
 
 Frame::~Frame()
 {

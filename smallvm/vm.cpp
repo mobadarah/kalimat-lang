@@ -958,7 +958,7 @@ void VM::stopTheWorld()
     mainScheduler.stopForGc = true;
 
     gcCanStart.acquire(1); // later: numThreads-1
-    qDebug("VM::stopTheWorld() called");
+    //qDebug("VM::stopTheWorld() called");
 }
 
 void VM::startTheWorld()

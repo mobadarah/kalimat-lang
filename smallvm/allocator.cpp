@@ -494,7 +494,7 @@ void Allocator::sweep()
 
     clock_t now = clock();
 
-    qDebug() << "Last GC since " << (double) (now - lastgc) / (double) CLOCKS_PER_SEC << " ms.";
+    // qDebug() << "Last GC since " << (double) (now - lastgc) / (double) CLOCKS_PER_SEC << " ms.";
     lastgc = now;
     //*/
     QVector<Value *> toDel;
@@ -509,12 +509,12 @@ void Allocator::sweep()
             toDel.append(v);
         }
     }
-    qDebug() << "Deleting: " <<  toDel.count() << " elements. Heap size: " << heap.count();
+    // qDebug() << "Deleting: " <<  toDel.count() << " elements. Heap size: " << heap.count();
     for(int i=0; i<toDel.count(); i++)
     {
         Value *v = toDel[i];
         heap.remove(v);
         delete v;
     }
-    qDebug() << "Heap size now: " << heap.count();
+    // qDebug() << "Heap size now: " << heap.count();
 }

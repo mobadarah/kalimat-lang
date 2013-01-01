@@ -198,7 +198,7 @@ Frame *Scheduler::launchProcess(Method *method, Process *&proc)
     Process *p = new Process(this);
     p->starterProcedureName = method->getName();
     proc = p;
-    p->pushFrame(new Frame(method));
+    p->pushFrame(p->framePool.allocate(method));
     running.push_front(p);
     Frame *ret = p->stack;
     _isRunning = 1;

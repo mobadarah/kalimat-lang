@@ -74,7 +74,7 @@ void ffi_callback_dispatcher(ffi_cif *cif, void *ret, void** args,
 {
     // to return something use *ret = ...;
     ClosureData *cdata = (ClosureData *) data;
-    qDebug() << "Callback invoked: " << (long) cdata->funcObj << ".";
+    // qDebug() << "Callback invoked: " << (long) cdata->funcObj << ".";
     Method *method = dynamic_cast<Method *>(cdata->funcObj->unboxObj());
     if(method)
     {

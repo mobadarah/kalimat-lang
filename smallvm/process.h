@@ -21,6 +21,10 @@
     #include "runtime_identifiers.h"
 #endif
 
+#ifndef FRAMEPOOL_H
+    #include "framepool.h"
+#endif
+
 #include <QStack>
 #include <QVector>
 #include <QMap>
@@ -78,6 +82,8 @@ struct Process
     bool interrupt;
     int timeSlice;
     QString starterProcedureName;
+
+    FramePool framePool;
 public:
     Scheduler *wannaMigrateTo;
 public:

@@ -141,7 +141,6 @@ public:
     QStack<Context> scopeStack;
     QString currentModuleName;
 
-
     int codePosKeyCount;
 public:
     CodeGenerationMode mode;

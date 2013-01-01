@@ -164,6 +164,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     // No .exes for now
     ui->actionMake_exe->setVisible(false);
+    ui->action_go_to_definition->setVisible(false);
 }
 
 void MainWindow::outputMsg(QString s)
@@ -1739,9 +1740,13 @@ void MainWindow::dragEnterEvent(QDragEnterEvent *event)
 {
     // Set the drop action to be the proposed action.
     if (event->mimeData()->hasUrls())
+    {
         event->acceptProposedAction();
+    }
     else
+    {
         qDebug("Error: Only Files can be dragged to this window");
+    }
 }
 
 void MainWindow::wheelEvent(QWheelEvent *ev)

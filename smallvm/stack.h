@@ -42,6 +42,17 @@ public:
         }
     }
 
+    void clear()
+    {
+        while(last != &first)
+        {
+            removeChunk();
+        }
+        _count = 0;
+        nchuncks = 1;
+        first.next = first.prev = 0;
+    }
+
     Stack(Stack &other)
     {
         for(Stack<T>::const_iterator i=other.begin(); i!= other.end(); ++i)
@@ -69,9 +80,8 @@ public:
     }
     T pop()
     {
-        int n = _count % ChunkSize;
-        T ret = last->data[n-1];
-        n--;
+        int n = (_count - 1 ) % ChunkSize;
+        T ret = last->data[n];
         if(n == 0 && (last != &first))
         {
             removeChunk();

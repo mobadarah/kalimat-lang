@@ -27,8 +27,10 @@ Process::~Process()
     {
         Frame *temp = stack;
         stack = stack->next;
-        delete temp;
+        framePool.free(temp);
     }
+    // the destructor of FramePool will now take care
+    // of deallocation of all frames in the freelist
 }
 
 void Process::sleep()
@@ -865,8 +867,8 @@ void Process::CallImpl(Method *method, bool wantValueNotRef, int arity, CallStyl
     if(callStyle == TailCall)
     {
         Frame *oldFrame = popFrame();
-        delete oldFrame;
-        pushFrame(new Frame(method));
+        framePool.free(oldFrame);
+        pushFrame(framePool.allocate(method));
         frame = currentFrame();
     }
     else if(callStyle == LaunchCall)
@@ -875,7 +877,7 @@ void Process::CallImpl(Method *method, bool wantValueNotRef, int arity, CallStyl
     }
     else if(callStyle == NormalCall)
     {
-        pushFrame(new Frame(method));
+        pushFrame(framePool.allocate(method));
         frame = currentFrame();
     }
 
@@ -952,7 +954,7 @@ void Process::DoCallMethod(const QString &SymRef, int SymRefLabel, int arity, Ca
     if(callStyle == TailCall)
     {
         Frame *f = popFrame();
-        delete f;
+        framePool.free(f);
     }
     if(method == NULL)
     {
@@ -967,7 +969,7 @@ void Process::DoCallMethod(const QString &SymRef, int SymRefLabel, int arity, Ca
         Frame *frame = NULL;
         if(callStyle == NormalCall || callStyle == TailCall)
         {
-            pushFrame(new Frame(method));
+            pushFrame(framePool.allocate(method));
             frame = currentFrame();
         }
         else if(callStyle == LaunchCall)
@@ -1038,7 +1040,7 @@ void Process::DoRet()
     if(currentFrame()->OperandStack.count()==1)
         v = currentFrame()->OperandStack.pop();
     Frame *f = popFrame();
-    delete f;
+    framePool.free(f);
     if(!(stack == NULL))
     {
         if(v!=NULL)

@@ -47,7 +47,8 @@ SOURCES += main.cpp \
     blockingqueue.cpp \
     instructionrunners.cpp \
     stack.cpp \
-    runtime/windowproxymethod.cpp
+    runtime/windowproxymethod.cpp \
+    framepool.cpp
 
 HEADERS += value.h \
     instruction.h \
@@ -92,7 +93,8 @@ HEADERS += value.h \
     instructionrunners.h \
     stack.h \
     processiterator.h \
-    runtime/windowproxymethod.h
+    runtime/windowproxymethod.h \
+    framepool.h
 FORMS +=  runtime/runwindow.ui
 
 RESOURCES += \
