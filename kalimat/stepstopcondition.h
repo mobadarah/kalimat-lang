@@ -7,7 +7,7 @@ class CodeDocument;
 class MainWindow;
 struct StepStopCondition
 {
-    virtual bool stopNow(int offset, Frame *frame, Process *process)=0;
+    virtual bool stopNow(Frame *frame, Process *process)=0;
 };
 
 struct SingleStepCondition : public StepStopCondition
@@ -21,7 +21,7 @@ struct SingleStepCondition : public StepStopCondition
     {
 
     }
-    bool stopNow(int offset, Frame *frame, Process *);
+    bool stopNow(Frame *frame, Process *);
 };
 
 struct StepOverCondition : public StepStopCondition
@@ -35,7 +35,7 @@ struct StepOverCondition : public StepStopCondition
     {
 
     }
-    bool stopNow(int offset, Frame *frame, Process *);
+    bool stopNow(Frame *frame, Process *);
 };
 
 

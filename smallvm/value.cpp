@@ -26,6 +26,7 @@ ValueClass *BuiltInTypes::IntType = NULL;
 ValueClass *BuiltInTypes::LongType = NULL;
 ValueClass *BuiltInTypes::DoubleType = NULL;
 ValueClass *BuiltInTypes::BoolType = NULL;
+ValueClass *BuiltInTypes::RawType = NULL;
 IClass *BuiltInTypes::MethodType = NULL;
 ValueClass *BuiltInTypes::ExternalMethodType = NULL;
 ValueClass *BuiltInTypes::ExternalLibrary = NULL;
@@ -57,6 +58,19 @@ ValueClass *BuiltInTypes::c_wstr = NULL;
 ValueClass *BuiltInTypes::c_void = NULL;
 ValueClass *BuiltInTypes::c_ptr= NULL;
 
+bool eq_int(Value *a, Value *b) { return a->unboxInt() == b->unboxInt();}
+bool eq_long(Value *a, Value *b) { return a->unboxLong() == b->unboxLong();}
+bool eq_double(Value *a, Value *b) { return a->unboxDouble() == b->unboxDouble();}
+bool eq_bool(Value *a, Value *b) { return a->unboxBool() == b->unboxBool();}
+bool eq_raw(Value *a, Value *b) { return a->unboxRaw() == b->unboxRaw();}
+bool eq_qobject(Value *a, Value *b) { return a->unboxQObj() == b->unboxQObj();}
+bool  eq_str(Value *a, Value *b)
+{
+    return QString::compare(a->unboxStr(), b->unboxStr(), Qt::CaseSensitive) == 0;
+}
+
+bool eq_null(Value *a, Value *b) { return true;}
+
 void BuiltInTypes::init()
 {
     if(ObjectType != NULL)
@@ -68,9 +82,16 @@ void BuiltInTypes::init()
     LongType = new ValueClass(VMId::get(RId::Long), BuiltInTypes::NumericType);
     DoubleType = new ValueClass(VMId::get(RId::Double), BuiltInTypes::NumericType);
     BoolType = new ValueClass(VMId::get(RId::Boolean), BuiltInTypes::ObjectType);
+    RawType = new ValueClass(VMId::get(RId::Raw), BuiltInTypes::ObjectType);
+    RawType->equality = eq_raw;
+
     MethodType = new MethodClass(VMId::get(RId::Method), BuiltInTypes::ObjectType);
     ExternalMethodType = new ValueClass(VMId::get(RId::ExternalMethod), BuiltInTypes::MethodType);
-    ExternalLibrary = new ValueClass(VMId::get(RId::ExternalLibrary), BuiltInTypes::ObjectType);
+    // Actually, ExternalMethodType is-a method, but has equality using eq_raw
+    // the correct way to define it's behavior is using multiple inheritance or
+    // something similar if we had it..
+    ExternalMethodType->equality = eq_raw;
+    ExternalLibrary = new ValueClass(VMId::get(RId::ExternalLibrary), BuiltInTypes::RawType);
     ClassType = new MetaClass(VMId::get(RId::Class), NULL);
     IndexableType = new ValueClass(VMId::get(RId::Indexable), BuiltInTypes::ObjectType);
     ArrayType = new ValueClass(VMId::get(RId::VArray), BuiltInTypes::IndexableType);
@@ -78,15 +99,23 @@ void BuiltInTypes::init()
     StringType = new ValueClass(VMId::get(RId::String), BuiltInTypes::IndexableType);
     SpriteType = new SpriteClass(VMId::get(RId::Sprite));
     FileType = NULL;
-    RawFileType = new ValueClass(VMId::get(RId::RawFile), BuiltInTypes::ObjectType);
+    RawFileType = new ValueClass(VMId::get(RId::RawFile), BuiltInTypes::RawType);
     WindowType = new ValueClass(VMId::get(RId::Window), BuiltInTypes::ObjectType);
     RefType = new ValueClass(VMId::get(RId::Reference), BuiltInTypes::ObjectType);
     FieldRefType = new ValueClass(VMId::get(RId::FieldReference), BuiltInTypes::ObjectType);
     ArrayRefType = new ValueClass(VMId::get(RId::ArrayReference), BuiltInTypes::ObjectType);
     NullType = new ValueClass(VMId::get(RId::NullType), BuiltInTypes::ObjectType);
+    NullType->equality = eq_null;
     ChannelType = new ValueClass(VMId::get(RId::Channel), BuiltInTypes::ObjectType);
     QObjectType = new ValueClass(VMId::get(RId::QObject), BuiltInTypes::ObjectType);
+    QObjectType->equality = eq_qobject;
     LambdaType = new ValueClass("%lambda", BuiltInTypes::ObjectType);
+
+    IntType->equality = eq_int;
+    LongType->equality = eq_long;
+    DoubleType->equality = eq_double;
+    BoolType->equality = eq_bool;
+    StringType->equality = eq_str;
 
     c_int = new ValueClass(VMId::get(RId::c_int32), BuiltInTypes::ObjectType);
     c_long = new ValueClass(VMId::get(RId::c_long), BuiltInTypes::ObjectType);
@@ -95,7 +124,8 @@ void BuiltInTypes::init()
     c_char = new ValueClass(VMId::get(RId::c_char), BuiltInTypes::ObjectType);
     c_asciiz = new ValueClass(VMId::get(RId::c_ascii), BuiltInTypes::ObjectType);
     c_wstr = new ValueClass(VMId::get(RId::c_wstr), BuiltInTypes::ObjectType);
-    c_ptr= new ValueClass(VMId::get(RId::c_pointer), BuiltInTypes::ObjectType);
+    c_ptr= new ValueClass(VMId::get(RId::c_pointer), BuiltInTypes::RawType);
+
     c_void = new ValueClass(VMId::get(RId::c_void), BuiltInTypes::ObjectType);
 }
 
@@ -319,12 +349,20 @@ void VMap::set(Value *key, Value *v)
     Elements[*key] = v;
 }
 
+bool compareRef(Value *v1, Value *v2)
+{
+    return v1->unboxObj() == v2->unboxObj();
+}
+
 ValueClass::ValueClass(QString name, IClass *baseClass)
 {
     this->name = name;
     if(baseClass !=NULL)
         this->BaseClasses.append(baseClass);
-
+    if(baseClass != NULL)
+        this->equality = baseClass->equality;
+    else
+        this->equality = compareRef;
 }
 
 bool ValueClass::hasSlot(QString name)
@@ -402,7 +440,8 @@ QString ValueClass::toString()
 
 ForeignClass::ForeignClass(QString name)
 {
-   this->name = name;
+    this->name = name;
+    this->equality = compareRef;
 }
 
 bool ForeignClass::hasSlot(QString name)

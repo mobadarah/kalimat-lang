@@ -49,9 +49,11 @@ void ValueClass::InitObjectLayoutHelper(ValueClass *_class, Object *object, Allo
 
 }
 
+bool eq_raw(Value *a, Value *b);
 PointerClass::PointerClass(IClass *pointee)
 {
     this->pointee = pointee;
+    this->equality = eq_raw;
 }
 
 bool PointerClass::hasSlot(QString name)
@@ -130,6 +132,7 @@ FunctionClass::FunctionClass(IClass *retType, QVector<IClass *> argTypes)
     :retType(retType),
       argTypes(argTypes)
 {
+    this->equality = compareRef; // doesn't matter anyway
 }
 
 bool FunctionClass::hasSlot(QString name)

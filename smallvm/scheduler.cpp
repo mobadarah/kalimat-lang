@@ -12,6 +12,7 @@ Scheduler::Scheduler(VM *vm)
     stopForGc = false;
     releasedGcSemaphore = false;
     runningNow = NULL;
+    seed = 0xFFFFFFFFL;
 }
 
 void Scheduler::restartOwner()
@@ -64,10 +65,11 @@ QString Scheduler::getFriendlyName()
 
 int Scheduler::activateElapsedTimers()
 {
-    clock_t qt = clock();
+
     int ntimer = timerWaiting.count();
     if(ntimer)
     {
+        clock_t qt = clock();
         while(ntimer > 0 && timerWaiting.front()->timeToWake < qt)
         {
             ntimer--;
@@ -100,7 +102,7 @@ bool Scheduler::schedule()
     if(!running.empty())
     {
         _isRunning = 1; // (*).... we check the running queue and find it non-empty
-        return running.TryDequeue(runningNow, 30);
+        return running.TryDequeue(runningNow, 1);
     }
 
     if(!sleeping.empty())
@@ -109,9 +111,28 @@ bool Scheduler::schedule()
     return false;
 }
 
+
+//  George Marsaglia's xorshf random number generator
+unsigned long xorshf96(void)
+{
+    static unsigned long x=123456789, y=362436069, z=521288629;
+    //period 2^96-1
+unsigned long t;
+    x ^= x << 16;
+    x ^= x >> 5;
+    x ^= x << 1;
+
+   t = x;
+   x = y;
+   y = z;
+   z = t ^ x ^ y;
+
+  return z;
+}
+
 bool Scheduler::RunStep(bool singleInstruction, int maxtimeSclice)
 {
-    int random = rand();
+    unsigned long random = xorshf96();
     int n = singleInstruction? 1 : random % maxtimeSclice;
 
     // Bring a process to the front of 'running' queue

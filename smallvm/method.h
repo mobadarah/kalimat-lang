@@ -76,7 +76,10 @@ class MethodClass : public IClass
     static IMethod *Apply;
 public:
 
-    MethodClass(QString name, IClass *base) : name(name), base(base) { }
+    MethodClass(QString name, IClass *base) : name(name), base(base)
+    {
+        equality = compareRef;
+    }
     QString getName() { return name;}
     virtual bool hasField(QString name) { return false;}
     virtual IClass *baseClass() { return base;}

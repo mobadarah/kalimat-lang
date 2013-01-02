@@ -618,7 +618,7 @@ void LoadImageProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
     IClass *imgClass = dynamic_cast<IClass *>(vm->GetType(VMId::get(RId::Image))->unboxObj());
     QImage *img = new QImage(fname);
     IObject *obj = imgClass->newValue(&vm->GetAllocator());
-    obj->setSlotValue("handle", vm->GetAllocator().newRaw(img, BuiltInTypes::ObjectType));
+    obj->setSlotValue("handle", vm->GetAllocator().newRaw(img, BuiltInTypes::RawType));
     stack.push(vm->GetAllocator().newObject(obj, imgClass));
 }
 
@@ -663,7 +663,7 @@ Sprite *GetSpriteFromValue(Value * v)
 
 Value *MakeSpriteValue(Sprite *sprite, Allocator *alloc)
 {
-    Value *spriteHandle = alloc->newRaw(sprite, BuiltInTypes::ObjectType);
+    Value *spriteHandle = alloc->newRaw(sprite, BuiltInTypes::RawType);
     alloc->stopGcMonitoring(spriteHandle);
 
     //todo: we stopGcMonitoring each thing we allocate since
@@ -828,7 +828,7 @@ void GetSpriteImageProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *
     IClass *imgClass = dynamic_cast<IClass *>
             (vm->GetType(clsName)->unboxObj());
     IObject *imgObj = imgClass->newValue(&vm->GetAllocator());
-    imgObj->setSlotValue("handle", vm->GetAllocator().newRaw(img, BuiltInTypes::ObjectType));
+    imgObj->setSlotValue("handle", vm->GetAllocator().newRaw(img, BuiltInTypes::RawType));
 
     stack.push(vm->GetAllocator().newObject(imgObj, imgClass));
 }
@@ -897,7 +897,10 @@ void SetTextColorProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm
 {
     int color = popInt(stack, proc, w, vm);
     w->assert(proc, color>=0 && color <=15, ArgumentError, "Color value must be from 0 to 15");
-    w->paintSurface->setTextColor(w->paintSurface->GetColor(color));
+
+    //w->paintSurface->setTextColor(w->paintSurface->GetColor(color));
+    w->textLayer.setColor(w->paintSurface->GetColor(color));
+
     w->redrawWindow();
 }
 
@@ -1144,7 +1147,7 @@ Value *popValue(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
 Value *newGuiObject(void *ptr, IClass *type, VM *vm)
 {
     IObject *obj = type->newValue(&vm->GetAllocator());
-    obj->setSlotValue("handle", vm->GetAllocator().newRaw(ptr, BuiltInTypes::ObjectType));
+    obj->setSlotValue("handle", vm->GetAllocator().newRaw(ptr, BuiltInTypes::RawType));
     return vm->GetAllocator().newObject(obj, type);
 }
 

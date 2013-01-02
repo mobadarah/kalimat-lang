@@ -58,6 +58,9 @@ struct PropertyDesc
     bool readOnly;
 };
 
+typedef bool (*EqualityFuncSameType)(Value *v1, Value *v2);
+bool compareRef(Value *v1, Value *v2);
+
 struct IClass : public IObject
 {
     virtual QString getName() = 0;
@@ -70,6 +73,7 @@ struct IClass : public IObject
     // TODO: we need a relection API with attributes, similar to e.g .net
     // instead of these ad-hoc solutions
     virtual QVector<PropertyDesc> getProperties()=0;
+    EqualityFuncSameType equality;
 };
 
 struct ValueClass : public IClass
@@ -128,31 +132,6 @@ struct ForeignClass : public IClass
 public:
     QString name;
 
-};
-
-struct FFILibraryClass : public IClass
-{
-    FFILibraryClass(QString name);
-    // IObject
-    virtual bool hasSlot(QString name);
-    virtual QList<QString> getSlotNames();
-    virtual Value *getSlotValue(QString name);
-    virtual void setSlotValue(QString name, Value *val);
-
-    //IClass
-    QString getName();
-    virtual bool hasField(QString name);
-    IClass *baseClass();
-    virtual bool subclassOf(IClass *c);
-    virtual IMethod *lookupMethod(QString name);
-    virtual IObject *newValue(Allocator *allocator);
-    QString toString();
-
-public:
-    QString name;
-private:
-    static IMethod *registerFFIMethod;
-    static IMethod *ffiMethodProxy;
 };
 
 /*

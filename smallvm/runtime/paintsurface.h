@@ -20,6 +20,7 @@
 
 #include <time.h>
 
+class QTextDocument;
 class PaintSurface
 {
     QImage image;
@@ -58,8 +59,9 @@ public:
     void resize(int width, int height);
     void resizeImage(QImage *image, const QSize &newSize);
 
-    QRect textCursor(TextLayer &layer);
+    void adjustFontForNumberOfLines(int n);
     void drawTextLayer(QPainter &imgPainter, TextLayer &layer);
+    void fastDrawTextLayer(QPainter &imgPainter, TextLayer &layer);
     void drawSpriteLayer(QPainter &imgPainter, SpriteLayer &layer);
 };
 

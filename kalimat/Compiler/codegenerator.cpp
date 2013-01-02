@@ -493,7 +493,7 @@ void CodeGenerator::generateFFIProceduralDeclaration(shared_ptr<FFIProceduralDec
       pushl %funcPtr
 
       callex callforeign
-
+      ret
       .endmethod
     */
     // Push a dummy procedure scope since all calls to gen()
@@ -1298,7 +1298,7 @@ void CodeGenerator::generateEntryPoint(QVector<shared_ptr<Statement> > statement
         generateStatement(statements[i]);
     }
     //gen("pushv 0");
-    //gen("ret");
+    gen("ret");
     gen(".endmethod");
 }
 

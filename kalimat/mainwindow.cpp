@@ -1384,9 +1384,9 @@ void MainWindow::Break(int offset, Frame *frame, Process *process)
     }
 }
 
-bool MainWindow::currentBreakCondition(int offset, Frame *frame, Process *process)
+bool MainWindow::currentBreakCondition(Frame *frame, Process *process)
 {
-    return currentStepStopCondition->stopNow(offset, frame, process);
+    return currentStepStopCondition->stopNow(frame, process);
 }
 
 

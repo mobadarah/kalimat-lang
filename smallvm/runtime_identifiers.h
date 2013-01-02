@@ -13,6 +13,7 @@ namespace RId
         Long,
         Double,
         Boolean,
+        Raw,
         Method,
         ExternalMethod,
         ExternalLibrary,

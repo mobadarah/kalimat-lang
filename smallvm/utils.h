@@ -25,6 +25,7 @@ QString base64Decode(QString source);
 
 QString str(int i);
 
+#define TIME_DIFF_TO_SECONDS(t1, t2) ((double) (t2 - t1) / (double) CLOCKS_PER_SEC)
 template<class T> QSet<T> setOf(T t1)
 {
     QSet<T> ret;

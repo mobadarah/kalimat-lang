@@ -9,6 +9,7 @@
 #include "vmerror.h"
 #include "allocator.h"
 #include "runtime_identifiers.h"
+#include <memory>
 
 FrameClass::FrameClass(QString className, VM *vm)
     : EasyForeignClass(className, vm)
@@ -130,6 +131,8 @@ void Frame::prepareFastLocals()
         {
             fastLocals[i] = NULL;
         }
+
+        memset(fastLocals, 0, n *sizeof(Value *));
     }
     else
     {

@@ -43,6 +43,7 @@ class Scheduler
     QQueue<Process *> sleeping;
     QQueue<Process *> timerWaiting;
     int _isRunning;
+    long seed;
 public:
     Process *runningNow;
     VM *vm;

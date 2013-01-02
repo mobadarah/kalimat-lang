@@ -7,6 +7,12 @@
 
 #include "paintsurface.h"
 #include <QFontDatabase>
+#include <QTextDocument>
+#include <QTextLayout>
+#include <QAbstractTextDocumentLayout>
+#include <QTextBlock>
+#include <QDebug>
+
 #include "../vm.h"
 
 PaintSurface::PaintSurface(QSize size, QFont font)
@@ -26,6 +32,7 @@ PaintSurface::PaintSurface(QSize size, QFont font)
     // from this file so that the PaintSurface class is not coupled with
     // SmallVM and can be used elsewhere
     locationFormatter = VM::argumentErrors.get(ArgErr::MouseLocationReport2);
+    adjustFontForNumberOfLines(visibleTextLines);
 }
 
 bool PaintSurface::dirty()
@@ -37,10 +44,21 @@ void PaintSurface::paint(QPainter &painter, TextLayer &textLayer, SpriteLayer &s
 {
     if(textLayer.dirty() || spriteLayer.dirty() || this->dirty())
     {
+        /*
+        qDebug() << "updating!" << "Text: " << textLayer.dirty()
+                 << " Sprites: " << spriteLayer.dirty()
+                 << " Image: " << this->dirty();
+        clock_t t1 = clock();
+        //*/
         update(textLayer, spriteLayer);
+        /*
+        clock_t t2 = clock();
+        qDebug() << "Drawing took " << TIME_DIFF_TO_SECONDS(t1, t2) << " seconds";
+        //*/
         textLayer.updated();
         spriteLayer.updated();
         this->updated();
+
     }
     painter.drawImage(QPoint(0, 0), finalImg);
 }
@@ -49,7 +67,9 @@ void PaintSurface::update(TextLayer &textLayer, SpriteLayer &spriteLayer)
 {
     QPainter imgPainter(&finalImg);
     imgPainter.drawImage(QPoint(0,0), image);
+    imgPainter.fillRect(image.rect(), Qt::white);
     drawTextLayer(imgPainter, textLayer);
+    //fastDrawTextLayer(imgPainter, textLayer);
     drawSpriteLayer(imgPainter, spriteLayer);
 
     const int shiftDist = 15;
@@ -80,28 +100,35 @@ void PaintSurface::update(TextLayer &textLayer, SpriteLayer &spriteLayer)
     }
 }
 
+void PaintSurface::adjustFontForNumberOfLines(int n){
+    qreal h = image.height() / n;
+    textFont.setPixelSize(h);
+    QPainter p(&image);
+    while(true)
+    {
+        p.setFont(textFont);
+        qreal line_h = p.fontMetrics().lineSpacing();
+        if(n * (line_h) < image.height())
+            break;
+        h-=0.5;
+        textFont.setPixelSize(h);
+        p.setFont(textFont);
+    }
+}
+
 void PaintSurface::drawTextLayer(QPainter &imgPainter, TextLayer &textLayer)
 {
-    imgPainter.setLayoutDirection(Qt::RightToLeft);
+    QTextLayout layout("", textFont, &image);
 
-    QTextOption options;
-    options.setAlignment(Qt::AlignLeft);
-    options.setTextDirection(Qt::RightToLeft);
+    QTextOption option;
+    option.setTextDirection(Qt::RightToLeft);
+    option.setAlignment(Qt::AlignVCenter | Qt::AlignRight);
+    layout.setTextOption(option);
 
-    textFont.setPixelSize(image.height()/25);
+    layout.setFont(textFont);
     imgPainter.setFont(textFont);
 
-    QPen oldPen = imgPainter.pen();
-    imgPainter.setPen(textColor);
-    for(int i=0; i<textLayer.lines().count(); i++)
-    {
-        QRect rct(0, i* textFont.pixelSize(), image.width()-1, image.height());
-        rct.adjust(-2, 0, -2, 0);
-        imgPainter.drawText(rct, textLayer.lines()[i], options);
-    }
-
-    imgPainter.setPen(oldPen);
-
+    bool shouldDrawCursor = false;
     if(textLayer.inputState())
     {
         if(cursorTimerPoint == -1)
@@ -117,15 +144,100 @@ void PaintSurface::drawTextLayer(QPainter &imgPainter, TextLayer &textLayer)
         }
         if(cursorTimeSoFar < (CLOCKS_PER_SEC /2))
         {
-            QRect cur = textCursor(textLayer);
-            cur.adjust(-2, 0, -2, 0);
-            imgPainter.drawLine(cur.topRight(), cur.bottomRight());
+            shouldDrawCursor = true;
         }
         else if(cursorTimeSoFar > CLOCKS_PER_SEC)
         {
             cursorTimeSoFar = 0;
         }
     }
+
+    qreal height = imgPainter.fontMetrics().lineSpacing();
+    qreal subtractSomeHeigh = 0;
+    for(int i=0; i<visibleTextLines; ++i)
+    {
+        const QString &text = textLayer.lines()[i];
+        const QList<QTextLayout::FormatRange> range = textLayer.formatRanges(i);
+
+        layout.setText(text);
+        layout.setAdditionalFormats(range);
+        layout.beginLayout();
+        int temph;
+        while(true)
+        {
+            QTextLine line = layout.createLine();
+            if(!line.isValid())
+                break;
+            line.setLineWidth(image.width());
+            line.setPosition(QPointF(-5, 0));
+            temph = line.height()-1;
+            if(temph > height)
+            {
+                subtractSomeHeigh = ((temph - height) / 2) - 2;
+            }
+            else
+            {
+                subtractSomeHeigh = 0;
+            }
+        }
+        layout.endLayout();
+        // imgPainter.drawRect(0, i* height, image.width(), height);
+        layout.draw(&imgPainter, QPointF(0, i * height - subtractSomeHeigh));
+        if(shouldDrawCursor && i == textLayer.cursorLine())
+            layout.drawCursor(&imgPainter, QPointF(0, i*height - subtractSomeHeigh), textLayer.cursorColumn(), 2);
+    }
+}
+
+void PaintSurface::fastDrawTextLayer(QPainter &imgPainter, TextLayer &textLayer)
+{
+    // Faster, but cannot give each individual letters a different color
+    imgPainter.setLayoutDirection(Qt::RightToLeft);
+
+    QTextOption options;
+    options.setAlignment(Qt::AlignLeft);
+    options.setTextDirection(Qt::RightToLeft);
+    imgPainter.setFont(textFont);
+    QPen oldPen = imgPainter.pen();
+    imgPainter.setPen(textColor);
+    int h = imgPainter.fontMetrics().lineSpacing();
+    int cursorY = 0;
+    for(int i=0; i<textLayer.lines().count(); i++)
+    {
+        const QString &text = textLayer.lines()[i];
+        QRect rct(0, i * h, image.width()-1, h);
+        imgPainter.drawText(rct, Qt::AlignVCenter, text);
+        // imgPainter.drawRect(rct);
+        if(textLayer.inputState() && i == textLayer.cursorLine())
+        {
+            if(cursorTimerPoint == -1)
+            {
+                cursorTimerPoint = clock();
+                cursorTimeSoFar = 0.0;
+            }
+            else
+            {
+                long t = clock();
+                cursorTimeSoFar += t - cursorTimerPoint;
+                cursorTimerPoint = t;
+            }
+            if(cursorTimeSoFar < (CLOCKS_PER_SEC /2))
+            {
+                QString line = textLayer.currentLine().left(textLayer.cursorColumn());
+                int w = imgPainter.fontMetrics().tightBoundingRect(line).width();
+                w+=2;
+                cursorY = rct.top();
+                TX(w);
+                QRectF cur(w, cursorY, 2, h);
+                //cur.adjust(-2, 0, -2, 0);
+                imgPainter.drawLine(cur.topRight(), cur.bottomRight());
+            }
+            else if(cursorTimeSoFar > CLOCKS_PER_SEC)
+            {
+                cursorTimeSoFar = 0;
+            }
+        }
+    }
+    imgPainter.setPen(oldPen);
 }
 
 void PaintSurface::drawSpriteLayer(QPainter &imgPainter, SpriteLayer &spriteLayer)
@@ -248,27 +360,6 @@ void PaintSurface::TX(int &x, int w)
 void PaintSurface::setTextColor(QColor color)
 {
     textColor = color;
-}
-
-QRect PaintSurface::textCursor(TextLayer &textLayer)
-{
-    // We use a trick to preserve the value of dirtyState
-    // since GetImageForWriting() changes it to true
-    // even though we are not actually drawing anything
-    // on the image
-    bool oldDirtyState = dirtyState;
-    QPainter p(GetImageForWriting());
-    dirtyState = oldDirtyState;
-
-    p.setFont(textFont);
-    QString line = textLayer.currentLine().left(textLayer.cursorColumn());
-    int w = p.fontMetrics().tightBoundingRect(line).width();
-    int h = textFont.pixelSize();
-
-    int x = image.width() - w;
-    int y = textLayer.cursorLine() * h;
-
-    return QRect(x-2, y, 2, h);
 }
 
 void PaintSurface::resize(int width, int height)

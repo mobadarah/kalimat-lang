@@ -19,6 +19,7 @@ Process::Process(Scheduler *owner)
     interrupt = false;
     wannaMigrateTo = NULL;
     stack = NULL;
+    _isFinished = false;
 }
 
 Process::~Process()
@@ -219,8 +220,7 @@ void Process::RunTimeSlice(int slice, VM *vm, Scheduler *caller)
 
         RunSingleInstruction();
 
-        if(vm->debugger->currentBreakCondition(currentFrame()?currentFrame()->ip : -1,
-                                                currentFrame(),
+        if(vm->debugger->currentBreakCondition(currentFrame(),
                                                 this))
         {
             DoBreak();
@@ -651,43 +651,6 @@ bool ge_long(long a, long b) { return a>=b;}
 bool ge_double(double a, double b) { return a>=b;}
 bool ge_str(QString a, QString b) { return a >= b; }
 
-bool eq_int(int a, int b) { return a==b;}
-bool eq_long(long a, long b) { return a==b;}
-bool eq_double(double a, double b) { return a==b;}
-bool eq_bool(bool a, bool b) { return a==b;}
-bool eq_obj(IObject *a, IObject *b){ return a==b;}
-bool eq_raw(void *a, void *b){ return a==b;}
-
-bool  eq_str(QString a, QString b)
-{
-    return QString::compare(a, b, Qt::CaseSensitive) == 0;
-}
-
-bool  eq_difftypes(Value *, Value *)
-{
-    return false;
-}
-
-bool  eq_bothnull() { return true;}
-
-bool ne_int(int a, int b) { return a!=b;}
-bool ne_long(long a, long b) { return a!=b;}
-bool ne_double(double a, double b) { return a!=b;}
-bool ne_bool(bool a, bool b) { return a!=b;}
-bool ne_obj(IObject *a, IObject *b) { return a!=b;}
-bool ne_raw(void *a, void *b) { return a!=b;}
-
-bool  ne_str(QString a, QString b)
-{
-    return QString::compare(a, b, Qt::CaseSensitive) != 0;
-}
-
-bool  ne_difftypes(Value *, Value *)
-{
-    return true;
-}
-bool  ne_bothnull() { return false; }
-
 void Process::DoAdd()
 {
     BuiltInAddOp(add_int, add_long, add_double, add_str);
@@ -784,12 +747,14 @@ void Process::DoGt()
 
 void Process::DoEq()
 {
-    EqualityRelatedOp(eq_int, eq_long, eq_double, eq_bool, eq_obj, eq_str, eq_raw, eq_difftypes, eq_bothnull);
+    Value *v = allocator().newBool(EqualityRelatedOp());
+    currentFrame()->OperandStack.push(v);
 }
 
 void Process::DoNe()
 {
-    EqualityRelatedOp(ne_int, ne_long, ne_double, ne_bool, ne_obj, ne_str, ne_raw, ne_difftypes, ne_bothnull);
+    Value *v = allocator().newBool(!EqualityRelatedOp());
+    currentFrame()->OperandStack.push(v);
 }
 
 void Process::DoLe()
@@ -949,7 +914,6 @@ void Process::DoCallMethod(const QString &SymRef, int SymRefLabel, int arity, Ca
             arr->v.arrayVal->Elements[i] = currentFrame()->OperandStack.pop();
         }
     }
-
 
     if(callStyle == TailCall)
     {
@@ -1586,6 +1550,7 @@ bool Process::coercion(Value *v1, Value *v2, Value *&newV1, Value *&newV2)
     //todo: corecion leaks
     if (v1->tag == Int && v2->tag == Double)
     {
+        //*
         // Why do we allocate a new value instead of just
         // reusing the pointer in v2? Because the call
         // to the allocator could GC v2, and thus we return an invalid
@@ -1606,6 +1571,17 @@ bool Process::coercion(Value *v1, Value *v2, Value *&newV1, Value *&newV2)
         newV2 = allocator().newDouble(oldv2);
         allocator().makeGcMonitored(newV1);
         ret = true;
+        //*/
+        /*
+         // Experimental, need to review race conditions
+         // if the GC runs in another thread while this code is runnin
+
+        int unboxed_v1 = v1->unboxInt();
+        allocator().stopGcMonitoring(v2);
+        newV1 = allocator().newDouble(unboxed_v1);
+        allocator().makeGcMonitored(v2);
+        newV2 = v2;
+        */
     }
     else if(v1->tag == Int && v2->tag == Long)
     {
@@ -1767,15 +1743,7 @@ void Process::BuiltInComparisonOp(bool (*intFunc)(int,int),
     currentFrame()->OperandStack.push(v3);
 }
 
-void Process::EqualityRelatedOp(bool(*intFunc)(int, int),
-                           bool (*longFunc)(long, long),
-                           bool(*doubleFunc)(double, double),
-                           bool(*boolFunc)(bool, bool),
-                           bool(*objFunc)(IObject *, IObject *),
-                           bool(*strFunc)(QString, QString),
-                           bool(*rawFunc)(void *, void *),
-                           bool(*differentTypesFunc)(Value *, Value *),
-                           bool(*nullFunc)())
+bool Process::EqualityRelatedOp()
 {
     Value *v2 = popValue();
     Value *v1 = popValue();
@@ -1788,40 +1756,19 @@ void Process::EqualityRelatedOp(bool(*intFunc)(int, int),
         v2 = newV2;
     }
 
-    Value *v3 = NULL;
     bool result = false;
 
-    // If both values are of the same type...
-    if(v1->tag == v2->tag
-            && (v1->tag == Int || v1->tag == Long || v1->tag == Double || v1->tag == Boolean || v1->tag == ObjectVal
-                || v1->tag == StringVal || v1->tag == ObjectVal || v1->tag == RawVal || v1->tag == NullVal))
-
+    if(v1->tag == v2->tag)
     {
-        if(v1->tag == Int)
-            result = intFunc(v1->v.intVal, v2->v.intVal);
-        else if(v1->tag == Long)
-            result = longFunc(v1->v.longVal, v2->v.longVal);
-        else if(v1->tag == Double)
-            result = doubleFunc(v1->v.doubleVal, v2->v.doubleVal);
-        else if(v1->tag == Boolean)
-            result = boolFunc(v1->unboxBool(), v2->unboxBool());
-        else if(v1->tag == ObjectVal)
-            result = objFunc(v1->v.objVal, v2->v.objVal);
-        else if(v1->tag == StringVal)
-            result = strFunc(v1->unboxStr(), v2->unboxStr());
-        else if(v1->tag == RawVal)
-            result = rawFunc(v1->unboxRaw(), v2->unboxRaw());
-        else if(v1->tag == NullVal)
-            result = nullFunc();
+        result = v1->type->equality(v1, v2);
     }
     else
     {
-        result = differentTypesFunc(v1, v2);
+        result = false;
     }
-    v3 = allocator().newBool(result);
-    currentFrame()->OperandStack.push(v3);
-}
 
+    return result;
+}
 void Process::BinaryLogicOp(bool (*boolFunc)(bool, bool))
 {
     Value *v2 = popValue();

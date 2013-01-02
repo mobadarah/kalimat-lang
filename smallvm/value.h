@@ -154,6 +154,7 @@ public:
     static ValueClass *LongType;
     static ValueClass *DoubleType;
     static ValueClass *BoolType;
+    static ValueClass *RawType;
     static IClass *MethodType;
     static ValueClass *ExternalMethodType;
     static ValueClass *ExternalLibrary;

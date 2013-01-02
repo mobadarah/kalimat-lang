@@ -82,8 +82,9 @@ struct Process
     bool interrupt;
     int timeSlice;
     QString starterProcedureName;
-
     FramePool framePool;
+
+    bool _isFinished;
 public:
     Scheduler *wannaMigrateTo;
 public:
@@ -104,12 +105,8 @@ public:
             return true;
         }
 
-        //*
+        /*
         const  Frame *frame = stack;
-        if(frame->currentMethod == NULL)
-        {
-            return true;
-        }
 
         if(!frame->currentMethod->HasInstruction(frame->ip))
         {
@@ -235,15 +232,7 @@ public:
                       long (*longFunc)(long, long),
                       double (*doubleFunc)(double,double),
                       QString (*strFunc)(QString ,QString));
-    void EqualityRelatedOp(bool  (*intFunc)(int,int),
-                           bool (*longFunc)(long, long),
-                           bool  (*doubleFunc)(double,double),
-                           bool  (*boolFunc)(bool, bool),
-                           bool  (*objFunc)(IObject *, IObject *),
-                           bool  (*strFunc)(QString, QString),
-                           bool  (*rawFunc)(void *, void *),
-                           bool  (*differentTypesFunc)(Value *, Value *),
-                           bool  (*nullFunc)());
+    bool EqualityRelatedOp();
     void BinaryLogicOp(bool (*boolFunc)(bool, bool));
     void UnaryLogicOp(bool (*boolFunc)(bool));
 private:

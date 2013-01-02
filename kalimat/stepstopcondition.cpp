@@ -1,11 +1,11 @@
 #include "stepstopcondition.h"
 #include "mainwindow.h"
 
-bool SingleStepCondition::stopNow(int offset, Frame *frame, Process *proc)
+bool SingleStepCondition::stopNow(Frame *frame, Process *proc)
 {
     if(proc->isFinished())
         return false;
-    const Instruction &i = frame->currentMethod->Get(offset);
+    const Instruction &i = frame->currentMethod->Get(frame->ip);
     if(mw->PositionInfo.contains(i.extra))
     {
         CodePosition &pos = mw->PositionInfo[i.extra];
@@ -27,9 +27,11 @@ bool SingleStepCondition::stopNow(int offset, Frame *frame, Process *proc)
     }
 }
 
-bool StepOverCondition::stopNow(int offset, Frame *frame, Process *)
+bool StepOverCondition::stopNow(Frame *frame, Process *proc)
 {
-    const Instruction &i = frame->currentMethod->Get(offset);
+    if(proc->isFinished())
+        return false;
+    const Instruction &i = frame->currentMethod->Get(frame->ip);
     if(mw->PositionInfo.contains(i.extra))
     {
         CodePosition &pos = mw->PositionInfo[i.extra];

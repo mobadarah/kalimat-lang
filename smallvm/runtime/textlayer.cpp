@@ -15,6 +15,7 @@ TextLayer::TextLayer()
     dirtyState = false;
     mode = Overwrite;
     clearText();
+    noColor = true;
 }
 
 bool TextLayer::dirty()
@@ -29,21 +30,31 @@ void TextLayer::clearText()
 {
     cursor_col = 0;
     cursor_line = 0;
-    visibleTextLines = 25;
-
-
-    textLineWidth = 54;
     visibleTextBuffer.clear();
-    visibleTextBuffer.resize(25);
+    visibleTextBuffer.resize(visibleTextLines);
+    htmlLines.clear();
     dirtyState = true;
+    for(int i=0; i<visibleTextLines; i++)
+    {
+        for(int j=0; j<textLineWidth; j++)
+        {
+            colorBits[i][j] = Qt::black;
+        }
+        htmlLines.append("");
+    }
+    currentColor = Qt::black;
 }
 
 void TextLayer::print(QString str)
 {
+    int curLine = cursor_line;
     for(int i=0; i<str.length(); i++)
     {
         printChar(str[i]);
     }
+    int curLine2 = cursor_line;
+    if(str != "\n")
+        updateChangedLines(curLine, 1 + curLine2 - curLine);
     dirtyState = true;
 }
 
@@ -73,6 +84,8 @@ void TextLayer::printChar(QChar c)
             s.insert(cursor_col, c);
 
         visibleTextBuffer[cursor_line] = s;
+
+        colorBits[cursor_line][cursor_col] = currentColor;
         cursor_col++;
     }
 }
@@ -95,6 +108,147 @@ void TextLayer::println(QString str)
 {
     print(str);
     nl();
+}
+
+void TextLayer::setColor(QColor c)
+{
+    noColor = false;
+    currentColor = c;
+}
+
+void TextLayer::resetColor()
+{
+    noColor = true;
+}
+
+void TextLayer::updateChangedLines(int fromLine, int count)
+{
+    for(int i=0; i<count; ++i)
+    {
+        //updateHtmlLine(i + fromLine);
+        updateTextLine(i + fromLine);
+    }
+}
+
+void TextLayer::updateHtmlLine(int i)
+{
+    //*
+    QColor current = colorBits[i][0];
+    QString line = visibleTextBuffer[i];
+    QString output = QString("<span style=\"color:rgb(%1,%2,%3);\">").arg(current.red()).arg(current.green()).arg(current.blue());
+
+    for(int j=0; j<line.length(); ++j)
+    {
+        if(colorBits[i][j] != current)
+        {
+            current = colorBits[i][j];
+            output += QString("</span><span style=\"color:rgb(%1,%2,%3);\">").arg(current.red()).arg(current.green()).arg(current.blue());
+        }
+
+        output+= line.mid(j, 1);
+    }
+    output += "</span>";
+    htmlLines[i] = output;
+   // */
+}
+
+QString TextLayer::toHtml()
+{
+     return htmlLines.join("<br/>");
+}
+
+void TextLayer::updateTextLine(int lineIndex)
+{
+    computeLineFormatRange(lineIndex, visibleTextBuffer[lineIndex], lineFormats[lineIndex]);
+}
+
+QString TextLayer::lineToText(int i, QList<QTextLayout::FormatRange> &range)
+{
+    QString &line = visibleTextBuffer[i];
+    computeLineFormatRange(i, line, range);
+    return line;
+}
+
+void TextLayer::computeLineFormatRange(int i, QString &line, QList<QTextLayout::FormatRange> &range)
+{
+    int pos =0;
+    int runPos = 0;
+    int runLen = 0;
+    QColor currentColor = colorBits[i][0];
+    range.clear();
+    for(int j=0; j<line.length(); ++j)
+    {
+        if(colorBits[i][j] != currentColor)
+        {
+            runLen = pos - runPos;
+            QTextLayout::FormatRange r;
+            r.start = runPos;
+            r.length = runLen;
+            r.format.setForeground(QBrush(currentColor));
+            currentColor = colorBits[i][j];
+            range.append(r);
+            runPos = pos;
+        }
+        pos++;
+    }
+
+    // Final iteration
+    runLen = pos - runPos;
+    QTextLayout::FormatRange r;
+    r.start = runPos;
+    r.length = runLen;
+    r.format.setForeground(QBrush(currentColor));
+    range.append(r);
+}
+
+QString TextLayer::toText(QList<QTextLayout::FormatRange> &range)
+{
+    QStringList result;
+    int pos =0;
+    int runPos = 0;
+    int runLen = 0;
+    QColor currentColor = colorBits[0][0];
+    for(int i=0; i<visibleTextLines; ++i)
+    {
+        QString &line = visibleTextBuffer[i];
+        result.append(line);
+        for(int j=0; j<line.length(); ++j)
+        {
+            if(colorBits[i][j] != currentColor)
+            {
+                runLen = pos - runPos;
+                QTextLayout::FormatRange r;
+                r.start = runPos;
+                r.length = runLen;
+                r.format.setForeground(QBrush(currentColor));
+                currentColor = colorBits[i][j];
+                range.append(r);
+                runPos = pos;
+            }
+            pos++;
+        }
+    }
+    // Final iteration
+    runLen = pos - runPos;
+    QTextLayout::FormatRange r;
+    r.start = runPos;
+    r.length = runLen;
+    r.format.setForeground(QBrush(currentColor));
+    range.append(r);
+    //runPos = pos;
+
+    return result.join("\n");
+}
+
+int TextLayer::cursorPos()
+{
+    int pos = 0;
+    for(int i=0; i< cursor_line; ++i)
+    {
+        pos += visibleTextBuffer[i].length();
+    }
+    pos += cursor_col;
+    return pos;
 }
 
 void TextLayer::beginInput()
@@ -252,6 +406,7 @@ void TextLayer::backSpace()
     QString s = visibleTextBuffer[cursor_line];
     s = s.remove(cursor_col-1, 1);
     visibleTextBuffer[cursor_line] = s;
+    updateHtmlLine(cursor_line);
     cursor_col --;
     dirtyState = true;
 }

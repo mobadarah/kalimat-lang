@@ -8,7 +8,7 @@
 
 struct Debugger
 {
-    virtual bool currentBreakCondition(int offset, Frame *frame, Process *process) =0;
+    virtual bool currentBreakCondition(Frame *frame, Process *process) =0;
     virtual void postBreak(int offset, Frame *frame, Process *process)=0;
     virtual void Break(int offset, Frame *frame, Process *process) = 0;
     virtual void setDebuggedProcess(Process *) = 0;

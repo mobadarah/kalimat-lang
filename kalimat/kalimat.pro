@@ -5,6 +5,9 @@ TARGET = kalimat
 TEMPLATE = app
 QMAKE_CXXFLAGS += -std=gnu++0x -Wno-unused-parameter
 
+#QMAKE_CXXFLAGS_RELEASE -= -O2
+#QMAKE_CXXFLAGS_RELEASE += -O3
+
 SOURCES += main.cpp \
     mainwindow.cpp \
     Lexer/token.cpp \

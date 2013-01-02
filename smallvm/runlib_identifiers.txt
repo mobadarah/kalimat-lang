@@ -4,6 +4,7 @@
 عدد.صحيح.واسع
 عدد.حقيقي
 قيمة.منطقية
+قيمة.خام
 Method
 ExternalMethod
 ExternalLibrary
