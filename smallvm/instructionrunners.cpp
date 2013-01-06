@@ -105,7 +105,7 @@ Instruction *run_JmpVal(Instruction *i, Process *proc)
 
 Instruction *run_If(Instruction *i, Process *proc)
 {
-    proc->DoIf(i->True, i->False, i->fastTrue, i->fastFalse);
+    proc->DoIf(i->fastTrue, i->fastFalse);
     return i->next;
 }
 

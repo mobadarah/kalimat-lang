@@ -5,12 +5,14 @@
 عدد.حقيقي
 قيمة.منطقية
 قيمة.خام
+IMethod
 Method
 ExternalMethod
 ExternalLibrary
 Class
 مفهرس
 مصفوفة.قيم
+مصفوفة.قيم.متعددة
 قاموس.قيم
 نص
 طيف

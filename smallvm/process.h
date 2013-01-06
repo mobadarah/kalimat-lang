@@ -63,7 +63,7 @@ inline int getInstructionArity(const Instruction &i)
 {
     if(i.Arg == NULL)
         return -1;
-    return i.Arg->unboxInt();
+    return unboxInt(i.Arg);
 }
 
 struct Process
@@ -85,6 +85,8 @@ struct Process
     FramePool framePool;
 
     bool _isFinished;
+
+    Stack<Value *> OperandStack;
 public:
     Scheduler *wannaMigrateTo;
 public:
@@ -129,6 +131,17 @@ public:
         return temp;
     }
     inline Frame *currentFrame() { return stack; }
+    inline bool frameHasOperands()
+    {
+        //return OperandStack.count() > currentFrame()->operandStackLevel;
+        return true;
+    }
+    inline void pushOperand(Value *v)
+    {
+        OperandStack.push(v);
+    }
+
+    inline Value *popOperand() { return popValue();}
 
 public:
     const Instruction &getCurrentInstruction();
@@ -162,7 +175,7 @@ public:
     void DoPushVal(Value *Arg);
     void DoPushLocal(const QString &SymRef, int SymRefLabel);
     void DoPushGlobal(const QString &SymRef);
-    void DoPushConstant(QString SymRef, int SymRefLabel);
+    void DoPushConstant(const QString &SymRef, int SymRefLabel);
     void DoPopLocal(const QString &SymRef, int SymRefLabel);
     void DoPopGlobal(const QString &SymRef);
     void DoPushNull();
@@ -178,7 +191,7 @@ public:
     void DoNot();
     void DoJmp(const QString &label, int fastLabel);
     void DoJmpVal();
-    void DoIf(const QString &trueLabel, const QString &falseLabel, int fastTrueLabel, int fastFalseLabel);
+    void DoIf(int fastTrueLabel, int fastFalseLabel);
     void DoLt();
     void DoGt();
     void DoEq();
@@ -213,10 +226,10 @@ public:
     void DoBreak();
     void DoTick();
 
-    void CallImpl(const QString &sym, int SymRefLabel, bool wantValueNotRef, int arity, CallStyle callStyle);
+    inline void CallImpl(const QString &sym, int SymRefLabel, bool wantValueNotRef, int arity, CallStyle callStyle);
     void CallImpl(Method *method, bool wantValueNotRef, int arity, CallStyle callStyle);
-    void CallSpecialMethod(IMethod *method, QVector<Value *> args);
-    void test(bool, const QString &, const QString &, int fastTrueLabel, int fastFalseLabel);
+    void copyArgs(Stack<Value *> &source, Stack<Value *> &dest, int marity);
+    void CallSpecialMethod(IMethod *method, int arity);
     bool coercion(Value *v1, Value *v2, Value *&newV1, Value *&newV2);
     Value *_div(Value *, Value *);
     void Pop_Md_Arr_and_indexes(MultiDimensionalArray<Value *> *&theArray, QVector<int> &indexes);
@@ -238,19 +251,20 @@ public:
 private:
     inline Value *popValue()
     {
-        if(currentFrame()->OperandStack.empty())
+        if(!frameHasOperands())
             signal(InternalError1, "Empty operand stack");
-        return currentFrame()->OperandStack.pop();
+        return OperandStack.pop();
     }
 
     int popIntOrCoercedDouble();
     inline int popInt();
     inline bool popBool();
     double popDoubleOrCoercedInt();
-    IMethod *popMethod();
+    IMethod *popIMethod();
+    Method *popMethod();
     VArray *popArray();
     inline Value *__top() {
-        return currentFrame()->OperandStack.top();
+        return OperandStack.top();
     }
 };
 

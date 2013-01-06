@@ -40,19 +40,20 @@ struct Frame : public IObject
     int ip;
     bool returnReferenceIfRefMethod;
 
-    Stack<Value *> OperandStack;
     Value **fastLocals;
     Value *fastLocalsStatic[fast_local_static_size];
     int fastLocalCount;
+
+    int operandStackLevel;
     Frame *next;
 
     Frame();
-    Frame(Method *method);
-    Frame(Method *method, int ip);
+    Frame(Method *method, int operandStackLevel);
+    Frame(Method *method, int ip, int operandStackLevel);
     Frame(const Frame &other);
 
-    void Init(Method *method);
-    void Init(Method *method, int ip);
+    void Init(Method *method, int operandStackLevel);
+    void Init(Method *method, int ip, int operandStackLevel);
 
     virtual ~Frame();
     const Instruction &getPreviousRunningInstruction();

@@ -38,11 +38,11 @@ void makeStructFromKalimatClass(IClass *kalimatType, ffi_type *&type, VM *vm)
         Value *fieldMarshallingType;
         if(vc->getFieldAttribute("marshalas", fieldMarshallingType, NULL))
         {
-            QString str = fieldMarshallingType->unboxStr();
+            QString str = unboxStr(fieldMarshallingType);
             if(vm->GetType(str) == NULL)
                 vm->signal(NULL, InternalError1, QString("Marshalling type '%1' does not exist").arg(str));
 
-            IClass *fieldClass = (IClass *) vm->GetType(str)->unboxObj();
+            IClass *fieldClass = (IClass *) unboxObj(vm->GetType(str));
             ffi_type *fieldFfiType;
             kalimat_to_ffi_type(fieldClass, fieldFfiType, vm);
             fieldCTypes.append(fieldFfiType);
@@ -75,7 +75,7 @@ void ffi_callback_dispatcher(ffi_cif *cif, void *ret, void** args,
     // to return something use *ret = ...;
     ClosureData *cdata = (ClosureData *) data;
     // qDebug() << "Callback invoked: " << (long) cdata->funcObj << ".";
-    Method *method = dynamic_cast<Method *>(cdata->funcObj->unboxObj());
+    Method *method = dynamic_cast<Method *>(unboxObj(cdata->funcObj));
     if(method)
     {
         cdata->proc->CallImpl(method, true, cdata->funcClass->argTypes.count(), NormalCall);
@@ -83,7 +83,7 @@ void ffi_callback_dispatcher(ffi_cif *cif, void *ret, void** args,
     }
     else
     {
-        Object *obj = dynamic_cast<Object *>(cdata->funcObj->unboxObj());
+        Object *obj = dynamic_cast<Object *>(unboxObj(cdata->funcObj));
         if(!obj)
             return;
         IMethod *m= cdata->funcObj->type->lookupMethod(QString::fromStdWString(L"تنفيذها"));
@@ -98,18 +98,18 @@ void ffi_callback_dispatcher(ffi_cif *cif, void *ret, void** args,
             Value *v;
             toKalimatType(cdata->funcClass->argTypes[i], cif->arg_types[i],
                           v, args[i], cdata->vm);
-            cdata->proc->stack->OperandStack.push(v);
+            cdata->proc->pushOperand(v);
         }
-        cdata->proc->stack->OperandStack.push(cdata->funcObj);
+        cdata->proc->pushOperand(cdata->funcObj);
         cdata->proc->CallImpl(method, true, cdata->funcClass->argTypes.count()+1, NormalCall);
         cdata->proc->RunUntilReturn();
         if(cif->rtype != &ffi_type_void)
         {
-            if(cdata->proc->stack->OperandStack.empty())
+            if(!cdata->proc->frameHasOperands())
             {
                 throw VMError(InternalError1).arg("FFI callback did not return a value");
             }
-            Value *v = cdata->proc->stack->OperandStack.pop();
+            Value *v = cdata->proc->popOperand();
             kalimat_to_ffi_value(cdata->funcClass->retType, v,
                                  cif->rtype, ret, cdata->proc, cdata->vm);
         }
@@ -205,19 +205,19 @@ void kalimat_to_ffi_value(IClass *kalimatType, Value *v, ffi_type *type, void *&
 {
     if(type == &ffi_type_sint32)
     {
-        *((int32_t *)value) = (int32_t) v->unboxNumeric();
+        *((int32_t *)value) = (int32_t) unboxNumeric(v);
     }
     else if(type == &ffi_type_slong)
     {
-        *((long *)value) = (long) v->unboxNumeric();
+        *((long *)value) = (long) unboxNumeric(v);
     }
     else if(type == &ffi_type_float)
     {
-        *((float *)value) = (float) v->unboxNumeric();
+        *((float *)value) = (float) unboxNumeric(v);
     }
     else if(type == &ffi_type_double)
     {
-        *((double *)value) = (double) v->unboxNumeric();
+        *((double *)value) = (double) unboxNumeric(v);
     }
     else if(type == &ffi_type_schar)
     {
@@ -227,7 +227,7 @@ void kalimat_to_ffi_value(IClass *kalimatType, Value *v, ffi_type *type, void *&
     {
         if(kalimatType == BuiltInTypes::c_asciiz)
         {
-            std::string str_c = v->unboxStr().toStdString();
+            std::string str_c = unboxStr(v).toStdString();
             char *str = new char[str_c.length()+1];
             for(unsigned int i=0;i<str_c.length(); i++)
             {
@@ -239,7 +239,7 @@ void kalimat_to_ffi_value(IClass *kalimatType, Value *v, ffi_type *type, void *&
         }
         else if(kalimatType == BuiltInTypes::c_wstr)
         {
-            std::wstring str_c = v->unboxStr().toStdWString();
+            std::wstring str_c = unboxStr(v).toStdWString();
             wchar_t *str = new wchar_t[str_c.length()+1];
             for(unsigned int i=0;i<str_c.length(); i++)
             {
@@ -250,7 +250,7 @@ void kalimat_to_ffi_value(IClass *kalimatType, Value *v, ffi_type *type, void *&
         }
         else if(kalimatType == BuiltInTypes::c_ptr)
         {
-            *((void **)value) = (void *) v->unboxInt();
+            *((void **)value) = (void *) unboxInt(v);
         }
         else if(dynamic_cast<FunctionClass *>(kalimatType) != NULL)
         {
@@ -260,14 +260,14 @@ void kalimat_to_ffi_value(IClass *kalimatType, Value *v, ffi_type *type, void *&
         }
         else if(dynamic_cast<PointerClass *>(kalimatType) != NULL)
         {
-            void *ptr = v->unboxRaw();
+            void *ptr = unboxRaw(v);
             *((void **) value) = ptr;
         }
     }
     else if(type->type ==FFI_TYPE_STRUCT && dynamic_cast<ValueClass *>(kalimatType) != NULL)
     {
         ValueClass *vc = (ValueClass *) kalimatType;
-        IObject *obj = v->unboxObj();
+        IObject *obj = unboxObj(v);
         QVector<IClass *> fieldKalimatTypes;
         QVector<Value *> fieldKalimatValues;
         for(int i=0; i<vc->fieldNames.count(); i++)
@@ -275,11 +275,11 @@ void kalimat_to_ffi_value(IClass *kalimatType, Value *v, ffi_type *type, void *&
             Value *fieldMarshallingType;
             if(vc->getFieldAttribute("marshalas", fieldMarshallingType, NULL))
             {
-                QString str = fieldMarshallingType->unboxStr();
+                QString str = unboxStr(fieldMarshallingType);
                 if(vm->GetType(str) == NULL)
                     vm->signal(NULL, InternalError1, QString("Marshalling type '%1' does not exist").arg(str));
 
-                IClass *fieldClass = (IClass *) vm->GetType(str)->unboxObj();
+                IClass *fieldClass = (IClass *) unboxObj(vm->GetType(str));
 
                 fieldKalimatTypes.append(fieldClass);
                 fieldKalimatValues.append(obj->getSlotValue(vc->fieldNames[i]));
@@ -412,11 +412,11 @@ void toKalimatType(IClass *kalimatType, ffi_type *type, Value *&value, void *v, 
             Value *fieldMarshallingType;
             if(vc->getFieldAttribute("marshalas", fieldMarshallingType, NULL))
             {
-                QString str = fieldMarshallingType->unboxStr();
+                QString str = unboxStr(fieldMarshallingType);
                 if(vm->GetType(str) == NULL)
                     vm->signal(NULL, InternalError1, QString("Marshalling type '%1' does not exist").arg(str));
 
-                IClass *fieldClass = (IClass *) vm->GetType(str)->unboxObj();
+                IClass *fieldClass = (IClass *) unboxObj(vm->GetType(str));
 
                 fieldKalimatTypes.append(fieldClass);
                 fieldKalimatNames.append(vc->fieldNames[i]);
@@ -462,12 +462,12 @@ void guessType(Value *v, ffi_type *&type, void *&ret)
     if(v->type->subclassOf(BuiltInTypes::IntType))
     {
         type = &ffi_type_uint32;
-        ret = new uint32_t(v->unboxInt());
+        ret = new uint32_t(unboxInt(v));
     }
     else if(v->type->subclassOf(BuiltInTypes::StringType))
     {
         type = &ffi_type_pointer;
-        ret = (void *) v->unboxStr().toStdString().c_str();
+        ret = (void *) unboxStr(v).toStdString().c_str();
     }
 }
 

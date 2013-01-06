@@ -101,6 +101,11 @@ RESOURCES += \
     messages.qrc
 
 win32:LIBS += -L"$$_PRO_FILE_PWD_/../smallvm/libffi/" -llibffi
+
+#win32:LIBS += -L"$$_PRO_FILE_PWD_/../smallvm/libsmoke/" -lsmokebase
+#win32:LIBS += -L"$$_PRO_FILE_PWD_/../smallvm/libsmoke/" -lsmokeqtcore
+#win32:LIBS += -L"$$_PRO_FILE_PWD_/../smallvm/libsmoke/" -lsmokeqtgui
+
 unix:LIBS += -lffi
 
 OTHER_FILES += \

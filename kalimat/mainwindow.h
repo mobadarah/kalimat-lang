@@ -30,6 +30,7 @@
 #include "AutoComplete/analyzer.h"
 #include "idemessages.h"
 #include "stepstopcondition.h"
+#include "programdatabase.h"
 
 #include <QQueue>
 #include <QGraphicsView>
@@ -76,6 +77,7 @@ public:
     QFont editorFont;
 
     Analyzer codeAnalyzer;
+    ProgramDatabase progdb;
     QTimer codeParseTimer;
 
     // Info on all variables, including (currently) declaration point
@@ -86,7 +88,7 @@ public:
     QMap<int, QString> varTypeInfo;
     QMap<QString, shared_ptr<ClassDecl> > classInfoData;
 
-    shared_ptr<CompilationUnit> parseCurrentDocumentWithRecovery();
+    shared_ptr<CompilationUnit> parseCurrentDocumentWithRecovery(QVector<Token> &tokens);
     QComboBox *functionNavigationCombo;
     QComboBox *autoCompleteCombo; // todo:allocated on each
                                  // autocompletion. Does this leak?
@@ -104,17 +106,21 @@ public:
     Token getTokenBeforeCursor(MyEdit *editor, TokenType type, int &index, bool ignoreTypeFilter=false);
 
     void analyzeForAutocomplete();
+    void fillFunctionNavigationCombo(CodeDocument *doc, QString filename);
 
     void jumpToFunctionNamed(QString name, MyEdit *editor);
     void triggerAutocomplete(MyEdit *editor);
     void showCompletionCombo(MyEdit *editor, VarUsageInfo vi);
     void triggerFunctionTips(MyEdit *editor);
+
+    QString getImportedModuleFile(CodeDocument *importer, QString name);
     bool shouldHideFunctionTooltip;
     int funcToolTipParenTokenIndex;
     QPoint toolTipPoint;
     MyEdit *toolTipEditor;
 
     QString standardModulePath;
+    bool _isWonderfulMonitorEnabled;
 
     MainWindow(QWidget *parent = 0);
     ~MainWindow();
@@ -189,6 +195,8 @@ private:
     void stepOver(Process *proc);
     void setDebuggedProcess(Process *);
     bool currentBreakCondition(Frame *frame, Process *process);
+
+    void makeDrag();
 signals:
     void markCurrentInstructionEvent(VM *vm, Process *proc, int *pos, int *length);
     void breakEvent(int offset, Frame *frame, Process *process);
@@ -231,7 +239,6 @@ private slots:
     void on_action_step_triggered();
     void on_action_step_procedure_triggered();
     void on_actionMake_exe_triggered();
-    void makeDrag();
     void do_editor_linkClicked(MyEdit *source, QString href);
     void on_actionParse_with_recovery_triggered();
 
@@ -260,6 +267,9 @@ private slots:
     void on_action_SpecialSymbol_lambda_triggered();
 
     void on_actionLambda_transformation_triggered();
+
+
+    void on_action_wonderfulmonitor_toggled(bool arg1);
 
 protected:
      void dropEvent(QDropEvent *de);

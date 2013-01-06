@@ -16,14 +16,11 @@ const int intCacheSize = 256;
 const int MEGA = 1024 * 1024;
 const double GC_FACTOR = 0.75;
 const double HEAP_GROWTH_FACTOR = 1.4;
-//const int NORMAL_MAX_HEAP = 1*MEGA;
-const int NORMAL_MAX_HEAP = 1024 * 50;
-
-//Value *Allocator::_true = NULL;
-//Value *Allocator::_false = NULL;
-//Value *Allocator::_ints[intCacheSize];
+const int NORMAL_MAX_HEAP = 1*MEGA;
+//const int NORMAL_MAX_HEAP = 1024 * 40;
 
 Allocator::Allocator(QHash<int, Value *> *constantPool, QSet<Scheduler *>schedulers, VM *vm)
+    : heap(NULL)
 {
     this->constantPool = constantPool;
     this->schedulers = schedulers;
@@ -34,28 +31,52 @@ Allocator::Allocator(QHash<int, Value *> *constantPool, QSet<Scheduler *>schedul
     _true = newBool(true, false);
     _false = newBool(false, false);
 
-    _ints = new Value*[intCacheSize];
+    _ints = new IntVal[intCacheSize];
     for(int i=0; i<intCacheSize; i++)
-        _ints[i] = newInt(i, false);
+    {
+       // _ints[i] = newInt(i, false);
+        _ints[i].type = BuiltInTypes::IntType;
+        _ints[i].v = i;
+    }
+    intFreeList = NULL;
 }
 
 Allocator::~Allocator()
 {
+    // farewell, any objects remaining
+    // we didn't directly call GC since it would've tried
+    // to stop the world
+    mark();
+    sweep();
     delete _true;
     delete _false;
+    /*
     for(int i=0; i<intCacheSize; ++i)
     {
         delete _ints[i];
     }
+    //*/
     delete[] _ints;
+
+
+    int freedInts = 0;
+    while(intFreeList != NULL)
+    {
+        IntVal *tmp = (IntVal *) intFreeList->type;
+        delete intFreeList;
+        intFreeList = tmp;
+        freedInts++;
+    }
+    qDebug() << "Freed " << freedInts << " integer objects at end of VM execution";
+    qDebug() << sizeof(IntVal);
 }
 
-Value *Allocator::allocateNewValue(bool gcMonitor)
+template<class Vtype, class InitialType> Value *Allocator::allocateNewValue(InitialType initVal, bool gcMonitor)
 {
-    if((currentAllocationInBytes + sizeof(Value)) > (maxAllocationInBytes))
+    if((currentAllocationInBytes + sizeof(Vtype)) > (maxAllocationInBytes))
     {
         gc();
-        if((currentAllocationInBytes + sizeof(Value))> (maxAllocationInBytes))
+        if((currentAllocationInBytes + sizeof(Vtype))> (maxAllocationInBytes))
         {
             maxAllocationInBytes *= HEAP_GROWTH_FACTOR;
         }
@@ -70,12 +91,14 @@ Value *Allocator::allocateNewValue(bool gcMonitor)
                 maxAllocationInBytes = newSize;
         }
     }
-    Value *ret = new Value();
+    Value *ret = new Vtype(initVal);
     if(ret!=NULL)
     {
         heapAllocationLock.lock();
-        heap.insert(ret);
-        currentAllocationInBytes += sizeof(Value);
+        //heap.insert(ret);
+        ret->heapNext = heap;
+        heap = ret;
+        currentAllocationInBytes += sizeof(Vtype);
         if(!gcMonitor)
         {
             protectedValues.insert(ret);
@@ -102,18 +125,46 @@ void Allocator::stopGcMonitoring(Value *v)
 Value *Allocator::newInt(int i)
 {
     if(i>=0 && i < intCacheSize)
-        return _ints[i];
+        return &_ints[i];
 
     return newInt(i, true);
 }
 
 Value *Allocator::newInt(int i, bool gcMonitor=true)
 {
-    Value *ret = allocateNewValue(gcMonitor);
-    ret->tag = Int;
+    if(intFreeList != NULL)
+    {
+        IntVal *v = intFreeList;
+        intFreeList = (IntVal *) v->type;
+        v->type = BuiltInTypes::IntType;
+        v->v = i;
+        return v;
+    }
+
+    //*
+    Value *ret = allocateNewValue<IntVal, int>(i, gcMonitor);
     ret->type = BuiltInTypes::IntType;
-    ret->v.intVal = i;
     return ret;
+    //*/
+
+    //*
+
+    /*
+    IntVal *ret = &intAllocator.add();
+    ret->type = BuiltInTypes::IntType;
+    ret->v = i;
+
+    heapAllocationLock.lock();
+    //heap.insert(ret);
+    ret->heapNext = heap;
+    currentAllocationInBytes += sizeof(IntVal);
+    if(!gcMonitor)
+    {
+        protectedValues.insert(ret);
+    }
+    heapAllocationLock.unlock();
+    return ret;
+    //*/
 }
 
 Value *Allocator::newLong(long i)
@@ -123,10 +174,8 @@ Value *Allocator::newLong(long i)
 
 Value *Allocator::newLong(long i, bool gcMonitor=true)
 {
-    Value *ret = allocateNewValue(gcMonitor);
-    ret->tag = Long;
+    Value *ret = allocateNewValue<LongVal, long>(i, gcMonitor);
     ret->type = BuiltInTypes::LongType;
-    ret->v.longVal= i;
     return ret;
 }
 
@@ -137,10 +186,8 @@ Value *Allocator::newDouble(double d)
 
 Value *Allocator::newDouble(double d, bool gcMonitor)
 {
-    Value *ret = allocateNewValue(gcMonitor);
-    ret->tag = Double;
+    Value *ret = allocateNewValue<DoubleVal, double>(d, gcMonitor);
     ret->type = BuiltInTypes::DoubleType;
-    ret->v.doubleVal = d;
     return ret;
 }
 
@@ -158,10 +205,8 @@ Value *Allocator::newBool(bool b)
 
 Value *Allocator::newBool(bool b, bool gcMonitor)
 {
-    Value *ret = allocateNewValue(gcMonitor);
-    ret->tag = Boolean;
+    Value *ret = allocateNewValue<BoolVal, bool>(b, gcMonitor);
     ret->type = BuiltInTypes::BoolType;
-    ret->v.boolVal = b;
     return ret;
 }
 
@@ -174,10 +219,8 @@ Value *Allocator::newObject(IClass *_class)
 
 Value *Allocator::newObject(IObject *newObj, IClass *_class, bool gcMonitor)
 {
-    Value *ret = allocateNewValue(gcMonitor);
-    ret->tag = ObjectVal;
+    Value *ret = allocateNewValue<ObjVal, IObject *>(newObj, gcMonitor);
     ret->type = _class;
-    ret->v.objVal = newObj;
     return ret;
 }
 
@@ -185,8 +228,7 @@ Value *Allocator::null()
 {
     if(Value::NullValue == NULL)
     {
-        Value::NullValue = allocateNewValue(false);
-        Value::NullValue->tag = NullVal;
+        Value::NullValue = new NullVal();
         Value::NullValue->type = BuiltInTypes::NullType;
     }
 
@@ -195,47 +237,46 @@ Value *Allocator::null()
 
 Value *Allocator::newArray(int size)
 {
-    Value *ret = allocateNewValue();
-    ret->tag = ArrayVal;
-    ret->type = BuiltInTypes::ArrayType;
-    ret->v.arrayVal = new VArray();
-    ret->v.arrayVal->Elements = new Value*[size];
-    ret->v.arrayVal->_count = size;
+    VArray *varr = new VArray();
+    varr->Elements = new Value*[size];
+    varr->_count = size;
+
     for(int i=0; i<size; i++)
-        ret->v.arrayVal->Elements[i] = null();
+        varr->Elements[i] = null();
+
+    Value *ret = allocateNewValue<ArrayVal, VArray *>(varr);
+    ret->type = BuiltInTypes::ArrayType;
+
     return ret;
 }
 
 Value *Allocator::newMap()
 {
-    Value *ret = allocateNewValue();
-    ret->tag = MapVal;
+    Value *ret = allocateNewValue<MapVal, VMap *>(new VMap());
     ret->type = BuiltInTypes::MapType;
-    ret->v.mapVal = new VMap();
     return ret;
 }
 
 Value *Allocator::newMultiDimensionalArray(QVector<int>dimensions)
 {
-    Value *ret = allocateNewValue();
-    ret->tag = MultiDimensionalArrayVal;
-    ret->type = BuiltInTypes::ArrayType;
-    ret->v.multiDimensionalArrayVal = new MultiDimensionalArray<Value *>(dimensions);
+    MultiDimensionalArray<Value *> *arr = new MultiDimensionalArray<Value *>(dimensions);
 
     // Init all elementes with a Kalimat-compaitble null value
-    for(int i=0; i<ret->v.multiDimensionalArrayVal->elements.count(); i++)
+    for(int i=0; i<arr->elements.count(); i++)
     {
-        ret->v.multiDimensionalArrayVal->elements[i] = this->null();
+        arr->elements[i] = this->null();
     }
+
+    Value *ret = allocateNewValue<MultiDimensionalArrayVal, MultiDimensionalArray<Value *> *>(arr);
+    ret->type = BuiltInTypes::ArrayType;
+
     return ret;
 }
 
 Value *Allocator::newString(QString str, bool gcMonitor)
 {
-    Value *ret = allocateNewValue(gcMonitor);
-    ret->tag = StringVal;
+    Value *ret = allocateNewValue<StringVal, QString>(str, gcMonitor);
     ret->type = BuiltInTypes::StringType;
-    ret->vstrVal = str;
     return ret;
 }
 
@@ -246,10 +287,8 @@ Value *Allocator::newString(QString str)
 
 Value *Allocator::newRaw(void *ptr, IClass *_class)
 {
-    Value *ret = allocateNewValue();
-    ret->tag = RawVal;
+    Value *ret = allocateNewValue<RawVal, void *>(ptr);
     ret->type = _class;
-    ret->v.rawVal = ptr;
     return ret;
 }
 
@@ -257,10 +296,8 @@ Value *Allocator::newFieldReference(IObject *obj, QString SymRef)
 {
     FieldReference *ref = new FieldReference(obj, SymRef);
 
-    Value *ret = allocateNewValue();
-    ret->tag = RefVal;
+    Value *ret = allocateNewValue<RefVal, Reference *>(ref);
     ret->type = BuiltInTypes::FieldRefType;
-    ret->v.refVal = ref;
     return ret;
 }
 
@@ -268,10 +305,8 @@ Value *Allocator::newArrayReference(VArray *array, int index)
 {
     ArrayReference *ref = new ArrayReference(array, index);
 
-    Value *ret = allocateNewValue();
-    ret->tag = RefVal;
+    Value *ret = allocateNewValue<RefVal, Reference *>(ref);
     ret->type = BuiltInTypes::ArrayRefType;
-    ret->v.refVal = ref;
     return ret;
 }
 
@@ -281,10 +316,8 @@ Value *Allocator::newMultiDimensionalArrayReference(MultiDimensionalArray<Value 
     ref->array = array;
     ref->index = index;
 
-    Value *ret = allocateNewValue();
-    ret->tag = RefVal;
+    Value *ret = allocateNewValue<RefVal, Reference *>(ref);
     ret->type = BuiltInTypes::ArrayRefType;
-    ret->v.refVal = ref;
     return ret;
 }
 
@@ -292,19 +325,15 @@ Value *Allocator::newChannel(bool gc)
 {
     Channel *chan = new Channel();
 
-    Value *ret = allocateNewValue(gc);
-    ret->tag = ChannelVal;
+    Value *ret = allocateNewValue<ChannelVal, Channel *>(chan, gc);
     ret->type = BuiltInTypes::ChannelType;
-    ret->v.channelVal = chan;
     return ret;
 }
 
 Value *Allocator::newQObject(QObject *qobj)
 {
-    Value *ret = allocateNewValue();
-    ret->tag = QObjectVal;
+    Value *ret = allocateNewValue<QObjVal, QObject *>(qobj);
     ret->type = BuiltInTypes::QObjectType;
-    ret->v.qobjVal = qobj;
     return ret;
 }
 
@@ -387,9 +416,9 @@ void Allocator::mark()
             continue;
         currentAllocationInBytes += sizeof(Value);
         v->mark = 1;
-        if(v->tag == ArrayVal)
+        if(v->type == BuiltInTypes::ArrayType)
         {
-            VArray *elements = v->unboxArray();
+            VArray *elements = unboxArray(v);
             for(int i=0; i<elements->count(); i++)
             {
                 Value *v2 = elements->Elements[i];
@@ -397,9 +426,9 @@ void Allocator::mark()
                     reachable.push(v2);
             }
         }
-        if(v->tag == ChannelVal)
+        if(v->type == BuiltInTypes::ChannelType)
         {
-            const Channel *chan = v->unboxChan();
+            const Channel *chan = unboxChan(v);
             for(QMap<Process *, Value *>::const_iterator i = chan->data.begin(); i!= chan->data.end(); ++i)
             {
                 reachable.push(i.value());
@@ -409,9 +438,9 @@ void Allocator::mark()
                 reachable.push(chan->nullProcessQ.at(i));
             }
         }
-        if(v->tag == MapVal)
+        if(v->type == BuiltInTypes::MapType)
         {
-            VMap *map = v->unboxMap();
+            VMap *map = unboxMap(v);
             for(int i=0; i<map->allKeys.count(); i++)
             {
                 Value *v2 = map->allKeys[i];
@@ -428,15 +457,15 @@ void Allocator::mark()
                 }
             }
         }
-        if(v->tag == RefVal)
+        if(v->type == BuiltInTypes::RefType)
         {
-            Value *v2 = v->unboxRef()->Get();
+            Value *v2 = unboxRef(v)->Get();
             if(!v2->mark)
                 reachable.push(v2);
         }
-        if(v->tag == ObjectVal)
+        if(v->isObject())
         {
-            IObject *obj = v->unboxObj();
+            IObject *obj = unboxObj(v);
             // todo: so unperformant!
             QList<QString> slotNames = obj->getSlotNames();
             for(int i=0; i<slotNames.count(); i++)
@@ -475,19 +504,18 @@ void Allocator::markProcess(Process *proc, QStack<Value *> &reachable)
             }
             reachable.push(f.fastLocals[j]);
         }
-        for(Stack<Value *>::const_iterator j=f.OperandStack.begin(); j !=f.OperandStack.end(); ++j)
-        {
-           reachable.push(*j);
-        }
         stack = stack->next;
+    }
+    for(Stack<Value *>::const_iterator j=proc->OperandStack.begin(); j !=proc->OperandStack.end(); ++j)
+    {
+       reachable.push(*j);
     }
 }
 
 void Allocator::sweep()
 {
-
-    //*
-     static clock_t lastgc = -1;
+    /*
+    static clock_t lastgc = -1;
 
     if(lastgc==-1)
         lastgc = clock();
@@ -497,24 +525,58 @@ void Allocator::sweep()
     // qDebug() << "Last GC since " << (double) (now - lastgc) / (double) CLOCKS_PER_SEC << " ms.";
     lastgc = now;
     //*/
-    QVector<Value *> toDel;
-    QSet<Value *>::const_iterator i;
-    for (i = heap.begin(); i != heap.end(); ++i)
+
+    int delCount = 0;
+    int heapSizeNow = 0;
+    Value *tmp;
+
+    while(!heap->mark)
     {
-        Value *v = *i;
-        if(v->mark)
-            v->mark = 0;
+        tmp = heap;
+        heap = heap->heapNext;
+        delCount++;
+        deleteValue(tmp);
+    }
+    // Now the heap points to the first valid value...
+    Value *p1 = heap;
+
+    if(!p1)
+        return;
+
+    p1->mark = 0;
+    Value *p2 = p1->heapNext;
+    heapSizeNow =1;
+
+    while(p2)
+    {
+        if(p2->mark)
+        {
+            p2->mark = 0;
+            p1 = p2;
+            p2 = p2->heapNext;
+            heapSizeNow++;
+        }
         else
         {
-            toDel.append(v);
+            Value *tmp = p2;
+            p1->heapNext = p2->heapNext;
+            p2 = p2->heapNext;
+            deleteValue(tmp);
         }
     }
-    // qDebug() << "Deleting: " <<  toDel.count() << " elements. Heap size: " << heap.count();
-    for(int i=0; i<toDel.count(); i++)
+    // qDebug() << "Deleting: " <<  delCount << " elements. Heap size: " << delCount + heapSizeNow;
+    // qDebug() << "Heap size now: " << heapSizeNow;
+}
+
+void Allocator::deleteValue(Value *v)
+{
+    if(v->type != BuiltInTypes::IntType)
     {
-        Value *v = toDel[i];
-        heap.remove(v);
         delete v;
     }
-    // qDebug() << "Heap size now: " << heap.count();
+    else
+    {
+        v->type = (IClass *) intFreeList;
+        intFreeList = (IntVal *) v;
+    }
 }

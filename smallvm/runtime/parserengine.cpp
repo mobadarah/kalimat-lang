@@ -11,7 +11,7 @@ void ParserObj::setSlotValue(QString name, Value *val)
     if(name == VMId::get(RId::InputPos))
     {
         //todo:typecheck
-        this->pos = val->unboxInt();
+        this->pos = unboxInt(val);
     }
     if(name == _ws(L"value_stack"))
     {
@@ -156,7 +156,7 @@ IObject *ParserClass::newValue(Allocator *allocator)
 
 Value *ParserClass::dispatch(Process *proc, int id, QVector<Value *> args)
 {
-    IObject *receiver = args[0]->unboxObj();
+    IObject *receiver = unboxObj(args[0]);
     ParserObj *parser = dynamic_cast<ParserObj *>(receiver);
     ParseFrame f;
     QString str, str2;
@@ -176,7 +176,7 @@ Value *ParserClass::dispatch(Process *proc, int id, QVector<Value *> args)
 
     case 0: // ادفع.مسار.بديل
         //rw->typeCheck(proc, args[1], BuiltInTypes::IntType);
-        parser->stack.push(ParseFrame(args[1]->unboxInt(), parser->pos, true));
+        parser->stack.push(ParseFrame(unboxInt(args[1]), parser->pos, true));
         return NULL;
 
     case 1: // اذهب.مسار.بديل
@@ -215,29 +215,29 @@ Value *ParserClass::dispatch(Process *proc, int id, QVector<Value *> args)
 
     case 5:    // تقدم.عديد
         rw->typeCheck(proc, args[1], BuiltInTypes::IntType);
-        parser->pos += args[1]->unboxInt();
+        parser->pos += unboxInt(args[1]);
         return NULL;
 
     case 6:    // انظر
-        str = parser->data->unboxStr();
+        str = unboxStr(parser->data);
         return allocator->newString(str.mid(parser->pos, 1));
     case 7:    // انظر.عديد
         rw->typeCheck(proc, parser->data, BuiltInTypes::StringType);
         rw->typeCheck(proc, args[1], BuiltInTypes::IntType);
-        return allocator->newString(parser->data->unboxStr().mid(parser->pos, args[1]->unboxInt()));
+        return allocator->newString(unboxStr(parser->data).mid(parser->pos, unboxInt(args[1])));
     case 8:    // يطل.على
         //rw->typeCheck(proc, parser->data, BuiltInTypes::StringType);
         //rw->typeCheck(proc, args[1], BuiltInTypes::StringType);
-        str = parser->data->unboxStr();
+        str = unboxStr(parser->data);
         if(parser->pos >= str.length())
             return allocator->newBool(false);
-        return allocator->newBool(str.at(parser->pos) == args[1]->unboxStr().at(0));
+        return allocator->newBool(str.at(parser->pos) == unboxStr(args[1]).at(0));
 
     case 9:     // يطل.على.عديد
         rw->typeCheck(proc, parser->data, BuiltInTypes::StringType);
         rw->typeCheck(proc, args[1], BuiltInTypes::StringType);
-        str = parser->data->unboxStr();
-        str2 = args[1]->unboxStr();
+        str = unboxStr(parser->data);
+        str2 = unboxStr(args[1]);
         if(parser->pos + str2.length() > str.length())
             return allocator->newBool(false);
         return allocator->newBool(str.mid(parser->pos,str2.length()) == str2);
@@ -245,7 +245,7 @@ Value *ParserClass::dispatch(Process *proc, int id, QVector<Value *> args)
     case 10:     // تفرع
         //rw->typeCheck(proc, args[1], BuiltInTypes::IntType);
         //rw->typeCheck(proc, args[2], BuiltInTypes::IntType);
-        if(parser->hasInfiniteRecursion(args[2]->unboxInt()))
+        if(parser->hasInfiniteRecursion(unboxInt(args[2])))
         {
             {
                 Value *arg0 = args[0];
@@ -257,7 +257,7 @@ Value *ParserClass::dispatch(Process *proc, int id, QVector<Value *> args)
         }
         else
         {
-            parser->stack.push(ParseFrame(args[2]->unboxInt(),
+            parser->stack.push(ParseFrame(unboxInt(args[2]),
                                           parser->pos,
                                           false));
             return args[1];
@@ -266,26 +266,26 @@ Value *ParserClass::dispatch(Process *proc, int id, QVector<Value *> args)
         return allocator->newInt(parser->stack.pop().continuationLabel);
 
     case 12:     // ادفع.المتغيرات.المحلية
-        n = parser->valueStack->unboxArray()->count();
+        n = unboxArray(parser->valueStack)->count();
         if(parser->valueStackTop == n)
         {
             Value *arr2 = allocator->newArray(n*2);
             for(i=0; i<n; i++)
             {
-                arr2->unboxArray()->Elements[i] = parser->valueStack->unboxArray()->Elements[i];
+                unboxArray(arr2)->Elements[i] = unboxArray(parser->valueStack)->Elements[i];
             }
             receiver->setSlotValue("value_stack", arr2);
         }
-        parser->valueStack->unboxArray()->Elements[parser->valueStackTop]
+        unboxArray(parser->valueStack)->Elements[parser->valueStackTop]
                 = args[1];
         parser->valueStackTop++;
         return NULL;
     case 13:    // ارفع.المتغيرات.المحلية
         parser->valueStackTop--;
-        return parser->valueStack->unboxArray()->Elements[parser->valueStackTop];
+        return unboxArray(parser->valueStack)->Elements[parser->valueStackTop];
 
     case 14:     // منته
-        str = parser->data->unboxStr();
+        str = unboxStr(parser->data);
         if(parser->pos >= str.length())
             return allocator->newBool(false);
         else
@@ -296,20 +296,20 @@ Value *ParserClass::dispatch(Process *proc, int id, QVector<Value *> args)
         rw->typeCheck(proc, args[1], BuiltInTypes::IntType);
         rw->typeCheck(proc, args[2], BuiltInTypes::IntType);
         rw->typeCheck(proc, args[3], BuiltInTypes::IntType);
-        label = args[1]->unboxInt();
-        pos = args[2]->unboxInt();
+        label = unboxInt(args[1]);
+        pos = unboxInt(args[2]);
         if(!parser->memoize.contains(label))
         {
             parser->memoize[label] = QMap<int, ParseResult>();
         }
         parser->memoize[label][pos] =
-                ParseResult(args[3]->unboxInt(), args[4]);
+                ParseResult(unboxInt(args[3]), args[4]);
         return NULL;
     case 17: // استرد.ذكرى
         rw->typeCheck(proc, args[1], BuiltInTypes::IntType);
         rw->typeCheck(proc, args[2], BuiltInTypes::IntType);
-        label = args[1]->unboxInt();
-        pos = args[2]->unboxInt();
+        label = unboxInt(args[1]);
+        pos = unboxInt(args[2]);
         pr = parser->memoize[label][pos];
         res =  parseResultClass->newValue(allocator);
         res->setSlotValue(VMId::get(RId::InputPos), allocator->newInt(pr.pos));
@@ -318,8 +318,8 @@ Value *ParserClass::dispatch(Process *proc, int id, QVector<Value *> args)
     case 18:  // هل.تذكر
         rw->typeCheck(proc, args[1], BuiltInTypes::IntType);
         rw->typeCheck(proc, args[2], BuiltInTypes::IntType);
-        label = args[1]->unboxInt();
-        pos = args[2]->unboxInt();
+        label = unboxInt(args[1]);
+        pos = unboxInt(args[2]);
         if(!parser->memoize.contains(label))
             return allocator->newBool(false);
         return allocator->newBool(parser->memoize[label].contains(pos));
@@ -336,13 +336,13 @@ Value *ParserClass::dispatch(Process *proc, int id, QVector<Value *> args)
     case 20: // يطل.على.نطاق
         //rw->typeCheck(proc, parser->data, BuiltInTypes::StringType);
         //rw->typeCheck(proc, args[1], BuiltInTypes::StringType);
-        str = parser->data->unboxStr();
+        str = unboxStr(parser->data);
         if(parser->pos >= str.length())
             return allocator->newBool(false);
 
         c = str.at(parser->pos);
-        c1 = args[1]->unboxStr().at(0);
-        c2 = args[2]->unboxStr().at(0);
+        c1 = unboxStr(args[1]).at(0);
+        c2 = unboxStr(args[2]).at(0);
         bv = c >=c1 && c <=c2;
         return allocator->newBool(bv);
 

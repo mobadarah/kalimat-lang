@@ -8,6 +8,7 @@
 #include "utils.h"
 #include <QStringList>
 //#include <iostream>
+#include <sys/time.h>
 
 #ifdef Q_OS_WIN
     #include <windows.h> // for Sleep
@@ -26,6 +27,18 @@ void mySleep(int ms)
     timespec ts = { ms / 1000, (ms % 1000) * 1000 * 1000 };
     nanosleep(&ts, NULL);
 #endif
+}
+
+// In microseconds
+long get_time()
+{
+    /*
+    timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    */
+    timeval tv;
+    gettimeofday(&tv, NULL);
+    return tv.tv_sec * 1000000 + tv.tv_usec;
 }
 
 QString str(int i)

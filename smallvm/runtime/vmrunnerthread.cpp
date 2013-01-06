@@ -21,10 +21,8 @@ void VMRunthread::run()
                 break;
             }
             bool visualize = client->isWonderfulMonitorEnabled();
-            if(visualize)
-                vm->mainScheduler.RunStep(true);
-            else
-                vm->mainScheduler.RunStep();
+
+            vm->mainScheduler.RunStep(visualize);
 
             if(visualize && vm->getMainProcess() && vm->getMainProcess()->state == AwakeProcess)
             {
@@ -36,7 +34,6 @@ void VMRunthread::run()
             }
             oldPos = pos;
             oldLen = len;
-
         }
         rw->update();// Final update, in case the last instruction didn't update things in time.
     }

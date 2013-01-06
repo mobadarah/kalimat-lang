@@ -63,13 +63,12 @@ QString Scheduler::getFriendlyName()
         return "Execution";
 }
 
-int Scheduler::activateElapsedTimers()
+void Scheduler::activateElapsedTimers()
 {
-
     int ntimer = timerWaiting.count();
     if(ntimer)
     {
-        clock_t qt = clock();
+        long qt = get_time();
         while(ntimer > 0 && timerWaiting.front()->timeToWake < qt)
         {
             ntimer--;
@@ -78,12 +77,10 @@ int Scheduler::activateElapsedTimers()
             running.push_front(proc);
         }
     }
-    return ntimer;
 }
 
 bool Scheduler::schedule()
 {
-
     if(stopForGc)
     {
         if(!releasedGcSemaphore)
@@ -95,19 +92,19 @@ bool Scheduler::schedule()
     }
 
     // _isRunning should be true if we have have processes in the running queue or timerWaiting queue
-    int ntimer = activateElapsedTimers();
-    _isRunning = ntimer;
+    activateElapsedTimers();
 
     runningNow = NULL;
     if(!running.empty())
     {
-        _isRunning = 1; // (*).... we check the running queue and find it non-empty
+        // _isRunning = 1; // (*).... we check the running queue and find it non-empty
         return running.TryDequeue(runningNow, 1);
     }
 
+    /*
     if(!sleeping.empty())
         _isRunning = 1;
-
+    */
     return false;
 }
 
@@ -136,7 +133,7 @@ bool Scheduler::RunStep(bool singleInstruction, int maxtimeSclice)
     int n = singleInstruction? 1 : random % maxtimeSclice;
 
     // Bring a process to the front of 'running' queue
-
+    // and set 'runningNow'
     if(!schedule())
     {
         return false;
@@ -185,20 +182,11 @@ bool Scheduler::RunStep(bool singleInstruction, int maxtimeSclice)
             running.push_back(runningNow);
             lock.unlock();
         }
-
     }
 
     runningNow = NULL;
 
     return true;
-}
-
-void Scheduler::finishUpRunningProcess()
-{
-    if(runningNow->isFinished())
-    {
-
-    }
 }
 
 ProcessIterator *Scheduler::getProcesses()
@@ -210,8 +198,8 @@ ProcessIterator *Scheduler::getProcesses()
 
 Frame *Scheduler::launchProcess(Method *method)
 {
-    Process *dummy;
-    return launchProcess(method, dummy);
+    Process *p;
+    return launchProcess(method, p);
 }
 
 Frame *Scheduler::launchProcess(Method *method, Process *&proc)
@@ -219,19 +207,19 @@ Frame *Scheduler::launchProcess(Method *method, Process *&proc)
     Process *p = new Process(this);
     p->starterProcedureName = method->getName();
     proc = p;
-    p->pushFrame(p->framePool.allocate(method));
+    p->pushFrame(p->framePool.allocate(method, 0));
     running.push_front(p);
     Frame *ret = p->stack;
-    _isRunning = 1;
+    //_isRunning = 1;
     return ret;
 }
 
-Frame *Scheduler::launchProcessAsInterrupt(Method *method)
+Process *Scheduler::launchProcessAsInterrupt(Method *method)
 {
     Process *proc;
-    Frame *ret = launchProcess(method, proc);
+    launchProcess(method, proc);
     proc->interrupt = true;
-    return ret;
+    return proc;
 }
 
 void Scheduler::awaken(Process *proc)
@@ -252,7 +240,7 @@ void Scheduler::makeItWaitTimer(Process *proc, int ms)
 {
     proc->state = TimerWaitingProcess;
     proc->timeSlice = 0;
-    proc->timeToWake = clock() + (clock_t) (((double) ms / 1000.0) * CLOCKS_PER_SEC);
+    proc->timeToWake = get_time() + ms *1000;
     bool added = false;
     int posToInsertAt= 0;
 
@@ -289,7 +277,9 @@ bool Scheduler::isDone()
     return ret;
 }
 
+/*
 bool Scheduler::isRunning()
 {
     return _isRunning;
 }
+*/

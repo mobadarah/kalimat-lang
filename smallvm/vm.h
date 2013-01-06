@@ -59,12 +59,12 @@ public:
     Scheduler *destroyer;
 private:
 
+    QMap<QString, Value *> _globalFrame;
     // The allocator must be declared after the 'constantPool', 'stack', and 'mainScheduler'
     // members, since it's initialized with them in VMs constructor initializer list!!
     Allocator allocator;
 
     VMError _lastError;
-    QMap<QString, Value *> _globalFrame;
     QMap<QString, QString> registeredEventHandlers;
 
 private:
@@ -106,7 +106,7 @@ public:
 
     Frame *launchProcess(Method *method);
     Frame *launchProcess(Method *method, Process *&proc);
-    Frame *launchProcessAsInterrupt(Method *method);
+    Process *launchProcessAsInterrupt(Method *method);
 
     bool hasRegisteredEventHandler(QString evName);
     void setDebugger(Debugger *);
@@ -126,7 +126,7 @@ public:
     void signalWithStack(Process *proc, VMError err);
     QString toStr(int);
 
-    bool isRunning();
+    // bool isRunning();
     bool isDone();
     void reactivate();
     Value *__top();

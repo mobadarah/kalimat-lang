@@ -23,7 +23,7 @@ void Channel::sendNoLock(Value *v, Process *proc)
     {
         Process *receiver = recv_q.front();
         recv_q.pop_front();
-        receiver->currentFrame()->OperandStack.push(v);
+        receiver->pushOperand(v);
         if(proc)
             proc->successfullSelect(this);
         receiver->successfullSelect(this);
@@ -67,7 +67,7 @@ void Channel::receiveNoLock(Process *proc)
         if(sender)
         {
             Value *v = data[sender];
-            proc->currentFrame()->OperandStack.push(v);
+            proc->pushOperand(v);
             sender->awaken();
         }
         else
@@ -77,7 +77,7 @@ void Channel::receiveNoLock(Process *proc)
             // and the value is stored in nullProcessQ
             Value *v = nullProcessQ.front();
             nullProcessQ.pop_front();
-            proc->currentFrame()->OperandStack.push(v);
+            proc->pushOperand(v);
         }
 
         if(proc)

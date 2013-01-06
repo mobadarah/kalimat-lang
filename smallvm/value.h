@@ -33,11 +33,13 @@ struct Reference;
 class Channel;
 class VMError;
 
+/*
 enum Tag
 {
     Int, Long, Double, Boolean, ObjectVal, NullVal, StringVal, RawVal,
     RefVal, ArrayVal, MultiDimensionalArrayVal, MapVal, ChannelVal, QObjectVal
 };
+*/
 
 struct VIndexable
 {
@@ -57,10 +59,16 @@ struct VArray : public VIndexable
     int count() { return _count; }
 };
 
+struct VBox
+{
+    Value *v;
+    VBox(Value *v) :v(v) { }
+};
+
 struct VMap : public VIndexable
 {
     QVector<Value *> allKeys; //We need this for the GC, since the map itself stores the values as keys, not their pointers
-    QMap<Value, Value *> Elements;
+    QMap<VBox, Value *> Elements;
     bool keyCheck(Value *key, VMError &err);
     void set(Value *key, Value *v);
     Value *get(Value *key);
@@ -69,7 +77,7 @@ struct VMap : public VIndexable
 
 union ValueItem
 {
-    int intVal;
+    int intValue;
     long longVal;
     double doubleVal;
     bool boolVal;
@@ -83,86 +91,28 @@ union ValueItem
     QObject *qobjVal;
 };
 
-struct Value
-{
-    char mark;
-    IClass *type;
-    Tag tag;
-    ValueItem v;
-    // not in the union because QStrings have a constuctor
-    // and a pointer to QString in the union would mean a lot of
-    // allocation and copying. this adds 4 bytes to *every* value
-    // though
-    QString vstrVal;
-    Value();
-    ~Value();
-    inline int unboxInt() const { return v.intVal; }
-    inline long unboxLong() const { return v.longVal; }
-    inline double unboxDouble()  const { return v.doubleVal; }
-    inline bool unboxBool() const { return v.boolVal; }
-    inline IObject *unboxObj()  const { return v.objVal; }
-    inline IClass *unboxClass() const { return dynamic_cast<IClass *>(unboxObj()); }
-    inline VArray *unboxArray() const { return v.arrayVal; }
-    inline MultiDimensionalArray<Value *> *unboxMultiDimensionalArray() const
-    {
-        return v.multiDimensionalArrayVal;
-    }
-    inline VMap *unboxMap()  const { return v.mapVal; }
-    inline void *unboxRaw()  const { return v.rawVal; }
-    inline QString unboxStr() const { return vstrVal; }
-    inline Reference *unboxRef() const { return v.refVal; }
-    inline Channel *unboxChan() const { return v.channelVal; }
-    inline QObject *unboxQObj() const { return v.qobjVal; }
-    QString toString() const;
-
-    inline double unboxNumeric()
-    {
-        if(tag == Int)
-            return unboxInt();
-        if(tag == Double)
-            return unboxDouble();
-        if(tag == Long)
-            return unboxLong();
-        // This should not be called
-        return 0.0;
-    }
-
-    inline VIndexable *unboxIndexable() const
-    {
-        if(tag == ArrayVal)
-            return unboxArray();
-        if(tag == MapVal)
-            return unboxMap();
-        // This should not be called
-        return NULL;
-    }
-    static Value *NullValue;
-};
-
-// So that we can add (some types of) values to QMap
-inline bool operator<(const Value &v1, const Value &v2);
-inline bool operator==(const Value &v1, const Value &v2);
-
 class BuiltInTypes
 {
 public:
     static ValueClass *ObjectType; // Must be declared before all of the other types, since their
                                    // Initialization depends on it
 
-    static ValueClass *NumericType;
-    static ValueClass *IntType;
-    static ValueClass *LongType;
-    static ValueClass *DoubleType;
+    static IClass *NumericType;
+    static IClass *IntType;
+    static IClass *LongType;
+    static IClass *DoubleType;
     static ValueClass *BoolType;
     static ValueClass *RawType;
+    static IClass *IMethodType;
     static IClass *MethodType;
     static ValueClass *ExternalMethodType;
     static ValueClass *ExternalLibrary;
     static MetaClass  *ClassType;
     static ValueClass *IndexableType;
     static ValueClass *ArrayType;
+    static ValueClass *MD_ArrayType;
     static ValueClass *MapType;
-    static ValueClass *StringType;
+    static IClass *StringType;
     static IClass *SpriteType;
     static ValueClass *FileType;
     static ValueClass *RawFileType;
@@ -189,5 +139,296 @@ public:
 
     static void init();
 };
+
+struct Value
+{
+    char mark;
+    IClass *type;
+    Value *heapNext;
+    Value();
+    virtual ~Value() { }
+    static Value *NullValue;
+    virtual QString toString() const =0;
+    virtual bool isObject() { return false;}
+
+    virtual bool equals(Value *v2) =0;
+
+    virtual bool intEqualsMe(int);
+    virtual bool doubleEqualsMe(double);
+    virtual bool longEqualsMe(long);
+};
+
+struct IntVal : public Value
+{
+    int v;
+    IntVal(int v): v(v) { }
+    IntVal()  { }
+    QString toString() const;
+
+    bool equals(Value *v2);
+
+    bool intEqualsMe(int);
+    bool doubleEqualsMe(double);
+    bool longEqualsMe(long);
+};
+
+struct DoubleVal : public Value
+{
+    double v;
+    DoubleVal(double v): v(v) { }
+    QString toString() const;
+    bool equals(Value *v2);
+
+    bool intEqualsMe(int);
+    bool doubleEqualsMe(double);
+    bool longEqualsMe(long);
+};
+
+struct LongVal : public Value
+{
+    long v;
+    LongVal(long v): v(v) { }
+    QString toString() const;
+    bool equals(Value *v2);
+
+    bool intEqualsMe(int);
+    bool doubleEqualsMe(double);
+    bool longEqualsMe(long);
+};
+
+struct BoolVal : public Value
+{
+    bool v;
+    BoolVal(bool v): v(v) { }
+    QString toString() const;
+
+    bool equals(Value *v2);
+
+    bool intEqualsMe(int v1, Value *v2);
+    bool doubleEqualsMe(double d1, Value *v);
+    bool longEqualsMe(long l1, Value *v);
+};
+
+struct StringVal : public Value
+{
+    QString v;
+    StringVal(QString v): v(v) { }
+    QString toString() const;
+    bool equals(Value *v2);
+
+    bool intEqualsMe(int v1, Value *v2);
+    bool doubleEqualsMe(double d1, Value *v);
+    bool longEqualsMe(long l1, Value *v);
+};
+
+struct ObjVal : public Value
+{
+    IObject *v;
+    ObjVal(IObject* v): v(v) { }
+    ~ObjVal();
+    QString toString() const;
+    bool isObject() { return true;}
+    bool equals(Value *v2);
+
+    bool intEqualsMe(int v1, Value *v2);
+    bool doubleEqualsMe(double d1, Value *v);
+    bool longEqualsMe(long l1, Value *v);
+};
+
+struct NullVal : public Value
+{
+    NullVal() { }
+    QString toString() const;
+    bool equals(Value *v2);
+
+    bool intEqualsMe(int v1, Value *v2);
+    bool doubleEqualsMe(double d1, Value *v);
+    bool longEqualsMe(long l1, Value *v);
+};
+
+struct RawVal : public Value
+{
+    void *v;
+    RawVal(void *v): v(v) { }
+    QString toString() const;
+    bool equals(Value *v);
+
+    bool intEqualsMe(int v1, Value *v2);
+    bool doubleEqualsMe(double d1, Value *v);
+    bool longEqualsMe(long l1, Value *v);
+};
+
+struct RefVal : public Value
+{
+    Reference *v;
+    RefVal(Reference *v): v(v) { }
+    ~RefVal();
+    QString toString() const;
+    bool equals(Value *v);
+
+    bool intEqualsMe(int v1, Value *v2);
+    bool doubleEqualsMe(double d1, Value *v);
+    bool longEqualsMe(long l1, Value *v);
+};
+
+struct ArrayVal : public Value
+{
+    VArray *v;
+    ArrayVal(VArray *v): v(v) { }
+    ~ArrayVal();
+    QString toString() const;
+    bool equals(Value *v);
+
+    bool intEqualsMe(int v1, Value *v2);
+    bool doubleEqualsMe(double d1, Value *v);
+    bool longEqualsMe(long l1, Value *v);
+};
+
+struct MultiDimensionalArrayVal : public Value
+{
+    MultiDimensionalArray<Value *> *v;
+    MultiDimensionalArrayVal(MultiDimensionalArray<Value *> *v) : v(v) { }
+    ~MultiDimensionalArrayVal();
+    QString toString() const;
+    bool equals(Value *v);
+
+    bool intEqualsMe(int v1, Value *v2);
+    bool doubleEqualsMe(double d1, Value *v);
+    bool longEqualsMe(long l1, Value *v);
+};
+
+struct MapVal : public Value
+{
+    VMap *v;
+    MapVal(VMap *v): v(v) { }
+    ~MapVal();
+    QString toString() const;
+    bool equals(Value *v);
+
+    bool intEqualsMe(int v1, Value *v2);
+    bool doubleEqualsMe(double d1, Value *v);
+    bool longEqualsMe(long l1, Value *v);
+};
+
+struct ChannelVal : public Value
+{
+    Channel *v;
+    ChannelVal(Channel *v): v(v) { }
+    ~ChannelVal();
+    QString toString() const;
+    bool equals(Value *v);
+
+    bool intEqualsMe(int v1, Value *v2);
+    bool doubleEqualsMe(double d1, Value *v);
+    bool longEqualsMe(long l1, Value *v);
+};
+
+struct QObjVal : public Value
+{
+    QObject *v;
+    QObjVal(QObject *v): v(v) { }
+    ~QObjVal();
+    QString toString() const;
+    bool equals(Value *v);
+
+    bool intEqualsMe(int v1, Value *v2);
+    bool doubleEqualsMe(double d1, Value *v);
+    bool longEqualsMe(long l1, Value *v);
+};
+
+inline int unboxInt(const Value *v)
+{
+    return ((const IntVal *)v)->v;
+}
+
+inline double unboxDouble(const Value *v)
+{
+    return ((const DoubleVal *) v)->v;
+}
+
+inline long unboxLong(const Value *v)
+{
+    return ((const LongVal *) v)->v;
+}
+
+inline bool unboxBool(const Value *v)
+{
+    return ((const BoolVal *) v)->v;
+}
+
+inline IObject *unboxObj(const Value *v)
+{
+    return ((const ObjVal *) v)->v;
+}
+
+inline IClass *unboxClass(const Value *v)
+{
+    return dynamic_cast<IClass *>(unboxObj(v));
+}
+
+inline VArray *unboxArray(const Value *v)
+{
+    return ((const ArrayVal *) v)->v;
+}
+
+inline MultiDimensionalArray<Value *> *unboxMultiDimensionalArray(const Value *v)
+{
+    return ((const MultiDimensionalArrayVal *) v)->v;
+}
+
+inline VMap *unboxMap(const Value *v)
+{
+    return ((const MapVal*) v)->v;
+}
+inline void *unboxRaw(const Value *v)
+{
+    return ((const RawVal*) v)->v;
+}
+
+inline QString unboxStr(const Value *v)
+{
+    return ((const StringVal*) v)->v;
+}
+
+inline Reference *unboxRef(const Value *v)
+{
+    return ((const RefVal*) v)->v;
+}
+
+inline Channel *unboxChan(const Value *v)
+{
+    return ((const ChannelVal*) v)->v;
+}
+
+inline QObject *unboxQObj(const Value *v)
+{
+    return ((const QObjVal*) v)->v;
+}
+
+inline double unboxNumeric(const Value *v)
+{
+    if(v->type == BuiltInTypes::IntType)
+        return unboxInt(v);
+    if(v->type == BuiltInTypes::DoubleType)
+        return unboxDouble(v);
+    if(v->type == BuiltInTypes::LongType)
+        return unboxLong(v);
+    // This should not be called
+    return 0.0;
+}
+
+inline VIndexable *unboxIndexable(const Value *v)
+{
+    if(v->type == BuiltInTypes::ArrayType)
+        return unboxArray(v);
+    if(v->type == BuiltInTypes::MapType)
+        return unboxMap(v);
+    // This should not be called
+    return NULL;
+}
+
+// So that we can add (some types of) values to QMap
+inline bool operator<(const VBox &v1, const VBox &v2);
+inline bool operator==(const VBox &v1, const VBox &v2);
 
 #endif // VALUE_H

@@ -16,18 +16,15 @@ void GUIEditWidgetHandler::lineEditChanged()
     QLineEdit *le = (QLineEdit *) widget;
     QString str = le->text();
     Value *oldVal = ref->Get();
-    switch(oldVal->tag)
+    if(oldVal->type == BuiltInTypes::StringType)
     {
-    case StringVal:
         ref->Set(vm->GetAllocator().newString(le->text()));
-        break;
-    case Int:
-    case Double:
-    case Long:
-            ref->Set(ConvertStringToNumber(le->text(), vm));
-        break;
-    default:
-        break;
+    }
+    else if(oldVal->type == BuiltInTypes::IntType ||
+            oldVal->type == BuiltInTypes::DoubleType ||
+            oldVal->type == BuiltInTypes::LongType)
+    {
+        ref->Set(ConvertStringToNumber(le->text(), vm));
     }
 }
 

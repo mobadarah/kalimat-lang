@@ -45,9 +45,9 @@ IObject *SpriteClass::newValue(Allocator *allocator)
 
 Value *SpriteClass::dispatch(Process *proc, int id, QVector<Value *> args)
 {
-    IObject *receiver = args[0]->unboxObj();
+    IObject *receiver = unboxObj(args[0]);
     Sprite *sprite = reinterpret_cast<Sprite *>(
-                receiver->getSlotValue("_handle")->unboxRaw());
+                unboxRaw(receiver->getSlotValue("_handle")));
     Value *arg1 = NULL;
     switch(id)
     {
@@ -63,7 +63,6 @@ Value *SpriteClass::dispatch(Process *proc, int id, QVector<Value *> args)
     case 4: // اسمح.بالتصادم
         sprite->enableColission(true);
         return NULL;
-
     }
 
     return NULL;

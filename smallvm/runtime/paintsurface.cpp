@@ -67,10 +67,10 @@ void PaintSurface::update(TextLayer &textLayer, SpriteLayer &spriteLayer)
 {
     QPainter imgPainter(&finalImg);
     imgPainter.drawImage(QPoint(0,0), image);
-    imgPainter.fillRect(image.rect(), Qt::white);
-    drawTextLayer(imgPainter, textLayer);
-    //fastDrawTextLayer(imgPainter, textLayer);
-    drawSpriteLayer(imgPainter, spriteLayer);
+    //imgPainter.fillRect(image.rect(), Qt::white);
+    //drawTextLayer(imgPainter, textLayer);
+    fastDrawTextLayer(imgPainter, textLayer);
+     drawSpriteLayer(imgPainter, spriteLayer);
 
     const int shiftDist = 15;
     if(showCoordinates)

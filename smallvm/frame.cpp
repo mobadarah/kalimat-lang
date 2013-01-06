@@ -29,19 +29,19 @@ IObject *FrameClass::newValue(Allocator *allocator)
 
 Value *FrameClass::dispatch(Process *proc, int id, QVector<Value *> args)
 {
-    IObject *receiver = args[0]->unboxObj();
+    IObject *receiver = unboxObj(args[0]);
     Frame *frm = dynamic_cast<Frame *>(receiver);
     QString str;
     switch(id)
     {
         case 0: // قيمة.المتغير.المحلي
-        str = args[1]->unboxStr();
+        str = unboxStr(args[1]);
         if(frm->currentMethod->Locals.contains(str))
             return frm->fastLocals[frm->currentMethod->Locals[str]];
         else
             return allocator->null();
         case 1: // حدد.قيمة.المتغير.المحلي
-        str = args[1]->unboxStr();
+        str = unboxStr(args[1]);
         frm->fastLocals[frm->currentMethod->Locals[str]] = args[2];
         return NULL;
     default:
@@ -54,34 +54,37 @@ Frame::Frame()
     next = NULL;
     fastLocals = NULL;
     fastLocalCount = 0;
+    operandStackLevel = operandStackLevel;
 }
 
-Frame::Frame(Method *method)
+Frame::Frame(Method *method, int operandStackLevel)
     :currentMethod(method),
       ip(0),
       returnReferenceIfRefMethod(true),
+      operandStackLevel(operandStackLevel),
       next(NULL)
 {
     prepareFastLocals();
 }
 
-Frame::Frame(Method *method, int ip)
+Frame::Frame(Method *method, int ip, int operandStackLevel)
     :currentMethod(method),
       ip(ip),
       returnReferenceIfRefMethod(true),
+      operandStackLevel(operandStackLevel),
       next(NULL)
 {
     prepareFastLocals();
 }
 
-void Frame::Init(Method *method)
+void Frame::Init(Method *method, int operandStackLevel)
 {
-    Init(method, 0);
+    Init(method, 0, operandStackLevel);
 }
 
-void Frame::Init(Method *method, int ip)
+void Frame::Init(Method *method, int ip, int operandStackLevel)
 {
-    OperandStack.clear();
+    this->operandStackLevel = operandStackLevel;
     currentMethod = method;
     this->ip = ip;
     returnReferenceIfRefMethod = true;
@@ -132,7 +135,7 @@ void Frame::prepareFastLocals()
             fastLocals[i] = NULL;
         }
 
-        memset(fastLocals, 0, n *sizeof(Value *));
+        // memset(fastLocals, 0, n *sizeof(Value *));
     }
     else
     {

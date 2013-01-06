@@ -37,8 +37,9 @@ void Compiler::importModules(shared_ptr<Program> p, QString path, bool allModule
         QString fullPath;
         if(allModulesStandard)
             fullPath = getPathOfStandardModule(m2);
-            else
+        else
             fullPath = getPathOfModule(m2, path);
+
         if(!loadedModules.contains(fullPath))
             loadModule(fullPath);
         Module *importedMod = loadedModules[fullPath].get();

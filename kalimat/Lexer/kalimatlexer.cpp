@@ -70,6 +70,7 @@ KalimatLexer::KalimatLexer() : Lexer()
     sm.addAccepting (READY,   la(rbrace), READY,   RBRACE);
     sm.addAccepting (READY,   la(comma),  READY,   COMMA);
     sm.addAccepting (READY,   la(semi),   READY,   SEMI);
+    sm.addAccepting (READY,   nameSep,    READY,   NAMESEP);
     sm.addAccepting (READY,   la(colon),  READY,   COLON);
     sm.addAccepting (READY,   la(kasra),  READY,   KASRA);
     sm.addAccepting (READY,   la(dollarSign),  READY,   DOLLAR);
@@ -146,6 +147,8 @@ void KalimatLexer::InitCharPredicates()
 
     comma = new CharOr(new CharEquals(','), new CharEquals(arab_chars["comma"].at(0)));
     semi  = new CharOr(new CharEquals(';'), new CharEquals(arab_chars["semi"].at(0)));
+
+    nameSep = new LAStr("::");
     colon = new CharEquals(':');
     kasra = new CharEquals(arab_chars["kasra"].at(0));
     dollarSign = new CharEquals('$');
@@ -219,9 +222,8 @@ void KalimatLexer::InitKeywords()
         id++;
     }
     in.close();
-
-
 }
+
 void KalimatLexer::InitArabChars()
 {
     LineIterator in = Utils::readResourceTextFile(":/arab_char.txt");

@@ -60,7 +60,7 @@ public:
     inline int NumReturnValues() { return numReturnValues; }
     QString getName();
 
-    int localVarCount();
+    inline int localVarCount() { return Locals.count(); }
     // Implementing IObject
     virtual bool hasSlot(QString name);
     virtual QList<QString> getSlotNames();

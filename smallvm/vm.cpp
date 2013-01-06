@@ -9,14 +9,11 @@
 #include "vm.h"
 #include "utils.h"
 #include "vm_ffi.h"
-//#include <iostream>
 #include <QLibrary>
 #include <QDateTime>
 #include <time.h>
 #include "runtime/parserengine.h"
 #include <QtDebug>
-
-using namespace std;
 
 Translation<ArgErr::ArgError> VM::argumentErrors(":/runlib_errors.txt");
 
@@ -35,10 +32,10 @@ void VM::Init()
     int _main = constantPoolLabeller.labelOf("main");
     if(!constantPool.contains(_main))
         signal(NULL, InternalError1 ,VM::argumentErrors[ArgErr::NoMainFuncToExecute]);
-    Method *method = dynamic_cast<Method *>(constantPool[_main]->unboxObj());
+    Method *method = dynamic_cast<Method *>(unboxObj(constantPool[_main]));
     int malaf = constantPoolLabeller.labelOf("%file");
     if(constantPool.contains(malaf))
-        BuiltInTypes::FileType = (ValueClass *) constantPool[malaf]->unboxObj();
+        BuiltInTypes::FileType = (ValueClass *) unboxObj(constantPool[malaf]);
 
     allocator.addOtherFrameAsRoot(&_globalFrame);
     launchProcess(method, _mainProcess);
@@ -61,9 +58,9 @@ Frame *VM::launchProcess(Method *method, Process *&proc)
     return ret;
 }
 
-Frame *VM::launchProcessAsInterrupt(Method *method)
+Process *VM::launchProcessAsInterrupt(Method *method)
 {
-    Frame *ret = mainScheduler.launchProcessAsInterrupt(method);
+    Process *ret = mainScheduler.launchProcessAsInterrupt(method);
     return ret;
 }
 
@@ -202,7 +199,7 @@ void VM::setBreakPoint(QString methodName, int offset, bool oneShot)
     if(!constantPool.contains(methodLabel))
         return;
 
-    Method *method = dynamic_cast<Method*>(constantPool[methodLabel]->v.objVal);
+    Method *method = dynamic_cast<Method*>(unboxObj(constantPool[methodLabel]));
     if(method == NULL)
         return;
     Instruction newI = method->Get(offset);
@@ -216,7 +213,7 @@ void VM::setBreakPoint(QString methodName, int offset, bool oneShot)
 void VM::clearBreakPoint(QString methodName, int offset)
 {
     int methodLabel = constantPoolLabeller.labelOf(methodName);
-    Method *method = (Method*) constantPool[methodLabel]->v.objVal;
+    Method *method = (Method*) unboxObj(constantPool[methodLabel]);
     method->Set(offset, breakPoints[methodName][offset]);
 }
 
@@ -257,15 +254,15 @@ void VM::ActivateEvent(QString evName, QVector<Value *>args)
     int procLabel = constantPoolLabeller.labelOf(procName);
     Value *v = constantPool.value(procLabel, NULL);
     assert(NULL, v, NoSuchProcedureOrFunction1, procName);
-    Method *method = (Method *) v->unboxObj();
+    Method *method = (Method *) unboxObj(v);
     assert(NULL, args.count() == method->Arity(), WrongNumberOfArguments3, procName, toStr(args.count()), toStr(method->Arity()));
 
     //Frame *newFrame = launchAdministeredProcess(method, "evQ");
     //Frame *newFrame = launchProcessAsInterrupt(method);
-    Frame *newFrame = guiScheduler.launchProcessAsInterrupt(method);
+    Process *newProc = guiScheduler.launchProcessAsInterrupt(method);
     for(int i=args.count()-1; i>=0; i--)
     {
-        newFrame->OperandStack.push(args[i]);
+        newProc->pushOperand(args[i]);
     }
 }
 
@@ -350,7 +347,7 @@ IClass *VM::parseTypeId(QString typeId, int &pos)
             Value *v = constantPool[vmTypeIdLabel];
             if(!(v->type == BuiltInTypes::ClassType))
                 signal(NULL, InternalError1, QString("VM::GetType: Constant pool entry '%1' not a type").arg(id));
-            return v->unboxClass();
+            return unboxClass(v);
         }
 
 }
@@ -386,10 +383,10 @@ IMethod *VM::GetMethod(QString symRef)
         signal(NULL, InternalError1, QString("VM::GetMethod() could not find method %1").arg(symRef));
 
     Value *v = constantPool.value(vmMethodLabel, NULL);
-    if(!v || v->tag != ObjectVal)
+    if(!v || !v->type->subclassOf(BuiltInTypes::IMethodType))
         signal(NULL, InternalError1, QString("VM::GetMethod() could not find method %1").arg(symRef));
 
-    IMethod *m = dynamic_cast<IMethod *>(v->unboxObj());
+    IMethod *m = dynamic_cast<IMethod *>(unboxObj(v));
     if(!m)
         signal(NULL, InternalError1, QString("VM::GetMethod() object '%1' not a method").arg(symRef));
     return m;
@@ -931,7 +928,7 @@ void VM::patchupInheritance(QMap<ValueClass *, QString> inheritanceList)
         QString parentName = i.value();
         int parentNameLabel = constantPoolLabeller.labelOf(parentName);
         Value *classObj = (Value*) constantPool[parentNameLabel];
-        ValueClass *parent = dynamic_cast<ValueClass *>(classObj->v.objVal);
+        ValueClass *parent = dynamic_cast<ValueClass *>(unboxClass(classObj));
 
         // In VM::Load we always initialize a class with a base of BuiltInTypes::ObjectType
         // now that we found a class's real parent, we don't need this default
@@ -978,12 +975,13 @@ void VM::destroyTheWorld(Scheduler *owner)
     worldDestruction.acquire(1);
 }
 
-
+/*
 bool VM::isRunning()
 {
     // don't think this is correct
     return mainScheduler.isRunning() && guiScheduler.isRunning();
 }
+*/
 
 bool VM::isDone()
 {

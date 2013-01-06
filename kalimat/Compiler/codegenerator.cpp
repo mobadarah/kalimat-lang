@@ -2363,17 +2363,17 @@ void CodeGenerator::generateBinaryOperation(shared_ptr<BinaryOperation> expr)
     else if(expr->operator_() == "or")
     {
         // if(op1)
-        //     op2
+        //     true
         // else
-        //     false
+        //     op2
         // =>
         // <op1>
-        // if else,goon
+        // if goon, else
         // goon:
-        // <op2>
+        // pushv true
         // jmp theend
         // else:
-        // pushv true
+        // <op2>
         // theend:
 
         QString goOn = _asm.uniqueLabel();
@@ -2381,12 +2381,12 @@ void CodeGenerator::generateBinaryOperation(shared_ptr<BinaryOperation> expr)
         QString theEnd = _asm.uniqueLabel();
 
         generateExpression(expr->operand1());
-        gen(expr, "if " + elSe + "," + goOn);
+        gen(expr, "if " + goOn + "," + elSe);
         gen(expr, goOn+":");
-        generateExpression(expr->operand2());
+        gen(expr->operand1(), "pushv true");
         gen(expr, "jmp " + theEnd);
         gen(expr, elSe+":");
-        gen(expr->operand1(), "pushv true");
+        generateExpression(expr->operand2());
         gen(expr, theEnd + ":");
     }
     else

@@ -3,6 +3,412 @@
 #include "vmerror.h"
 #include "runtime_identifiers.h"
 
+int IClass::compareTo(Value *v1, Value *v2)
+{
+    throw VMError(BuiltInOperationOnNonBuiltn2).arg(v1->type->toString()).arg(v2->type->toString());
+}
+
+int IClass::compareIntToMe(int v1, Value *v2)
+{
+    throw VMError(BuiltInOperationOnNonBuiltn2).
+            arg(BuiltInTypes::IntType->getName()).
+            arg(v2->type->toString());
+}
+
+int IClass::compareDoubleToMe(double v1, Value *v2)
+{
+    throw VMError(BuiltInOperationOnNonBuiltn2).
+            arg(BuiltInTypes::DoubleType->getName()).
+            arg(v2->type->toString());
+}
+
+int IClass::compareLongToMe(long v1, Value *v2)
+{
+    throw VMError(BuiltInOperationOnNonBuiltn2).
+            arg(BuiltInTypes::LongType->getName()).
+            arg(v2->type->toString());
+}
+
+int IClass::compareStringToMe(QString v1, Value *v2)
+{
+    throw VMError(BuiltInOperationOnNonBuiltn2).
+            arg(BuiltInTypes::StringType->getName()).
+            arg(v2->type->toString());
+}
+
+Value *IClass::addTo(Value *v1, Value *v2, Allocator *)
+{
+    throw VMError(BuiltInOperationOnNonBuiltn2).arg(v1->type->toString()).arg(v2->type->toString());
+}
+
+Value *IClass::addIntToMe(int v1, Value *v2, Allocator *)
+{
+    throw VMError(BuiltInOperationOnNonBuiltn2).
+            arg(BuiltInTypes::IntType->getName()).
+            arg(v2->type->toString());
+}
+
+Value *IClass::addDoubleToMe(double v1, Value *v2, Allocator *)
+{
+    throw VMError(BuiltInOperationOnNonBuiltn2).
+            arg(BuiltInTypes::DoubleType->getName()).
+            arg(v2->type->toString());
+}
+
+Value *IClass::addLongToMe(long v1, Value *v2, Allocator *)
+{
+    throw VMError(BuiltInOperationOnNonBuiltn2).
+            arg(BuiltInTypes::LongType->getName()).
+            arg(v2->type->toString());
+}
+
+Value *IClass::addStringToMe(QString v1, Value *v2, Allocator *)
+{
+    throw VMError(BuiltInOperationOnNonBuiltn2).
+            arg(BuiltInTypes::StringType->getName()).
+            arg(v2->type->toString());
+}
+
+Value *IClass::minus(Value *v1, Value *v2, Allocator *)
+{
+    throw VMError(NumericOperationOnNonNumber3)
+            .arg(VMId::get(RId::Subtraction))
+            .arg(v1->type->toString())
+            .arg(v2->type->toString());
+}
+
+Value* IClass::intMinusMe(int v1, Value *v2, Allocator *)
+{
+    throw VMError(NumericOperationOnNonNumber3)
+            .arg(VMId::get(RId::Subtraction))
+            .arg(BuiltInTypes::IntType->getName())
+            .arg(v2->type->toString());
+}
+
+Value *IClass::doubleMinusMe(double v1,  Value *v2, Allocator *)
+{
+    throw VMError(NumericOperationOnNonNumber3)
+            .arg(VMId::get(RId::Subtraction))
+            .arg(BuiltInTypes::DoubleType->getName())
+            .arg(v2->type->toString());
+}
+
+Value *IClass::longMinusMe(long v1,  Value *v2, Allocator *)
+{
+    throw VMError(NumericOperationOnNonNumber3)
+            .arg(VMId::get(RId::Subtraction))
+            .arg(BuiltInTypes::LongType->getName())
+            .arg(v2->type->toString());
+}
+
+QString StringClass::getName()
+{
+    return VMId::get(RId::String);
+}
+
+IClass *StringClass::baseClass()
+{
+    return BuiltInTypes::IndexableType;
+}
+
+IMethod *StringClass::lookupMethod(QString name)
+{
+    return baseClass()->lookupMethod(name);
+}
+
+IObject *StringClass::newValue(Allocator *allocator)
+{
+    throw VMError(InternalError);
+}
+
+int StringClass::compareTo(Value *v1, Value *v2)
+{
+    return compareStringToMe(unboxStr(v1), v2);
+}
+
+int StringClass::compareStringToMe(QString v1, Value *v2)
+{
+    return v1.compare(unboxStr(v2));
+}
+
+Value *StringClass::addTo(Value *v1, Value *v2, Allocator *a)
+{
+    return v1->type->addStringToMe(unboxStr(v1), v2, a);
+}
+
+Value *StringClass::addStringToMe(QString v1, Value *v2, Allocator *a)
+{
+    return a->newString(v1 + unboxStr(v2));
+}
+
+bool StringClass::subclassOf(IClass *c)
+{
+    if(c == this)
+        return true;
+
+    return baseClass()->subclassOf(c);
+}
+
+QString NumericClass::getName()
+{
+    return VMId::get(RId::Numeric);
+}
+
+IClass *NumericClass::baseClass()
+{
+    return BuiltInTypes::ObjectType;
+}
+
+bool NumericClass::subclassOf(IClass *c)
+{
+    if(c == this)
+        return true;
+
+    return baseClass()->subclassOf(c);
+}
+
+IMethod *NumericClass::lookupMethod(QString name)
+{
+    return baseClass()->lookupMethod(name);
+}
+
+IObject *NumericClass::newValue(Allocator *allocator)
+{
+    throw VMError(InternalError);
+}
+
+QString IntClass::getName()
+{
+    return VMId::get(RId::Integer);
+}
+
+int IntClass::compareTo(Value *v1, Value *v2)
+{
+    return v2->type->compareIntToMe(unboxInt(v1), v2);
+}
+
+int IntClass::compareIntToMe(int v1, Value *v2)
+{
+    return v1 - unboxInt(v2);
+}
+
+int IntClass::compareDoubleToMe(double v1, Value *v2)
+{
+    int i2= unboxInt(v2);
+    if(v1 > i2)
+        return 1;
+    else if(v1 < i2)
+        return -1;
+    else
+        return 0;
+}
+
+int IntClass::compareLongToMe(long v1, Value *v2)
+{
+    int i2= unboxInt(v2);
+    if(v1 > i2)
+        return 1;
+    else if(v1 < i2)
+        return -1;
+    else
+        return 0;
+}
+
+Value *IntClass::addTo(Value *v1, Value *v2, Allocator *a)
+{
+    return v2->type->addIntToMe(unboxInt(v1), v2, a);
+}
+
+Value *IntClass::addIntToMe(int v1, Value *v2, Allocator *a)
+{
+    return a->newInt(v1 + unboxInt(v2));
+}
+
+Value *IntClass::addDoubleToMe(double v1, Value *v2, Allocator *a)
+{
+    return a->newDouble(v1 + unboxInt(v2));
+}
+
+Value *IntClass::addLongToMe(long v1, Value *v2, Allocator *a)
+{
+    return a->newLong(v1 + unboxInt(v2));
+}
+
+Value *IntClass::minus(Value *v1, Value *v2, Allocator *a)
+{
+    return v2->type->intMinusMe(unboxInt(v1), v2, a);
+}
+
+Value *IntClass::intMinusMe(int v1, Value *v2, Allocator *a)
+{
+    return a->newInt(v1 - unboxInt(v2));
+}
+
+Value *IntClass::doubleMinusMe(double v1, Value *v2, Allocator *a)
+{
+    return a->newDouble(v1 - unboxInt(v2));
+}
+
+Value *IntClass::longMinusMe(long v1, Value *v2, Allocator *a)
+{
+    return a->newLong(v1 - unboxInt(v2));
+}
+
+QString DoubleClass::getName()
+{
+    return VMId::get(RId::Double);
+}
+
+int DoubleClass::compareTo(Value *v1, Value *v2)
+{
+    return v2->type->compareDoubleToMe(unboxDouble(v1), v2);
+}
+
+int DoubleClass::compareIntToMe(int v1, Value *v2)
+{
+    double d2 = unboxDouble(v2);
+    if(v1 > d2)
+        return 1;
+    else if(v1 < d2)
+        return -1;
+    else
+        return 0;
+}
+
+int DoubleClass::compareDoubleToMe(double v1, Value *v2)
+{
+    return v1 - unboxDouble(v2);
+}
+
+int DoubleClass::compareLongToMe(long v1, Value *v2)
+{
+    double d2 = unboxDouble(v2);
+    if(v1 > d2)
+        return 1;
+    else if(v1 < d2)
+        return -1;
+    else
+        return 0;
+}
+
+Value *DoubleClass::addTo(Value *v1, Value *v2, Allocator *a)
+{
+    return v2->type->addDoubleToMe(unboxDouble(v1), v2, a);
+}
+
+Value *DoubleClass::addIntToMe(int v1, Value *v2, Allocator *a)
+{
+    return a->newDouble(v1 + unboxDouble(v2));
+}
+
+Value *DoubleClass::addDoubleToMe(double v1, Value *v2, Allocator *a)
+{
+    return a->newDouble(v1 + unboxDouble(v2));
+}
+
+Value *DoubleClass::addLongToMe(long v1, Value *v2, Allocator *a)
+{
+    return a->newDouble(v1 + unboxDouble(v2));
+}
+
+Value *DoubleClass::minus(Value *v1, Value *v2, Allocator *a)
+{
+    return v2->type->doubleMinusMe(unboxDouble(v1), v2, a);
+}
+
+Value *DoubleClass::intMinusMe(int v1, Value *v2, Allocator *a)
+{
+    return a->newDouble(v1 - unboxDouble(v2));
+}
+
+Value *DoubleClass::doubleMinusMe(double v1, Value *v2, Allocator *a)
+{
+    return a->newDouble(v1 - unboxDouble(v2));
+}
+
+Value *DoubleClass::longMinusMe(long v1, Value *v2, Allocator *a)
+{
+    return a->newDouble(v1 - unboxDouble(v2));
+}
+
+QString LongClass::getName()
+{
+    return VMId::get(RId::Long);
+}
+
+int LongClass::compareTo(Value *v1, Value *v2)
+{
+    return v2->type->compareLongToMe(unboxLong(v1), v2);
+}
+
+int LongClass::compareIntToMe(int v1, Value *v2)
+{
+    long l2 = unboxLong(v2);
+    if(v1 > l2)
+        return 1;
+    else if(v1 < l2)
+        return -1;
+    else
+        return 0;
+}
+
+int LongClass::compareDoubleToMe(double v1, Value *v2)
+{
+    long l2 = unboxLong(v2);
+    if(v1 > l2)
+        return 1;
+    else if(v1 < l2)
+        return -1;
+    else
+        return 0;
+}
+
+int LongClass::compareLongToMe(long v1, Value *v2)
+{
+    long l2 = unboxLong(v2);
+    return v1 - l2;
+}
+
+Value *LongClass::addTo(Value *v1, Value *v2, Allocator *a)
+{
+    return v2->type->addLongToMe(unboxLong(v1), v2, a);
+}
+
+Value *LongClass::addIntToMe(int v1, Value *v2, Allocator *a)
+{
+    return a->newLong(v1 + unboxLong(v2));
+}
+
+Value *LongClass::addDoubleToMe(double v1, Value *v2, Allocator *a)
+{
+    return a->newDouble(v1 + unboxLong(v2));
+}
+
+Value *LongClass::addLongToMe(long v1, Value *v2, Allocator *a)
+{
+    return a->newLong(v1 + unboxLong(v2));
+}
+
+Value *LongClass::minus(Value *v1, Value *v2, Allocator *a)
+{
+    return v2->type->longMinusMe(unboxLong(v1), v2, a);
+}
+
+Value *LongClass::intMinusMe(int v1, Value *v2, Allocator *a)
+{
+    return a->newLong(v1 - unboxLong(v2));
+}
+
+Value *LongClass::doubleMinusMe(double v1, Value *v2, Allocator *a)
+{
+    return a->newDouble(v1 - unboxLong(v2));
+}
+
+Value *LongClass::longMinusMe(long v1, Value *v2, Allocator *a)
+{
+    return a->newLong(v1 - unboxLong(v2));
+}
+
 IObject *ValueClass::newValue(Allocator *allocator)
 {
     Object *newObj = new Object();

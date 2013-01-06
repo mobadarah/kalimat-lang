@@ -61,6 +61,7 @@ public:
     void deindentLine(int line, int by);
     void updateLineNumberAreaFont();
 
+    void jumpToPos(int pos);
     void toggleBreakpoint(int line);
     bool eventFilter(QObject *sender, QEvent *event);
 

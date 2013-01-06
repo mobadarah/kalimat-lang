@@ -25,6 +25,7 @@ public:
     shared_ptr<AST> parseRoot();
     shared_ptr<AST> module();
 
+    QVector<Token> getTokens() { return tokens; }
     QMap<int, Token> closerFor;
     QMap<int, Token> openerFor;
 

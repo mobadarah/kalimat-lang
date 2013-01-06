@@ -244,35 +244,36 @@ void RunWindow::Init(QString program, QMap<QString, QString> stringConstants, QS
 
             BuiltInTypes::BoolType,
             BuiltInTypes::RawType,
+            BuiltInTypes::IMethodType,
             BuiltInTypes::MethodType,
-            BuiltInTypes::ExternalMethodType,
 
+            BuiltInTypes::ExternalMethodType,
             BuiltInTypes::ClassType,
             BuiltInTypes::IndexableType,
             BuiltInTypes::ArrayType,
-            BuiltInTypes::MapType,
 
+            BuiltInTypes::MapType,
             BuiltInTypes::StringType,
             BuiltInTypes::SpriteType,
             BuiltInTypes::WindowType,
-            BuiltInTypes::NullType,
 
+            BuiltInTypes::NullType,
             BuiltInTypes::LambdaType,
             BuiltInTypes::c_int,
             BuiltInTypes::c_long,
-            BuiltInTypes::c_float,
 
+            BuiltInTypes::c_float,
             BuiltInTypes::c_double,
             BuiltInTypes::c_char,
             BuiltInTypes::c_asciiz,
-            BuiltInTypes::c_wstr,
 
+            BuiltInTypes::c_wstr,
             BuiltInTypes::c_void,
             BuiltInTypes::c_ptr
 
                              };
         // todo: handle built-in file type
-        const int numBuiltIns = 26;
+        const int numBuiltIns = 27;
         for(int i=0; i<numBuiltIns; i++)
         {
             vm->RegisterType(builtIns[i]->getName(), builtIns[i]);
@@ -296,7 +297,8 @@ void RunWindow::Init(QString program, QMap<QString, QString> stringConstants, QS
         vm->RegisterType(VMId::get(RId::ComboBox), new ComboboxForeignClass(VMId::get(RId::ComboBox), this, vm));
         vm->RegisterType(VMId::get(RId::Image), new ImageForeignClass(VMId::get(RId::Image), this, vm));
         vm->RegisterType(VMId::get(RId::ParseResultClass), new ParseResultClass(VMId::get(RId::ParseResultClass)));
-        vm->RegisterType(VMId::get(RId::Parser), new ParserClass(VMId::get(RId::Parser), this, dynamic_cast<ParseResultClass *>(vm->GetType(VMId::get(RId::ParseResultClass))->unboxClass())));
+        vm->RegisterType(VMId::get(RId::Parser), new ParserClass(VMId::get(RId::Parser), this, dynamic_cast<ParseResultClass *>(
+                                                                     unboxClass(vm->GetType(VMId::get(RId::ParseResultClass))))));
 
         BuiltInTypes::ActivationFrameType = new FrameClass(VMId::get(RId::ActivationRecord), vm);
         vm->RegisterType(VMId::get(RId::ActivationRecord), BuiltInTypes::ActivationFrameType);
@@ -310,7 +312,11 @@ void RunWindow::Init(QString program, QMap<QString, QString> stringConstants, QS
         vm->vmThread = new VMRunthread(vm, this);
         vm->guiScheduler.runWindow = this;
         vm->Init();
-        vm->setDebugger(client);
+
+        if(breakPoints.empty())
+            vm->setDebugger(NullaryDebugger::instance());
+        else
+            vm->setDebugger(client);
 
         /*
         if(parseTree)
@@ -798,8 +804,8 @@ void RunWindow::activateMouseEvent(QMouseEvent *ev, QString evName)
     try
     {
         // Send to mouse event channel
-        Value *mouseDataV = vm->GetAllocator().newObject((IClass *) vm->GetType(VMId::get(RId::MouseEventInfo))->unboxObj());
-        IObject *mouseData = mouseDataV->unboxObj();
+        Value *mouseDataV = vm->GetAllocator().newObject((IClass *) unboxObj(vm->GetType(VMId::get(RId::MouseEventInfo))));
+        IObject *mouseData = unboxObj(mouseDataV);
         mouseData->setSlotValue(VMId::get(RId::X), xval);
         mouseData->setSlotValue(VMId::get(RId::Y), yval);
 
@@ -808,14 +814,14 @@ void RunWindow::activateMouseEvent(QMouseEvent *ev, QString evName)
 
         mouseData->setSlotValue(VMId::get(RId::LeftButton), vm->GetAllocator().newBool(leftBtn));
         mouseData->setSlotValue(VMId::get(RId::RightButton), vm->GetAllocator().newBool(rightBtn));
-        mouseEventChannel->unboxChan()->send(mouseDataV, NULL);
+        unboxChan(mouseEventChannel)->send(mouseDataV, NULL);
 
         if(evName == "mousedown")
-            mouseDownEventChannel->unboxChan()->send(mouseDataV, NULL);
+            unboxChan(mouseDownEventChannel)->send(mouseDataV, NULL);
         else if(evName == "mouseup")
-            mouseUpEventChannel->unboxChan()->send(mouseDataV, NULL);
+            unboxChan(mouseUpEventChannel)->send(mouseDataV, NULL);
         else if(evName == "mousemove")
-            mouseMoveEventChannel->unboxChan()->send(mouseDataV, NULL);
+            unboxChan(mouseMoveEventChannel)->send(mouseDataV, NULL);
 
         vm->ActivateEvent(evName, args);
 
@@ -861,7 +867,7 @@ void RunWindow::keyPressEvent(QKeyEvent *ev)
             else
             {
                 state = rwNormal;
-                readChannel->unboxChan()->send(v, NULL);
+                unboxChan(readChannel)->send(v, NULL);
                 textLayer.nl();
                 update();
             }
@@ -925,11 +931,11 @@ void RunWindow::activateKeyEvent(QKeyEvent *ev, QString evName)
         args.append(kchar);
 
         // Send to KB channel
-        Value *kbInfoV = vm->GetAllocator().newObject((IClass *) vm->GetType(VMId::get(RId::KBEventInfo))->unboxObj());
-        IObject *obj = kbInfoV->unboxObj();
+        Value *kbInfoV = vm->GetAllocator().newObject((IClass *) unboxObj(vm->GetType(VMId::get(RId::KBEventInfo))));
+        IObject *obj = unboxObj(kbInfoV);
         obj->setSlotValue(VMId::get(RId::Key), key);
         obj->setSlotValue(VMId::get(RId::Character), kchar);
-        kbEventChannel->unboxChan()->send(kbInfoV, NULL);
+        unboxChan(kbEventChannel)->send(kbInfoV, NULL);
 
         vm->ActivateEvent(evName, args);
 

@@ -17,6 +17,7 @@
 
 
 void mySleep(int ms);
+long get_time();
 
 QString _ws(QStdWString str);
 QString readFile(QString path);

@@ -125,6 +125,7 @@ const int ROCKET = 119;
 const int MATCHES = 120;
 const int QUESTION = 121;
 const int LAMBDA = 122;
+const int NAMESEP = 123;
 
 const int WHITESPACE = TokenNone;
 
@@ -158,6 +159,7 @@ class KalimatLexer : public Lexer
 
     Predicate *ellipsis;
     Predicate *lambda;
+    Predicate *nameSep;
     CharPredicate *quote;
     Predicate *two_quotes;
 

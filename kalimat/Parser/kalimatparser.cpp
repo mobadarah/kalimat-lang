@@ -1564,7 +1564,6 @@ shared_ptr<Declaration> KalimatParser::methodDecl()
     {
         throw ParserException(fileName, tok, "Syntax error");
     }
-
     formals = formalParamList();
     match(COLON);
     match(NEWLINE);
@@ -2186,45 +2185,50 @@ shared_ptr<Expression> KalimatParser::primaryExpression()
         if(LA(COLON))
         {
             ParserState s = saveState();
-            try
+
+            match(COLON);
+            tok = lookAhead;
+            if(false && withRecovery && !LA(IDENTIFIER))
             {
-                match(COLON);
-                tok = lookAhead;
-                if(withRecovery && !LA(IDENTIFIER))
-                {
-                    // if we are parsing for autocomplete information
-                    // and we entered x :
-                    // we need the identifier x to be in the AST
-                    // so that it's type be determined by the analyzer
-                    // in that case we'll make the whole expression
-                    // some special AST type
-                    ret = shared_ptr<ForAutocomplete>(new
-                                                      ForAutocomplete(ret->getPos(),
-                                                                      ret)
-                                                      );
-                }
-                else
-                {
-                    shared_ptr<Identifier> methodName = identifier();
-                    QVector<shared_ptr<Expression> > args;
-                    match(LPAREN);
-                    if(!LA(RPAREN))
-                    {
-                        args.append(expression());
-                        while(LA(COMMA))
-                        {
-                            match(COMMA);
-                            args.append(expression());
-                        }
-                    }
-                    match(RPAREN);
-                    ret = shared_ptr<Expression>(new MethodInvokation(tok, ret, methodName, args));
-                }
+                // if we are parsing for autocomplete information
+                // and we entered x :
+                // we need the identifier x to be in the AST
+                // so that it's type be determined by the analyzer
+                // in that case we'll make the whole expression
+                // some special AST type
+                ret = shared_ptr<ForAutocomplete>(new
+                                                  ForAutocomplete(ret->getPos(),
+                                                                  ret)
+                                                  );
             }
-            catch(ParserException ex)
+            else
             {
-                restoreState(s);
-                break;
+                if(!LA(IDENTIFIER))
+                {
+                    // We have seen a form <primary-non-invokation> <colon>
+                    // if it were followed by an identifier it would've been
+                    // a method call, but it isn't; could be an ending of an 'if' condition
+                    // so we backtrack
+                    {
+                        restoreState(s);
+                        break;
+                    }
+                }
+
+                shared_ptr<Identifier> methodName = identifier();
+                QVector<shared_ptr<Expression> > args;
+                match(LPAREN);
+                if(!LA(RPAREN))
+                {
+                    args.append(expression());
+                    while(LA(COMMA))
+                    {
+                        match(COMMA);
+                        args.append(expression());
+                    }
+                }
+                match(RPAREN);
+                ret = shared_ptr<Expression>(new MethodInvokation(tok, ret, methodName, args));
             }
         }
         if(LA(LBRACKET))

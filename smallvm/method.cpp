@@ -98,11 +98,6 @@ QString Method::getName()
     return this->name;
 }
 
-int Method::localVarCount()
-{
-    return Locals.count();
-}
-
 bool Method::hasSlot(QString name)
 {
     return false;

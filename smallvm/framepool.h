@@ -8,17 +8,17 @@ class FramePool
 {
     Stack<Frame *> freeList;
 public:
-    inline Frame *allocate(Method *method)
+    inline Frame *allocate(Method *method, int stackLevel)
     {
         if(!freeList.empty())
         {
             Frame *f = freeList.pop();
-            f->Init(method);
+            f->Init(method, 0, stackLevel);
             return f;
         }
         else
         {
-            return new Frame(method);
+            return new Frame(method, stackLevel);
         }
     }
     inline void free(Frame *f)

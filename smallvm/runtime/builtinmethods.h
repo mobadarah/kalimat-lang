@@ -208,9 +208,9 @@ void verifyStackNotEmpty(Stack<Value *> &stack, Process *proc, VM *vm);
 template<class T> T popGuiReceiver(Stack<Value *> &stack, IClass *&type, Process *proc, RunWindow *w, VM *vm)
 {
     Value *rv = popValue(stack, proc, w, vm);
-    IObject *receiver = rv->unboxObj();
+    IObject *receiver = unboxObj(rv);
     T handle = reinterpret_cast<T>
-            (receiver->getSlotValue("handle")->unboxRaw());
+            (unboxRaw(receiver->getSlotValue("handle")));
     type = rv->type;
     return handle;
 }

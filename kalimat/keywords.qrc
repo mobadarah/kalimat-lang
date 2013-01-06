@@ -6,5 +6,6 @@
         <file>compiler_error_map.txt</file>
         <file>parser_error_map.txt</file>
         <file>ide_messages.txt</file>
+        <file>prog_ddl.sql</file>
     </qresource>
 </RCC>

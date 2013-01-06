@@ -80,7 +80,8 @@ SOURCES += main.cpp \
     ../smallvm/blockingqueue.cpp \
     ../smallvm/instructionrunners.cpp \
     stepstopcondition.cpp \
-    ../smallvm/runtime/windowproxymethod.cpp
+    ../smallvm/runtime/windowproxymethod.cpp \
+    programdatabase.cpp
 HEADERS += mainwindow.h \
     Lexer/token.h \
     Lexer/statemachine.h \
@@ -133,7 +134,8 @@ HEADERS += mainwindow.h \
     idemessages.h \
     ../smallvm/blockingqueue.h \
     ../smallvm/vmerror.h \
-    stepstopcondition.h
+    stepstopcondition.h \
+    programdatabase.h
 
 FORMS += mainwindow.ui \
     savechangedfiles.ui \
@@ -144,6 +146,7 @@ FORMS += mainwindow.ui \
 # QT += testlib
 # CONFIG += qtestlib
 # QT += webkit
+QT += sql
 RESOURCES += keywords.qrc \
     icons.qrc \
     ../smallvm/messages.qrc
@@ -152,19 +155,8 @@ RC_FILE = kalimat.rc
 
 win32:LIBS += -L"$$_PRO_FILE_PWD_/../smallvm/libffi/" -llibffi
 
+#win32:LIBS += -L"$$_PRO_FILE_PWD_/../smallvm/libsmoke/" -lsmokebase
+#win32:LIBS += -L"$$_PRO_FILE_PWD_/../smallvm/libsmoke/" -lsmokeqtcore
+#win32:LIBS += -L"$$_PRO_FILE_PWD_/../smallvm/libsmoke/" -lsmokeqtgui
+
 unix:LIBS += -lffi
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

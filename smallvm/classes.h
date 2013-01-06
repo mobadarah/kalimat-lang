@@ -74,6 +74,139 @@ struct IClass : public IObject
     // instead of these ad-hoc solutions
     virtual QVector<PropertyDesc> getProperties()=0;
     EqualityFuncSameType equality;
+
+    virtual int compareTo(Value *v1, Value *v2);
+    virtual int compareIntToMe(int v1, Value *v2);
+    virtual int compareDoubleToMe(double v1,  Value *v2);
+    virtual int compareLongToMe(long v1,  Value *v2);
+    virtual int compareStringToMe(QString v1,  Value *v2);
+
+    virtual bool isNumeric() { return false;}
+
+    virtual Value *addTo(Value *v1, Value *v2, Allocator *);
+    virtual Value* addIntToMe(int v1, Value *v2, Allocator *);
+    virtual Value *addDoubleToMe(double v1,  Value *v2, Allocator *);
+    virtual Value *addLongToMe(long v1,  Value *v2, Allocator *);
+    virtual Value *addStringToMe(QString v1,  Value *v2, Allocator *);
+
+    virtual Value *minus(Value *v1, Value *v2, Allocator *);
+    virtual Value* intMinusMe(int v1, Value *v2, Allocator *);
+    virtual Value *doubleMinusMe(double v1,  Value *v2, Allocator *);
+    virtual Value *longMinusMe(long v1,  Value *v2, Allocator *);
+
+};
+
+struct ComparableClass : public IClass
+{
+    // virtual bool equals(Value *v) = 0;
+
+};
+
+struct StringClass : public ComparableClass
+{
+    // IObject
+    virtual bool hasSlot(QString name) { return false; }
+    virtual QList<QString> getSlotNames() { return QList<QString>(); }
+    virtual Value *getSlotValue(QString name) { return NULL; }
+    virtual void setSlotValue(QString name, Value *val) { }
+
+    //IClass
+    virtual QString getName();
+    bool hasField(QString name) { return false;}
+    IClass *baseClass();
+    virtual bool subclassOf(IClass *c);
+    IMethod *lookupMethod(QString name);
+    IObject *newValue(Allocator *allocator);
+    virtual bool getFieldAttribute(QString attr, Value *&ret, Allocator *allocator) { return false;}
+    virtual QVector<PropertyDesc> getProperties() { return QVector<PropertyDesc>(); }
+    QString toString() { return getName();}
+
+    // Comparison
+    int compareTo(Value *v1, Value *v2);
+    int compareStringToMe(QString v1,  Value *v2);
+
+    // Addition
+    Value *addTo(Value *v1, Value *v2, Allocator *);
+    Value *addStringToMe(QString v1,  Value *v2, Allocator *);
+};
+
+struct NumericClass : public ComparableClass
+{
+    // IObject
+    virtual bool hasSlot(QString name) { return false; }
+    virtual QList<QString> getSlotNames() { return QList<QString>(); }
+    virtual Value *getSlotValue(QString name) { return NULL; }
+    virtual void setSlotValue(QString name, Value *val) { }
+
+    //IClass
+    virtual QString getName();
+    bool hasField(QString name) { return false;}
+    IClass *baseClass();
+    virtual bool subclassOf(IClass *c);
+    IMethod *lookupMethod(QString name);
+    IObject *newValue(Allocator *allocator);
+    virtual bool getFieldAttribute(QString attr, Value *&ret, Allocator *allocator) { return false;}
+    virtual QVector<PropertyDesc> getProperties() { return QVector<PropertyDesc>(); }
+    QString toString() { return getName();}
+
+    bool isNumeric() { return true;}
+};
+
+struct IntClass : public NumericClass
+{
+    QString getName();
+    int compareTo(Value *v1, Value *v2);
+    int compareIntToMe(int v1, Value *v2);
+    int compareDoubleToMe(double v1,  Value *v2);
+    int compareLongToMe(long v1,  Value *v2);
+
+    Value *addTo(Value *v1, Value *v2, Allocator *);
+    Value* addIntToMe(int v1, Value *v2, Allocator *);
+    Value *addDoubleToMe(double v1,  Value *v2, Allocator *);
+    Value *addLongToMe(long v1,  Value *v2, Allocator *);
+
+    Value *minus(Value *v1, Value *v2, Allocator *);
+    Value* intMinusMe(int v1, Value *v2, Allocator *);
+    Value *doubleMinusMe(double v1,  Value *v2, Allocator *);
+    Value *longMinusMe(long v1,  Value *v2, Allocator *);
+};
+
+struct DoubleClass : public NumericClass
+{
+    QString getName();
+    int compareTo(Value *v1, Value *v2);
+    int compareIntToMe(int v1, Value *v2);
+    int compareDoubleToMe(double v1,  Value *v2);
+    int compareLongToMe(long v1,  Value *v2);
+
+    Value *addTo(Value *v1, Value *v2, Allocator *);
+    Value* addIntToMe(int v1, Value *v2, Allocator *);
+    Value *addDoubleToMe(double v1,  Value *v2, Allocator *);
+    Value *addLongToMe(long v1,  Value *v2, Allocator *);
+
+    Value *minus(Value *v1, Value *v2, Allocator *);
+    Value* intMinusMe(int v1, Value *v2, Allocator *);
+    Value *doubleMinusMe(double v1,  Value *v2, Allocator *);
+    Value *longMinusMe(long v1,  Value *v2, Allocator *);
+};
+
+struct LongClass : public NumericClass
+{
+    QString getName();
+    int compareTo(Value *v1, Value *v2);
+    int compareIntToMe(int v1, Value *v2);
+    int compareDoubleToMe(double v1,  Value *v2);
+    int compareLongToMe(long v1,  Value *v2);
+
+    Value *addTo(Value *v1, Value *v2, Allocator *);
+    Value* addIntToMe(int v1, Value *v2, Allocator *);
+    Value *addDoubleToMe(double v1,  Value *v2, Allocator *);
+    Value *addLongToMe(long v1,  Value *v2, Allocator *);
+
+    Value *minus(Value *v1, Value *v2, Allocator *);
+    Value* intMinusMe(int v1, Value *v2, Allocator *);
+    Value *doubleMinusMe(double v1,  Value *v2, Allocator *);
+    Value *longMinusMe(long v1,  Value *v2, Allocator *);
 };
 
 struct ValueClass : public IClass

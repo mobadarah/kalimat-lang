@@ -62,6 +62,14 @@ void MyEdit::updateLineNumberAreaFont()
     lna->setFontPointSize(this->font().pointSize() - 3);
 }
 
+void MyEdit::jumpToPos(int pos)
+{
+    QTextCursor cursor = textCursor();
+    cursor.setPosition(pos);
+    setTextCursor(cursor);
+    centerCursorVerticallyIfNeeded();
+}
+
 void MyEdit::toggleBreakpoint(int line)
 {
     lineNumberArea->toggleBreakPoint(line);

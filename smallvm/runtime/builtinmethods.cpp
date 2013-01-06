@@ -131,7 +131,7 @@ void PrintUsingWidthProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM 
 {
     Value *v = stack.pop();
     w->typeCheck(proc, stack.top(), BuiltInTypes::IntType);
-    int wid = stack.pop()->unboxInt();
+    int wid = unboxInt(stack.pop());
     QString str = v->toString();
     w->textLayer.print(str, wid);
 }
@@ -405,7 +405,7 @@ void StrSplitProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
     Value *ret = vm->GetAllocator().newArray(result.count());
     for(int i=0; i<result.count(); i++)
     {
-        ret->v.arrayVal->Elements[i] = vm->GetAllocator().newString(result[i]);
+        unboxArray(ret)->Elements[i] = vm->GetAllocator().newString(result[i]);
     }
     stack.push(ret);
 }
@@ -432,30 +432,7 @@ void ToStringProc(Stack<Value *> &stack, Process *proc, RunWindow *, VM *vm)
 {
     verifyStackNotEmpty(stack, proc, vm);
     Value *v = stack.pop();
-    QString ret;
-    switch(v->tag)
-    {
-    case Int:
-        ret = QString("%1").arg(v->unboxInt());
-        break;
-    case Long:
-        ret = QString("%1").arg(v->unboxLong());
-        break;
-    case Double:
-        ret = QString("%1").arg(v->unboxDouble());
-        break;
-    case StringVal:
-        ret = v->unboxStr();
-        break;
-    case RawVal:
-        ret = QString("%1").arg((long)v->unboxRaw());
-        break;
-    case ObjectVal:
-        ret = QString("%1").arg(v->unboxObj()->toString());
-        break;
-    default:
-        break;
-    }
+    QString ret = v->toString();
     stack.push(vm->GetAllocator().newString(ret));
 }
 
@@ -485,16 +462,19 @@ int popIntOrCoercable(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm
         proc->signal(InternalError1, "Empty operand stack when reading value");
     }
     Value *v = stack.pop();
-    if(v->tag != Int && v->tag != Double && v->tag != Long)
+    if(v->type != BuiltInTypes::IntType &&
+       v->type != BuiltInTypes::DoubleType &&
+       v->type != BuiltInTypes::LongType)
     {
         w->typeError(proc, BuiltInTypes::NumericType, v->type);
     }
-    if(v->tag == Double)
-        v = vm->GetAllocator().newInt((int) v->unboxDouble());
-    if(v->tag == Long)
-        v = vm->GetAllocator().newInt((int) v->unboxLong());
 
-    return v->unboxInt();
+    if(v->type == BuiltInTypes::DoubleType)
+        v = vm->GetAllocator().newInt((int) unboxDouble(v));
+    if(v->type == BuiltInTypes::LongType)
+        v = vm->GetAllocator().newInt((int) unboxLong(v));
+
+    return unboxInt(v);
 }
 
 double popDoubleOrCoercable(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
@@ -504,15 +484,17 @@ double popDoubleOrCoercable(Stack<Value *> &stack, Process *proc, RunWindow *w, 
         proc->signal(InternalError1, "Empty operand stack when reading double or double-coercible value");
     }
     Value *v = stack.pop();
-    if(v->tag != Int && v->tag != Double && v->tag != Long)
+    if(v->type != BuiltInTypes::IntType &&
+       v->type != BuiltInTypes::DoubleType &&
+       v->type != BuiltInTypes::LongType)
     {
         w->typeError(proc, BuiltInTypes::NumericType, v->type);
     }
-    if(v->tag == Int)
-        v = vm->GetAllocator().newDouble(v->unboxInt());
-    if(v->tag == Long)
-        v = vm->GetAllocator().newDouble(v->unboxLong());
-    return v->unboxDouble();
+    if(v->type == BuiltInTypes::IntType)
+        v = vm->GetAllocator().newDouble(unboxInt(v));
+    if(v->type == BuiltInTypes::LongType)
+        v = vm->GetAllocator().newDouble(unboxLong(v));
+    return unboxDouble(v);
 }
 
 void verifyStackNotEmpty(Stack<Value *> &stack, Process *proc, VM *)
@@ -615,7 +597,7 @@ void LoadImageProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
     {
         w->assert(proc, false, ArgumentError, VM::argumentErrors.get(ArgErr::NonExistingImageFile1,fname));
     }
-    IClass *imgClass = dynamic_cast<IClass *>(vm->GetType(VMId::get(RId::Image))->unboxObj());
+    IClass *imgClass = dynamic_cast<IClass *>(unboxObj(vm->GetType(VMId::get(RId::Image))));
     QImage *img = new QImage(fname);
     IObject *obj = imgClass->newValue(&vm->GetAllocator());
     obj->setSlotValue("handle", vm->GetAllocator().newRaw(img, BuiltInTypes::RawType));
@@ -640,12 +622,12 @@ void LoadSpriteProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
 
 void SpriteFromImageProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
 {
-    IClass *imgClass = dynamic_cast<IClass *>(vm->GetType(VMId::get(RId::Image))->unboxObj());
+    IClass *imgClass = dynamic_cast<IClass *>(unboxObj(vm->GetType(VMId::get(RId::Image))));
     verifyStackNotEmpty(stack, proc, vm);
     w->typeCheck(proc, stack.top(), imgClass);
-    IObject *obj = stack.pop()->unboxObj();
+    IObject *obj = unboxObj(stack.pop());
     QImage *handle = reinterpret_cast<QImage*>
-            (obj->getSlotValue("handle")->unboxRaw());
+            (unboxRaw((obj->getSlotValue("handle"))));
 
     Sprite *sprite = new Sprite(QPixmap::fromImage(*handle));
     w->spriteLayer.AddSprite(sprite);
@@ -655,9 +637,9 @@ void SpriteFromImageProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM 
 
 Sprite *GetSpriteFromValue(Value * v)
 {
-    IObject *obj = v->unboxObj();
+    IObject *obj = unboxObj(v);
     Value *rawSpr = obj->getSlotValue("_handle");
-    Sprite *spr = (Sprite *) rawSpr->unboxRaw();
+    Sprite *spr = (Sprite *) unboxRaw(rawSpr);
     return spr;
 }
 
@@ -687,12 +669,12 @@ Value *MakeSpriteValue(Sprite *sprite, Allocator *alloc)
 
 void DrawImageProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
 {
-    IClass *imgClass = dynamic_cast<IClass *>(vm->GetType(VMId::get(RId::Image))->unboxObj());
+    IClass *imgClass = dynamic_cast<IClass *>(unboxObj(vm->GetType(VMId::get(RId::Image))));
 
     w->typeCheck(proc, stack.top(), imgClass);
-    IObject *obj = stack.pop()->unboxObj();
+    IObject *obj = unboxObj(stack.pop());
     QImage *handle = reinterpret_cast<QImage*>
-            (obj->getSlotValue("handle")->unboxRaw());
+            (unboxRaw((obj->getSlotValue("handle"))));
 
     int x = popIntOrCoercable(stack, proc, w , vm);
     int y = popIntOrCoercable(stack, proc, w , vm);
@@ -826,7 +808,7 @@ void GetSpriteImageProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *
     QString clsName = VMId::get(RId::Image);
     QImage *img = new QImage(sprite->image.toImage());
     IClass *imgClass = dynamic_cast<IClass *>
-            (vm->GetType(clsName)->unboxObj());
+            (unboxObj(vm->GetType(clsName)));
     IObject *imgObj = imgClass->newValue(&vm->GetAllocator());
     imgObj->setSlotValue("handle", vm->GetAllocator().newRaw(img, BuiltInTypes::RawType));
 
@@ -837,15 +819,15 @@ void SetSpriteImageProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *
 {
     QString clsName = VMId::get(RId::Image);
     IClass *imgClass = dynamic_cast<IClass *>
-            (vm->GetType(clsName)->unboxObj());
+            (unboxObj(vm->GetType(clsName)));
 
     w->typeCheck(proc, stack.top(), BuiltInTypes::SpriteType);
     Sprite  *sprite = GetSpriteFromValue(stack.pop());
 
     w->typeCheck(proc, stack.top(), imgClass);
-    IObject *imgObj = stack.pop()->unboxObj();
+    IObject *imgObj = unboxObj(stack.pop());
     QImage *img = reinterpret_cast<QImage *>
-            (imgObj->getSlotValue("handle")->unboxRaw());
+            (unboxRaw((imgObj->getSlotValue("handle"))));
 
     sprite->setImage(QPixmap::fromImage(*img));
     w->spriteLayer.changing();
@@ -868,7 +850,7 @@ void WaitProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
     w->setAsleep(cookie, channel, ms);
     stack.push(channel);
     */
-    int ms = stack.pop()->unboxNumeric();
+    int ms = unboxNumeric(stack.pop());
     proc->owner->makeItWaitTimer(proc, ms);
 }
 
@@ -963,9 +945,9 @@ void PointRgbAtProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
 
     Allocator &a = vm->GetAllocator();
     Value *arr = a.newArray(3);
-    arr->v.arrayVal->set(a.newInt(1), a.newInt(qRed(color)));
-    arr->v.arrayVal->set(a.newInt(2), a.newInt(qGreen(color)));
-    arr->v.arrayVal->set(a.newInt(3), a.newInt(qBlue(color)));
+    unboxArray(arr)->set(a.newInt(1), a.newInt(qRed(color)));
+    unboxArray(arr)->set(a.newInt(2), a.newInt(qGreen(color)));
+    unboxArray(arr)->set(a.newInt(3), a.newInt(qBlue(color)));
 
     stack.push(arr);
 }
@@ -1096,7 +1078,7 @@ void HasKeyProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
 
     Value *key = popValue(stack, proc, w, vm);
 
-    VMap *m = v->unboxMap();
+    VMap *m = unboxMap(v);
     VMError err;
     if(!m->keyCheck(key, err))
         throw err;
@@ -1109,10 +1091,10 @@ void KeysOfProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
     w->typeCheck(proc, stack.top(), BuiltInTypes::MapType);
     Value *v = popValue(stack, proc, w, vm);
 
-    VMap *m = v->unboxMap();
+    VMap *m = unboxMap(v);
     Value *k = vm->GetAllocator().newArray(m->allKeys.count());
     for(int i=0; i<m->allKeys.count(); i++)
-        k->unboxArray()->Elements[i] = m->allKeys.at(i);
+        unboxArray(k)->Elements[i] = m->allKeys.at(i);
     stack.push(k);
 }
 
@@ -1129,10 +1111,10 @@ FileBlob *popFileBlob(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm
 {
     verifyStackNotEmpty(stack, proc, vm);
     w->typeCheck(proc, stack.top(), BuiltInTypes::FileType);
-    IObject *ob = stack.pop()->unboxObj();
+    IObject *ob = unboxObj(stack.pop());
     Value *rawFile = ob->getSlotValue("file_handle");
     w->typeCheck(proc, rawFile, BuiltInTypes::RawFileType);
-    void *fileObj = rawFile->unboxRaw();
+    void *fileObj = unboxRaw(rawFile);
     FileBlob *f = (FileBlob *) fileObj;
     return f;
 }
@@ -1155,7 +1137,7 @@ QString popString(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
 {
     verifyStackNotEmpty(stack, proc, vm);
     w->typeCheck(proc, stack.top(), BuiltInTypes::StringType);
-    QString s = stack.pop()->unboxStr();
+    QString s = unboxStr(stack.pop());
     return s;
 }
 
@@ -1163,7 +1145,7 @@ int popInt(Stack<Value *> &stack, Process *proc,  RunWindow *w, VM *vm)
 {
     verifyStackNotEmpty(stack, proc, vm);
     w->typeCheck(proc, stack.top(), BuiltInTypes::IntType);
-    int i = stack.pop()->unboxInt();
+    int i = unboxInt(stack.pop());
     return i;
 }
 
@@ -1171,7 +1153,7 @@ void *popRaw(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm, IClass 
 {
     verifyStackNotEmpty(stack, proc, vm);
     w->typeCheck(proc, stack.top(), type);
-    void *ret = stack.pop()->unboxRaw();
+    void *ret = unboxRaw(stack.pop());
     return ret;
 }
 
@@ -1179,7 +1161,7 @@ bool popBool(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
 {
     verifyStackNotEmpty(stack, proc, vm);
     w->typeCheck(proc, stack.top(), BuiltInTypes::BoolType);
-    bool b = stack.pop()->unboxBool();
+    bool b = unboxBool(stack.pop());
     return b;
 }
 
@@ -1187,7 +1169,7 @@ VArray *popArray(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
 {
     verifyStackNotEmpty(stack, proc, vm);
     w->typeCheck(proc, stack.top(), BuiltInTypes::ArrayType);
-    VArray *arr = stack.pop()->unboxArray();
+    VArray *arr = unboxArray(stack.pop());
     return arr;
 }
 
@@ -1260,7 +1242,7 @@ void FileOpenProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
     blob->file = f;
     blob->stream = stream;
     Value *v = vm->GetAllocator().newObject(BuiltInTypes::FileType);
-    v->v.objVal->setSlotValue("file_handle", vm->GetAllocator().newRaw(blob, BuiltInTypes::RawFileType));
+    unboxObj(v)->setSlotValue("file_handle", vm->GetAllocator().newRaw(blob, BuiltInTypes::RawFileType));
     stack.push(v);
 }
 
@@ -1276,7 +1258,7 @@ void FileCreateProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
     blob->file = f;
     blob->stream = stream;
     Value *v = vm->GetAllocator().newObject(BuiltInTypes::FileType);
-    v->v.objVal->setSlotValue("file_handle", vm->GetAllocator().newRaw(blob, BuiltInTypes::RawFileType));
+    unboxObj(v)->setSlotValue("file_handle", vm->GetAllocator().newRaw(blob, BuiltInTypes::RawFileType));
     stack.push(v);
 }
 
@@ -1292,7 +1274,7 @@ void FileAppendProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
     FileBlob *blob = new FileBlob();
     blob->file = f;
     blob->stream = stream;
-    v->v.objVal->setSlotValue("file_handle", vm->GetAllocator().newRaw(blob, BuiltInTypes::RawFileType));
+    unboxObj(v)->setSlotValue("file_handle", vm->GetAllocator().newRaw(blob, BuiltInTypes::RawFileType));
     stack.push(v);
 }
 
@@ -1300,10 +1282,10 @@ void FileCloseProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
 {
     // TODO: use popFileblob
     w->typeCheck(proc, stack.top(), BuiltInTypes::FileType);
-    IObject *ob = stack.pop()->unboxObj();
+    IObject *ob = unboxObj(stack.pop());
     Value *rawFile = ob->getSlotValue("file_handle");
     w->typeCheck(proc, rawFile, BuiltInTypes::RawFileType);
-    void *fileObj = rawFile->unboxRaw();
+    void *fileObj = unboxRaw(rawFile);
     FileBlob *f = (FileBlob *) fileObj;
     f->file->close();
     // TODO: memory leak if we comment the following line
@@ -1318,7 +1300,7 @@ Value *editAndReturn(Value *v, RunWindow *w, VM *vm);
 void EditProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
 {
     Value *v = stack.pop();
-    w->assert(proc, v->tag == ObjectVal, ArgumentError, VM::argumentErrors.get(ArgErr::SentValueHasToBeAnObject1, v->toString()));
+    w->assert(proc, v->isObject(), ArgumentError, VM::argumentErrors.get(ArgErr::SentValueHasToBeAnObject1, v->toString()));
     v = editAndReturn(v, w, vm);
     stack.push(v);
 }
@@ -1386,7 +1368,7 @@ void InvokeForeignProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *v
         argTypes = popArray(stack, proc, w, vm);
     }
 
-    IClass *retType = (IClass *) stack.pop()->unboxObj();
+    IClass *retType = unboxClass(stack.pop());
     QVector<Value *> argz;
     QVector<IClass *> kargTypes;
     for(int i=0; i<args->count(); i++)
@@ -1394,7 +1376,7 @@ void InvokeForeignProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *v
         argz.append(args->Elements[i]);
         if(!guessArgTypes)
         {
-            IClass *type = dynamic_cast<IClass *>(argTypes->Elements[i]->unboxObj());
+            IClass *type = unboxClass(argTypes->Elements[i]);
             if(!type)
             {
                 proc->signal(TypeError2, BuiltInTypes::ClassType->toString(), argTypes->Elements[i]->type->toString());
@@ -1419,7 +1401,7 @@ void CurrentParseTreeProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM
 void MakeParserProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
 {
     QString datum = popString(stack, proc, w, vm);
-    IClass *parserClass = dynamic_cast<IClass *>(vm->GetType(VMId::get(RId::Parser))->unboxObj());
+    IClass *parserClass = unboxClass(vm->GetType(VMId::get(RId::Parser)));
     IObject *parser = parserClass->newValue(&vm->GetAllocator());
     parser->setSlotValue(VMId::get(RId::InputPos), vm->GetAllocator().newInt(0));
     parser->setSlotValue(VMId::get(RId::Data), vm->GetAllocator().newString(
@@ -1429,7 +1411,7 @@ void MakeParserProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
 
 void PushParserBacktrackPointProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
 {
-    IObject *receiver = popValue(stack, proc, w, vm)->unboxObj();
+    IObject *receiver = unboxObj(popValue(stack, proc, w, vm));
     int arg1 = popInt(stack, proc, w, vm);
     ParserObj *parser = dynamic_cast<ParserObj *>(receiver);
     parser->stack.push(ParseFrame(arg1, parser->pos, true));
@@ -1438,7 +1420,7 @@ void PushParserBacktrackPointProc(Stack<Value *> &stack, Process *proc, RunWindo
 void IgnoreParserBacktrackPointProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
 {
 
-    IObject *receiver = popValue(stack, proc, w, vm)->unboxObj();
+    IObject *receiver = unboxObj(popValue(stack, proc, w, vm));
     ParserObj *parser = dynamic_cast<ParserObj *>(receiver);
     ParseFrame f = parser->stack.pop();
     if(!f.backTrack)
@@ -1989,7 +1971,7 @@ void ButtonGroupGetButtonProc(Stack<Value *> &stack, Process *proc, RunWindow *w
 void ClassNewObjectProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
 {
     Value *v = popValue(stack, proc, w, vm);
-    IObject *theClassObj = v->unboxObj();
+    IObject *theClassObj = unboxObj(v);
     IClass *theClass = dynamic_cast<IClass *>(theClassObj);
     if(theClass)
     {
@@ -2012,12 +1994,11 @@ void setupChildren(QGridLayout *layout,Value *v, Reference *ref, QString label, 
 
     int subRow;
     VArray *arr;
-    switch(v->tag)
+    if(v->type == BuiltInTypes::IntType ||
+       v->type == BuiltInTypes::DoubleType ||
+       v->type == BuiltInTypes::LongType ||
+       v->type == BuiltInTypes::StringType)
     {
-    case Int:
-    case Double:
-    case Long:
-    case StringVal:
         layout->addWidget(new QLabel(label), row, 0);
         le = new QLineEdit(v->toString());
         if(ref != NULL)
@@ -2033,10 +2014,11 @@ void setupChildren(QGridLayout *layout,Value *v, Reference *ref, QString label, 
         }
 
         layout->addWidget(le, row, 1);
-        break;
-    case Boolean:
+    }
+    else if(v->type == BuiltInTypes::BoolType)
+    {
         cb = new QCheckBox();
-        cb->setChecked(v->unboxBool());
+        cb->setChecked(unboxBool(v));
         if(ref != NULL)
         {
             QObject::connect(cb,
@@ -2049,27 +2031,29 @@ void setupChildren(QGridLayout *layout,Value *v, Reference *ref, QString label, 
         }
         layout->addWidget(new QLabel(label), row, 0);
         layout->addWidget(cb, row, 1);
-        break;
-    case ObjectVal:
+    }
+    else if(v->isObject())
+    {
         qf = new QGroupBox(label);
         layout->addWidget(qf, row, 0, 1, 2);
-        obj = dynamic_cast<Object *>(v->unboxObj());
-        if(obj == NULL)
-            break;
-        vb = new QGridLayout();
-        subRow = 0;
-        for(QVector<QString>::iterator i = obj->slotNames.begin(); i!= obj->slotNames.end(); ++i)
+        obj = dynamic_cast<Object *>(unboxObj(v));
+        if(obj != NULL)
         {
-            setupChildren(vb, obj->_slots[*i], new FieldReference(obj, *i), *i, subRow++,vm);
+            vb = new QGridLayout();
+            subRow = 0;
+            for(QVector<QString>::iterator i = obj->slotNames.begin(); i!= obj->slotNames.end(); ++i)
+            {
+                setupChildren(vb, obj->_slots[*i], new FieldReference(obj, *i), *i, subRow++,vm);
+            }
+            qf->setLayout(vb);
         }
-        qf->setLayout(vb);
-
-        break;
-    case ArrayVal:
+     }
+    else if(v->type == BuiltInTypes::ArrayType)
+    {
         sa = new QScrollArea();
         vb = new QGridLayout();
         layout->addWidget(sa, row, 0, 1, 2);
-        arr = v->unboxArray();
+        arr = unboxArray(v);
         vb->addWidget(new QLabel(label), 0, 0, 1, 2);
         for(int i=0; i<arr->count(); i++)
         {
@@ -2077,16 +2061,7 @@ void setupChildren(QGridLayout *layout,Value *v, Reference *ref, QString label, 
         }
         sa->setLayout(vb);
         sa->adjustSize();
-        break;
-    case NullVal:
-    case RawVal:
-    case RefVal:
-    case MultiDimensionalArrayVal:
-    case ChannelVal:
-    case QObjectVal:
-    case MapVal:
-        break;
-    }
+     }
 }
 
 Value *editAndReturn(Value *v, RunWindow *w, VM *vm)

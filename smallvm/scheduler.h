@@ -42,7 +42,7 @@ class Scheduler
     BlockingQueue<Process *> running;
     QQueue<Process *> sleeping;
     QQueue<Process *> timerWaiting;
-    int _isRunning;
+    // int _isRunning;
     long seed;
 public:
     Process *runningNow;
@@ -60,22 +60,21 @@ public:
     inline void waitRunningOnce(unsigned long time = ULONG_MAX) { running.waitOnce(time); }
     void attachProcess(Process *proc);
     void detachProcess(Process *proc);
-    int activateElapsedTimers();
+    void activateElapsedTimers();
     bool schedule();
     bool RunStep(bool singleInstruction=false, int maxtimeSclice=30);
-    void finishUpRunningProcess();
 
     ProcessIterator *getProcesses();
 
     Frame *launchProcess(Method *method);
     Frame *launchProcess(Method *method, Process *&proc);
-    Frame *launchProcessAsInterrupt(Method *method);
+    Process *launchProcessAsInterrupt(Method *method);
     void awaken(Process *proc);
     void sleepify(Process *proc);
     void makeItWaitTimer(Process *proc, int ms);
     bool hasInterrupts();
     bool isDone();
-    bool isRunning();
+    // bool isRunning();
 
     friend class SchedulerProcessIterator;
 };

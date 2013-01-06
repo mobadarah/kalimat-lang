@@ -46,6 +46,7 @@
 #include <QtConcurrentRun>
 #include <QToolTip>
 #include <QIcon>
+#include <QSqlQuery>
 
 MainWindow *MainWindow::that = NULL;
 
@@ -62,6 +63,7 @@ NullaryStepStopCondition *NullaryStepStopCondition::instance()
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent),
       codeAnalyzer(Ide::msg),
+      functionNavigationCombo(NULL),
       ui(new Ui::MainWindow)
 {
     MainWindow::that = this;
@@ -86,7 +88,7 @@ MainWindow::MainWindow(QWidget *parent)
     this->editorFontSize = settings.value("editor_font_size", 18).toInt();
 
     editorFont = QFont(editorFontName, editorFontSize);
-    this->codeModelUpdateInterval = settings.value("codemodel_update_interval", 3000).toInt();
+    this->codeModelUpdateInterval = settings.value("codemodel_update_interval", 5000).toInt();
 
     this->isDemoMode = settings.value("is_demo_mode", false).toBool();
 
@@ -137,6 +139,7 @@ MainWindow::MainWindow(QWidget *parent)
     atBreak = false;
     currentDebuggerProcess = NULL;
     lastCodeDocToRun = NULL;
+    _isWonderfulMonitorEnabled = false;
 
     setAcceptDrops(true);
 
@@ -145,14 +148,15 @@ MainWindow::MainWindow(QWidget *parent)
     ui->txtReplacementString->installEventFilter(this);
     parserErrorMap = Utils::prepareErrorMap<KalimatParserError>(":/parser_error_map.txt");
 
-    functionNavigationCombo = new QComboBox(this);
+    //functionNavigationCombo = new QComboBox(this);
     functionNavigationComboIsUpdating = false;
     ui->functionNavigationToolbar->hide();
     ui->functionNavigationToolbar->addWidget(functionNavigationCombo);
     connect(functionNavigationCombo, SIGNAL(currentIndexChanged(int)), SLOT(do_functionNavigationCombo_currentIndexChanged(int)));
 
+    ui->functionNavigationToolbar->show();
     generatingProgramModel = false;
-    codeModelUpdateTimerId = startTimer(codeModelUpdateInterval);
+    //codeModelUpdateTimerId = startTimer(codeModelUpdateInterval);
 
     connect(this, SIGNAL(markCurrentInstructionEvent(VM*,Process*,int*,int*)),
             this, SLOT(markCurrentInstructionSlot(VM*,Process*,int*,int*)),
@@ -325,25 +329,25 @@ void MainWindow::setLineIndicators(int line, int column, QTextEdit *editor)
 
 void MainWindow::setFunctionNavigationComboSelection(QTextEdit *editor)
 {
+    if(!functionNavigationCombo)
+        return;
     int pos = editor->textCursor().position();
-    for(QMap<int, ProcPosRange >::const_iterator i=
-        functionNavigationInfo.rangeOfEachProc.begin();
-        i != functionNavigationInfo.rangeOfEachProc.end(); ++i)
+    QSqlQuery q = progdb.q("SELECT name FROM definitions JOIN function_definitions "
+                           "ON definitions.id=function_definitions.def_id AND "
+                           " definitions.module_filename=function_definitions.module_filename "
+                           " WHERE ? >= defining_token_pos AND ? <= ending_token_pos;", pos, pos);
+    if(q.next())
     {
-
-        if(pos>= i.key())
-        {
-            ProcPosRange range = i.value();
-            if(pos <= range.to)
-            {
-                shared_ptr<ProceduralDecl> proc = range.proc;
-                functionNavigationComboIsUpdating = true;
-                functionNavigationCombo->setCurrentIndex(
-                            functionNavigationCombo->findText(getBeautifulName(proc, Ide::msg)));
-                functionNavigationComboIsUpdating = false;
-                break;
-            }
-        }
+        QString d = q.value(0).toString();
+        functionNavigationComboIsUpdating = true;
+        functionNavigationCombo->setCurrentIndex(
+                                    functionNavigationCombo->findText(q.value(0).toString()));
+        functionNavigationComboIsUpdating = false;
+    }
+    else
+    {
+        if(functionNavigationCombo->count() > 0)
+            functionNavigationCombo->setCurrentIndex(0);
     }
 }
 
@@ -352,7 +356,7 @@ void MainWindow::timerEvent(QTimerEvent *event)
     on_actionUpdate_code_model_triggered();
 }
 
-shared_ptr<CompilationUnit> MainWindow::parseCurrentDocumentWithRecovery()
+shared_ptr<CompilationUnit> MainWindow::parseCurrentDocumentWithRecovery(QVector<Token> &tokens)
 {
     KalimatLexer lxr;
     KalimatParser parser;
@@ -363,6 +367,7 @@ shared_ptr<CompilationUnit> MainWindow::parseCurrentDocumentWithRecovery()
     {
         parser.withRecovery = true;
         parser.init(currentEditor()->document()->toPlainText(), &lxr, NULL);
+        tokens = parser.getTokens();
         shared_ptr<AST> tree = parser.parse();
         ret = dynamic_pointer_cast<CompilationUnit>(
                     tree);
@@ -847,7 +852,7 @@ void MainWindow::highlightToken(QTextEdit *editor, int pos, int length)
 
 bool MainWindow::isWonderfulMonitorEnabled()
 {
-    return ui->action_wonderfulmonitor->isChecked();
+    return _isWonderfulMonitorEnabled;
 }
 
 int MainWindow::wonderfulMonitorDelay()
@@ -1522,10 +1527,18 @@ void MainWindow::on_actionMake_exe_triggered()
                                                  "", "Executable file (*.exe)",
                                                  &selFilter);
 
-    CodeDocument *doc = NULL;
+    CodeDocument *doc = docContainer->getCurrentDocument();
+
+    QString fn = doc ? doc->getFileName() : "untitled";
+    fn = QFileInfo(fn).fileName();
 
     // QString stagingArea = "/home/samy/Desktop/kalimatstagingarea";
     // QString stagingArea = "c:/Users/samy/Desktop/stagingarea";
+    QString stagingArea = qApp->applicationDirPath() + "/stagingarea";
+    QString pasFileName = stagingArea + "/" + fn + ".pas";
+    QString oFileName = stagingArea + "/" + fn + ".o";
+    QString aFileName = stagingArea + "/libimp" + fn + ".a";
+    QString exeFileName = stagingArea + "/" + fn + ".exe";
 
     try
     {
@@ -1556,8 +1569,6 @@ void MainWindow::on_actionMake_exe_triggered()
             path = doc->getFileName();
         }
         //ui->outputView->append(output);
-
-        QString stagingArea = qApp->applicationDirPath() + "/stagingarea";
 
         QStringList strConstants;
 
@@ -1594,12 +1605,7 @@ void MainWindow::on_actionMake_exe_triggered()
                 .arg(segments.join("+"));
 
 
-        QString fn = doc ? doc->getFileName() : "untitled";
-        fn = QFileInfo(fn).fileName();
-        QString pasFileName = stagingArea + "/" + fn + ".pas";
-        QString oFileName = stagingArea + "/" + fn + ".o";
-        QString aFileName = stagingArea + "/libimp" + fn + ".a";
-        QString exeFileName = stagingArea + "/" + fn + ".exe";
+
         QFile pascal(pasFileName);
 
         pascal.open(QIODevice::WriteOnly|QIODevice::Text);
@@ -1635,10 +1641,6 @@ void MainWindow::on_actionMake_exe_triggered()
             {
                 success = true;
             }
-            QFile::remove(exeFileName);
-            QFile::remove(pasFileName);
-            QFile::remove(oFileName);
-            QFile::remove(aFileName);
         }
         else
         {
@@ -1699,7 +1701,15 @@ void MainWindow::on_actionMake_exe_triggered()
             highlightLine(dc->getEditor(), ex.source->getPos().Pos);
         }
     }
-
+    // cleanup
+    if(QFile::exists(exeFileName))
+        QFile::remove(exeFileName);
+    if(QFile::exists(pasFileName))
+        QFile::remove(pasFileName);
+    if(QFile::exists(oFileName))
+        QFile::remove(oFileName);
+    if(QFile::exists(aFileName))
+        QFile::remove(aFileName);
 }
 
 void MainWindow::makeDrag()
@@ -1778,23 +1788,9 @@ void MainWindow::do_editor_linkClicked(MyEdit *source, QString href)
     CodeDocument *doc = docContainer->getDocumentFromWidget(source);
     if(!doc)
         return;
-    if(doc->isDocNewFile())
-    {
-        QString stdMod = combinePath(standardModulePath, href);
-        if(QFile::exists(stdMod))
-        {
-            docContainer->OpenOrSwitch(stdMod);
-        }
-        return;
-    }
-    QString docPath = doc->getFileName();
-    QFileInfo f = QFileInfo(docPath);
-    QString dir = f.absoluteDir().absolutePath();
-    QString linkedFile = dir + "/" + href;
-    QString stdPath = combinePath(standardModulePath, href);
-    if(QFile::exists(stdPath))
-        linkedFile = stdPath;
-    if(!QFile::exists(linkedFile))
+
+    QString linkedFile = getImportedModuleFile(doc, href);
+    if(linkedFile == "")
     {
         QMessageBox box(QMessageBox::Question,Ide::msg[IdeMsg::FileNotFound],
                         Ide::msg.get(IdeMsg::FileNotFoundCreateIt1, linkedFile),
@@ -1818,6 +1814,26 @@ void MainWindow::do_editor_linkClicked(MyEdit *source, QString href)
         }
     }
     docContainer->OpenOrSwitch(linkedFile);
+}
+
+QString MainWindow::getImportedModuleFile(CodeDocument *importer, QString name)
+{
+    if(importer->isDocNewFile())
+    {
+        QString stdMod = combinePath(standardModulePath, name);
+        if(QFile::exists(stdMod))
+        {
+            return stdMod;
+        }
+        return "";
+    }
+    QString docPath = importer->getFileName();
+    QFileInfo f = QFileInfo(docPath);
+    QString dir = f.absoluteDir().absolutePath();
+    QString linkedFile = dir + "/" + name;
+    if(!QFile::exists(linkedFile))
+        return "";
+    return linkedFile;
 }
 
 bool MainWindow::eventFilter(QObject *sender, QEvent *event)
@@ -1925,7 +1941,7 @@ void MainWindow::on_action_about_kalimat_triggered()
 void MainWindow::on_actionUpdate_code_model_triggered()
 {
 
-    if(true || generatingProgramModel)
+    if(generatingProgramModel)
         return;
     generatingProgramModel = true;
     if(!currentEditor())
@@ -1934,15 +1950,53 @@ void MainWindow::on_actionUpdate_code_model_triggered()
         return;
     }
 
-    shared_ptr<CompilationUnit> cu = parseCurrentDocumentWithRecovery();
-    if(!cu)
+    CodeDocument *doc = docContainer->getCurrentDocument();
+    if(!doc)
     {
         generatingProgramModel = false;
         return;
     }
 
-    functionNavigationInfo = codeAnalyzer.analyzeCompilationUnit(cu);
+    if(!currentEditor()->document()->isModified())
+    {
+        generatingProgramModel = false;
+        return;
+    }
 
+    QVector<Token> tokens;
+    long t1 = get_time();
+    shared_ptr<CompilationUnit> cu = parseCurrentDocumentWithRecovery(tokens);
+    long t2 = get_time();
+    qDebug() << "Parsed in: " << (t2-t1)/ 1000 << " ms";
+    if(!cu)
+    {
+        generatingProgramModel = false;
+        return;
+    }
+    QString fileName = doc->isDocNewFile()? QString("%%1").arg((uint) doc): doc->getFileName();
+    t1 = get_time();
+    if(!progdb.isOpen())
+        progdb.open();
+
+    QVector<QString> imports;
+    for(int i=0; i<cu->usedModuleCount(); ++i)
+    {
+        QString mod = cu->usedModule(i)->value();
+        mod = getImportedModuleFile(doc, mod);
+        imports.append(mod);
+    }
+    progdb.updateModule(fileName, doc, cu);
+    progdb.updateImportsOfModule(fileName, imports);
+    progdb.updateModuleTokens(fileName, tokens);
+    progdb.updateModuleDefinitions(fileName, cu);
+    t2 = get_time();
+    qDebug() << "Updated DB in: " << (t2-t1)/ 1000 << " ms";
+    fillFunctionNavigationCombo(doc, fileName);
+    functionNavigationCombo->setMinimumWidth(
+                        0.6f * (float) ui->functionNavigationToolbar->width() );
+
+    /*
+    functionNavigationInfo = codeAnalyzer.analyzeCompilationUnit(cu);
     if(functionNavigationInfo .funcNameToAst.count() == 0)
     {
         ui->functionNavigationToolbar->hide();
@@ -1966,25 +2020,42 @@ void MainWindow::on_actionUpdate_code_model_triggered()
                     0.6f * (float) ui->functionNavigationToolbar->width() );
         setFunctionNavigationComboSelection(currentEditor());
     }
+    */
     generatingProgramModel = false;
+}
+
+void MainWindow::fillFunctionNavigationCombo(CodeDocument *doc, QString filename)
+{
+    if(!functionNavigationCombo)
+        return;
+    functionNavigationComboIsUpdating = true;
+    functionNavigationCombo->clear();
+    functionNavigationCombo->addItem(Ide::msg[IdeMsg::TopLevel]);
+    QSqlQuery q = progdb.q("SELECT name, defining_token_pos FROM function_definitions JOIN definitions"
+                           " ON definitions.id=function_definitions.def_id AND"
+                           " definitions.module_filename = function_definitions.module_filename "
+                           "WHERE definitions.module_filename=?", filename);
+    while(q.next())
+    {
+        functionNavigationCombo->addItem(q.value(0).toString(), q.value(1));
+    }
+    setFunctionNavigationComboSelection(currentEditor());
+    functionNavigationComboIsUpdating = false;
 }
 
 void MainWindow::do_functionNavigationCombo_currentIndexChanged(int index)
 {
     if(functionNavigationComboIsUpdating)
         return;
-    if(index == -1)
+    if(index == -1 || index == 0)
         return;
     if(!currentEditor())
         return;
 
-    QString funcName = functionNavigationCombo->itemText(index);
-    if(funcName == Ide::msg[IdeMsg::TopLevel])
-    {
-        currentEditor()->setFocus();;
-        return;
-    }
-    jumpToFunctionNamed(funcName, (MyEdit *) currentEditor());
+    int pos = functionNavigationCombo->itemData(index).toInt();
+
+    ((MyEdit *) currentEditor())->jumpToPos(pos);
+    currentEditor()->setFocus();
 }
 
 Token MainWindow::getTokenUnderCursor(MyEdit *editor, TokenType type, bool ignoreTypeFilter)
@@ -2103,16 +2174,55 @@ void MainWindow::jumpToFunctionNamed(QString name, MyEdit *editor)
 
 void MainWindow::on_action_go_to_definition_triggered()
 {
+    /*
     if(!currentEditor())
         return;
 
     MyEdit *editor = dynamic_cast<MyEdit *>(currentEditor());
+
     Token t = getTokenUnderCursor(editor, IDENTIFIER);
     if(t.Type != TokenInvalid)
     {
         QString funcName = t.Lexeme;
         jumpToFunctionNamed(funcName, editor);
     }
+    */
+
+    if(!currentEditor())
+        return;
+
+    MyEdit *editor = dynamic_cast<MyEdit *>(currentEditor());
+    CodeDocument *doc = docContainer->getCurrentDocument();
+    QString filename = doc->isDocNewFile()? QString("%%1").arg((uint) doc) : doc->getFileName();
+
+    int cursorPos = editor->textCursor().position();
+    QSqlQuery q = progdb.q("SELECT defining_token_pos FROM function_definitions JOIN definitions "
+                           " ON definitions.id=function_definitions.def_id AND "
+                           " definitions.module_filename = function_definitions.module_filename "
+                           " WHERE definitions.module_filename = ?"
+                           " AND definitions.name in  (SELECT lexeme FROM tokens WHERE pos <=? "
+                           " AND pos + length >=?)", filename, cursorPos, cursorPos);
+    if(q.next())
+    {
+        editor->jumpToPos(q.value(0).toInt());
+        return;
+    }
+
+    q = progdb.q("SELECT defining_token_pos, function_definitions.module_filename FROM function_definitions JOIN definitions "
+                              " ON definitions.id=function_definitions.def_id AND "
+                              " definitions.module_filename = function_definitions.module_filename "
+                              " WHERE definitions.module_filename IN (SELECT imported FROM"
+                              " module_imports WHERE importer=?)"
+                              " AND definitions.name in  (SELECT lexeme FROM tokens WHERE pos <=? "
+                              " AND pos + length >=?)", filename, cursorPos, cursorPos);
+
+    if(q.next())
+    {
+        docContainer->OpenOrSwitch(q.value(1).toString());
+        ((MyEdit *)currentEditor())->jumpToPos(q.value(0).toInt());
+        return;
+    }
+
 }
 
 void MainWindow::triggerAutocomplete(MyEdit *editor)
@@ -2342,4 +2452,9 @@ void MainWindow::on_action_SpecialSymbol_lambda_triggered()
 void MainWindow::on_actionLambda_transformation_triggered()
 {
 
+}
+
+void MainWindow::on_action_wonderfulmonitor_toggled(bool arg1)
+{
+    _isWonderfulMonitorEnabled = ui->action_wonderfulmonitor->isChecked();
 }

@@ -57,9 +57,7 @@ public:
         {
             return false;
         }
-
         _queue.push_back(data);
-
         // Signal all the waiting threads
         if(_queue.size()==1)
         {

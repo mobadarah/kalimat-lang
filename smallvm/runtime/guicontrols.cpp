@@ -22,14 +22,14 @@
 
 void ensureValueIsWidget(Value *val)
 {
-    if(!(val->tag == ObjectVal))
+    if(!(val->isObject()))
         throw VMError(InternalError);
-    if(!(val->unboxObj()->hasSlot("handle")))
+    if(!(unboxObj(val)->hasSlot("handle")))
         throw VMError(InternalError);
-    val = val->unboxObj()->getSlotValue("handle");
-    if(!(val->tag == QObjectVal))
+    val = unboxObj(val)->getSlotValue("handle");
+    if(!(val->type == BuiltInTypes::QObjectType))
         throw VMError(InternalError);
-    QObject *obj = val->unboxQObj();
+    QObject *obj = unboxQObj(val);
     QWidget *w = dynamic_cast<QWidget *>(obj);
     if(!w)
         throw VMError(InternalError);
@@ -181,7 +181,7 @@ void ButtonForeignClass::on_button_clicked()
 {
     QPushButton *pb = (QPushButton *) sender();
     Object *object = (Object *) pb->property("objectof").value<void *>();
-    Channel *chan = object->getSlotValue(VMId::get(RId::Click))->unboxChan();
+    Channel *chan = unboxChan(object->getSlotValue(VMId::get(RId::Click)));
     chan->send(allocator->null(), NULL);
 }
 
@@ -219,7 +219,7 @@ void TextboxForeignClass::on_text_changed()
 {
     QTextEdit *te = (QTextEdit *) sender();
     Object *object = (Object *) te->property("objectof").value<void *>();
-    Channel *chan = object->getSlotValue(VMId::get(RId::Changed))->unboxChan();
+    Channel *chan = unboxChan(object->getSlotValue(VMId::get(RId::Changed)));
     chan->send(allocator->null(), NULL);
 }
 
@@ -257,7 +257,7 @@ void LineEditForeignClass::on_text_changed()
 {
     QLineEdit *te = (QLineEdit *) sender();
     Object *object = (Object *) te->property("objectof").value<void *>();
-    Channel *chan = object->getSlotValue(VMId::get(RId::Changed))->unboxChan();
+    Channel *chan = unboxChan(object->getSlotValue(VMId::get(RId::Changed)));
     chan->send(allocator->null(), NULL);
 }
 
@@ -295,7 +295,7 @@ void ListboxForeignClass::on_select(int selection)
 {
     QListWidget *te = (QListWidget *) sender();
     Object *object = (Object *) te->property("objectof").value<void *>();
-    Channel *chan = object->getSlotValue(VMId::get(RId::SelectionChanged))->unboxChan();
+    Channel *chan = unboxChan(object->getSlotValue(VMId::get(RId::SelectionChanged)));
     chan->send(allocator->newInt(selection), NULL);
 }
 
@@ -344,7 +344,7 @@ void ComboboxForeignClass::on_select(int selection)
 {
     QComboBox *cb = (QComboBox *) sender();
     Object *object = (Object *) cb->property("objectof").value<void *>();
-    Channel *chan = object->getSlotValue(VMId::get(RId::SelectionChanged))->unboxChan();
+    Channel *chan = unboxChan(object->getSlotValue(VMId::get(RId::SelectionChanged)));
     chan->send(allocator->newInt(selection), NULL);
 }
 
@@ -352,7 +352,7 @@ void ComboboxForeignClass::on_text_changed(QString)
 {
     QComboBox *cb = (QComboBox *) sender();
     Object *object = (Object *) cb->property("objectof").value<void *>();
-    Channel *chan = object->getSlotValue(VMId::get(RId::TextChanged))->unboxChan();
+    Channel *chan = unboxChan(object->getSlotValue(VMId::get(RId::TextChanged)));
     chan->send(allocator->null(), NULL);
 }
 
@@ -414,7 +414,7 @@ void CheckboxForeignClass::value_changed(int newState)
 {
     QCheckBox *te = (QCheckBox *) sender();
     Object *object = (Object *) te->property("objectof").value<void *>();
-    Channel *chan = object->getSlotValue(VMId::get(RId::ValueChanged))->unboxChan();
+    Channel *chan = unboxChan(object->getSlotValue(VMId::get(RId::ValueChanged)));
     chan->send(allocator->newInt(newState), NULL);
 }
 
@@ -455,7 +455,7 @@ void RadioButtonForeignClass::value_changed(bool newState)
     {
         QRadioButton *te = (QRadioButton *) sender();
         Object *object = (Object *) te->property("objectof").value<void *>();
-        Channel *chan = object->getSlotValue(VMId::get(RId::Selection))->unboxChan();
+        Channel *chan = unboxChan(object->getSlotValue(VMId::get(RId::Selection)));
         chan->send(allocator->null(), NULL);
     }
 }
@@ -498,7 +498,7 @@ void ButtonGroupForeignClass::button_clicked(int id)
 {
     QButtonGroup *te = (QButtonGroup *) sender();
     Object *object = (Object *) te->property("objectof").value<void *>();
-    Channel *chan = object->getSlotValue(VMId::get(RId::ButtonSelected))->unboxChan();
+    Channel *chan = unboxChan(object->getSlotValue(VMId::get(RId::ButtonSelected)));
     chan->send(allocator->newInt(id), NULL);
 }
 
@@ -507,14 +507,14 @@ Value *ButtonGroupForeignClass::dispatch(Process *proc, int id, QVector<Value *>
     if(id == methodAddButton)
     {
         // اضف
-        IObject *receiver = args[0]->unboxObj();
-        QButtonGroup *handle = dynamic_cast<QButtonGroup *>(receiver->getSlotValue("handle")->unboxQObj());
+        IObject *receiver = unboxObj(args[0]);
+        QButtonGroup *handle = dynamic_cast<QButtonGroup *>(unboxQObj(receiver->getSlotValue("handle")));
 
         ensureValueIsWidget(args[1]);
-        IObject *toAdd = args[1]->unboxObj();
+        IObject *toAdd = unboxObj(args[1]);
         Value *vhandle = toAdd->getSlotValue("handle");
 
-        QAbstractButton *button = dynamic_cast<QAbstractButton *>(vhandle->unboxQObj());
+        QAbstractButton *button = dynamic_cast<QAbstractButton *>(unboxQObj(vhandle));
         if(!button)
             throw VMError(InternalError);
 
@@ -527,12 +527,12 @@ Value *ButtonGroupForeignClass::dispatch(Process *proc, int id, QVector<Value *>
     if(id == methodGetButton)
     {
         // الزر.الموسوم
-        IObject *receiver = args[0]->unboxObj();
+        IObject *receiver = unboxObj(args[0]);
         Value *vhandle = receiver->getSlotValue("handle");
-        QButtonGroup *handle = dynamic_cast<QButtonGroup*>(vhandle->unboxQObj());
+        QButtonGroup *handle = dynamic_cast<QButtonGroup*>(unboxQObj(vhandle));
 
         rw->typeCheck(proc, args[1], BuiltInTypes::IntType);
-        int theId = args[1]->unboxInt();
+        int theId = unboxInt(args[1]);
 
         QAbstractButton *button = handle->button(theId);
         Value *btnObj = (Value *) button->property("valueptr").value<void *>();

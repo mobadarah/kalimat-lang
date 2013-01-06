@@ -21,20 +21,22 @@
 #define QSTR(x) QString::fromStdWString(x)
 
 ValueClass *BuiltInTypes::ObjectType = NULL;
-ValueClass *BuiltInTypes::NumericType = NULL;
-ValueClass *BuiltInTypes::IntType = NULL;
-ValueClass *BuiltInTypes::LongType = NULL;
-ValueClass *BuiltInTypes::DoubleType = NULL;
+IClass *BuiltInTypes::NumericType = NULL;
+IClass *BuiltInTypes::IntType = NULL;
+IClass *BuiltInTypes::LongType = NULL;
+IClass *BuiltInTypes::DoubleType = NULL;
 ValueClass *BuiltInTypes::BoolType = NULL;
 ValueClass *BuiltInTypes::RawType = NULL;
+IClass *BuiltInTypes::IMethodType = NULL;
 IClass *BuiltInTypes::MethodType = NULL;
 ValueClass *BuiltInTypes::ExternalMethodType = NULL;
 ValueClass *BuiltInTypes::ExternalLibrary = NULL;
 MetaClass  *BuiltInTypes::ClassType = NULL;
 ValueClass *BuiltInTypes::IndexableType = NULL;
 ValueClass *BuiltInTypes::ArrayType = NULL;
+ValueClass *BuiltInTypes::MD_ArrayType= NULL;
 ValueClass *BuiltInTypes::MapType = NULL;
-ValueClass *BuiltInTypes::StringType = NULL;
+IClass *BuiltInTypes::StringType = NULL;
 IClass *BuiltInTypes::SpriteType = NULL;
 ValueClass *BuiltInTypes::FileType = NULL;
 ValueClass *BuiltInTypes::RawFileType = NULL;
@@ -58,15 +60,15 @@ ValueClass *BuiltInTypes::c_wstr = NULL;
 ValueClass *BuiltInTypes::c_void = NULL;
 ValueClass *BuiltInTypes::c_ptr= NULL;
 
-bool eq_int(Value *a, Value *b) { return a->unboxInt() == b->unboxInt();}
-bool eq_long(Value *a, Value *b) { return a->unboxLong() == b->unboxLong();}
-bool eq_double(Value *a, Value *b) { return a->unboxDouble() == b->unboxDouble();}
-bool eq_bool(Value *a, Value *b) { return a->unboxBool() == b->unboxBool();}
-bool eq_raw(Value *a, Value *b) { return a->unboxRaw() == b->unboxRaw();}
-bool eq_qobject(Value *a, Value *b) { return a->unboxQObj() == b->unboxQObj();}
+bool eq_int(Value *a, Value *b) { return unboxInt(a) == unboxInt(b);}
+bool eq_long(Value *a, Value *b) { return unboxLong(a) == unboxLong(b);}
+bool eq_double(Value *a, Value *b) { return unboxDouble(a) == unboxDouble(b);}
+bool eq_bool(Value *a, Value *b) { return unboxBool(a) == unboxBool(b);}
+bool eq_raw(Value *a, Value *b) { return unboxRaw(a) == unboxRaw(b);}
+bool eq_qobject(Value *a, Value *b) { return unboxQObj(a) == unboxQObj(b);}
 bool  eq_str(Value *a, Value *b)
 {
-    return QString::compare(a->unboxStr(), b->unboxStr(), Qt::CaseSensitive) == 0;
+    return QString::compare(unboxStr(a), unboxStr(b), Qt::CaseSensitive) == 0;
 }
 
 bool eq_null(Value *a, Value *b) { return true;}
@@ -77,16 +79,17 @@ void BuiltInTypes::init()
         return;
 
     ObjectType = new ValueClass(VMId::get(RId::Object), NULL);
-    NumericType = new ValueClass(VMId::get(RId::Numeric), BuiltInTypes::ObjectType);
-    IntType = new ValueClass(VMId::get(RId::Integer), BuiltInTypes::NumericType);
-    LongType = new ValueClass(VMId::get(RId::Long), BuiltInTypes::NumericType);
-    DoubleType = new ValueClass(VMId::get(RId::Double), BuiltInTypes::NumericType);
+    NumericType = new NumericClass();
+    IntType = new IntClass();
+    LongType = new LongClass();
+    DoubleType = new DoubleClass();
     BoolType = new ValueClass(VMId::get(RId::Boolean), BuiltInTypes::ObjectType);
     RawType = new ValueClass(VMId::get(RId::Raw), BuiltInTypes::ObjectType);
     RawType->equality = eq_raw;
 
-    MethodType = new MethodClass(VMId::get(RId::Method), BuiltInTypes::ObjectType);
-    ExternalMethodType = new ValueClass(VMId::get(RId::ExternalMethod), BuiltInTypes::MethodType);
+    IMethodType = new MethodClass(VMId::get(RId::IMethod), BuiltInTypes::ObjectType);
+    MethodType = new MethodClass(VMId::get(RId::Method), BuiltInTypes::IMethodType);
+    ExternalMethodType = new ValueClass(VMId::get(RId::ExternalMethod), BuiltInTypes::IMethodType);
     // Actually, ExternalMethodType is-a method, but has equality using eq_raw
     // the correct way to define it's behavior is using multiple inheritance or
     // something similar if we had it..
@@ -95,8 +98,9 @@ void BuiltInTypes::init()
     ClassType = new MetaClass(VMId::get(RId::Class), NULL);
     IndexableType = new ValueClass(VMId::get(RId::Indexable), BuiltInTypes::ObjectType);
     ArrayType = new ValueClass(VMId::get(RId::VArray), BuiltInTypes::IndexableType);
+    MD_ArrayType = new ValueClass(VMId::get(RId::MD_Array), BuiltInTypes::ObjectType);
     MapType = new ValueClass(VMId::get(RId::VMap), BuiltInTypes::IndexableType);
-    StringType = new ValueClass(VMId::get(RId::String), BuiltInTypes::IndexableType);
+    StringType = new StringClass();
     SpriteType = new SpriteClass(VMId::get(RId::Sprite));
     FileType = NULL;
     RawFileType = new ValueClass(VMId::get(RId::RawFile), BuiltInTypes::RawType);
@@ -134,53 +138,67 @@ Value *Value::NullValue = NULL;
 Value::Value()
 {
     mark = 0;
+    heapNext = NULL;
 }
 
-Value::~Value()
+bool Value::intEqualsMe(int)
 {
-    // In the cases of RefVal, ArrayVal and StringVal
-    // we _always_ assume the Value owns the stored pointer.
+    return false;
+}
 
-    // In the case of RawVal, we assume the external code that passed the RawVal
-    // to the 'Value' object owns the passed RawVal.
-    switch(this->tag)
-    {
-    case Int:
-    case Long:
-    case Double:
-    case Boolean:
-    case RawVal:
-        break;
-    case ObjectVal:
-        delete v.objVal;
-        break;
-    case StringVal:
-        // not needed if we don't use a pointer to QString
-        //delete v.strVal;
-        break;
-    case ArrayVal:
-        delete[] v.arrayVal->Elements;
-        delete v.arrayVal;
-        break;
-    case MapVal:
-        //todo: leak here?
-        break;
-    case MultiDimensionalArrayVal:
-        delete v.multiDimensionalArrayVal;
-        break;
-    case RefVal:
-        delete v.refVal;
-        break;
-    case ChannelVal:
-        delete v.channelVal;
-        break;
-    case NullVal:
-        break;
-    case QObjectVal:
-        // todo: should we delete QObject values?
-        // delete v.objVal;
-        break;
-    }
+bool Value::doubleEqualsMe(double)
+{
+    return false;
+}
+
+bool Value::longEqualsMe(long)
+{
+    return false;
+}
+
+// Destructors for various types of values
+
+// In the cases of RefVal, ArrayVal and StringVal
+// we _always_ assume the Value owns the stored pointer.
+
+// In the case of RawVal, we assume the external code that passed the RawVal
+// to the 'Value' object owns the passed RawVal.
+
+ObjVal::~ObjVal()
+{
+    delete v;
+}
+
+ArrayVal::~ArrayVal()
+{
+    delete[] v->Elements;
+    delete v;
+}
+
+MapVal::~MapVal()
+{
+  //todo: leak here?
+}
+
+MultiDimensionalArrayVal::~MultiDimensionalArrayVal()
+{
+     delete v;
+}
+
+RefVal::~RefVal()
+{
+    delete v;
+}
+
+ChannelVal::~ChannelVal()
+{
+    delete v;
+}
+
+QObjVal::~QObjVal()
+{
+    // todo: should we delete QObject values?
+    // delete v;
 }
 
 QString Object::toString()
@@ -220,84 +238,224 @@ QString ArrayToString(VArray *arr)
 QString MapToString(VMap *map)
 {
     QStringList lst;
-    for(QMap<Value, Value *>::const_iterator i=map->Elements.begin(); i!=map->Elements.end(); ++i)
+    for(QMap<VBox, Value *>::const_iterator i=map->Elements.begin(); i!=map->Elements.end(); ++i)
     {
-        const Value &key = i.key();
+        const Value *key = i.key().v;
         const Value *v = i.value();
-        lst.append(QString("%1=%2").arg(key.toString()).arg(v->toString()));
+        lst.append(QString("%1=%2").arg(key->toString()).arg(v->toString()));
     }
 
     return QString("{%1}").arg(lst.join(", "));
 }
 
-QString Value::toString() const
+QString IntVal::toString() const
 {
-    QString ret = "<unprintable value>";
-    QStringList elems;
-    const Value *v = this;
-    //QLocale loc(QLocale::Arabic, QLocale::Egypt);
     QLocale loc(QLocale::English, QLocale::UnitedStates);
     loc.setNumberOptions(QLocale::OmitGroupSeparator);
-    QVector<int> dims;
-    switch(v->tag)
-    {
-    case Int:
-        ret = loc.toString(v->unboxInt());
-        break;
-    case Long:
-        ret = loc.toString((qlonglong)v->unboxLong());
-        break;
-    case Double:
-        ret = QString("%1").arg(v->unboxDouble());
-        break;
-    case ObjectVal:
-        ret = QString("<%1>").arg(v->type->getName());
-        break;
-    case StringVal:
-        ret = v->unboxStr();
-        break;
-    case NullVal:
-        ret = QString("<%1>").arg(VMId::get(RId::NullValue));
-        break;
-    case RawVal:
-        ret = QString("<raw %1>").arg((long) v->unboxRaw());
-        break;
-    case RefVal:
-        ret = "<a reference>";
-    case ArrayVal:
-        ret = ArrayToString(v->unboxArray());
-        break;
-    case MultiDimensionalArrayVal:
-        dims = v->unboxMultiDimensionalArray()->dimensions;
+    return loc.toString(v);
+}
 
-        for(QVector<int>::const_iterator i=dims.begin(); i != dims.end(); ++i)
-            elems.append(QString("%1").arg(*i));
-        ret = VMId::get(RId::ArrayWithDims1).arg(elems.join(", "));
-        break;
-    case MapVal:
-        ret = MapToString(v->unboxMap());
-        break;
-    case Boolean:
-        ret = v->unboxBool()? VMId::get(RId::TrueValue) : VMId::get(RId::FalseValue);
-        break;
-    case ChannelVal:
-        ret = QString("<%1 %2>").arg(VMId::get(RId::ChannelValue)).arg((long) v->unboxChan());
-        break;
-    case QObjectVal:
-        ret = QString("<%1>").arg(v->unboxQObj()->metaObject()->className());
-    }
-    QString str = ret;
-    return str;
+bool IntVal::equals(Value *v2)
+{
+    return v2->intEqualsMe(v);
+}
+
+bool IntVal::intEqualsMe(int v1)
+{
+    return v1 == v;
+}
+
+bool IntVal::doubleEqualsMe(double d1)
+{
+    return d1 == v;
+}
+
+bool IntVal::longEqualsMe(long l1)
+{
+    return l1 == v;
+}
+
+QString LongVal::toString() const
+{
+    QLocale loc(QLocale::English, QLocale::UnitedStates);
+    loc.setNumberOptions(QLocale::OmitGroupSeparator);
+    return loc.toString((qlonglong) v);
+}
+
+bool LongVal::equals(Value *v2)
+{
+    return v2->longEqualsMe(v);
+}
+
+bool LongVal::intEqualsMe(int v1)
+{
+    return v1 == v;
+}
+
+bool LongVal::doubleEqualsMe(double d1)
+{
+    return d1 == v;
+}
+
+bool LongVal::longEqualsMe(long l1)
+{
+    return l1 == v;
+}
+
+QString DoubleVal::toString() const
+{
+    QLocale loc(QLocale::English, QLocale::UnitedStates);
+    loc.setNumberOptions(QLocale::OmitGroupSeparator);
+    return QString("%1").arg(v);
+}
+
+bool DoubleVal::equals(Value *v2)
+{
+    return v2->doubleEqualsMe(v);
+}
+
+bool DoubleVal::intEqualsMe(int v1)
+{
+    return v1 == v;
+}
+
+bool DoubleVal::doubleEqualsMe(double d1)
+{
+    return d1 == v;
+}
+
+bool DoubleVal::longEqualsMe(long l1)
+{
+    return l1 == v;
+}
+
+QString NullVal::toString() const
+{
+    return QString("<%1>").arg(VMId::get(RId::NullValue));
+}
+
+bool NullVal::equals(Value *v2)
+{
+    return v2->type == BuiltInTypes::NullType;
+}
+
+QString ObjVal::toString() const
+{
+    return QString("<%1>").arg(type->getName());
+}
+
+bool ObjVal::equals(Value *v2)
+{
+    return v2 == this;
+}
+
+QString StringVal::toString() const
+{
+    return v;
+}
+
+bool StringVal::equals(Value *v2)
+{
+    return v2->type == BuiltInTypes::StringType
+            && v == unboxStr(v2);
+}
+
+QString RawVal::toString() const
+{
+    return QString("<raw %1>").arg((long) v);
+}
+
+bool RawVal::equals(Value *v2)
+{
+    return v2->type == this->type
+            && v == unboxRaw(v2);
+}
+
+QString RefVal::toString() const
+{
+    return "<a reference>";
+}
+
+bool RefVal::equals(Value *v2)
+{
+    return v2->type == this->type
+            && v == unboxRef(v2);
+}
+
+QString ArrayVal::toString() const
+{
+    return ArrayToString(v);
+}
+
+bool ArrayVal::equals(Value *v2)
+{
+    return this == v2;
+}
+
+QString MultiDimensionalArrayVal::toString() const
+{
+    QVector<int> dims;
+    QStringList elems;
+    dims = v->dimensions;
+
+    for(QVector<int>::const_iterator i=dims.begin(); i != dims.end(); ++i)
+        elems.append(QString("%1").arg(*i));
+    return VMId::get(RId::ArrayWithDims1).arg(elems.join(", "));
+}
+
+bool MultiDimensionalArrayVal::equals(Value *v2)
+{
+    return this == v2;
+}
+
+QString MapVal::toString() const
+{
+    return MapToString(v);
+}
+
+bool MapVal::equals(Value *v2)
+{
+    return this == v2;
+}
+
+QString BoolVal::toString() const
+{
+    return v? VMId::get(RId::TrueValue) : VMId::get(RId::FalseValue);
+}
+
+bool BoolVal::equals(Value *v2)
+{
+    return this == v2;
+}
+
+QString ChannelVal::toString() const
+{
+    return QString("<%1 %2>").arg(VMId::get(RId::ChannelValue)).arg((long) v);
+}
+
+bool ChannelVal::equals(Value *v2)
+{
+    return this == v2;
+}
+
+QString QObjVal::toString() const
+{
+    return QString("<%1>").arg(v->metaObject()->className());
+}
+
+bool QObjVal::equals(Value *v2)
+{
+    return v2->type == this->type && v == unboxQObj(v2);
 }
 
 bool VArray::keyCheck(Value *key, VMError &err)
 {
-    if(key->tag != Int)
+    if(key->type != BuiltInTypes::IntType)
     {
         err = VMError(SubscribtMustBeInteger);
         return false;
     }
-    int i = key->unboxInt();
+    int i = unboxInt(key);
     if(!(i>=1 && i<=this->count()))
     {
         err = VMError(SubscriptOutOfRange2).arg(str(i)).arg(str(this->count()));
@@ -308,23 +466,25 @@ bool VArray::keyCheck(Value *key, VMError &err)
 
 Value *VArray::get(Value *key)
 {
-    int i = key->unboxInt();
+    int i = unboxInt(key);
     return this->Elements[i-1];
 }
 
 void VArray::set(Value *key, Value *v)
 {
-    int i = key->unboxInt();
+    int i = unboxInt(key);
     this->Elements[i-1] = v;
 }
 
 bool VMap::keyCheck(Value *key, VMError &err)
 {
-    if(key->tag == Int || key->tag == StringVal || key->tag == Long)
+    if(key->type == BuiltInTypes::IntType ||
+       key->type == BuiltInTypes::StringType ||
+       key->type == BuiltInTypes::LongType)
         return true;
-    if(key->tag == ArrayVal)
+    if(key->type == BuiltInTypes::ArrayType)
     {
-        VArray *arr = key->unboxArray();
+        VArray *arr = unboxArray(key);
         for(int i=0; i<arr->count(); i++)
         {
             if(!keyCheck(arr->Elements[i], err))
@@ -338,20 +498,22 @@ bool VMap::keyCheck(Value *key, VMError &err)
 
 Value *VMap::get(Value *key)
 {
-    if(Elements.contains(*key))
-        return this->Elements[*key];
+    VBox vb(key);
+    if(Elements.contains(vb))
+        return this->Elements[vb];
     return NULL;
 }
 
 void VMap::set(Value *key, Value *v)
 {
     allKeys.append(key);
-    Elements[*key] = v;
+    VBox vb(key);
+    Elements[vb] = v;
 }
 
 bool compareRef(Value *v1, Value *v2)
 {
-    return v1->unboxObj() == v2->unboxObj();
+    return unboxObj(v1) == unboxObj(v2);
 }
 
 ValueClass::ValueClass(QString name, IClass *baseClass)
@@ -418,7 +580,7 @@ bool ValueClass::subclassOf(IClass *c)
 IMethod *ValueClass::lookupMethod(QString name)
 {
     if(methods.contains(name))
-        return (IMethod *) methods[name]->v.objVal;
+        return (IMethod *) unboxObj(methods[name]);
     for(int i=0; i<BaseClasses.count(); i++)
     {
         IMethod *ret = BaseClasses[i]->lookupMethod(name);
@@ -490,11 +652,12 @@ bool LexicographicLessThan(VArray *arr1, VArray *arr2)
     {
         if(i== arr1->count())
             return true; // arr1 is a prefix of arr2
-        Value &v1 = *arr1->Elements[i];
-        Value &v2 = *arr2->Elements[i];
-        if(v1 < v2)
+        Value *v1 = arr1->Elements[i];
+        Value *v2 = arr2->Elements[i];
+        VBox vb1(v1), vb2(v2);
+        if(vb1 < vb2)
             return true;
-        else if(v1 == v2)
+        else if(vb1 == vb2)
             continue;
         else
             return false;
@@ -503,34 +666,38 @@ bool LexicographicLessThan(VArray *arr1, VArray *arr2)
     return false;
 }
 
-inline bool operator<(const Value &v1, const Value &v2)
+inline bool operator<(const VBox &v1, const VBox &v2)
 {
     // Only int, long, string, and arrays of [comparable value] are comparable values
     // Since we need a partial order, we will assume ints <long < string < array
-    if(v1.tag == Int && v2.tag == Int)
-        return v1.unboxInt() < v2.unboxInt();
+    if(v1.v->type == BuiltInTypes::IntType && v2.v->type == BuiltInTypes::IntType)
+        return unboxInt(v1.v) < unboxInt(v2.v);
 
-    if(v1.tag == Long && v2.tag == Long)
-        return v1.unboxLong() < v2.unboxLong();
+    if(v1.v->type == BuiltInTypes::LongType && v2.v->type == BuiltInTypes::LongType)
+        return unboxLong(v1.v) < unboxLong(v2.v);
 
-    if(v1.tag == StringVal && v2.tag == StringVal)
-        return v1.unboxStr() < v2.unboxStr();
+    if(v1.v->type == BuiltInTypes::StringType && v2.v->type == BuiltInTypes::StringType)
+        return unboxStr(v1.v) < unboxStr(v2.v);
 
-    if(v1.tag == ArrayVal && v2.tag == ArrayVal)
-        return LexicographicLessThan(v1.unboxArray(), v2.unboxArray());
+    if(v1.v->type == BuiltInTypes::ArrayType && v2.v->type == BuiltInTypes::ArrayType)
+        return LexicographicLessThan(unboxArray(v1.v), unboxArray(v2.v));
 
-    if(v1.tag == Int &&
-            (v2.tag == Long || v2.tag == StringVal || v2.tag == ArrayVal))
+    if(v1.v->type == BuiltInTypes::IntType &&
+            (v2.v->type == BuiltInTypes::LongType ||
+             v2.v->type == BuiltInTypes::StringType ||
+             v2.v->type == BuiltInTypes::ArrayType))
     {
         return true;
     }
 
-    if(v1.tag == Long && (v2.tag == StringVal || v2.tag == ArrayVal))
+    if(v1.v->type == BuiltInTypes::LongType &&
+            (v2.v->type == BuiltInTypes::StringType ||
+             v2.v->type == BuiltInTypes::ArrayType))
     {
         return true;
     }
 
-    if(v1.tag == StringVal && v2.tag == ArrayVal)
+    if(v1.v->type == BuiltInTypes::StringType && v2.v->type == BuiltInTypes::ArrayType)
     {
         return true;
     }
@@ -544,30 +711,31 @@ bool ElementWiseCompare(VArray *arr1, VArray *arr2)
         return false;
     for(int i=0; i<arr1->count(); i++)
     {
-        Value &v1 = *arr1->Elements[i];
-        Value &v2 = *arr2->Elements[i];
-        if(!(v1 == v2))
+        Value *v1 = arr1->Elements[i];
+        Value *v2 = arr2->Elements[i];
+        VBox vb1(v1), vb2(v2);
+        if(!(vb1 == vb2))
             return false;
     }
     return true;
 }
 
-inline bool operator==(const Value &v1, const Value &v2)
+inline bool operator==(const VBox &v1, const VBox &v2)
 {
     // The == function is only used as a helper for LexicographicLessThan, defined above
     // Only int, string, and arrays of [comparable value] are comparable values
 
-    if(v1.tag != v2.tag)
+    if(v1.v->type != v2.v->type)
         return false;
 
-    if(v1.tag == Int)
-        return v1.unboxInt() == v2.unboxInt();
+    if(v1.v->type == BuiltInTypes::IntType)
+        return unboxInt(v1.v) == unboxInt(v2.v);
 
-    if(v1.tag == StringVal)
-        return v1.unboxStr() == v2.unboxStr();
+    if(v1.v->type == BuiltInTypes::StringType)
+        return unboxStr(v1.v) == unboxStr(v2.v);
 
-    if(v1.tag == ArrayVal && v2.tag == ArrayVal)
-        return ElementWiseCompare(v1.unboxArray(), v2.unboxArray());
+    if(v1.v->type == BuiltInTypes::ArrayType)
+        return ElementWiseCompare(unboxArray(v1.v), unboxArray(v2.v));
 
     return false;
 }

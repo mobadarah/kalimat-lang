@@ -36,9 +36,50 @@
 #include <QQueue>
 #include <QMutex>
 
+template <class T, int ChunkSize> struct AllocationNode
+{
+    T data[ChunkSize];
+    AllocationNode<T, ChunkSize> *next;
+    AllocationNode(AllocationNode<T, ChunkSize> *next)
+        :next(next)
+    {
+
+    }
+};
+
+template <class T, int ChunkSize> struct StaticAllocator
+{
+    AllocationNode<T,ChunkSize> *list;
+    int count;
+    StaticAllocator()
+        :count(0)
+    {
+        list = new AllocationNode<T, ChunkSize>(NULL);
+    }
+
+    T &add()
+    {
+        if(count == ChunkSize)
+        {
+            list = new AllocationNode<T, ChunkSize>(list);
+            count = 0;
+        }
+        return list->data[count++];
+    }
+    ~StaticAllocator()
+    {
+        while(list != NULL)
+        {
+            AllocationNode<T, ChunkSize> *temp = list->next;
+            delete list;
+            list = temp;
+        }
+    }
+};
+
 class Allocator
 {
-    QSet<Value *> heap;
+    Value *heap;
     QSet<Value *> protectedValues; // if it's here, it's reachable
                                    // the GC can't do nothin'
     int objsDeleted;
@@ -47,7 +88,7 @@ class Allocator
 
     Value * _true;
     Value * _false;
-    Value ** _ints;
+    IntVal * _ints;
 
     // Store VM root objects for GC
     QHash<int, Value*> *constantPool;
@@ -62,6 +103,9 @@ class Allocator
 
     // The heap is shared, no more than one thread can allocate
     QMutex heapAllocationLock;
+
+    StaticAllocator<IntVal, 120> intAllocator;
+    IntVal *intFreeList;
 public:
     Allocator(QHash<int, Value*> *constantPool,
               QSet<Scheduler *> schedulers, VM *vm);
@@ -100,8 +144,9 @@ private:
     void mark();
     void markProcess(Process * proc, QStack<Value *> &reachable);
     void sweep();
+    void deleteValue(Value *v);
 
-    Value *allocateNewValue(bool gcMonitor=true);
+    template<class VType, class InitialType> Value *allocateNewValue(InitialType, bool gcMonitor=true);
 };
 
 #endif // ALLOCATOR_H
