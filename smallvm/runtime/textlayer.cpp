@@ -6,16 +6,56 @@
 **************************************************************************/
 
 #include "textlayer.h"
-#include <algorithm>
-using namespace std;
+#include <QPainter>
 
 TextLayer::TextLayer()
+    : buffer(this)
 {
-    state = Normal;
-    dirtyState = false;
-    mode = Overwrite;
+    state = TextLayerState::Normal;
+    buffer.dirtyState = false;
     clearText();
-    noColor = true;
+}
+
+void TextLayer::Init(int width, int height, QFont font)
+{
+    imgWidth = width;
+    imgHeight = height;
+    textFont = font;
+    adjustFontForNumberOfLines(visibleTextLines);
+    _stripHeight = imgHeight / visibleTextLines;
+    for(int i=0; i< visibleTextLines; ++i)
+    {
+        strips[i] = QPixmap(imgWidth, _stripHeight);
+        strips[i].fill(Qt::transparent);
+    }
+}
+
+int TextLayer::stripHeight()
+{
+    return _stripHeight;
+}
+
+void TextLayer::TX(int &x)
+{
+    x = (imgWidth-1)-x;
+}
+
+void TextLayer::adjustFontForNumberOfLines(int n)
+{
+    // Start with a first approximation, and keep decreasing font
+    // size until all text lines fit into the display image
+    qreal h = imgHeight / n;
+    textFont.setPixelSize(h);
+    QFontMetrics metrics(textFont);
+    while(true)
+    {
+        qreal line_h = metrics.lineSpacing();
+        if(n * (line_h) < imgHeight)
+            break;
+        h-=0.5;
+        textFont.setPixelSize(h);
+        metrics = QFontMetrics(textFont);
+    }
 }
 
 bool TextLayer::dirty()
@@ -23,71 +63,37 @@ bool TextLayer::dirty()
     if(inputState())
         return true; // we need to keep refreshing to make the cursor blink
 
-    return dirtyState;
+    return buffer.dirtyState;
+}
+
+void TextLayer::updated()
+{
+    buffer.updated();
 }
 
 void TextLayer::clearText()
 {
-    cursor_col = 0;
-    cursor_line = 0;
-    visibleTextBuffer.clear();
-    visibleTextBuffer.resize(visibleTextLines);
-    htmlLines.clear();
-    dirtyState = true;
+    buffer.clearText();
     for(int i=0; i<visibleTextLines; i++)
     {
-        for(int j=0; j<textLineWidth; j++)
-        {
-            colorBits[i][j] = Qt::black;
-        }
-        htmlLines.append("");
+        strips[i].fill(Qt::transparent);
     }
-    currentColor = Qt::black;
 }
 
+// 'print' always overwrites
 void TextLayer::print(QString str)
 {
-    int curLine = cursor_line;
+    if(str == "")
+        return;
+    int curLine = cursorLine();
     for(int i=0; i<str.length(); i++)
     {
-        printChar(str[i]);
+        buffer.printChar(str[i]);
     }
-    int curLine2 = cursor_line;
+    int curLine2 = cursorLine();
     if(str != "\n")
         updateChangedLines(curLine, 1 + curLine2 - curLine);
-    dirtyState = true;
-}
-
-void TextLayer::printChar(QChar c)
-{
-    if(c == '\n')
-        nl();
-    else
-    {
-        if(cursor_col>= textLineWidth)
-            nl();
-
-        if(cursor_line >= visibleTextBuffer.count())
-            visibleTextBuffer.resize(cursor_line+1);
-
-        QString s = visibleTextBuffer[cursor_line];
-        if(s.length() <= cursor_col)
-        {
-            int n = cursor_col - s.length() + 1; // TODO: is this the source of
-                                                 // the 'delete key slightly shifts text display'
-                                                 // bug?
-                s.append(QString(n, ' '));
-        }
-        if(mode == Overwrite)
-            s[cursor_col] = c;
-        else
-            s.insert(cursor_col, c);
-
-        visibleTextBuffer[cursor_line] = s;
-
-        colorBits[cursor_line][cursor_col] = currentColor;
-        cursor_col++;
-    }
+    buffer.dirtyState = true;
 }
 
 void TextLayer::print(QString str, int width)
@@ -95,7 +101,7 @@ void TextLayer::print(QString str, int width)
     if(str == "\n")
     {
         // todo: How does string formatting with a certain width affect printing of a newline, anyway?
-        nl();
+        buffer.nl();
     }
     else
     {
@@ -107,308 +113,156 @@ void TextLayer::print(QString str, int width)
 void TextLayer::println(QString str)
 {
     print(str);
-    nl();
+    buffer.nl();
 }
 
 void TextLayer::setColor(QColor c)
 {
-    noColor = false;
-    currentColor = c;
+    buffer.currentColor = c;
 }
 
 void TextLayer::resetColor()
 {
-    noColor = true;
+    buffer.currentColor = Qt::black;
 }
 
 void TextLayer::updateChangedLines(int fromLine, int count)
 {
     for(int i=0; i<count; ++i)
     {
-        //updateHtmlLine(i + fromLine);
         updateTextLine(i + fromLine);
+        updateStrip(i + fromLine);
     }
 }
 
-void TextLayer::updateHtmlLine(int i)
+void TextLayer::updateStrip(int i, bool drawCursor)
 {
-    //*
-    QColor current = colorBits[i][0];
-    QString line = visibleTextBuffer[i];
-    QString output = QString("<span style=\"color:rgb(%1,%2,%3);\">").arg(current.red()).arg(current.green()).arg(current.blue());
+    strips[i].fill(Qt::transparent);
+    QPainter imgPainter(&strips[i]);
+    QTextLayout layout("", textFont, &strips[i]);
+    QTextOption option;
+    option.setTextDirection(Qt::RightToLeft);
+    option.setAlignment(Qt::AlignVCenter | Qt::AlignRight);
+    layout.setTextOption(option);
 
-    for(int j=0; j<line.length(); ++j)
+    layout.setFont(textFont);
+    imgPainter.setFont(textFont);
+
+    qreal height = imgPainter.fontMetrics().lineSpacing();
+    qreal subtractSomeHeigh = 0;
+
+    const QString &text = buffer.line(i);
+    const QList<QTextLayout::FormatRange> range = buffer.formatRanges(i);
+
+    layout.setText(text);
+    layout.setAdditionalFormats(range);
+    layout.beginLayout();
+    int temph;
+    while(true)
     {
-        if(colorBits[i][j] != current)
+        QTextLine line = layout.createLine();
+        if(!line.isValid())
+            break;
+        line.setLineWidth(imgWidth);
+        line.setPosition(QPointF(-5, 0));
+        temph = line.height()-1;
+        if(temph > height)
         {
-            current = colorBits[i][j];
-            output += QString("</span><span style=\"color:rgb(%1,%2,%3);\">").arg(current.red()).arg(current.green()).arg(current.blue());
+            subtractSomeHeigh = ((temph - height) / 2) - 2;
         }
-
-        output+= line.mid(j, 1);
+        else
+        {
+            subtractSomeHeigh = 0;
+        }
     }
-    output += "</span>";
-    htmlLines[i] = output;
-   // */
+    layout.endLayout();
+    layout.draw(&imgPainter, QPointF(0, -subtractSomeHeigh));
+    if(drawCursor)
+        layout.drawCursor(&imgPainter, QPointF(0, - subtractSomeHeigh), cursorColumn(), 2);
 }
 
-QString TextLayer::toHtml()
+void TextLayer::fastUpdateStrip(int i, bool drawCursor)
 {
-     return htmlLines.join("<br/>");
+    // Faster, but cannot give each individual letters a different color
+    strips[i].fill(Qt::transparent);
+    QPainter imgPainter(&strips[i]);
+
+    imgPainter.setLayoutDirection(Qt::RightToLeft);
+    imgPainter.setFont(textFont);
+
+    QPen oldPen = imgPainter.pen();
+    //imgPainter.setPen(textColor);
+
+    const QString &text = buffer.line(i);
+    QRect rct(0, 0, imgWidth-1, _stripHeight);
+
+    imgPainter.drawText(rct, Qt::AlignVCenter, text);
+
+    if(drawCursor)
+    {
+        QString line = buffer.currentLine().left(cursorColumn());
+        int w = imgPainter.fontMetrics().tightBoundingRect(line).width();
+        w+=2;
+        int cursorY = rct.top();
+        TX(w);
+        QRectF cur(w, cursorY, 2, _stripHeight);
+        //cur.adjust(-2, 0, -2, 0);
+        imgPainter.drawLine(cur.topRight(), cur.bottomRight());
+    }
+
+    imgPainter.setPen(oldPen);
 }
 
 void TextLayer::updateTextLine(int lineIndex)
 {
-    computeLineFormatRange(lineIndex, visibleTextBuffer[lineIndex], lineFormats[lineIndex]);
-}
-
-QString TextLayer::lineToText(int i, QList<QTextLayout::FormatRange> &range)
-{
-    QString &line = visibleTextBuffer[i];
-    computeLineFormatRange(i, line, range);
-    return line;
-}
-
-void TextLayer::computeLineFormatRange(int i, QString &line, QList<QTextLayout::FormatRange> &range)
-{
-    int pos =0;
-    int runPos = 0;
-    int runLen = 0;
-    QColor currentColor = colorBits[i][0];
-    range.clear();
-    for(int j=0; j<line.length(); ++j)
-    {
-        if(colorBits[i][j] != currentColor)
-        {
-            runLen = pos - runPos;
-            QTextLayout::FormatRange r;
-            r.start = runPos;
-            r.length = runLen;
-            r.format.setForeground(QBrush(currentColor));
-            currentColor = colorBits[i][j];
-            range.append(r);
-            runPos = pos;
-        }
-        pos++;
-    }
-
-    // Final iteration
-    runLen = pos - runPos;
-    QTextLayout::FormatRange r;
-    r.start = runPos;
-    r.length = runLen;
-    r.format.setForeground(QBrush(currentColor));
-    range.append(r);
-}
-
-QString TextLayer::toText(QList<QTextLayout::FormatRange> &range)
-{
-    QStringList result;
-    int pos =0;
-    int runPos = 0;
-    int runLen = 0;
-    QColor currentColor = colorBits[0][0];
-    for(int i=0; i<visibleTextLines; ++i)
-    {
-        QString &line = visibleTextBuffer[i];
-        result.append(line);
-        for(int j=0; j<line.length(); ++j)
-        {
-            if(colorBits[i][j] != currentColor)
-            {
-                runLen = pos - runPos;
-                QTextLayout::FormatRange r;
-                r.start = runPos;
-                r.length = runLen;
-                r.format.setForeground(QBrush(currentColor));
-                currentColor = colorBits[i][j];
-                range.append(r);
-                runPos = pos;
-            }
-            pos++;
-        }
-    }
-    // Final iteration
-    runLen = pos - runPos;
-    QTextLayout::FormatRange r;
-    r.start = runPos;
-    r.length = runLen;
-    r.format.setForeground(QBrush(currentColor));
-    range.append(r);
-    //runPos = pos;
-
-    return result.join("\n");
-}
-
-int TextLayer::cursorPos()
-{
-    int pos = 0;
-    for(int i=0; i< cursor_line; ++i)
-    {
-        pos += visibleTextBuffer[i].length();
-    }
-    pos += cursor_col;
-    return pos;
+    buffer.computeLineFormatRange(lineIndex);
 }
 
 void TextLayer::beginInput()
 {
-    state = Input;
-    inputBuffer = "";
-    inputStartLine = cursor_line;
-    inputStartCol = cursor_col;
-    oldMode = mode;
-    mode = Insert;
+    state = TextLayerState::Input;
+    buffer.cursor.beginInput();
 }
 
 QString TextLayer::endInput()
 {
-    state = Normal;
-    mode = oldMode;
-    return inputBuffer;
+    state = TextLayerState::Normal;
+    return buffer.cursor.endInput();
 }
 
 void TextLayer::typeIn(QString s)
 {
-    if(mode == Insert)
-        inputBuffer.insert(inputCursorPos(), s);
-    else
-    {
-        inputBuffer.replace(inputCursorPos(), s.length(), s);
-    }
-    print(s);
+    buffer.cursor.typeIn(s);
 }
 
 bool TextLayer::inputState()
 {
-    return state == Input;
+    return state == TextLayerState::Input;
 }
 
 bool TextLayer::setCursorPos(int row, int col)
 {
-    if(row < 0 || row >= visibleTextLines || col < 0 || col>=textLineWidth)
-    {
-        return false;
-    }
-    cursor_col = col;
-    cursor_line = row;
-    return true;
-}
-
-bool TextLayer::cursorFwd()
-{
-    if(cursor_col + 1 < currentLine().length())
-    {
-        cursor_col++;
-        return true;
-    }
-    return false;
-}
-
-bool TextLayer::cursorBack()
-{
-    if(state == Input && cursor_col == inputStartCol)
-        return false;
-
-    if(cursor_col > 0)
-    {
-        cursor_col--;
-        return true;
-    }
-    return false;
-}
-
-bool TextLayer::cursorDown()
-{
-    if(cursor_line + 1 < lines().count())
-    {
-        cursor_line++;
-        cursor_col = min(cursor_col, currentLine().length());
-        return true;
-    }
-    return false;
-}
-
-bool TextLayer::cursorUp()
-{
-    if(cursor_line > 0)
-    {
-        cursor_line--;
-        cursor_col = min(cursor_col, currentLine().length());
-        return true;
-    }
-    return false;
+    return buffer.cursor.setCursorPos(row, col);
 }
 
 int TextLayer::getCursorRow()
 {
-    return cursor_line;
+    return buffer.cursor.line();
 }
 
 int TextLayer::getCursorCol()
 {
-    return cursor_col;
+    return buffer.cursor.column();
 }
 
-void TextLayer::cr()
+void TextLayer::scrollUp()
 {
-    cursor_col = 0;
-}
-
-void TextLayer::lf()
-{
-    cursor_line++;
-    if(cursor_line ==visibleTextLines)
+    for(int i=0; i<visibleTextLines -1; ++i)
     {
-        visibleTextBuffer.pop_front();
-        visibleTextBuffer.append("");
-        cursor_line--;
+        strips[i] = strips[i+1];
     }
-}
-
-void TextLayer::nl()
-{
-    if(state == Input && mode == Insert)
-    {
-        QString s = currentLine();
-        QString s1 = s.left(cursor_col);
-        QString s2 = s.right(s.length() - cursor_col);
-        visibleTextBuffer[cursor_line] = s1;
-        visibleTextBuffer.insert(cursor_line+1, s2);
-    }
-    cr();
-    lf();
-    dirtyState = true;
-}
-
-void TextLayer::del()
-{
-    QString s = visibleTextBuffer[cursor_line];
-    if(cursor_col >= s.length())
-        return;
-    if(state == Input)
-        inputBuffer = inputBuffer.remove(inputCursorPos(), 1);
-
-    s = s.remove(cursor_col, 1);
-    visibleTextBuffer[cursor_line] = s;
-    dirtyState = true;
-}
-
-void TextLayer::backSpace()
-{
-    if(cursor_col == 0)
-        return;
-    if(cursor_col <= inputStartCol)
-        return;
-
-    if(state == Input)
-        inputBuffer = inputBuffer.remove(inputCursorPos()-1, 1);
-    QString s = visibleTextBuffer[cursor_line];
-    s = s.remove(cursor_col-1, 1);
-    visibleTextBuffer[cursor_line] = s;
-    updateHtmlLine(cursor_line);
-    cursor_col --;
-    dirtyState = true;
+    strips[visibleTextLines-1] = QPixmap(imgWidth, imgHeight/visibleTextLines);
+    strips[visibleTextLines-1].fill(Qt::transparent);
 }
 
 QString TextLayer::formatStringUsingWidth(QString str, int width)

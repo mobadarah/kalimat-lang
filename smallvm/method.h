@@ -28,13 +28,11 @@ private:
     QVector<Instruction> instructions;
     QMap<QString, int> labels;
 
-    QHash<int, int> fastLabels;
     int arity;
     int numReturnValues; // 0, 1 or -1 meaning don't check
     bool returnsReference;
     ValueClass *receiver;
     QString name;
-    Labeller labelInterner;
     Labeller localsInterner;
 public:
     QMap<QString, int> Locals;
@@ -47,9 +45,9 @@ public:
     void Add(Instruction i);
     void Add(Instruction i, QString label);
     void Add(Instruction i, QString label, int extraInfo);
-    inline int GetFastLabel(QString label) { return labelInterner.labelOf(label); }
+    void setLabelsInInstructions();
+    void optimize();
     inline int GetIp(const QString &label) { return labels.value(label, -1); }
-    inline int GetIp(int fastLabel) { return fastLabels.value(fastLabel, -1); }
     inline int Arity() { return arity; }
     inline int InstructionCount() { return instructions.count(); }
     inline const Instruction &Get(const QString &label) { return instructions[labels[label]]; }
@@ -59,6 +57,7 @@ public:
     bool IsReturningReference() { return returnsReference; }
     inline int NumReturnValues() { return numReturnValues; }
     QString getName();
+
 
     inline int localVarCount() { return Locals.count(); }
     // Implementing IObject

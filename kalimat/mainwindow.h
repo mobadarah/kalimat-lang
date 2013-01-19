@@ -55,9 +55,8 @@ enum StepMode
 
 struct NullaryStepStopCondition : public StepStopCondition
 {
-    bool stopNow(Frame *frame, Process *process)
+    void stopNow(Process *)
     {
-        return false;
     }
     static NullaryStepStopCondition *instance();
 };
@@ -194,7 +193,7 @@ private:
     void step(Process *proc);
     void stepOver(Process *proc);
     void setDebuggedProcess(Process *);
-    bool currentBreakCondition(Frame *frame, Process *process);
+    void currentBreakCondition(Process *process);
 
     void makeDrag();
 signals:

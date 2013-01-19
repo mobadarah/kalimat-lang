@@ -48,7 +48,7 @@ MyEdit::MyEdit(MainWindow *owner) : QTextEdit()
     connect(this, SIGNAL(textChanged()), SLOT(textChangedEvent()));
     connect(this,  SIGNAL(cursorPositionChanged()), SLOT(selectionChangedEvent()));
     setRtl();
-    document()->setDefaultCursorMoveStyle(Qt::VisualMoveStyle);
+    // document()->setDefaultCursorMoveStyle(Qt::VisualMoveStyle);
     lastInputChar = "";
     _line = _column = 0;
 
@@ -115,7 +115,6 @@ const QVector<Token> MyEdit::lexizeWithRecovery()
     }
     return tokens;
 }
-
 
 QString oppositeOf(QString p)
 {

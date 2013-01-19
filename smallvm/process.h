@@ -25,6 +25,9 @@
     #include "framepool.h"
 #endif
 
+#ifndef OPERANDSTACK_H
+    #include "operandstack.h"
+#endif
 #include <QStack>
 #include <QVector>
 #include <QMap>
@@ -85,8 +88,8 @@ struct Process
     FramePool framePool;
 
     bool _isFinished;
-
-    Stack<Value *> OperandStack;
+    Instruction *executedInstruction;
+    VOperandStack OperandStack;
 public:
     Scheduler *wannaMigrateTo;
 public:
@@ -145,7 +148,8 @@ public:
 
 public:
     const Instruction &getCurrentInstruction();
-    void RunTimeSlice(int slice, VM *vm, Scheduler *caller);
+    void RunTimeSlice(VM *vm);
+    void FastRunTimeSlice(VM *vm);
     void RunUntilReturn();
     void RunSingleInstruction();
     void migrateTo(Scheduler *scheduler);
@@ -172,12 +176,12 @@ private:
     inline QHash<int, Value*> &constantPool();
     inline Allocator &allocator();
 public:
-    void DoPushVal(Value *Arg);
-    void DoPushLocal(const QString &SymRef, int SymRefLabel);
-    void DoPushGlobal(const QString &SymRef);
-    void DoPushConstant(const QString &SymRef, int SymRefLabel);
-    void DoPopLocal(const QString &SymRef, int SymRefLabel);
-    void DoPopGlobal(const QString &SymRef);
+    void DoPushVal();
+    void DoPushLocal();
+    void DoPushGlobal();
+    void DoPushConstant();
+    void DoPopLocal();
+    void DoPopGlobal();
     void DoPushNull();
     void DoGetRef();
     void DoSetRef();
@@ -189,28 +193,33 @@ public:
     void DoAnd();
     void DoOr();
     void DoNot();
-    void DoJmp(const QString &label, int fastLabel);
+    void DoJmp();
+    void DoJmpIfEq();
+    void DoJmpIfNe();
+    inline void JmpImpl(int label);
     void DoJmpVal();
-    void DoIf(int fastTrueLabel, int fastFalseLabel);
+    void DoIf();
     void DoLt();
     void DoGt();
     void DoEq();
     void DoNe();
     void DoLe();
     void DoGe();
-    void DoCall(const QString &symRef, int SymRefLabel, int arity, CallStyle callStyle);
-    void DoCallRef(const QString &symRef, int SymRefLabel, int arity, CallStyle callStyle);
-    void DoCallMethod(const QString &SymRef, int SymRefLabel, int arity, CallStyle callStyle);
+    void DoNop();
+    void DoCall();
+    void DoCallCached();
+    void DoCallRef();
+    void DoCallMethod();
     void DoRet();
     void DoApply();
-    void DoCallExternal(const QString &symRef, int SymRefLabel, int arity);
-    void DoSetField(const QString &SymRef);
-    void DoGetField(const QString &SymRef);
-    void DoGetFieldRef(const QString &SymRef);
+    void DoCallExternal();
+    void DoSetField();
+    void DoGetField();
+    void DoGetFieldRef();
     void DoGetArr();
     void DoSetArr();
     void DoGetArrRef();
-    void DoNew(const QString &SymRef, int SymRefLabel);
+    void DoNew();
     void DoNewArr();
     void DoArrLength();
     void DoNewMD_Arr();
@@ -218,17 +227,27 @@ public:
     void DoSetMD_Arr();
     void DoGetMD_ArrRef();
     void DoMD_ArrDimensions();
-    void DoRegisterEvent(Value *evname, QString SymRef);
-    void DoIsa(const QString &SymRef, int SymRefLabel);
+    void DoRegisterEvent();
+    void DoIsa();
     void DoSend();
     void DoReceive();
     void DoSelect();
     void DoBreak();
     void DoTick();
 
-    inline void CallImpl(const QString &sym, int SymRefLabel, bool wantValueNotRef, int arity, CallStyle callStyle);
-    void CallImpl(Method *method, bool wantValueNotRef, int arity, CallStyle callStyle);
-    void copyArgs(Stack<Value *> &source, Stack<Value *> &dest, int marity);
+    inline void CallImpl();
+    inline void verifyArity(int arity, Method *method)
+    {
+        int marity = method->Arity();
+        if(arity != -1 && marity !=-1 && arity != marity)
+        {
+           signal(WrongNumberOfArguments3,
+                method->getName(), str(arity), str(method->Arity()));
+        }
+    }
+
+    void CallImpl(Method *method, CallStyle callStyle);
+    void copyArgs(VOperandStack &source, VOperandStack &dest, int marity);
     void CallSpecialMethod(IMethod *method, int arity);
     bool coercion(Value *v1, Value *v2, Value *&newV1, Value *&newV2);
     Value *_div(Value *, Value *);
@@ -245,7 +264,6 @@ public:
                       long (*longFunc)(long, long),
                       double (*doubleFunc)(double,double),
                       QString (*strFunc)(QString ,QString));
-    bool EqualityRelatedOp();
     void BinaryLogicOp(bool (*boolFunc)(bool, bool));
     void UnaryLogicOp(bool (*boolFunc)(bool));
 private:

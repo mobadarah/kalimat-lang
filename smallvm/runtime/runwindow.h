@@ -154,6 +154,7 @@ public:
     void typeError(Process *proc, IClass *expected, IClass *given);
     void beginInput();
     void Run();
+    void FastRun();
     void RunGUIScheduler();
     //void singleStep(Process *proc);
     friend class WindowPrintMethod;

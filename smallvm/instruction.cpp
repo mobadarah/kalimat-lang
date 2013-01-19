@@ -14,6 +14,7 @@
 #include "value.h"
 #include "instruction.h"
 #include "frame.h"
+#include "process.h"
 #include "allocator.h"
 #include "vmerror.h"
 
@@ -52,11 +53,11 @@ Instruction &Instruction::wArgParse(QString argS, Allocator *allocator)
 
     if(argS.trimmed() == "true")
     {
-        this->Arg = allocator->newBool(true, false);
+        this->Arg = allocator->newBool(true);
     }
     else if(argS.trimmed() == "false")
     {
-        this->Arg = allocator->newBool(false, false);
+        this->Arg = allocator->newBool(false);
     }
     else
     {
@@ -150,12 +151,9 @@ QString InstructionToString(const Instruction &i)
     }
 }
 
-Instruction &Instruction::wLabels(QString l1, QString l2, int fastL1, int fastL2)
+Instruction &Instruction::wLabels(QString l1)
 {
-    this->True = l1;
-    this->False = l2;
-    this->fastTrue = fastL1;
-    this->fastFalse = fastL2;
+    this->SymRef = l1;
     return *this;
 }
 
@@ -183,169 +181,175 @@ void Instruction::assignRunner()
     switch(opcode)
     {
     case PushV:
-        runner = run_PushV;
+        runner = &Process::DoPushVal;
         break;
     case PushLocal:
-        runner = run_PushLocal;
+        runner = &Process::DoPushLocal;
         break;
     case PopLocal:
-        runner = run_PopLocal;
+        runner = &Process::DoPopLocal;
         break;
     case PushGlobal:
-        runner = run_PushGlobal;
+        runner = &Process::DoPushGlobal;
         break;
     case PopGlobal:
-        runner = run_PopGlobal;
+        runner = &Process::DoPopGlobal;
         break;
     case PushNull:
-        runner = run_PushNull;
+        runner = &Process::DoPushNull;
         break;
     case GetRef:
-        runner = run_GetRef;
+        runner = &Process::DoGetRef;
         break;
     case SetRef:
-        runner = run_SetRef;
+        runner = &Process::DoSetRef;
         break;
     case Add:
-        runner = run_Add;
+        runner = &Process::DoAdd;
         break;
     case Sub:
-        runner = run_Sub;
+        runner = &Process::DoSub;
         break;
     case Mul:
-        runner = run_Mul;
+        runner = &Process::DoMul;
         break;
     case Div:
-        runner = run_Div;
+        runner = &Process::DoDiv;
         break;
     case And:
-        runner = run_And;
+        runner = &Process::DoAnd;
         break;
     case Or:
-        runner = run_Or;
+        runner = &Process::DoOr;
         break;
     case Not:
-        runner = run_Not;
+        runner = &Process::DoNot;
         break;
     case Jmp:
-        runner = run_Jmp;
+        runner = &Process::DoJmp;
         break;
     case JmpVal:
-        runner = run_JmpVal;
+        runner = &Process::DoJmpVal;
         break;
     case If:
-        runner = run_If;
+        runner = &Process::DoIf;
         break;
     case Lt:
-        runner = run_Lt;
+        runner = &Process::DoLt;
         break;
     case Gt:
-        runner = run_Gt;
+        runner = &Process::DoGt;
         break;
     case Eq:
-        runner = run_Eq;
+        runner = &Process::DoEq;
         break;
     case Ne:
-        runner = run_Ne;
+        runner = &Process::DoNe;
         break;
     case Le:
-        runner = run_Le;
+        runner = &Process::DoLe;
         break;
     case Ge:
-        runner = run_Ge;
+        runner = &Process::DoGe;
         break;
     case Tail:
-        runner = run_Tail;
+        runner = &Process::DoNop;
         break;
     case Call:
-        runner = run_Call;
+        runner = &Process::DoCall;
         break;
     case CallMethod:
-        runner = run_CallMethod;
+        runner = &Process::DoCallMethod;
         break;
     case CallRef:
-        runner = run_CallRef;
+        runner = &Process::DoCallRef;
         break;
     case Ret:
-        runner = run_Ret;
+        runner = &Process::DoRet;
         break;
     case Apply:
-        runner = run_Apply;
+        runner = &Process::DoApply;
         break;
     case CallExternal:
-        runner = run_CallExternal;
+        runner = &Process::DoCallExternal;
         break;
     case Nop:
-        runner = run_Nop;
+        runner = &Process::DoNop;
         break;
     case SetField:
-        runner = run_SetField;
+        runner = &Process::DoSetField;
         break;
     case GetField:
-        runner = run_GetField;
+        runner = &Process::DoGetField;
         break;
     case GetFieldRef:
-        runner = run_GetFieldRef;
+        runner = &Process::DoGetFieldRef;
         break;
     case GetArr:
-        runner = run_GetArr;
+        runner = &Process::DoGetArr;
         break;
     case SetArr:
-        runner = run_SetArr;
+        runner = &Process::DoSetArr;
         break;
     case GetArrRef:
-        runner = run_GetArrRef;
+        runner = &Process::DoGetArrRef;
         break;
     case New:
-        runner = run_New;
+        runner = &Process::DoNew;
         break;
     case NewArr:
-        runner = run_NewArr;
+        runner = &Process::DoNewArr;
         break;
     case ArrLength:
-        runner = run_ArrLength;
+        runner = &Process::DoArrLength;
         break;
     case New_MD_Arr:
-        runner = run_New_MD_Arr;
+        runner = &Process::DoNewMD_Arr;
         break;
     case Get_MD_Arr:
-        runner = run_Get_MD_Arr;
+        runner = &Process::DoGetMD_Arr;
         break;
     case Set_MD_Arr:
-        runner = run_Set_MD_Arr;
+        runner = &Process::DoSetMD_Arr;
         break;
     case Get_MD_ArrRef:
-        runner = run_Get_MD_ArrRef;
+        runner = &Process::DoGetMD_ArrRef;
         break;
     case MD_ArrDimensions:
-        runner = run_MD_ArrDimensions;
+        runner = &Process::DoMD_ArrDimensions;
         break;
     case PushConstant:
-        runner = run_PushConstant;
+        runner = &Process::DoPushConstant;
         break;
     case Neg:
-        runner = run_Neg;
+        runner = &Process::DoNeg;
         break;
     case RegisterEvent:
-        runner = run_RegisterEvent;
+        runner = &Process::DoRegisterEvent;
         break;
     case Isa:
-        runner = run_Isa;
+        runner = &Process::DoIsa;
         break;
     case Send:
-        runner = run_Send;
+        runner = &Process::DoSend;
         break;
     case Receive:
-        runner = run_Receive;
+        runner = &Process::DoReceive;
         break;
     case Select:
-        runner = run_Select;
+        runner = &Process::DoSelect;
         break;
     case Break:
-        runner = run_Break;
+        runner = &Process::DoBreak;
         break;
     case Tick:
-        runner = run_Tick;
+        runner = &Process::DoTick;
+        break;
+    case Jeq:
+        runner = &Process::DoJmpIfEq;
+        break;
+    case Jne:
+        runner = &Process::DoJmpIfNe;
         break;
     default:
         throw VMError(InternalError1).arg(QString("Cannot assign runner to instrusction %1").arg(InstructionToString(*this)));

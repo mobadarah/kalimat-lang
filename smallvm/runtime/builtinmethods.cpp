@@ -49,7 +49,7 @@ using namespace std;
 
 #define _ws(s) QString::fromStdWString(s)
 
-void PrintProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *)
+void PrintProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *)
 {
     if(stack.empty())
         proc->signal(InternalError1, "Empty operand stack when reading value to in 'print'");
@@ -59,33 +59,33 @@ void PrintProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *)
     w->redrawWindow();
 }
 
-void PushReadChanProc(Stack<Value *> &stack, Process *, RunWindow *w, VM *)
+void PushReadChanProc(VOperandStack &stack, Process *, RunWindow *w, VM *)
 {
     stack.push(w->readChannel);
 }
 
-void MouseEventChanProc(Stack<Value *> &stack, Process *, RunWindow *w, VM *)
+void MouseEventChanProc(VOperandStack &stack, Process *, RunWindow *w, VM *)
 {
     stack.push(w->mouseEventChannel);
 }
 
-void MouseDownEventChanProc(Stack<Value *> &stack, Process *, RunWindow *w, VM *)
+void MouseDownEventChanProc(VOperandStack &stack, Process *, RunWindow *w, VM *)
 {
     stack.push(w->mouseDownEventChannel);
 }
 
-void MouseUpEventChanProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void MouseUpEventChanProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     stack.push(w->mouseUpEventChannel);
 }
 
-void MouseMoveEventChanProc(Stack<Value *> &stack, Process *, RunWindow *w, VM *)
+void MouseMoveEventChanProc(VOperandStack &stack, Process *, RunWindow *w, VM *)
 {
     stack.push(w->mouseMoveEventChannel);
 }
 
 
-void KbEventChanProc(Stack<Value *> &stack, Process *, RunWindow *w, VM *)
+void KbEventChanProc(VOperandStack &stack, Process *, RunWindow *w, VM *)
 {
     stack.push(w->kbEventChannel);
 }
@@ -97,7 +97,7 @@ WindowReadMethod::WindowReadMethod(RunWindow *parent, VM *vm)
     this->readNum = false;
 }
 
-void WindowReadMethod::operator ()(Stack<Value *> &operandStack, Process *proc)
+void WindowReadMethod::operator ()(VOperandStack &operandStack, Process *proc)
 {
     readNum = popInt(operandStack, proc, parent, vm);
     parent->beginInput();
@@ -106,7 +106,7 @@ void WindowReadMethod::operator ()(Stack<Value *> &operandStack, Process *proc)
                       // here we suspend the instruction loop...
 }
 
-void SetCursorPosProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void SetCursorPosProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     int line = popInt(stack, proc, w, vm);
     int col = popInt(stack, proc, w, vm);
@@ -114,20 +114,20 @@ void SetCursorPosProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm
     proc->assert(result, ArgumentError, VM::argumentErrors[ArgErr::InvalidCursorPosition]);
 }
 
-void GetCursorRowProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void GetCursorRowProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     int r = w->textLayer.getCursorRow();
     stack.push(vm->GetAllocator().newInt(r));
 }
 
-void GetCursorColProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void GetCursorColProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     int c = w->textLayer.getCursorCol();
     stack.push(vm->GetAllocator().newInt(c));
 }
 
 
-void PrintUsingWidthProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *)
+void PrintUsingWidthProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *)
 {
     Value *v = stack.pop();
     w->typeCheck(proc, stack.top(), BuiltInTypes::IntType);
@@ -136,7 +136,7 @@ void PrintUsingWidthProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM 
     w->textLayer.print(str, wid);
 }
 
-void DrawPixelProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void DrawPixelProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     int x = popIntOrCoercable(stack, proc, w, vm);
     int y = popIntOrCoercable(stack, proc, w, vm);
@@ -150,7 +150,7 @@ void DrawPixelProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
     w->redrawWindow();
 }
 
-void DrawLineProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void DrawLineProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     int x1 = popIntOrCoercable(stack, proc, w, vm);
     int y1 = popIntOrCoercable(stack, proc, w, vm);
@@ -177,7 +177,7 @@ void DrawLineProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
     w->redrawWindow();
 }
 
-void DrawRectProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void DrawRectProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     int x1 = popIntOrCoercable(stack, proc, w, vm);
     int y1 = popIntOrCoercable(stack, proc, w, vm);
@@ -225,7 +225,7 @@ void DrawRectProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
     w->redrawWindow();
 }
 
-void DrawCircleProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void DrawCircleProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     int cx = popIntOrCoercable(stack, proc, w, vm);
     int cy = popIntOrCoercable(stack, proc, w, vm);
@@ -265,7 +265,7 @@ void DrawCircleProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
     w->redrawWindow();
 }
 
-void RandomProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void RandomProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     int max = popIntOrCoercable(stack, proc, w, vm);
     vm->assert(proc, max >0, ArgumentError, VM::argumentErrors[ArgErr::RandTakesPositiveValues]);
@@ -303,7 +303,7 @@ Value *ConvertStringToNumber(QString str, VM *vm)
     return NULL;
 }
 
-void ToNumProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void ToNumProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
 
     QString str = popString(stack, proc, w, vm);
@@ -317,7 +317,7 @@ void ToNumProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
     }
 }
 
-void ConcatProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void ConcatProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     QString str1 = popString(stack, proc, w, vm);
     QString str2 = popString(stack, proc, w, vm);
@@ -327,7 +327,7 @@ void ConcatProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
     stack.push(vm->GetAllocator().newString(ret));
 }
 
-void StrLenProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void StrLenProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     QString str = popString(stack, proc, w, vm);
 
@@ -335,26 +335,25 @@ void StrLenProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
     stack.push(vm->GetAllocator().newInt(ret));
 }
 
-void StrFirstProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void StrFirstProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
-    int n = popInt(stack, proc, w, vm);
     QString str = popString(stack, proc, w, vm);
+    int n = popInt(stack, proc, w, vm);
 
     QString ret = str.left(n);
     stack.push(vm->GetAllocator().newString(ret));
 }
 
-void StrLastProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void StrLastProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
-    int n = popInt(stack, proc, w, vm);
-
     QString str = popString(stack, proc, w, vm);
+    int n = popInt(stack, proc, w, vm);
 
     QString ret = str.right(n);
     stack.push(vm->GetAllocator().newString(ret));
 }
 
-void StrMidProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void StrMidProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     QString str = popString(stack, proc, w, vm);
 
@@ -369,7 +368,7 @@ void StrMidProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
     stack.push(vm->GetAllocator().newString(ret));
 }
 
-void StrBeginsWithProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void StrBeginsWithProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     QString strMain = popString(stack, proc, w, vm);
     QString strSub = popString(stack, proc, w, vm);
@@ -378,7 +377,7 @@ void StrBeginsWithProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *v
     stack.push(vm->GetAllocator().newBool(ret));
 }
 
-void StrEndsWithProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void StrEndsWithProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     QString strMain = popString(stack, proc, w, vm);
     QString strSub = popString(stack, proc, w, vm);
@@ -387,7 +386,7 @@ void StrEndsWithProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
     stack.push(vm->GetAllocator().newBool(ret));
 }
 
-void StrContainsProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void StrContainsProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     QString strMain = popString(stack, proc, w, vm);
     QString strSub = popString(stack, proc, w, vm);
@@ -396,7 +395,7 @@ void StrContainsProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
     stack.push(vm->GetAllocator().newBool(ret));
 }
 
-void StrSplitProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void StrSplitProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     QString str = popString(stack, proc, w, vm);
     QString separator = popString(stack, proc, w, vm);
@@ -410,7 +409,7 @@ void StrSplitProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
     stack.push(ret);
 }
 
-void StrTrimProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void StrTrimProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     QString str = popString(stack, proc, w, vm);
     QString str2 = str.trimmed();
@@ -418,7 +417,7 @@ void StrTrimProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
     stack.push(ret);
 }
 
-void StrReplaceProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void StrReplaceProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     QString str = popString(stack, proc, w, vm);
     QString str2 = popString(stack, proc, w, vm);
@@ -428,7 +427,7 @@ void StrReplaceProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
     stack.push(ret);
 }
 
-void ToStringProc(Stack<Value *> &stack, Process *proc, RunWindow *, VM *vm)
+void ToStringProc(VOperandStack &stack, Process *proc, RunWindow *, VM *vm)
 {
     verifyStackNotEmpty(stack, proc, vm);
     Value *v = stack.pop();
@@ -436,7 +435,7 @@ void ToStringProc(Stack<Value *> &stack, Process *proc, RunWindow *, VM *vm)
     stack.push(vm->GetAllocator().newString(ret));
 }
 
-void RoundProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void RoundProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     double d = popDoubleOrCoercable(stack, proc, w, vm);
     int i = (int) d;
@@ -444,7 +443,7 @@ void RoundProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
 
 }
 
-void RemainderProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void RemainderProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     int n1 = popInt(stack, proc, w, vm);
     int n2 = popInt(stack, proc, w, vm);
@@ -455,7 +454,7 @@ void RemainderProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
     stack.push(vm->GetAllocator().newInt(i));
 }
 
-int popIntOrCoercable(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+int popIntOrCoercable(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     if(stack.empty())
     {
@@ -477,7 +476,7 @@ int popIntOrCoercable(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm
     return unboxInt(v);
 }
 
-double popDoubleOrCoercable(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+double popDoubleOrCoercable(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     if(stack.empty())
     {
@@ -497,7 +496,7 @@ double popDoubleOrCoercable(Stack<Value *> &stack, Process *proc, RunWindow *w, 
     return unboxDouble(v);
 }
 
-void verifyStackNotEmpty(Stack<Value *> &stack, Process *proc, VM *)
+void verifyStackNotEmpty(VOperandStack &stack, Process *proc, VM *)
 {
     if(stack.empty())
     {
@@ -505,7 +504,7 @@ void verifyStackNotEmpty(Stack<Value *> &stack, Process *proc, VM *)
     }
 }
 
-void SinProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void SinProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
 
     double theta = popDoubleOrCoercable(stack, proc, w, vm);
@@ -514,7 +513,7 @@ void SinProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
     stack.push(vm->GetAllocator().newDouble(result));
 
 }
-void CosProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void CosProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     double theta = popDoubleOrCoercable(stack, proc, w, vm);
 
@@ -522,7 +521,7 @@ void CosProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
     stack.push(vm->GetAllocator().newDouble(result));
 
 }
-void TanProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void TanProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     double theta = popDoubleOrCoercable(stack, proc, w, vm);
 
@@ -530,7 +529,7 @@ void TanProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
     stack.push(vm->GetAllocator().newDouble(result));
 
 }
-void ASinProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void ASinProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
 
     double theta = popDoubleOrCoercable(stack, proc, w, vm);
@@ -539,7 +538,7 @@ void ASinProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
     stack.push(vm->GetAllocator().newDouble(result));
 
 }
-void ACosProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void ACosProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     double theta = popDoubleOrCoercable(stack, proc, w, vm);
 
@@ -547,7 +546,7 @@ void ACosProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
     stack.push(vm->GetAllocator().newDouble(result));
 
 }
-void ATanProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void ATanProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     double theta = popDoubleOrCoercable(stack, proc, w, vm);
 
@@ -555,7 +554,7 @@ void ATanProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
     stack.push(vm->GetAllocator().newDouble(result));
 
 }
-void SqrtProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void SqrtProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     double theta = popDoubleOrCoercable(stack, proc, w, vm);
     double result = sqrt(theta);
@@ -563,7 +562,7 @@ void SqrtProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
 
 }
 
-void PowProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void PowProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     double base = popDoubleOrCoercable(stack, proc, w, vm);
     double power = popDoubleOrCoercable(stack, proc, w, vm);
@@ -572,14 +571,14 @@ void PowProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
 
 }
 
-void Log10Proc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void Log10Proc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     double theta = popDoubleOrCoercable(stack, proc, w, vm);
     double result = log10(theta);
     stack.push(vm->GetAllocator().newDouble(result));
 
 }
-void LnProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void LnProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     double theta = popDoubleOrCoercable(stack, proc, w, vm);
     double result = log(theta);
@@ -587,7 +586,7 @@ void LnProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
 
 }
 
-void LoadImageProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void LoadImageProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     verifyStackNotEmpty(stack, proc, vm);
     QString fname = popString(stack, proc, w, vm);
@@ -604,7 +603,7 @@ void LoadImageProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
     stack.push(vm->GetAllocator().newObject(obj, imgClass));
 }
 
-void LoadSpriteProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void LoadSpriteProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     verifyStackNotEmpty(stack, proc, vm);
     QString fname = popString(stack, proc, w, vm);
@@ -620,7 +619,7 @@ void LoadSpriteProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
     stack.push(MakeSpriteValue(sprite, &vm->GetAllocator()));
 }
 
-void SpriteFromImageProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void SpriteFromImageProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     IClass *imgClass = dynamic_cast<IClass *>(unboxObj(vm->GetType(VMId::get(RId::Image))));
     verifyStackNotEmpty(stack, proc, vm);
@@ -667,7 +666,7 @@ Value *MakeSpriteValue(Sprite *sprite, Allocator *alloc)
     return spriteVal;
 }
 
-void DrawImageProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void DrawImageProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     IClass *imgClass = dynamic_cast<IClass *>(unboxObj(vm->GetType(VMId::get(RId::Image))));
 
@@ -689,7 +688,7 @@ void DrawImageProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
 
 }
 
-void DrawSpriteProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void DrawSpriteProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     w->typeCheck(proc, stack.top(), BuiltInTypes::SpriteType);
     Value *spriteVal =stack.pop();
@@ -713,7 +712,7 @@ void DrawSpriteProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
     w->redrawWindow();
 }
 
-void ShowSpriteProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void ShowSpriteProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     w->typeCheck(proc, stack.top(), BuiltInTypes::SpriteType);
     Value *spriteVal = stack.pop();
@@ -731,7 +730,7 @@ void ShowSpriteProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
     w->redrawWindow();
 }
 
-void HideSpriteProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void HideSpriteProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     w->typeCheck(proc, stack.top(), BuiltInTypes::SpriteType);
     Value *spriteVal = stack.pop();
@@ -745,7 +744,7 @@ void HideSpriteProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
     w->redrawWindow();
 }
 
-void GetSpriteLeftProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void GetSpriteLeftProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     w->typeCheck(proc, stack.top(), BuiltInTypes::SpriteType);
     Sprite  *sprite = GetSpriteFromValue(stack.pop());
@@ -754,7 +753,7 @@ void GetSpriteLeftProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *v
     stack.push(vm->GetAllocator().newInt(ret));
 }
 
-void GetSpriteRightProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void GetSpriteRightProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     w->typeCheck(proc, stack.top(), BuiltInTypes::SpriteType);
     Sprite  *sprite = GetSpriteFromValue(stack.pop());
@@ -763,7 +762,7 @@ void GetSpriteRightProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *
     stack.push(vm->GetAllocator().newInt(ret));
 }
 
-void GetSpriteTopProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void GetSpriteTopProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     w->typeCheck(proc, stack.top(), BuiltInTypes::SpriteType);
     Sprite  *sprite = GetSpriteFromValue(stack.pop());
@@ -772,7 +771,7 @@ void GetSpriteTopProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm
     stack.push(vm->GetAllocator().newInt(ret));
 }
 
-void GetSpriteBottomProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void GetSpriteBottomProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     w->typeCheck(proc, stack.top(), BuiltInTypes::SpriteType);
     Sprite  *sprite = GetSpriteFromValue(stack.pop());
@@ -781,7 +780,7 @@ void GetSpriteBottomProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM 
     stack.push(vm->GetAllocator().newInt(ret));
 }
 
-void GetSpriteWidthProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void GetSpriteWidthProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     w->typeCheck(proc, stack.top(), BuiltInTypes::SpriteType);
     Value *spriteVal = stack.pop();
@@ -791,7 +790,7 @@ void GetSpriteWidthProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *
     stack.push(vm->GetAllocator().newInt(ret));
 }
 
-void GetSpriteHeightProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void GetSpriteHeightProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     w->typeCheck(proc, stack.top(), BuiltInTypes::SpriteType);
     Sprite  *sprite = GetSpriteFromValue(stack.pop());
@@ -800,7 +799,7 @@ void GetSpriteHeightProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM 
     stack.push(vm->GetAllocator().newInt(ret));
 }
 
-void GetSpriteImageProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void GetSpriteImageProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     w->typeCheck(proc, stack.top(), BuiltInTypes::SpriteType);
     Sprite  *sprite = GetSpriteFromValue(stack.pop());
@@ -815,7 +814,7 @@ void GetSpriteImageProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *
     stack.push(vm->GetAllocator().newObject(imgObj, imgClass));
 }
 
-void SetSpriteImageProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void SetSpriteImageProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     QString clsName = VMId::get(RId::Image);
     IClass *imgClass = dynamic_cast<IClass *>
@@ -834,7 +833,7 @@ void SetSpriteImageProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *
     w->redrawWindow();
 }
 
-void WaitProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void WaitProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     /*
     int ms = stack.pop()->unboxNumeric();
@@ -854,7 +853,7 @@ void WaitProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
     proc->owner->makeItWaitTimer(proc, ms);
 }
 
-void ZoomProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void ZoomProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     int x1 = popIntOrCoercable(stack, proc, w , vm);
     int y1 = popIntOrCoercable(stack, proc, w , vm);
@@ -865,17 +864,17 @@ void ZoomProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
     w->paintSurface->zoom(x1, y1, x2, y2);
 }
 
-void ClsProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void ClsProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     w->cls();
 }
 
-void ClearTextProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void ClearTextProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     w->clearAllText();
 }
 
-void SetTextColorProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void SetTextColorProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     int color = popInt(stack, proc, w, vm);
     w->assert(proc, color>=0 && color <=15, ArgumentError, "Color value must be from 0 to 15");
@@ -886,7 +885,7 @@ void SetTextColorProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm
     w->redrawWindow();
 }
 
-void PointAtProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void PointAtProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     int x = popIntOrCoercable(stack, proc, w, vm);
     int y = popIntOrCoercable(stack, proc, w, vm);
@@ -917,7 +916,7 @@ void PointAtProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
     stack.push(vm->GetAllocator().newInt(color));
 }
 
-void PointRgbAtProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void PointRgbAtProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     int x = popIntOrCoercable(stack, proc, w, vm);
     int y = popIntOrCoercable(stack, proc, w, vm);
@@ -952,7 +951,7 @@ void PointRgbAtProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
     stack.push(arr);
 }
 
-void BuiltInConstantProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void BuiltInConstantProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     QString constName = popString(stack, proc, w, vm);
     if(constName == VMId::get(RId::NewLine))
@@ -1004,7 +1003,7 @@ void BuiltInConstantProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM 
     w->assert(proc, false, ArgumentError, VM::argumentErrors.get(ArgErr::InvalidConstantName1, constName));
 }
 
-void StringIsNumericProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void StringIsNumericProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     QString s = popString(stack, proc, w, vm);
     bool yep = true;
@@ -1017,7 +1016,7 @@ void StringIsNumericProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM 
     stack.push(vm->GetAllocator().newBool(yep));
 }
 
-void StringIsAlphabeticProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void StringIsAlphabeticProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     QString s = popString(stack, proc, w, vm);
     bool yep = true;
@@ -1030,7 +1029,7 @@ void StringIsAlphabeticProc(Stack<Value *> &stack, Process *proc, RunWindow *w, 
     stack.push(vm->GetAllocator().newBool(yep));
 }
 
-void TypeOfProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void TypeOfProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     Value *v = popValue(stack, proc, w, vm);
 
@@ -1039,14 +1038,14 @@ void TypeOfProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
     stack.push(vm->GetAllocator().newObject(v->type, BuiltInTypes::ClassType, false));
 }
 
-void TypeFromIdProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void TypeFromIdProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     QString typeId = popString(stack, proc, w, vm);
     Value *type = vm->GetType(typeId);
     stack.push(type);
 }
 
-void AddressOfProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void AddressOfProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     Value *v = popValue(stack, proc, w, vm);
     ffi_type *type;
@@ -1066,12 +1065,12 @@ void AddressOfProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
     stack.push(vm->GetAllocator().newRaw(ptr, new PointerClass(v->type)));
 }
 
-void NewMapProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void NewMapProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     stack.push(vm->GetAllocator().newMap());
 }
 
-void HasKeyProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void HasKeyProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     w->typeCheck(proc, stack.top(), BuiltInTypes::MapType);
     Value *v = popValue(stack, proc, w, vm);
@@ -1086,7 +1085,7 @@ void HasKeyProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
     stack.push(vm->GetAllocator().newBool(result));
 }
 
-void KeysOfProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void KeysOfProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     w->typeCheck(proc, stack.top(), BuiltInTypes::MapType);
     Value *v = popValue(stack, proc, w, vm);
@@ -1107,7 +1106,7 @@ struct FileBlob
 
 // TODO: use the helpers popXXX(...) functions instead of manually calling
 // typecheck() and pop() in all external methods.
-FileBlob *popFileBlob(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+FileBlob *popFileBlob(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     verifyStackNotEmpty(stack, proc, vm);
     w->typeCheck(proc, stack.top(), BuiltInTypes::FileType);
@@ -1119,7 +1118,7 @@ FileBlob *popFileBlob(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm
     return f;
 }
 
-Value *popValue(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+Value *popValue(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     verifyStackNotEmpty(stack, proc, vm);
     Value *v = stack.pop();
@@ -1133,7 +1132,7 @@ Value *newGuiObject(void *ptr, IClass *type, VM *vm)
     return vm->GetAllocator().newObject(obj, type);
 }
 
-QString popString(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+QString popString(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     verifyStackNotEmpty(stack, proc, vm);
     w->typeCheck(proc, stack.top(), BuiltInTypes::StringType);
@@ -1141,7 +1140,7 @@ QString popString(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
     return s;
 }
 
-int popInt(Stack<Value *> &stack, Process *proc,  RunWindow *w, VM *vm)
+int popInt(VOperandStack &stack, Process *proc,  RunWindow *w, VM *vm)
 {
     verifyStackNotEmpty(stack, proc, vm);
     w->typeCheck(proc, stack.top(), BuiltInTypes::IntType);
@@ -1149,7 +1148,7 @@ int popInt(Stack<Value *> &stack, Process *proc,  RunWindow *w, VM *vm)
     return i;
 }
 
-void *popRaw(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm, IClass *type)
+void *popRaw(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm, IClass *type)
 {
     verifyStackNotEmpty(stack, proc, vm);
     w->typeCheck(proc, stack.top(), type);
@@ -1157,7 +1156,7 @@ void *popRaw(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm, IClass 
     return ret;
 }
 
-bool popBool(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+bool popBool(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     verifyStackNotEmpty(stack, proc, vm);
     w->typeCheck(proc, stack.top(), BuiltInTypes::BoolType);
@@ -1165,7 +1164,7 @@ bool popBool(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
     return b;
 }
 
-VArray *popArray(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+VArray *popArray(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     verifyStackNotEmpty(stack, proc, vm);
     w->typeCheck(proc, stack.top(), BuiltInTypes::ArrayType);
@@ -1173,10 +1172,10 @@ VArray *popArray(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
     return arr;
 }
 
-void DoFileWrite(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm, bool newLine)
+void DoFileWrite(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm, bool newLine)
 {
     FileBlob *f = popFileBlob(stack, proc, w, vm);
-    QString s = popString(stack, proc, w, vm);
+    QString s = popValue(stack, proc, w, vm)->toString();
 
     if(f->file == NULL)
         w->assert(proc, false, ArgumentError, VM::argumentErrors[ArgErr::CannotWriteToClosedFile]);
@@ -1186,29 +1185,29 @@ void DoFileWrite(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm, boo
         *(f->stream) << s;
 }
 
-void FileWriteProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void FileWriteProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     DoFileWrite(stack, proc, w, vm, false);
 }
 
-void FileWriteUsingWidthProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void FileWriteUsingWidthProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     FileBlob *f = popFileBlob(stack, proc, w, vm);
     if(f->file == NULL)
         w->assert(proc, false, ArgumentError,  VM::argumentErrors[ArgErr::CannotWriteToClosedFile]);
-    QString s = popString(stack, proc, w, vm);
+    QString s = popValue(stack, proc, w, vm)->toString();
     int width = popInt(stack, proc, w, vm);
 
     QString s2 = w->textLayer.formatStringUsingWidth(s, width);
     *(f->stream) << s2;
 }
 
-void FileWriteLineProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void FileWriteLineProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     DoFileWrite(stack, proc, w, vm, true);
 }
 
-void FileReadLineProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void FileReadLineProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
 
     FileBlob *f = popFileBlob(stack, proc, w, vm);
@@ -1219,7 +1218,7 @@ void FileReadLineProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm
     stack.push(v);
 }
 
-void FileEofProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void FileEofProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     FileBlob *f = popFileBlob(stack, proc, w, vm);
     if(f->file == NULL)
@@ -1229,7 +1228,7 @@ void FileEofProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
     stack.push(v);
 }
 
-void FileOpenProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void FileOpenProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     QString fname = popString(stack, proc, w, vm);
     fname = w->ensureCompletePath(proc, fname);
@@ -1246,7 +1245,7 @@ void FileOpenProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
     stack.push(v);
 }
 
-void FileCreateProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void FileCreateProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     QString fname = popString(stack, proc, w, vm);
     fname = w->ensureCompletePath(proc, fname);
@@ -1262,7 +1261,7 @@ void FileCreateProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
     stack.push(v);
 }
 
-void FileAppendProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void FileAppendProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     QString fname = popString(stack, proc, w, vm);
     fname = w->ensureCompletePath(proc, fname);
@@ -1278,7 +1277,7 @@ void FileAppendProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
     stack.push(v);
 }
 
-void FileCloseProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void FileCloseProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     // TODO: use popFileblob
     w->typeCheck(proc, stack.top(), BuiltInTypes::FileType);
@@ -1297,7 +1296,7 @@ void FileCloseProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
 }
 
 Value *editAndReturn(Value *v, RunWindow *w, VM *vm);
-void EditProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void EditProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     Value *v = stack.pop();
     w->assert(proc, v->isObject(), ArgumentError, VM::argumentErrors.get(ArgErr::SentValueHasToBeAnObject1, v->toString()));
@@ -1305,17 +1304,17 @@ void EditProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
     stack.push(v);
 }
 
-void GetMainWindowProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void GetMainWindowProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     stack.push(vm->GetAllocator().newQObject(w));
 }
 
-void NewChannelProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void NewChannelProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     stack.push(vm->GetAllocator().newChannel());
 }
 
-void LoadLibraryProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void LoadLibraryProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     QString libName = popString(stack, proc, w, vm);
     // todo: will this leak?
@@ -1327,7 +1326,7 @@ void LoadLibraryProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
     stack.push(ret);
 }
 
-void GetProcAddressProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void GetProcAddressProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     void *libRaw = popRaw(stack, proc, w, vm, BuiltInTypes::ExternalLibrary);
     QString funcName = popString(stack, proc, w, vm);
@@ -1344,7 +1343,7 @@ void GetProcAddressProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *
     stack.push(ret);
 }
 
-void TestMakeCArrayProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void TestMakeCArrayProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     int *a = new int[5];
     for(int i=0; i<5; i++)
@@ -1352,7 +1351,7 @@ void TestMakeCArrayProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *
     stack.push(vm->GetAllocator().newRaw(a, BuiltInTypes::c_ptr));
 }
 
-void InvokeForeignProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void InvokeForeignProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     void *funcPtr = popRaw(stack, proc, w, vm, BuiltInTypes::ExternalMethodType);
     VArray *args = popArray(stack, proc, w, vm);
@@ -1392,13 +1391,13 @@ void InvokeForeignProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *v
         stack.push(vm->GetAllocator().null());
 }
 
-void CurrentParseTreeProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void CurrentParseTreeProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     Value *v = vm->GetGlobal("%parseTree");
     stack.push(v);
 }
 
-void MakeParserProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void MakeParserProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     QString datum = popString(stack, proc, w, vm);
     IClass *parserClass = unboxClass(vm->GetType(VMId::get(RId::Parser)));
@@ -1409,7 +1408,7 @@ void MakeParserProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
     stack.push(vm->GetAllocator().newObject(parser, parserClass));
 }
 
-void PushParserBacktrackPointProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void PushParserBacktrackPointProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     IObject *receiver = unboxObj(popValue(stack, proc, w, vm));
     int arg1 = popInt(stack, proc, w, vm);
@@ -1417,7 +1416,7 @@ void PushParserBacktrackPointProc(Stack<Value *> &stack, Process *proc, RunWindo
     parser->stack.push(ParseFrame(arg1, parser->pos, true));
 }
 
-void IgnoreParserBacktrackPointProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void IgnoreParserBacktrackPointProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
 
     IObject *receiver = unboxObj(popValue(stack, proc, w, vm));
@@ -1428,7 +1427,7 @@ void IgnoreParserBacktrackPointProc(Stack<Value *> &stack, Process *proc, RunWin
                   VM::argumentErrors.get(ArgErr::StackTopNotBacktrackPointToIgnore1, str(f.continuationLabel)));
 }
 
-void ActivationFrameProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void ActivationFrameProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
 
     int n = popIntOrCoercable(stack, proc, w, vm);
@@ -1458,7 +1457,7 @@ void ActivationFrameProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM 
     }
 }
 
-void MigrateToGuiThreadProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void MigrateToGuiThreadProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     //proc->migrateTo(&vm->guiScheduler);
     //emit w->EmitGuiSchedule();
@@ -1466,14 +1465,14 @@ void MigrateToGuiThreadProc(Stack<Value *> &stack, Process *proc, RunWindow *w, 
     proc->timeSlice = 0;
 }
 
-void MigrateBackFromGuiThreadProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void MigrateBackFromGuiThreadProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     //proc->migrateTo(&vm->mainScheduler);
     proc->wannaMigrateTo = &vm->mainScheduler;
     proc->timeSlice = 0;
 }
 
-void ImageRotatedProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void ImageRotatedProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     IClass *type;
     QImage *handle = popGuiReceiver<QImage *>(stack, type, proc, w, vm);
@@ -1503,7 +1502,7 @@ void ImageRotatedProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm
     stack.push(ret);
 }
 
-void ImageScaledProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void ImageScaledProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     IClass *type;
     QImage *handle = popGuiReceiver<QImage *>(stack, type, proc, w, vm);
@@ -1518,7 +1517,7 @@ void ImageScaledProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
     stack.push(ret);
 }
 
-void ImageDrawLineProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void ImageDrawLineProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     IClass *type;
     QImage *handle = popGuiReceiver<QImage *>(stack, type, proc, w, vm);
@@ -1534,7 +1533,7 @@ void ImageDrawLineProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *v
     }
 }
 
-void ImageFlippedProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void ImageFlippedProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     IClass *type;
     QImage *handle = popGuiReceiver<QImage *>(stack, type, proc, w, vm);
@@ -1558,7 +1557,7 @@ void ImageFlippedProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm
     stack.push(ret);
 }
 
-void ImageCopiedProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void ImageCopiedProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     IClass *type;
     QImage *handle = popGuiReceiver<QImage *>(stack, type, proc, w, vm);
@@ -1569,7 +1568,7 @@ void ImageCopiedProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
     stack.push(ret);
 }
 
-void ImageSetPixelColorProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void ImageSetPixelColorProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     IClass *type;
     QImage *handle = popGuiReceiver<QImage *>(stack, type, proc, w, vm);
@@ -1580,7 +1579,7 @@ void ImageSetPixelColorProc(Stack<Value *> &stack, Process *proc, RunWindow *w, 
     handle->setPixel(x,y, clr);
 }
 
-void ImagePixelColorProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void ImagePixelColorProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     IClass *type;
     QImage *handle = popGuiReceiver<QImage *>(stack, type, proc, w, vm);
@@ -1591,7 +1590,7 @@ void ImagePixelColorProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM 
     stack.push(vm->GetAllocator().newInt(clr));
 }
 
-void ImageWidthProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void ImageWidthProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     IClass *type;
     QImage *handle = popGuiReceiver<QImage *>(stack, type, proc, w, vm);
@@ -1599,7 +1598,7 @@ void ImageWidthProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
     stack.push(vm->GetAllocator().newInt(handle->width()));
 }
 
-void ImageHeightProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void ImageHeightProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     IClass *type;
     QImage *handle = popGuiReceiver<QImage *>(stack, type, proc, w, vm);
@@ -1607,7 +1606,7 @@ void ImageHeightProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
     stack.push(vm->GetAllocator().newInt(handle->height()));
 }
 
-void ImageDrawTextProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void ImageDrawTextProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     IClass *type;
     QImage *handle = popGuiReceiver<QImage *>(stack, type, proc, w, vm);
@@ -1620,7 +1619,7 @@ void ImageDrawTextProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *v
     p.drawText(x, y, text);
 }
 
-void ForeignWindowMaximizeProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void ForeignWindowMaximizeProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     IClass *type;
     QWidget *win = popGuiReceiver<QWidget *>(stack, type, proc, w, vm);
@@ -1628,7 +1627,7 @@ void ForeignWindowMaximizeProc(Stack<Value *> &stack, Process *proc, RunWindow *
     win->setWindowState(Qt::WindowMaximized);
 }
 
-void ForeignWindowMoveToProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void ForeignWindowMoveToProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     IClass *type;
     QWidget *win = popGuiReceiver<QWidget *>(stack, type, proc, w, vm);
@@ -1638,34 +1637,45 @@ void ForeignWindowMoveToProc(Stack<Value *> &stack, Process *proc, RunWindow *w,
     win->move(x, y);
 }
 
-void ForeignWindowAddProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void ForeignWindowAddProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     IClass *type;
     QWidget *widget = popGuiReceiver<QWidget *>(stack, type, proc, w, vm);
     QWidget *control = popGuiReceiver<QWidget *>(stack, type, proc, w, vm);
 
+    control->move(widget->width() - (control->x() + control->width()),
+                  control->y());
     control->setParent(widget);
     QFont f = control->font();
     control->setFont(QFont(f.family(), f.pointSize()+3));
     control->show();
 }
 
-void ForeignWindowSetSizeProc(Stack<Value *> &stack, Process *proc, RunWindow *rw, VM *vm)
+void ForeignWindowSetSizeProc(VOperandStack &stack, Process *proc, RunWindow *rw, VM *vm)
 {
     IClass *type;
     QWidget *widget = popGuiReceiver<QWidget *>(stack, type, proc, rw, vm);
     int w = popIntOrCoercable(stack, proc, rw, vm);
     int h = popIntOrCoercable(stack, proc, rw, vm);
 
-    int wdiff = widget->width() - w;
+    //int wdiff = widget->width() - w;
+    //*
     for(int i=0; i<widget->children().count(); i++)
     {
         QWidget *c = dynamic_cast<QWidget *>(widget->children().at(i));
         if(c)
-            c->move(c->x() - wdiff, c->y());
+        {
+            int cw = c->width();
+            int cx = c->x();
+            int cright = cx + cw;
+            int right_delta = widget->width() - cright;
+            int newx = w - (right_delta + cw);
+            c->move(newx, c->y());
+            //qDebug() << "Moving " << c->windowTitle() << " to (" << c->x() <<", " << c->y() <<")";
+        }
     }
-
-    // make it so resizing make the righ side fixed, not
+    //*/
+    // make it so resizing makes the righ side fixed, not
     // left side
     int left = widget->pos().x() + widget->width() - w;
     int top = widget->pos().y();
@@ -1673,7 +1683,7 @@ void ForeignWindowSetSizeProc(Stack<Value *> &stack, Process *proc, RunWindow *r
     widget->move(left, top);
 }
 
-void ForeignWindowSetTitleProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void ForeignWindowSetTitleProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     IClass *type;
     QWidget *widget = popGuiReceiver<QWidget *>(stack, type, proc, w, vm);
@@ -1682,7 +1692,16 @@ void ForeignWindowSetTitleProc(Stack<Value *> &stack, Process *proc, RunWindow *
     widget->setWindowTitle(t);
 }
 
-void ControlSetTextProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void ForeignWindowSetupProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
+{
+    IObject *window = unboxObj(popValue(stack, proc, w, vm));
+
+    QMainWindow *win = new QMainWindow();
+    Value *handle = vm->GetAllocator().newQObject(win);
+    window->setSlotValue("handle", handle);
+}
+
+void ControlSetTextProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     IClass *type;
     QWidget *widget = popGuiReceiver<QWidget *>(stack, type, proc, w, vm);
@@ -1690,33 +1709,76 @@ void ControlSetTextProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *
     widget->setWindowTitle(str);
 }
 
-void ControlSetSizeProc(Stack<Value *> &stack, Process *proc, RunWindow *rw, VM *vm)
+void ControlSetSizeProc(VOperandStack &stack, Process *proc, RunWindow *rw, VM *vm)
 {
     IClass *type;
     QWidget *widget = popGuiReceiver<QWidget *>(stack, type, proc, rw, vm);
     int w = popIntOrCoercable(stack, proc, rw, vm);
     int h = popIntOrCoercable(stack, proc, rw, vm);
 
+
     int originalx = widget->x() + widget->width();
     widget->resize(w, h);
-
-    originalx -= widget->width();
-    widget->move(originalx, widget->y());
+    if(widget->parentWidget() != NULL)
+    {
+        originalx -= widget->width();
+        widget->move(originalx, widget->y());
+    }
 }
 
-void ControlSetLocationProc(Stack<Value *> &stack, Process *proc, RunWindow *rw, VM *vm)
+void ControlSetLocationProc(VOperandStack &stack, Process *proc, RunWindow *rw, VM *vm)
 {
     IClass *type;
     QWidget *widget = popGuiReceiver<QWidget *>(stack, type, proc, rw, vm);
     int x = popIntOrCoercable(stack, proc, rw, vm);
     int y = popIntOrCoercable(stack, proc, rw, vm);
 
-    rw->paintSurface->TX(x);
-    x -= widget->width();
+    if(widget->parentWidget())
+    {
+        int pw = widget->parentWidget()->width();
+        x = (pw-1)-x;
+        x-= widget->width();
+    }
     widget->move(x, y);
 }
 
-void ButtonSetTextProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void ControlTextProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
+{
+    IClass *type;
+    QWidget *widget = popGuiReceiver<QWidget *>(stack, type, proc, w, vm);
+    stack.push(vm->GetAllocator().newString(widget->windowTitle()));
+}
+
+void ControlShowProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
+{
+    IClass *type;
+    QWidget *widget = popGuiReceiver<QWidget *>(stack, type, proc, w, vm);
+    widget->show();
+}
+
+void ControlHideProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
+{
+    IClass *type;
+    QWidget *widget = popGuiReceiver<QWidget *>(stack, type, proc, w, vm);
+    widget->hide();
+}
+
+void ControlSetVisibleProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
+{
+    IClass *type;
+    QWidget *widget = popGuiReceiver<QWidget *>(stack, type, proc, w, vm);
+    bool show = popBool(stack, proc, w, vm);
+    widget->setVisible(show);
+}
+
+void ControlCloseProc(VOperandStack &stack, Process *proc, RunWindow *rw, VM *vm)
+{
+    IClass *type;
+    QWidget *widget = popGuiReceiver<QWidget *>(stack, type, proc, rw, vm);
+    widget->close();
+}
+
+void ButtonSetTextProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     IClass *type;
     QPushButton *handle = popGuiReceiver<QPushButton *>(stack, type, proc, w, vm);
@@ -1724,7 +1786,7 @@ void ButtonSetTextProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *v
     handle->setText(s);
 }
 
-void ButtonTextProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void ButtonTextProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     IClass *type;
     QPushButton *handle = popGuiReceiver<QPushButton *>(stack, type, proc, w, vm);
@@ -1732,14 +1794,7 @@ void ButtonTextProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
     stack.push(vm->GetAllocator().newString(handle->text()));
 }
 
-void ControlTextProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
-{
-    IClass *type;
-    QWidget *widget = popGuiReceiver<QWidget *>(stack, type, proc, w, vm);
-    stack.push(vm->GetAllocator().newString(widget->windowTitle()));
-}
-
-void TextboxSetTextProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void TextboxSetTextProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     IClass *type;
     QTextEdit *handle = popGuiReceiver<QTextEdit *>(stack, type, proc, w, vm);
@@ -1747,14 +1802,14 @@ void TextboxSetTextProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *
     handle->document()->setPlainText(text);
 }
 
-void TextboxTextProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void TextboxTextProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     IClass *type;
     QTextEdit *handle = popGuiReceiver<QTextEdit *>(stack, type, proc, w, vm);
     stack.push(vm->GetAllocator().newString(handle->document()->toPlainText()));
 }
 
-void TextboxAppendTextProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void TextboxAppendTextProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     IClass *type;
     QTextEdit *handle = popGuiReceiver<QTextEdit *>(stack, type, proc, w, vm);
@@ -1762,7 +1817,7 @@ void TextboxAppendTextProc(Stack<Value *> &stack, Process *proc, RunWindow *w, V
     handle->append(text);
 }
 
-void LineEditSetTextProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void LineEditSetTextProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     IClass *type;
     QLineEdit *handle = popGuiReceiver<QLineEdit *>(stack, type, proc, w, vm);
@@ -1770,14 +1825,14 @@ void LineEditSetTextProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM 
     handle->setText(text);
 }
 
-void LineEditTextProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void LineEditTextProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     IClass *type;
     QLineEdit *handle = popGuiReceiver<QLineEdit *>(stack, type, proc, w, vm);
     stack.push(vm->GetAllocator().newString(handle->text()));
 }
 
-void LineEditAppendTextProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void LineEditAppendTextProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     IClass *type;
     QLineEdit *handle = popGuiReceiver<QLineEdit *>(stack, type, proc, w, vm);
@@ -1785,7 +1840,7 @@ void LineEditAppendTextProc(Stack<Value *> &stack, Process *proc, RunWindow *w, 
     handle->setText(handle->text() + text);
 }
 
-void ListboxAddProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void ListboxAddProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     IClass *type;
     QListWidget *handle = popGuiReceiver<QListWidget *>(stack, type, proc, w, vm);
@@ -1793,7 +1848,7 @@ void ListboxAddProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
     handle->addItem(text);
 }
 
-void ListboxInsertItemProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void ListboxInsertItemProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     IClass *type;
     QListWidget *handle = popGuiReceiver<QListWidget *>(stack, type, proc, w, vm);
@@ -1803,7 +1858,7 @@ void ListboxInsertItemProc(Stack<Value *> &stack, Process *proc, RunWindow *w, V
     handle->insertItem(index, text);
 }
 
-void ListboxGetItemProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void ListboxGetItemProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     IClass *type;
     QListWidget *handle = popGuiReceiver<QListWidget *>(stack, type, proc, w, vm);
@@ -1812,7 +1867,7 @@ void ListboxGetItemProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *
     stack.push(vm->GetAllocator().newString(handle->item(index)->text()));
 }
 
-void ComboBoxSetTextProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void ComboBoxSetTextProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     IClass *type;
     QComboBox *handle = popGuiReceiver<QComboBox *>(stack, type, proc, w, vm);
@@ -1820,14 +1875,14 @@ void ComboBoxSetTextProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM 
     handle->setEditText(text);
 }
 
-void ComboBoxTextProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void ComboBoxTextProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     IClass *type;
     QComboBox *handle = popGuiReceiver<QComboBox *>(stack, type, proc, w, vm);
     stack.push(vm->GetAllocator().newString(handle->currentText()));
 }
 
-void ComboBoxAddProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void ComboBoxAddProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     IClass *type;
     QComboBox *handle = popGuiReceiver<QComboBox *>(stack, type, proc, w, vm);
@@ -1835,7 +1890,7 @@ void ComboBoxAddProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
     handle->addItem(v->toString());
 }
 
-void ComboBoxInsertItemProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void ComboBoxInsertItemProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     IClass *type;
     QComboBox *handle = popGuiReceiver<QComboBox *>(stack, type, proc, w, vm);
@@ -1845,7 +1900,7 @@ void ComboBoxInsertItemProc(Stack<Value *> &stack, Process *proc, RunWindow *w, 
     handle->insertItem(index, v->toString());
 }
 
-void ComboBoxGetItemProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void ComboBoxGetItemProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     IClass *type;
     QComboBox *handle = popGuiReceiver<QComboBox *>(stack, type, proc, w, vm);
@@ -1853,7 +1908,7 @@ void ComboBoxGetItemProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM 
     stack.push(vm->GetAllocator().newString(handle->itemText(index)));
 }
 
-void ComboBoxSetEditableProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void ComboBoxSetEditableProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     IClass *type;
     QComboBox *handle = popGuiReceiver<QComboBox *>(stack, type, proc, w, vm);
@@ -1861,7 +1916,7 @@ void ComboBoxSetEditableProc(Stack<Value *> &stack, Process *proc, RunWindow *w,
     handle->setEditable(editable);
 }
 
-void LabelSetTextProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void LabelSetTextProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     IClass *type;
     QLabel *handle = popGuiReceiver<QLabel *>(stack, type, proc, w, vm);
@@ -1869,14 +1924,14 @@ void LabelSetTextProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm
     handle->setText(text);
 }
 
-void LabelTextProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void LabelTextProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     IClass *type;
     QLabel *handle = popGuiReceiver<QLabel *>(stack, type, proc, w, vm);
     stack.push(vm->GetAllocator().newString(handle->text()));
 }
 
-void CheckboxSetTextProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void CheckboxSetTextProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     IClass *type;
     QCheckBox *handle = popGuiReceiver<QCheckBox *>(stack, type, proc, w, vm);
@@ -1884,14 +1939,14 @@ void CheckboxSetTextProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM 
     handle->setText(text);
 }
 
-void CheckboxTextProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void CheckboxTextProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     IClass *type;
     QCheckBox *handle = popGuiReceiver<QCheckBox *>(stack, type, proc, w, vm);
     stack.push(vm->GetAllocator().newString(handle->text()));
 }
 
-void CheckboxSetValueProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void CheckboxSetValueProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     IClass *type;
     QCheckBox *handle = popGuiReceiver<QCheckBox *>(stack, type, proc, w, vm);
@@ -1899,14 +1954,14 @@ void CheckboxSetValueProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM
     handle->setCheckState((Qt::CheckState)value);
 }
 
-void CheckboxValueProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void CheckboxValueProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     IClass *type;
     QCheckBox *handle = popGuiReceiver<QCheckBox *>(stack, type, proc, w, vm);
     stack.push(vm->GetAllocator().newInt(handle->checkState()));
 }
 
-void RadioButtonSetTextProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void RadioButtonSetTextProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     IClass *type;
     QRadioButton *handle = popGuiReceiver<QRadioButton *>(stack, type, proc, w, vm);
@@ -1914,14 +1969,14 @@ void RadioButtonSetTextProc(Stack<Value *> &stack, Process *proc, RunWindow *w, 
     handle->setText(text);
 }
 
-void RadioButtonTextProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void RadioButtonTextProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     IClass *type;
     QRadioButton *handle = popGuiReceiver<QRadioButton *>(stack, type, proc, w, vm);
     stack.push(vm->GetAllocator().newString(handle->text()));
 }
 
-void RadioButtonSetValueProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void RadioButtonSetValueProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     IClass *type;
     QRadioButton *handle = popGuiReceiver<QRadioButton *>(stack, type, proc, w, vm);
@@ -1929,14 +1984,14 @@ void RadioButtonSetValueProc(Stack<Value *> &stack, Process *proc, RunWindow *w,
     handle->setChecked(value);
 }
 
-void RadioButtonValueProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void RadioButtonValueProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     IClass *type;
     QRadioButton *handle = popGuiReceiver<QRadioButton *>(stack, type, proc, w, vm);
     stack.push(vm->GetAllocator().newBool(handle->isChecked()));
 }
 
-void ButtonGroupAddProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void ButtonGroupAddProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     IClass *type, *type2;
     QButtonGroup *handle = popGuiReceiver<QButtonGroup *>(stack, type, proc, w, vm);
@@ -1956,7 +2011,7 @@ void ButtonGroupAddProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *
     stack.push(vm->GetAllocator().newInt(theId));
 }
 
-void ButtonGroupGetButtonProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void ButtonGroupGetButtonProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     IClass *type;
     QButtonGroup *handle = popGuiReceiver<QButtonGroup *>(stack, type, proc, w, vm);
@@ -1968,7 +2023,7 @@ void ButtonGroupGetButtonProc(Stack<Value *> &stack, Process *proc, RunWindow *w
     stack.push(btnObj);
 }
 
-void ClassNewObjectProc(Stack<Value *> &stack, Process *proc, RunWindow *w, VM *vm)
+void ClassNewObjectProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     Value *v = popValue(stack, proc, w, vm);
     IObject *theClassObj = unboxObj(v);

@@ -349,7 +349,6 @@ IClass *VM::parseTypeId(QString typeId, int &pos)
                 signal(NULL, InternalError1, QString("VM::GetType: Constant pool entry '%1' not a type").arg(id));
             return unboxClass(v);
         }
-
 }
 
 Value *VM::GetType(QString vmTypeId)
@@ -568,6 +567,8 @@ void VM::Load(QString assemblyCode)
         }
         else if(opcode == ".endmethod")
         {
+            curMethod->setLabelsInInstructions();
+            curMethod->optimize();
             curMethod = NULL;
             curMethodName = "";
         }
@@ -705,7 +706,7 @@ void VM::Load(QString assemblyCode)
         }
         else if(opcode == "jmp")
         {
-            Instruction i = Instruction(Jmp).wLabels(arg, NULL, curMethod->GetFastLabel(arg), -1);
+            Instruction i = Instruction(Jmp).wLabels(arg);
             curMethod->Add(i, label, extraInfo);
         }
         else if(opcode == "jmpv")
@@ -715,10 +716,7 @@ void VM::Load(QString assemblyCode)
         }
         else if(opcode == "if")
         {
-            QStringList two_labels = arg.split(",", QString::SkipEmptyParts, Qt::CaseInsensitive);
-            QString lbl1 = two_labels[0].trimmed();
-            QString lbl2 = two_labels[1].trimmed();
-            Instruction i = Instruction(If).wLabels(lbl1, lbl2, curMethod->GetFastLabel(lbl1), curMethod->GetFastLabel(lbl2));
+            Instruction i = Instruction(If);
             curMethod->Add(i, label, extraInfo);
         }
         else if(opcode == "lt")

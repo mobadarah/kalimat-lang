@@ -75,6 +75,12 @@ WindowForeignClass::WindowForeignClass(QString name, RunWindow *rw, VM *vm)
     attachVmMethod(VMId::get(RId::Add));
     attachVmMethod(VMId::get(RId::SetSize));
     attachVmMethod(VMId::get(RId::SetTitle));
+    attachVmMethod(VMId::get(RId::Setup));
+
+    attachVmMethod("control", VMId::get(RId::Show));
+    attachVmMethod("control", VMId::get(RId::Hide));
+    attachVmMethod("control", VMId::get(RId::SetVisible));
+    attachVmMethod("control", VMId::get(RId::Close));
 
     fields.insert("handle");
 }
@@ -136,6 +142,10 @@ ControlForeignClass::ControlForeignClass(QString name, RunWindow *rw, VM *vm)
     attachVmMethod("control", VMId::get(RId::SetSize));
     attachVmMethod("control", VMId::get(RId::SetLocation));
     attachVmMethod("control", VMId::get(RId::Text));
+    attachVmMethod("control", VMId::get(RId::Show));
+    attachVmMethod("control", VMId::get(RId::Hide));
+    attachVmMethod("control", VMId::get(RId::SetVisible));
+    attachVmMethod("control", VMId::get(RId::Close));
 }
 
 IObject *ControlForeignClass::newValue(Allocator *allocator)

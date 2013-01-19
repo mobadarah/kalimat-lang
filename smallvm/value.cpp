@@ -33,7 +33,7 @@ ValueClass *BuiltInTypes::ExternalMethodType = NULL;
 ValueClass *BuiltInTypes::ExternalLibrary = NULL;
 MetaClass  *BuiltInTypes::ClassType = NULL;
 ValueClass *BuiltInTypes::IndexableType = NULL;
-ValueClass *BuiltInTypes::ArrayType = NULL;
+ArrayClass *BuiltInTypes::ArrayType = NULL;
 ValueClass *BuiltInTypes::MD_ArrayType= NULL;
 ValueClass *BuiltInTypes::MapType = NULL;
 IClass *BuiltInTypes::StringType = NULL;
@@ -97,7 +97,7 @@ void BuiltInTypes::init()
     ExternalLibrary = new ValueClass(VMId::get(RId::ExternalLibrary), BuiltInTypes::RawType);
     ClassType = new MetaClass(VMId::get(RId::Class), NULL);
     IndexableType = new ValueClass(VMId::get(RId::Indexable), BuiltInTypes::ObjectType);
-    ArrayType = new ValueClass(VMId::get(RId::VArray), BuiltInTypes::IndexableType);
+    ArrayType = new ArrayClass();
     MD_ArrayType = new ValueClass(VMId::get(RId::MD_Array), BuiltInTypes::ObjectType);
     MapType = new ValueClass(VMId::get(RId::VMap), BuiltInTypes::IndexableType);
     StringType = new StringClass();

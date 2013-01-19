@@ -49,12 +49,29 @@ void ProgramDatabase::updateModuleTokens(QString filename, const QVector<Token> 
 {
     exec("DELETE FROM tokens WHERE module_filename=?;",
          filename);
+
+
+    QVariantList fnames, poss, lines, cols, lexemes, lengths;
     for(int i=0; i<tokens.count(); ++i)
     {
         const Token &t = tokens[i];
-        exec("INSERT INTO tokens(module_filename, pos, line, col, lexeme, length) VALUES (?,?,?,?,?,?);",
-             filename, t.Pos, t.Line, t.Column, t.Lexeme, t.Lexeme.length());
+        fnames << filename;
+        poss << t.Pos;
+        lines << t.Line;
+        cols << t.Column;
+        lexemes << t.Lexeme;
+        lengths << t.Lexeme.length();
     }
+    const QString qq("INSERT INTO tokens(module_filename, pos, line, col, lexeme, length) VALUES (:a,:b,:c,:d,:e,:f)");
+    tokenInsert.prepare(qq);
+    tokenInsert.bindValue(":a",fnames);
+    tokenInsert.bindValue(":b", poss);
+    tokenInsert.bindValue(":c", lines);
+    tokenInsert.bindValue(":d", cols);
+    tokenInsert.bindValue(":e", lexemes);
+    tokenInsert.bindValue(":f", lengths);
+    batchCheck(tokenInsert, qq);
+
 }
 
 void ProgramDatabase::updateImportsOfModule(QString filename, QVector<QString> imports)
@@ -174,9 +191,15 @@ bool ProgramDatabase::open()
     pragma.exec("PRAGMA foreign_keys = ON;");
 
     createTables(true);
-
+    prepareQueries();
     _isOpen = true;
     return true;
+}
+
+void ProgramDatabase::prepareQueries()
+{
+    tokenInsert = QSqlQuery(db);
+    tokenInsert.prepare("INSERT INTO tokens(module_filename, pos, line, col, lexeme, length) VALUES (:a,:b,:c,:d,:e,:f)");
 }
 
 void ProgramDatabase::createTables(bool actually)
@@ -201,6 +224,16 @@ void ProgramDatabase::close()
 {
     _isOpen = false;
     db.close();
+}
+
+void ProgramDatabase::batchCheck(QSqlQuery &query, const QString &q)
+{
+    bool result = query.execBatch();
+    if(!result)
+    {
+        qDebug() << "Error in query:" << q << ":" << query.lastError().databaseText() << "/" << query.lastError().driverText();
+    }
+    query.clear();
 }
 
 bool ProgramDatabase::exec(QString query)
@@ -335,6 +368,16 @@ bool ProgramDatabase::exec(QString query, QVariant arg1, QVariant arg2, QVariant
         qDebug() << "Error in query:" << query << ":" << q.lastError().databaseText() << "/" << q.lastError().driverText();
     }
     return result;
+}
+
+QSqlQuery ProgramDatabase::q(QSqlQuery &q, const QString &query)
+{
+    bool result = q.exec();
+    if(!result)
+    {
+        qDebug() << "Error in query:" << query << ":" << q.lastError().databaseText() << "/" << q.lastError().driverText();
+    }
+    return q;
 }
 
 QSqlQuery ProgramDatabase::q(QString query, QVariant arg1)

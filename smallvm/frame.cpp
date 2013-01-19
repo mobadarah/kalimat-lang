@@ -55,12 +55,13 @@ Frame::Frame()
     fastLocals = NULL;
     fastLocalCount = 0;
     operandStackLevel = operandStackLevel;
+    returnReferenceIfRefMethod = false;
 }
 
 Frame::Frame(Method *method, int operandStackLevel)
     :currentMethod(method),
       ip(0),
-      returnReferenceIfRefMethod(true),
+      returnReferenceIfRefMethod(false),
       operandStackLevel(operandStackLevel),
       next(NULL)
 {
@@ -70,7 +71,7 @@ Frame::Frame(Method *method, int operandStackLevel)
 Frame::Frame(Method *method, int ip, int operandStackLevel)
     :currentMethod(method),
       ip(ip),
-      returnReferenceIfRefMethod(true),
+      returnReferenceIfRefMethod(false),
       operandStackLevel(operandStackLevel),
       next(NULL)
 {
@@ -87,7 +88,7 @@ void Frame::Init(Method *method, int ip, int operandStackLevel)
     this->operandStackLevel = operandStackLevel;
     currentMethod = method;
     this->ip = ip;
-    returnReferenceIfRefMethod = true;
+    returnReferenceIfRefMethod = false;
     next = NULL;
     if(fastLocals && fastLocals != fastLocalsStatic)
     {
@@ -95,8 +96,6 @@ void Frame::Init(Method *method, int ip, int operandStackLevel)
     }
     prepareFastLocals();
 }
-
-
 
 Frame::~Frame()
 {
@@ -130,12 +129,17 @@ void Frame::prepareFastLocals()
         {
             fastLocals = new Value *[n];
         }
+        // The fastLocals have to be initialized to NULL
+        // since the GC relies on this when scanning the frame
+        // for roots
+        //*
         for(int i=0; i<n; i++)
         {
             fastLocals[i] = NULL;
         }
+        //*/
 
-        // memset(fastLocals, 0, n *sizeof(Value *));
+        //memset(fastLocals, 0, n *sizeof(Value *));
     }
     else
     {

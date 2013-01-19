@@ -20,6 +20,7 @@ Process::Process(Scheduler *owner)
     wannaMigrateTo = NULL;
     stack = NULL;
     _isFinished = false;
+    OperandStack.reserve(OperandStackChunkSize);
 }
 
 Process::~Process()
@@ -195,23 +196,22 @@ double Process::popDoubleOrCoercedInt()
     return ret;
 }
 
-void Process::RunTimeSlice(int slice, VM *vm, Scheduler *caller)
+void Process::RunTimeSlice(VM *vm)
 {
-    timeSlice = slice;
     while(timeSlice > 0)
     {
         RunSingleInstruction();
-
-        if(vm->debugger->currentBreakCondition(currentFrame(),
-                                               this))
-        {
-            DoBreak();
-        }
-
+        vm->debugger->currentBreakCondition(this);
         timeSlice--;
-        // A breakpoint might pause/stop the VM, we then must stop this function at once
-        //if(!vm->isRunning())
-        //    return;
+    }
+}
+
+void Process::FastRunTimeSlice(VM *vm)
+{
+    while(timeSlice > 0)
+    {
+        RunSingleInstruction();
+        timeSlice--;
     }
 }
 
@@ -220,7 +220,7 @@ void Process::RunUntilReturn()
     /* Todo:
 
      * This code runs only the current process until it returns. If the process is, say, waiting to
-     * receive from a channel; it would be waiting forever of the process sending to the channel runs
+     * receive from a channel; it would be waiting forever if the process sending to the channel runs
      * on the same scheduler. We need to run the _virtual machine_, and not just the process, until
      * the process returns.
      */
@@ -269,7 +269,7 @@ void Process::migrateTo(Scheduler *scheduler)
 void Process::RunSingleInstruction()
 {
     Frame *frame = currentFrame();
-    const Instruction &i = frame->currentMethod->Get(frame->ip);
+    executedInstruction = (Instruction *) &frame->currentMethod->Get(frame->ip);
 
     /*
     //if(vm->traceInstructions)
@@ -284,7 +284,7 @@ void Process::RunSingleInstruction()
     //*/
     frame->ip++;
 
-    i.runner((Instruction *) &i, this);
+    (this->*executedInstruction->runner)();
 }
 
 void Process::signal(VMErrorType toSignal)
@@ -360,51 +360,53 @@ inline Allocator &Process::allocator()
     return vm->allocator;
 }
 
-void Process::DoPushVal(Value *Arg)
+void Process::DoPushVal()
 {
-    pushOperand(Arg);
+    pushOperand(executedInstruction->Arg);
 }
 
-void Process::DoPushLocal(const QString &SymRef, int SymRefLabel)
+void Process::DoPushLocal()
 {
-    Value *v = currentFrame()->fastLocals[SymRefLabel];
-    assert1(v, NoSuchVariable1, SymRef);
+    Value *v = currentFrame()->fastLocals[executedInstruction->SymRefLabel];
+    assert1(v, NoSuchVariable1, executedInstruction->SymRef);
     pushOperand(v);
 }
 
-void Process::DoPushGlobal(const QString &SymRef)
+void Process::DoPushGlobal()
 {
-    Value *v = globalFrame().value(SymRef, NULL);
-    assert1(v != NULL, NoSuchVariable1, SymRef);
+    Value *v = globalFrame().value(executedInstruction->SymRef, NULL);
+    assert1(v != NULL, NoSuchVariable1, executedInstruction->SymRef);
     pushOperand(v);
 }
 
-void Process::DoPushConstant(const QString &SymRef, int SymRefLabel)
+void Process::DoPushConstant()
 {
-    Value *v = constantPool().value(SymRefLabel, NULL);
+    Value *v = constantPool().value(executedInstruction->SymRefLabel, NULL);
     if(v != NULL)
         pushOperand(v);
     else
     {
-        signal(InternalError1, QString("pushc: Constant pool doesn't contain key '%1'").arg(SymRef));
+        signal(InternalError1,
+               QString("pushc: Constant pool doesn't contain key '%1'").arg(executedInstruction->SymRef));
     }
 }
 
-void Process::DoPopLocal(const QString &SymRef, int SymRefLabel)
+void Process::DoPopLocal()
 {
     if(!frameHasOperands())
         signal(InternalError1, "Empty operand stack when reading value in 'popl'");
-    assert1(SymRefLabel != -1, NoSuchVariable1, SymRef);
+    int SymRefLabel = executedInstruction->SymRefLabel;
+    assert1(SymRefLabel != -1, NoSuchVariable1, executedInstruction->SymRef);
     Value *v = popValue();
     currentFrame()->fastLocals[SymRefLabel] = v;
 }
 
-void Process::DoPopGlobal(const QString &SymRef)
+void Process::DoPopGlobal()
 {
     if(!frameHasOperands())
         signal(InternalError1, "Empty operand stack when reading value in 'popg'");
     Value *v = popValue();
-    globalFrame()[SymRef] = v;
+    globalFrame()[executedInstruction->SymRef] = v;
 }
 
 void Process::DoPushNull()
@@ -541,11 +543,46 @@ void Process::DoNot()
     UnaryLogicOp(_not);
 }
 
-void Process::DoJmp(const QString &label, int fastLabel)
+void Process::DoJmp()
 {
-    int ip = currentFrame()->currentMethod->GetIp(fastLabel);
-    assert1(ip != -1, JumpingToNonExistentLabel1, label);
-    currentFrame()->ip = ip;
+    int fastLabel = executedInstruction->SymRefLabel;
+    assert1(fastLabel != -1, JumpingToNonExistentLabel1, executedInstruction->SymRef);
+    JmpImpl(fastLabel);
+}
+
+void Process::DoJmpIfEq()
+{
+    Value *v2 = popValue();
+    Value *v1 = popValue();
+    bool result = v1->equals(v2);
+    if(result)
+    {
+        DoJmp();
+    }
+    else
+    {
+        currentFrame()->ip+=2;
+    }
+}
+
+void Process::DoJmpIfNe()
+{
+    Value *v2 = popValue();
+    Value *v1 = popValue();
+    bool result = !v1->equals(v2);
+    if(result)
+    {
+        DoJmp();
+    }
+    else
+    {
+        currentFrame()->ip+=2;
+    }
+}
+
+inline void Process::JmpImpl(int label)
+{
+    currentFrame()->ip = label;
 }
 
 void Process::DoJmpVal()
@@ -559,19 +596,29 @@ void Process::DoJmpVal()
         label = QString("%1").arg(unboxInt(v));
     else
         label = unboxStr(v);
-    DoJmp(label, f->currentMethod->GetFastLabel(label));
+    JmpImpl(f->currentMethod->GetIp(label));
 }
 
-void Process::DoIf(int fastTrueLabel, int fastFalseLabel)
+void Process::DoIf()
 {
+    /*
+     An If instruction has no operands, and is always followed by a jmp instruction
+     together the two instructions mean "jump if false".
+     */
+    //currentFrame()->ip += popBoolOffset();
     bool v = popBool();
-    int newIp;
     if(v)
-        newIp = currentFrame()->currentMethod->GetIp(fastTrueLabel);
+    {
+        currentFrame()->ip++; // skip the following jump
+    }
     else
-        newIp = currentFrame()->currentMethod->GetIp(fastFalseLabel);
-
-    currentFrame()->ip = newIp;
+    {
+        // directly execute the following jump
+        // instead of waiting for the next instruction cycle
+        // we didn't increment the IP since the jmp is going to change it anyway
+        const Instruction &in = currentFrame()->currentMethod->Get(currentFrame()->ip);
+        JmpImpl(in.SymRefLabel);
+    }
 }
 
 void Process::DoLt()
@@ -586,13 +633,19 @@ void Process::DoGt()
 
 void Process::DoEq()
 {
-    Value *v = allocator().newBool(EqualityRelatedOp());
+    Value *v2 = popValue();
+    Value *v1 = popValue();
+
+    Value *v = allocator().newBool(v1->equals(v2));
     pushOperand(v);
 }
 
 void Process::DoNe()
 {
-    Value *v = allocator().newBool(!EqualityRelatedOp());
+    Value *v2 = popValue();
+    Value *v1 = popValue();
+
+    Value *v = allocator().newBool(!v1->equals(v2));
     pushOperand(v);
 }
 
@@ -606,30 +659,60 @@ void Process::DoGe()
     BuiltInComparisonOp(ge_int, ge_long, ge_double, ge_str);
 }
 
-void Process::DoCall(const QString &symRef, int SymRefLabel, int arity, CallStyle callStyle)
+void Process::DoNop()
 {
-    Value *v = constantPool().value(SymRefLabel, NULL);
-    assert1(v != NULL, NoSuchProcedureOrFunction1, symRef);
-    assert1(v->type == BuiltInTypes::MethodType, NoSuchProcedureOrFunction1, symRef);
+
+}
+
+void Process::DoCall()
+{
+    Value *v = constantPool().value(executedInstruction->SymRefLabel, NULL);
+    assert1(v != NULL, NoSuchProcedureOrFunction1, executedInstruction->SymRef);
+    assert1(v->type == BuiltInTypes::MethodType, NoSuchProcedureOrFunction1, executedInstruction->SymRef);
     Method *method = (Method *) unboxObj(v);
-    CallImpl(method, false, arity, callStyle);
+
+    int arity = getInstructionArity(*executedInstruction);
+    int marity = method->Arity();
+    assert3(arity == -1 || marity ==-1 || arity == marity, WrongNumberOfArguments3,
+            method->getName(), str(arity), str(method->Arity()));
+
+    // Cache the method object (since it's resolved statically it can be cached)
+    // and change how the instruction runs
+    executedInstruction->Arg = v;
+    executedInstruction->runner = &Process::DoCallCached;
+
+    CallImpl(method, executedInstruction->callStyle);
 }
 
-void Process::DoCallRef(const QString &symRef, int SymRefLabel, int arity, CallStyle callStyle)
+void Process::DoCallCached()
 {
-    CallImpl(symRef, SymRefLabel, false, arity, callStyle);
+    Method *method = (Method *) unboxObj(executedInstruction->Arg);
+    CallImpl(method, executedInstruction->callStyle);
 }
 
-inline void Process::CallImpl(const QString &symRef, int symRefLabel, bool wantValueNotRef, int arity, CallStyle callStyle)
+void Process::DoCallRef()
 {
-    Value *v = constantPool().value(symRefLabel, NULL);
-    assert1(v != NULL, NoSuchProcedureOrFunction1, symRef);
-    assert1(v->type == BuiltInTypes::MethodType, NoSuchProcedureOrFunction1, symRef);
+    CallImpl();
+    if(executedInstruction->callStyle != LaunchCall)
+    {
+        currentFrame()->returnReferenceIfRefMethod = true;
+    }
+}
+
+inline void Process::CallImpl()
+{
+    Value *v = constantPool().value(executedInstruction->SymRefLabel, NULL);
+    assert1(v != NULL, NoSuchProcedureOrFunction1, executedInstruction->SymRef);
+    assert1(v->type == BuiltInTypes::MethodType, NoSuchProcedureOrFunction1, executedInstruction->SymRef);
     Method *method = (Method *) unboxObj(v);
-    CallImpl(method, wantValueNotRef, arity, callStyle);
+
+    int arity = getInstructionArity(*executedInstruction);
+    verifyArity(arity, method);
+
+    CallImpl(method, executedInstruction->callStyle);
 }
 
-void Process::CallImpl(Method *method, bool wantValueNotRef, int arity, CallStyle callStyle)
+void Process::CallImpl(Method *method, CallStyle callStyle)
 {
     // call expects the arguments on the operand stack in reverse order,
     // but the callee pops them in the right order
@@ -646,39 +729,34 @@ void Process::CallImpl(Method *method, bool wantValueNotRef, int arity, CallStyl
     // pop b
     // pop c
     // ...code
-
     int marity = method->Arity();
-    assert3(arity == -1 || marity ==-1 || arity == marity, WrongNumberOfArguments3,
-            method->getName(), str(arity), str(method->Arity()));
-
     int stackSize = OperandStack.count() - marity;
 
     assert1(stackSize >=0, InternalError1, "Not enough operands for function call");
 
-    Frame *frame = NULL;
-    if(callStyle == TailCall)
+    // Frame *frame = NULL;
+    if(callStyle == NormalCall)
+    {
+        pushFrame(framePool.allocate(method, stackSize));
+       // frame = currentFrame();
+    }
+    else if(callStyle == TailCall)
     {
         Frame *oldFrame = popFrame();
         framePool.free(oldFrame);
         pushFrame(framePool.allocate(method, stackSize));
-        frame = currentFrame();
+        //frame = currentFrame();
     }
     else if(callStyle == LaunchCall)
     {
         Process *newProc;
-        frame = owner->launchProcess(method, newProc);
+        //frame = owner->launchProcess(method, newProc);
+        owner->launchProcess(method, newProc);
         copyArgs(OperandStack, newProc->OperandStack, marity);
     }
-    else if(callStyle == NormalCall)
-    {
-        pushFrame(framePool.allocate(method, stackSize));
-        frame = currentFrame();
-    }
-
-    frame->returnReferenceIfRefMethod = !wantValueNotRef;
 }
 
-void Process::copyArgs(Stack<Value *> &source, Stack<Value *> &dest, int marity)
+void Process::copyArgs(VOperandStack &source, VOperandStack &dest, int marity)
 {
     Value *argsFast[10];
     Value** args = NULL;
@@ -712,7 +790,7 @@ void Process::copyArgs(Stack<Value *> &source, Stack<Value *> &dest, int marity)
     }
 }
 
-void Process::DoCallMethod(const QString &SymRef, int SymRefLabel, int arity, CallStyle callStyle)
+void Process::DoCallMethod()
 {
     // callm expects the arguments in reverse order, and the last pushed argument is 'this'
     // but the execution site pops them in the correct order, i.e the first popped is 'this'
@@ -721,6 +799,9 @@ void Process::DoCallMethod(const QString &SymRef, int SymRefLabel, int arity, Ca
     assert0(receiver->type != BuiltInTypes::NullType, CallingMethodOnNull);
     assert0(receiver->isObject(), CallingMethodOnNonObject);
 
+    QString SymRef = executedInstruction->SymRef;
+    int arity = getInstructionArity(*executedInstruction);
+    CallStyle callStyle = executedInstruction->callStyle;
     IMethod *_method = receiver->type->lookupMethod(SymRef);
 
 
@@ -730,11 +811,11 @@ void Process::DoCallMethod(const QString &SymRef, int SymRefLabel, int arity, Ca
 
     // put the receiver back on the operand stack
     pushOperand(receiver);
+    int marity = _method->Arity();
+    assert3(arity == -1 || marity ==-1 || arity == marity, WrongNumberOfArguments3,
+            SymRef, str(arity), str(marity));
 
-    assert3(arity == -1 || _method->Arity() ==-1 || arity == _method->Arity(), WrongNumberOfArguments3,
-            SymRef, str(arity), str(_method->Arity()));
-
-    int stackSize = OperandStack.count() - arity;
+    int stackSize = OperandStack.count() - marity;
     assert1(stackSize >=0, InternalError1, "Not enough operands for function call");
 
     if(callStyle == TailCall)
@@ -748,22 +829,23 @@ void Process::DoCallMethod(const QString &SymRef, int SymRefLabel, int arity, Ca
         // Since _method is not NULL but method is,
         // therefore we have a special method (i.e not a collection of bytecode)
         // in our hands.
-        CallSpecialMethod(_method, arity);
+        CallSpecialMethod(_method, marity);
         return;
     }
     else
     {
-        Frame *frame = NULL;
+        //Frame *frame = NULL;
         if(callStyle == NormalCall || callStyle == TailCall)
         {
             pushFrame(framePool.allocate(method, stackSize));
-            frame = currentFrame();
+          //  frame = currentFrame();
         }
         else if(callStyle == LaunchCall)
         {
             Process *newProc;
-            frame = owner->launchProcess(method, newProc);
-            copyArgs(OperandStack, newProc->OperandStack, arity);
+            //frame =
+                    owner->launchProcess(method, newProc);
+            copyArgs(OperandStack, newProc->OperandStack, marity);
         }
     }
 }
@@ -771,8 +853,8 @@ void Process::DoCallMethod(const QString &SymRef, int SymRefLabel, int arity, Ca
 void Process::CallSpecialMethod(IMethod *method, int arity)
 {
     QVector<Value *> args;
-    args.reserve(arity);
-    for(int i=arity-1; i>=0; --i)
+    args.resize(arity);
+    for(int i=0; i<arity; ++i)
     {
         args[i] = popValue();
     }
@@ -808,7 +890,7 @@ void Process::CallSpecialMethod(IMethod *method, int arity)
 void Process::DoRet()
 {
     int toReturn = currentFrame()->currentMethod->NumReturnValues();
-    bool getReferredVal = currentFrame()->currentMethod->IsReturningReference() &&! currentFrame()->returnReferenceIfRefMethod;
+    bool getReferredVal = currentFrame()->currentMethod->IsReturningReference() &&!currentFrame()->returnReferenceIfRefMethod;
 
     int leftValCount = OperandStack.count() - currentFrame()->operandStackLevel;
     if(toReturn != -1)
@@ -818,8 +900,8 @@ void Process::DoRet()
 
         else if(toReturn != leftValCount)
         {
-            qDebug() << OperandStack.pop()->toString();
-            qDebug() << OperandStack.pop()->toString();
+            // qDebug() << OperandStack.pop()->toString();
+            // qDebug() << OperandStack.pop()->toString();
             signal(InternalError1,
                    QString("Values left on stack (%1) do not match declared return value count (%2) for method '%3'")
                    .arg(leftValCount)
@@ -850,11 +932,14 @@ void Process::DoApply()
     assert1(method != NULL, InternalError1, "Apply has been passed a non-standard method");
     VArray *args = popArray();
 
+    verifyArity(args->count(), method);
+
     for(int i=args->count()-1; i>=0; i--)
         pushOperand(args->Elements[i]);
+
     // todo: how does this interfere with tail calls or concurrency
     // in complex cases?
-    CallImpl(method, true, args->count(), NormalCall);
+    CallImpl(method, NormalCall);
 }
 
 void Process::startMigrationToGui()
@@ -871,14 +956,14 @@ void Process::migrateBackFromGui()
     this->timeSlice = 0;
 }
 
-void Process::DoCallExternal(const QString &symRef, int SymRefLabel, int arity)
+void Process::DoCallExternal()
 {
-    Value *v = constantPool().value(SymRefLabel, NULL);
-    assert1(v, NoSuchExternalMethod1, symRef);
-
+    Value *v = constantPool().value(executedInstruction->SymRefLabel, NULL);
+    assert1(v, NoSuchExternalMethod1, executedInstruction->SymRef);
+    int arity = getInstructionArity(*executedInstruction);
     ExternalMethod *method = (ExternalMethod*) unboxObj(v);
     assert3(arity == -1 || method->Arity() ==-1 || arity == method->Arity(), WrongNumberOfArguments3,
-            symRef, str(arity), str(method->Arity()));
+            executedInstruction->SymRef, str(arity), str(method->Arity()));
 
     if(method->mustRunInGui && owner != &vm->guiScheduler)
     {
@@ -894,12 +979,12 @@ void Process::DoCallExternal(const QString &symRef, int SymRefLabel, int arity)
     }
 }
 
-void Process::DoSetField(const QString &SymRef)
+void Process::DoSetField()
 {
     // ...obj val  => ...
     Value *v = popValue();
     Value *objVal = popValue();
-
+    QString SymRef = executedInstruction->SymRef;
     assert0(objVal->type != BuiltInTypes::NullType, SettingFieldOnNull);
     assert1(objVal->isObject(), SettingFieldOnNonObject1, objVal->type->toString());
     assert2(objVal->type->hasField(SymRef), NoSuchField2, SymRef, objVal->type->getName());
@@ -908,11 +993,11 @@ void Process::DoSetField(const QString &SymRef)
     obj->setSlotValue(SymRef, v);
 }
 
-void Process::DoGetField(const QString &SymRef)
+void Process::DoGetField()
 {
     // ...object => val
     Value *objVal = popValue();
-
+    QString SymRef = executedInstruction->SymRef;
     assert0(objVal->type != BuiltInTypes::NullType, GettingFieldOnNull);
     assert1(objVal->isObject(), GettingFieldOnNonObject1, objVal->type->toString());
     assert2(objVal->type->hasField(SymRef), NoSuchField2, SymRef, objVal->type->getName());
@@ -922,11 +1007,11 @@ void Process::DoGetField(const QString &SymRef)
     pushOperand(v);
 }
 
-void Process::DoGetFieldRef(const QString &SymRef)
+void Process::DoGetFieldRef()
 {
     // ...object => ...fieldRef
     Value *objVal = popValue();
-
+    QString SymRef = executedInstruction->SymRef;
     assert0(objVal->type != BuiltInTypes::NullType, GettingFieldOnNull);
     assert1(objVal->isObject(), GettingFieldOnNonObject1, objVal->type->getName());
     assert2(objVal->type->hasField(SymRef), NoSuchField2, SymRef, objVal->type->getName());
@@ -951,7 +1036,6 @@ void Process::DoSetArr()
 
     arr->Elements[i-1] = v;
     */
-
 
     Value *v = popValue();
     Value *index = popValue();
@@ -1049,13 +1133,13 @@ void Process::DoGetArrRef()
     pushOperand(ref);
 }
 
-void Process::DoNew(const QString &SymRef, int SymRefLabel)
+void Process::DoNew()
 {
-    Value *classObj = constantPool().value(SymRefLabel, NULL);
-    assert1(classObj != NULL, NoSuchClass1, SymRef);
+    Value *classObj = constantPool().value(executedInstruction->SymRefLabel, NULL);
+    assert1(classObj != NULL, NoSuchClass1, executedInstruction->SymRef);
 
     IClass *theClass = dynamic_cast<IClass *>(unboxObj(classObj));
-    assert1(theClass != NULL, NameDoesntIndicateAClass1, SymRef);
+    assert1(theClass != NULL, NameDoesntIndicateAClass1, executedInstruction->SymRef);
 
     ForeignClass *fc = dynamic_cast<ForeignClass *>(theClass);
 
@@ -1196,32 +1280,34 @@ void Process::DoMD_ArrDimensions()
     pushOperand(v);
 }
 
-void Process::DoRegisterEvent(Value *evname, QString SymRef)
+void Process::DoRegisterEvent()
 {
-    int SymRefLabel = vm->constantPoolLabeller.labelOf(SymRef);
+    int SymRefLabel = executedInstruction->SymRefLabel;
+    Value *evname = executedInstruction->Arg;
     assert2(evname->type == BuiltInTypes::StringType, TypeError2, BuiltInTypes::StringType, evname->type);
 
     // todo: verify symref is actually a procedure
-    assert1(constantPool().contains(SymRefLabel), NoSuchProcedure1, SymRef);
+    assert1(constantPool().contains(SymRefLabel), NoSuchProcedure1, executedInstruction->SymRef);
     QString evName = unboxStr(evname);
-    vm->registeredEventHandlers[evName] = SymRef;
+    vm->registeredEventHandlers[evName] = executedInstruction->SymRef;
 }
 
-void Process::DoIsa(const QString &SymRef, int SymRefLabel)
+void Process::DoIsa()
 {
     // ...value => ...bool
     Value *v = popValue();
-    ValueClass *cls = NULL;
+    IClass *cls = NULL;
     Value *classObj = NULL;
+    int SymRefLabel = executedInstruction->SymRefLabel;
     if(constantPool().contains(SymRefLabel))
     {
         classObj = constantPool()[SymRefLabel];
         if(classObj->type == BuiltInTypes::ClassType)
         {
-            cls = dynamic_cast<ValueClass *>(unboxObj(classObj));
+            cls = dynamic_cast<IClass *>(unboxObj(classObj));
         }
     }
-    assert1(cls != NULL, NoSuchClass1, SymRef);
+    assert1(cls != NULL, NoSuchClass1, executedInstruction->SymRef);
     bool b = v->type->subclassOf(cls);
     pushOperand(allocator().newBool(b));
 }
@@ -1300,6 +1386,12 @@ void Process::DoSelect()
     QVector<Value *> args;
     for(int i=0; i<varr->count(); i+=2)
     {
+        // Typecheck that it's actually a chan
+        Value *v = varr->Elements[i];
+        assert2(v->type == BuiltInTypes::ChannelType,
+               TypeError2, v->type->getName(),
+                BuiltInTypes::ChannelType->getName());
+
         allChans.append(unboxChan(varr->Elements[i]));
         args.append(varr->Elements[i+1]);
     }
@@ -1392,7 +1484,7 @@ bool Process::coercion(Value *v1, Value *v2, Value *&newV1, Value *&newV2)
         //*/
         /*
          // Experimental, need to review race conditions
-         // if the GC runs in another thread while this code is runnin
+         // if the GC runs in another thread while this code is running
 
         int unboxed_v1 = v1->unboxInt();
         allocator().stopGcMonitoring(v2);
@@ -1568,23 +1660,6 @@ void Process::BuiltInComparisonOp(bool (*intFunc)(int,int),
 
     v3 = allocator().newBool(result);
     pushOperand(v3);
-}
-
-bool Process::EqualityRelatedOp()
-{
-    Value *v2 = popValue();
-    Value *v1 = popValue();
-    /*
-    Value *newV1, *newV2;
-
-    if(coercion(v1, v2, newV1, newV2))
-    {
-        v1 = newV1;
-        v2 = newV2;
-    }
-    */
-
-    return v1->equals(v2);
 }
 
 void Process::BinaryLogicOp(bool (*boolFunc)(bool, bool))

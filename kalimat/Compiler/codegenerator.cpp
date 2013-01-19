@@ -1770,15 +1770,14 @@ void CodeGenerator::generateReference(shared_ptr<AssignableExpression> lval)
 void CodeGenerator::generateIfStmt(shared_ptr<IfStmt> stmt)
 {
     generateExpression(stmt->condition());
-    QString trueLabel = _asm.uniqueLabel();
     QString falseLabel = _asm.uniqueLabel();
     QString endLabel = _asm.uniqueLabel();
 
     if(stmt->elsePart()==NULL)
         falseLabel = endLabel;
 
-    gen(stmt, "if "+ trueLabel+","+falseLabel);
-    gen(stmt->thenPart(), trueLabel+":");
+    gen(stmt, "if");
+    gen(stmt, "jmp " + falseLabel);
     generateStatement(stmt->thenPart());
     gen(stmt->thenPart(), "jmp "+endLabel);
     if(stmt->elsePart()!= NULL)
@@ -1795,22 +1794,21 @@ void CodeGenerator::generateWhileStmt(shared_ptr<WhileStmt> stmt)
       while(cond)
          stmt
 
-      label0
+      testLabel:
       cond
-      if label1 label2
-      label1:
+      if
+      jmp endLabel
       stmt
-      jmp label0
-      label2:
+      jmp testLabel
+      endLabel:
     */
     QString testLabel = _asm.uniqueLabel();
-    QString doLabel = _asm.uniqueLabel();
     QString endLabel = _asm.uniqueLabel();
 
     gen(stmt, testLabel+":");
     generateExpression(stmt->condition());
-    gen(stmt->condition(), "if "+doLabel+","+endLabel);
-    gen(stmt->statement(), doLabel+":");
+    gen(stmt->condition(), "if");
+    gen(stmt->condition(), "jmp " + endLabel);
     generateStatement(stmt->statement());
     gen(stmt, "jmp "+testLabel);
     gen(stmt, endLabel+":");
@@ -1824,23 +1822,22 @@ void CodeGenerator::generateForAllStmt(shared_ptr<ForAllStmt> stmt)
 
       from
       popl var
-      label0:
+      testLabel:
       pushl var
       to
-      gt
-      if label2, label1
-      label1:
+      le
+      if
+      jmp exit
       stmt
       pushl var
       <step>
       add
       popl var
-      jmp label0
-      label2:
+      jmp testLabel
+      exit:
     */
 
     QString testLabel = _asm.uniqueLabel();
-    QString doLabel = _asm.uniqueLabel();
     QString endLabel = _asm.uniqueLabel();
 
     generateExpression(stmt->from());
@@ -1849,11 +1846,11 @@ void CodeGenerator::generateForAllStmt(shared_ptr<ForAllStmt> stmt)
     gen(stmt->variable(), "pushl "+ stmt->variable()->name());
     generateExpression(stmt->to());
     if(stmt->downTo())
-        gen(stmt, "lt");
+        gen(stmt, "ge");
     else
-        gen(stmt, "gt");
-    gen(stmt, "if "+endLabel+","+doLabel);
-    gen(stmt, doLabel+":");
+        gen(stmt, "le");
+    gen(stmt, "if");
+    gen(stmt, "jmp " + endLabel);
 
     defineInCurrentScope(stmt->variable()->name(), stmt->variable());
 
@@ -2143,8 +2140,8 @@ void CodeGenerator::generateSelectStmt(shared_ptr<SelectStmt> stmt)
       pushl temp_index
       pushv 0
       eq
-      if lbl0,lbl1
-      lbl0:
+      if
+      jmp lbl1
       ....code
       lbl1:
 
@@ -2152,8 +2149,8 @@ void CodeGenerator::generateSelectStmt(shared_ptr<SelectStmt> stmt)
       pushl temp_index
       pushv 1
       eq
-      if lbl2,lbl3
-      lbl2:
+      if
+      jmp lbl3
       popl ret_val
       (lvalue assignment involving ret_val and the received lval)
       ...code
@@ -2168,7 +2165,6 @@ void CodeGenerator::generateSelectStmt(shared_ptr<SelectStmt> stmt)
 
     for(int i=0; i<stmt->conditionCount(); i++)
     {
-        QString lbl_a = _asm.uniqueLabel();
         QString lbl_b = _asm.uniqueLabel();
 
         shared_ptr<Statement> action;
@@ -2180,8 +2176,8 @@ void CodeGenerator::generateSelectStmt(shared_ptr<SelectStmt> stmt)
         gen(cond, "pushl " + indexName);
         gen(cond, "pushv ", i);
         gen(cond, "eq");
-        gen(cond, "if " + lbl_a +"," + lbl_b);
-        gen(cond, lbl_a + ":");
+        gen(cond, "if");
+        gen(cond, "jmp " + lbl_b);
         if(i>=sendCount)
         {
             shared_ptr<ReceiveStmt> recv =
@@ -2339,21 +2335,20 @@ void CodeGenerator::generateBinaryOperation(shared_ptr<BinaryOperation> expr)
         //     false
         // =>
         // <op1>
-        // if goon, else
-        // goon:
+        // if
+        // jump else
         // <op2>
         // jmp theend
         // else:
         // pushv false
         // theend:
 
-        QString goOn = _asm.uniqueLabel();
         QString elSe = _asm.uniqueLabel();
         QString theEnd = _asm.uniqueLabel();
 
         generateExpression(expr->operand1());
-        gen(expr, "if " + goOn + "," + elSe);
-        gen(expr, goOn+":");
+        gen(expr, "if");
+        gen(expr, "jmp " + elSe);
         generateExpression(expr->operand2());
         gen(expr, "jmp " + theEnd);
         gen(expr, elSe+":");
@@ -2368,21 +2363,20 @@ void CodeGenerator::generateBinaryOperation(shared_ptr<BinaryOperation> expr)
         //     op2
         // =>
         // <op1>
-        // if goon, else
-        // goon:
+        // if
+        // jmp else:
         // pushv true
         // jmp theend
         // else:
         // <op2>
         // theend:
 
-        QString goOn = _asm.uniqueLabel();
         QString elSe = _asm.uniqueLabel();
         QString theEnd = _asm.uniqueLabel();
 
         generateExpression(expr->operand1());
-        gen(expr, "if " + goOn + "," + elSe);
-        gen(expr, goOn+":");
+        gen(expr, "if");
+        gen(expr, "jmp " + elSe);
         gen(expr->operand1(), "pushv true");
         gen(expr, "jmp " + theEnd);
         gen(expr, elSe+":");
@@ -2410,9 +2404,9 @@ void CodeGenerator::generateMatchOperation(shared_ptr<MatchOperation> expr)
     generatePattern(expr->pattern(), expr->expression(), bindings);
 
     // Now use all the bindings we've collected
-    QString bind = _asm.uniqueLabel(), nobind = _asm.uniqueLabel(), exit = _asm.uniqueLabel();
-    gen(expr, QString("if %1,%2").arg(bind).arg(nobind));
-    gen(expr, QString("%1:").arg(bind));
+    QString nobind = _asm.uniqueLabel(), exit = _asm.uniqueLabel();
+    gen(expr, QString("if"));
+    gen(expr, QString("jmp %1").arg(nobind));
     for(QMap<shared_ptr<AssignableExpression>, shared_ptr<Identifier> >::const_iterator i=bindings.begin(); i!=bindings.end();++i)
     {
         // todo: we want to execute the equivalent of matchedVar = tempVar
@@ -2519,11 +2513,10 @@ void CodeGenerator::generateArrayPattern(shared_ptr<ArrayPattern> pattern,
     gen(matchee, QString("popl %1").arg(arrVar));
     gen(matchee, QString("pushl %1").arg(arrVar));
     gen(pattern, _ws(L"isa %1").arg(VMId::get(RId::VArray)));
-    ok = _asm.uniqueLabel();
     no = _asm.uniqueLabel();
     goon = _asm.uniqueLabel();
-    gen(pattern, QString("if %1,%2").arg(ok).arg(no));
-    gen(pattern, QString("%1:").arg(ok));
+    gen(pattern, QString("if"));
+    gen(pattern, QString("jmp %1").arg(no));
     gen(pattern, "pushv true");
     gen(pattern, QString("jmp %1").arg(goon));
     gen(pattern, QString("%1:").arg(no));
@@ -2541,11 +2534,10 @@ void CodeGenerator::generateArrayPattern(shared_ptr<ArrayPattern> pattern,
         gen(pattern, "arrlength");
         gen(pattern, "eq");
 
-        ok = _asm.uniqueLabel();
         no = _asm.uniqueLabel();
         goon = _asm.uniqueLabel();
-        gen(pattern, QString("if %1,%2").arg(ok).arg(no));
-        gen(pattern, QString("%1:").arg(ok));
+        gen(pattern, QString("if"));
+        gen(pattern, QString("jmp %1").arg(no));
         gen(pattern, "pushv true");
         gen(pattern, QString("jmp %1").arg(goon));
         gen(pattern, QString("%1:").arg(no));
@@ -2567,8 +2559,8 @@ void CodeGenerator::generateArrayPattern(shared_ptr<ArrayPattern> pattern,
         ok = _asm.uniqueLabel();
         no = _asm.uniqueLabel();
         goon = _asm.uniqueLabel();
-        gen(pattern, QString("if %1,%2").arg(ok).arg(no));
-        gen(pattern, QString("%1:").arg(ok));
+        gen(pattern, QString("if"));
+        gen(pattern, QString("jmp %1").arg(no));
         gen(pattern, "pushv true");
         gen(pattern, QString("jmp %1").arg(goon));
         gen(pattern, QString("%1:").arg(no));
@@ -2599,8 +2591,8 @@ void CodeGenerator::generateObjPattern(shared_ptr<ObjPattern> pattern,
     ok = _asm.uniqueLabel();
     no = _asm.uniqueLabel();
     goon = _asm.uniqueLabel();
-    gen(pattern, QString("if %1,%2").arg(ok).arg(no));
-    gen(pattern, QString("%1:").arg(ok));
+    gen(pattern, QString("if"));
+    gen(pattern, QString("jmp %1").arg(no));
     gen(pattern, "pushv true");
     gen(pattern, QString("jmp %1").arg(goon));
     gen(pattern, QString("%1:").arg(no));
@@ -2624,8 +2616,8 @@ void CodeGenerator::generateObjPattern(shared_ptr<ObjPattern> pattern,
         ok = _asm.uniqueLabel();
         no = _asm.uniqueLabel();
         goon = _asm.uniqueLabel();
-        gen(pattern, QString("if %1,%2").arg(ok).arg(no));
-        gen(pattern, QString("%1:").arg(ok));
+        gen(pattern, QString("if"));
+        gen(pattern, QString("jmp %1").arg(no));
         gen(pattern, "pushv true");
         gen(pattern, QString("jmp %1").arg(goon));
         gen(pattern, QString("%1:").arg(no));
@@ -2656,8 +2648,8 @@ void CodeGenerator::generateMapPattern(shared_ptr<MapPattern> pattern,
     ok = _asm.uniqueLabel();
     no = _asm.uniqueLabel();
     goon = _asm.uniqueLabel();
-    gen(pattern, QString("if %1,%2").arg(ok).arg(no));
-    gen(pattern, QString("%1:").arg(ok));
+    gen(pattern, QString("if"));
+    gen(pattern, QString("jmp %1").arg(no));
     gen(pattern, "pushv true");
     gen(pattern, QString("jmp %1").arg(goon));
     gen(pattern, QString("%1:").arg(no));
@@ -2690,8 +2682,8 @@ void CodeGenerator::generateMapPattern(shared_ptr<MapPattern> pattern,
         ok = _asm.uniqueLabel();
         no = _asm.uniqueLabel();
         goon = _asm.uniqueLabel();
-        gen(pattern, QString("if %1,%2").arg(ok).arg(no));
-        gen(pattern, QString("%1:").arg(ok));
+        gen(pattern, QString("if"));
+        gen(pattern, QString("jmp %1").arg(no));
         gen(pattern, "pushv true");
         gen(pattern, QString("jmp %1").arg(goon));
         gen(pattern, QString("%1:").arg(no));
@@ -2714,8 +2706,8 @@ void CodeGenerator::generateMapPattern(shared_ptr<MapPattern> pattern,
         ok = _asm.uniqueLabel();
         no = _asm.uniqueLabel();
         goon = _asm.uniqueLabel();
-        gen(pattern, QString("if %1,%2").arg(ok).arg(no));
-        gen(pattern, QString("%1:").arg(ok));
+        gen(pattern, QString("if"));
+        gen(pattern, QString("jmp %1").arg(no));
         gen(pattern, "pushv true");
         gen(pattern, QString("jmp %1").arg(goon));
         gen(pattern, QString("%1:").arg(no));

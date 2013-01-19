@@ -67,8 +67,7 @@ Allocator::~Allocator()
         intFreeList = tmp;
         freedInts++;
     }
-    qDebug() << "Freed " << freedInts << " integer objects at end of VM execution";
-    qDebug() << sizeof(IntVal);
+    // qDebug() << "Freed " << freedInts << " integer objects at end of VM execution";
 }
 
 template<class Vtype, class InitialType> Value *Allocator::allocateNewValue(InitialType initVal, bool gcMonitor)
@@ -356,8 +355,8 @@ void Allocator::gc()
         vm->traceInstructions = true;
         vm->stopTheWorld();
 
-        // clock_t t1 = clock();
-        // qDebug("Running GC ---------------------------------------");
+        //qDebug("Running GC ---------------------------------------");
+        //clock_t t1 = clock();
         mark();
         sweep();
         // clock_t t2 = clock();
@@ -506,7 +505,7 @@ void Allocator::markProcess(Process *proc, QStack<Value *> &reachable)
         }
         stack = stack->next;
     }
-    for(Stack<Value *>::const_iterator j=proc->OperandStack.begin(); j !=proc->OperandStack.end(); ++j)
+    for(VOperandStack::const_iterator j=proc->OperandStack.begin(); j !=proc->OperandStack.end(); ++j)
     {
        reachable.push(*j);
     }

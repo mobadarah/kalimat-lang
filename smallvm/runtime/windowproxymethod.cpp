@@ -8,7 +8,7 @@ WindowProxyMethod::WindowProxyMethod(RunWindow *parent, VM *vm, VM_PROC proc, bo
     this->mustRunInGui = mustRunInGui;
 }
 
-void WindowProxyMethod::operator ()(Stack<Value *> &operandStack, Process *process)
+void WindowProxyMethod::operator ()(VOperandStack &operandStack, Process *process)
 {
     proc(operandStack, process, parent, vm);
 }

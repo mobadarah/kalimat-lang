@@ -1,10 +1,11 @@
 #include "stepstopcondition.h"
 #include "mainwindow.h"
 
-bool SingleStepCondition::stopNow(Frame *frame, Process *proc)
+void SingleStepCondition::stopNow(Process *proc)
 {
     if(proc->isFinished())
-        return false;
+        return;
+    Frame *frame = proc->currentFrame();
     const Instruction &i = frame->currentMethod->Get(frame->ip);
     if(mw->PositionInfo.contains(i.extra))
     {
@@ -13,24 +14,17 @@ bool SingleStepCondition::stopNow(Frame *frame, Process *proc)
                 || pos.doc != this->doc
                 || frame != this->startingFrame)
         {
-            return true;
+            proc->DoBreak();
+            return;
         }
-        else
-        {
-            return false;
-        }
-
-    }
-    else
-    {
-        return false;
     }
 }
 
-bool StepOverCondition::stopNow(Frame *frame, Process *proc)
+void StepOverCondition::stopNow(Process *proc)
 {
     if(proc->isFinished())
-        return false;
+        return;
+    Frame *frame = proc->currentFrame();
     const Instruction &i = frame->currentMethod->Get(frame->ip);
     if(mw->PositionInfo.contains(i.extra))
     {
@@ -39,16 +33,8 @@ bool StepOverCondition::stopNow(Frame *frame, Process *proc)
                 && pos.doc == this->doc
                 && frame == this->startingFrame)
         {
-            return true;
+            proc->DoBreak();
+            return;
         }
-        else
-        {
-            return false;
-        }
-
-    }
-    else
-    {
-        return false;
     }
 }

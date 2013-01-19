@@ -25,12 +25,12 @@ class PaintSurface
 {
     QImage image;
     QImage finalImg;
-    QFont textFont;
     QColor textColor;
-    long cursorTimerPoint;
-    double cursorTimeSoFar;
     bool dirtyState;
     QString locationFormatter;
+
+    long cursorTimerPoint;
+    double cursorTimeSoFar;
 public:
     // We have a specia 'demo coordinates' mode in Kalimat
     // to teach children about the x/y coordinate system

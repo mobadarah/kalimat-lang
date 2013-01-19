@@ -6,7 +6,8 @@
 
 class FramePool
 {
-    Stack<Frame *> freeList;
+    static const int FramePoolSize = 32; // must be a power of two!
+    Stack<Frame *, FramePoolSize> freeList;
 public:
     inline Frame *allocate(Method *method, int stackLevel)
     {
@@ -27,7 +28,7 @@ public:
     }
     ~FramePool()
     {
-        for(Stack<Frame *>::const_iterator iter = freeList.begin(); iter != freeList.end(); ++iter)
+        for(Stack<Frame *, FramePoolSize>::const_iterator iter = freeList.begin(); iter != freeList.end(); ++iter)
         {
             Frame *f = *iter;
             delete f;

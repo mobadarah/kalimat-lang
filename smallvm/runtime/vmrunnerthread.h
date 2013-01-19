@@ -18,9 +18,13 @@ class VMRunthread : public QThread
 public:
     QMutex mutex;
     VMClient *client;
+    bool runFast;
 public:
     VMRunthread(VM *vm, RunWindow *rw);
     void run();
+private:
+    void normalRun();
+    void fastRun();
 };
 
 #endif // VMRUNNERTHREAD_H

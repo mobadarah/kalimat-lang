@@ -9,7 +9,7 @@
 
 class RunWindow;
 class VM;
-typedef void (*VM_PROC)(Stack<Value *> &, Process *proc, RunWindow *, VM *);
+typedef void (*VM_PROC)(VOperandStack &, Process *proc, RunWindow *, VM *);
 
 class WindowProxyMethod : public ExternalMethod
 {
@@ -18,7 +18,7 @@ class WindowProxyMethod : public ExternalMethod
     VM *vm;
 public:
     WindowProxyMethod(RunWindow *parent, VM *vm, VM_PROC proc, bool mustRunInGui=true);
-    void operator()(Stack<Value *> &operandStack, Process *process);
+    void operator()(VOperandStack &operandStack, Process *process);
 };
 
 #endif // WINDOWPROXYMETHOD_H

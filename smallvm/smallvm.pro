@@ -45,10 +45,11 @@ SOURCES += main.cpp \
     runtime_identifiers.cpp \
     scheduler.cpp \
     blockingqueue.cpp \
-    instructionrunners.cpp \
     stack.cpp \
     runtime/windowproxymethod.cpp \
-    framepool.cpp
+    framepool.cpp \
+    runtime/cursor.cpp \
+    runtime/textbuffer.cpp
 
 HEADERS += value.h \
     instruction.h \
@@ -90,11 +91,13 @@ HEADERS += value.h \
     runtime_identifiers.h \
     scheduler.h \
     blockingqueue.h \
-    instructionrunners.h \
     stack.h \
     processiterator.h \
     runtime/windowproxymethod.h \
-    framepool.h
+    framepool.h \
+    operandstack.h \
+    runtime/cursor.h \
+    runtime/textbuffer.h
 FORMS +=  runtime/runwindow.ui
 
 RESOURCES += \

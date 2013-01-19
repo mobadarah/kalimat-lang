@@ -109,7 +109,7 @@ public:
     static ValueClass *ExternalLibrary;
     static MetaClass  *ClassType;
     static ValueClass *IndexableType;
-    static ValueClass *ArrayType;
+    static ArrayClass *ArrayType;
     static ValueClass *MD_ArrayType;
     static ValueClass *MapType;
     static IClass *StringType;
@@ -199,7 +199,14 @@ struct LongVal : public Value
 struct BoolVal : public Value
 {
     bool v;
-    BoolVal(bool v): v(v) { }
+    int ifOffset;
+    BoolVal(bool v): v(v)
+    {
+        if(v)
+            ifOffset = 1;
+        else
+            ifOffset = 0;
+    }
     QString toString() const;
 
     bool equals(Value *v2);

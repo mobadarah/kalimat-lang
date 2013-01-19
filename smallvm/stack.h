@@ -1,6 +1,8 @@
 #ifndef STACK_H
 #define STACK_H
 
+#include <QDebug>
+
 /*
     A faster operand stack specialized for SmallVM's needs, used
     instead of QStack and covers the part of QStack's public interface
@@ -11,6 +13,9 @@
     case, as most operand stacks store a small number of values.
 */
 
+// Works only for some 'b' that is a power of two
+#define modulo(a, b) ((a) & (b-1))
+// #define modulo(a, b) ((a) % (b))
 template<class T, int Size> struct StackNode
 {
     T data[Size];
@@ -18,13 +23,13 @@ template<class T, int Size> struct StackNode
     StackNode() : next(0), prev(0) { }
 };
 
-const int ChunkSize=20;
-template<class T> class Stack
+template<class T, int ChunkSize> class Stack
 {
     StackNode<T, ChunkSize> first;
     StackNode<T, ChunkSize> *last;
     int _count;
     int nchuncks;
+    int capacity;
 public:
     Stack()
     {
@@ -32,6 +37,7 @@ public:
         nchuncks = 1;
         last = &first;
         first.next = first.prev = 0;
+        capacity = nchuncks * ChunkSize;
     }
 
     ~Stack()
@@ -55,44 +61,45 @@ public:
 
     Stack(Stack &other)
     {
-        for(Stack<T>::const_iterator i=other.begin(); i!= other.end(); ++i)
+        for(Stack<T, ChunkSize>::const_iterator i=other.begin(); i!= other.end(); ++i)
             push(*i);
     }
 
     Stack &operator=(const Stack &other)
     {
-        while(!empty())
-            pop();
-        for(Stack<T>::const_iterator i=other.begin(); i!= other.end(); ++i)
+        clear();
+        for(Stack<T, ChunkSize>::const_iterator i=other.begin(); i!= other.end(); ++i)
             push(*i);
         return *this;
     }
 
     void push(T value)
     {
-        if(_count == (nchuncks *ChunkSize))
+        if(_count == capacity)
         {
             addChunk();
         }
-        int n = _count % ChunkSize;
+        int n = modulo(_count, ChunkSize);
         last->data[n] = value;
         _count++;
     }
     T pop()
     {
-        int n = (_count - 1 ) % ChunkSize;
+        int n = modulo(_count - 1, ChunkSize);
         T ret = last->data[n];
+        /*
         if(n == 0 && (last != &first))
         {
             removeChunk();
         }
+        //*/
         _count--;
         return ret;
     }
 
     inline T &peek()
     {
-        int n = _count % ChunkSize;
+        int n = modulo(_count, ChunkSize);
         return last->data[n-1];
     }
 
@@ -106,35 +113,46 @@ public:
         return _count == 0;
     }
 
+    // Just for QStack compatibility
+    void reserve(int) { }
+
     inline int count() { return _count; }
 
     inline bool empty() { return isEmpty(); }
     void addChunk()
     {
+        //qDebug() << "Chunk added to call stack";
         StackNode<T, ChunkSize> *node = new StackNode<T, ChunkSize>();
         node->next = 0;
         last->next = node;
         node->prev = last;
         last = node;
+
+        nchuncks++;
+        capacity = nchuncks * ChunkSize;
     }
+
     void removeChunk()
     {
         StackNode<T, ChunkSize> *oldLast = last;
         last = oldLast->prev;
         last->next = 0;
         delete oldLast;
+
+        nchuncks--;
+        capacity = nchuncks * ChunkSize;
     }
 
     class const_iterator
     {
     public:
-        const Stack<T> *owner;
+        const Stack<T, ChunkSize> *owner;
         int i_global;
 
         int i;
         StackNode<T, ChunkSize> *current;
 
-        const_iterator(const Stack<T> *owner, int i_global):
+        const_iterator(const Stack<T, ChunkSize> *owner, int i_global):
             owner(owner),
             i_global(i_global)
         {

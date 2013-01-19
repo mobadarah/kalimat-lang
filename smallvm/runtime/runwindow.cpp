@@ -49,6 +49,7 @@ void RunWindow::setup(QString pathOfProgramsFile, VMClient *client)
     this->pathOfProgramsFile = pathOfProgramsFile;
 
     this->setFixedSize(800, 600);
+    textLayer.Init(width(), height(), font());
     paintSurface = new PaintSurface(size(), font());
 
     state = rwNormal;
@@ -271,7 +272,7 @@ void RunWindow::Init(QString program, QMap<QString, QString> stringConstants, QS
             BuiltInTypes::c_void,
             BuiltInTypes::c_ptr
 
-                             };
+        };
         // todo: handle built-in file type
         const int numBuiltIns = 27;
         for(int i=0; i<numBuiltIns; i++)
@@ -285,7 +286,7 @@ void RunWindow::Init(QString program, QMap<QString, QString> stringConstants, QS
         vm->Register("class_newobject", new WindowProxyMethod(this, vm, ClassNewObjectProc));
         BuiltInTypes::ClassType->attachVmMethod(vm, VMId::get(RId::NewObject));
 
-        vm->RegisterType("ForeignWindow", new WindowForeignClass(VMId::get(RId::ForeignWindow), this, vm));
+        vm->RegisterType(VMId::get(RId::ForeignWindow), new WindowForeignClass(VMId::get(RId::ForeignWindow), this, vm));
         vm->RegisterType(VMId::get(RId::Button), new ButtonForeignClass (VMId::get(RId::Button), this, vm));
         vm->RegisterType(VMId::get(RId::TextBox), new TextboxForeignClass(VMId::get(RId::TextBox), this, vm));
         vm->RegisterType(VMId::get(RId::TextLine), new LineEditForeignClass(VMId::get(RId::TextLine), this, vm));
@@ -327,6 +328,7 @@ void RunWindow::Init(QString program, QMap<QString, QString> stringConstants, QS
         //*/
 
         Run();
+        //FastRun();
     }
     catch(VMError err)
     {
@@ -355,12 +357,18 @@ void RunWindow::RegisterGuiControls(VM *vm)
     vm->Register("foreignwindow_add", new WindowProxyMethod(this, vm, ForeignWindowAddProc));
     vm->Register("foreignwindow_setsize", new WindowProxyMethod(this, vm, ForeignWindowSetSizeProc));
     vm->Register("foreignwindow_settitle", new WindowProxyMethod(this, vm, ForeignWindowSetTitleProc));
+    vm->Register("foreignwindow_setup", new WindowProxyMethod(this, vm, ForeignWindowSetupProc));
+
 
     // Controls
     vm->Register("control_settext", new WindowProxyMethod(this, vm, ControlSetTextProc));
     vm->Register("control_setsize", new WindowProxyMethod(this, vm, ControlSetSizeProc));
     vm->Register("control_setlocation", new WindowProxyMethod(this, vm, ControlSetLocationProc));
     vm->Register("control_text", new WindowProxyMethod(this, vm, ControlTextProc));
+    vm->Register("control_show", new WindowProxyMethod(this, vm, ControlShowProc));
+    vm->Register("control_hide", new WindowProxyMethod(this, vm, ControlHideProc));
+    vm->Register("control_setvisible", new WindowProxyMethod(this, vm, ControlSetVisibleProc));
+    vm->Register("control_close", new WindowProxyMethod(this, vm, ControlCloseProc));
 
     // Buttons
     vm->Register("button_settext", new WindowProxyMethod(this, vm, ButtonSetTextProc));
@@ -530,87 +538,73 @@ void RunWindow::Run()
     try
     {
         vm->vmThread->client = client;
+        vm->vmThread->runFast = false;
         vm->destroyTheWorldFlag = false;
         vm->destroyer = NULL;
         vm->vmThread->start();
         //timerID = startTimer(0);
-         //int x = 0;
+        //int x = 0;
         //*
-          int pos,  len, oldPos = -1, oldLen = -1;
+        int pos,  len, oldPos = -1, oldLen = -1;
 
-          while((state == rwNormal || state ==rwTextInput))
-          {
-              //vm->guiScheduler.waitRunning(100);
-              if(vm->destroyTheWorldFlag)
-              {
-                  if(vm->destroyer!=&vm->guiScheduler)
-                    vm->worldDestruction.release();
-                  break;
-              }
-
-              bool visualize = client->isWonderfulMonitorEnabled();
-              if(visualize)
-                  vm->guiScheduler.RunStep(true);
-              else
-                  vm->guiScheduler.RunStep(70);
-
-              redrawWindow();
-              if(visualize && vm->getMainProcess() && vm->getMainProcess()->state == AwakeProcess)
-              {
-                  client->markCurrentInstruction(vm, vm->getMainProcess(), &pos, &len);
-                  if((oldPos != pos ) && (oldLen != len))
-                  {
-                      QTime dieTime = QTime::currentTime().addMSecs(client->wonderfulMonitorDelay());
-                      while( QTime::currentTime() < dieTime )
-                          QCoreApplication::processEvents(QEventLoop::AllEvents, 30);
-                  }
-              }
-              oldPos = pos;
-              oldLen = len;
-              qApp->processEvents(QEventLoop::AllEvents);
-          }
-          update();
-        //*/
-
-        /*
-        while(false && (state == rwNormal || state ==rwTextInput)
-              // && vm->isRunning()
-              )
+        while((state == rwNormal || state ==rwTextInput))
         {
-            bool visualize = client->isWonderfulMonitorEnabled();
+            if(vm->destroyTheWorldFlag)
+            {
+                if(vm->destroyer!=&vm->guiScheduler)
+                    vm->worldDestruction.release();
+                break;
+            }
 
+            bool visualize = client->isWonderfulMonitorEnabled();
             if(visualize)
                 vm->guiScheduler.RunStep(true);
             else
-                vm->guiScheduler.RunStep();
-
-            if(visualize && vm->mainScheduler.runningNow)
-            {
-                client->markCurrentInstruction(vm, vm->mainScheduler.runningNow, pos, len);
-            }
+                vm->guiScheduler.RunStep(50);
 
             redrawWindow();
-
-            if(visualize
-                    // commenting out the following condition makes the debugger work,
-                    // but not the wonderful monitor :(    --todo: fix this
-                &&  ((oldPos != pos ) && (oldLen != len))
-                )
+            if(visualize && vm->getMainProcess() && vm->getMainProcess()->state == AwakeProcess)
             {
-                QTime dieTime = QTime::currentTime().addMSecs(client->wonderfulMonitorDelay());
-                while( QTime::currentTime() < dieTime )
-                    QCoreApplication::processEvents(QEventLoop::AllEvents, 30);
+                client->markCurrentInstruction(vm, vm->getMainProcess(), &pos, &len);
+                if((oldPos != pos ) && (oldLen != len))
+                {
+                    QTime dieTime = QTime::currentTime().addMSecs(client->wonderfulMonitorDelay());
+                    while( QTime::currentTime() < dieTime )
+                        QCoreApplication::processEvents(QEventLoop::AllEvents, 30);
+                }
             }
             oldPos = pos;
             oldLen = len;
+            qApp->processEvents(QEventLoop::AllEvents);
+        }
+        update();
+    }
+    catch(VMError err)
+    {
+        reportError(err);
+        this->close();
+    }
+}
+
+void RunWindow::FastRun()
+{
+    try
+    {
+        vm->vmThread->client = client;
+        vm->vmThread->runFast = true;
+        vm->destroyTheWorldFlag = false;
+        vm->destroyer = NULL;
+        vm->vmThread->start();
+
+        while((state == rwNormal || state ==rwTextInput))
+        {
+            vm->guiScheduler.FastRunStep(50);
+
+            redrawWindow();
 
             qApp->processEvents(QEventLoop::AllEvents);
         }
-        if(vm->isDone())
-            client->programStopped(this);
-        update();// Final update, in case the last instruction didn't update things in time.
-        //state = rwSuspended;
-        //*/
+        update();
     }
     catch(VMError err)
     {
@@ -632,27 +626,27 @@ void RunWindow::errorEvent(VMError err)
 
 void RunWindow::reportError(VMError err)
 {
-        this->suspend();
-        QString msg = translate_error(err);
-        /*
+    this->suspend();
+    QString msg = translate_error(err);
+    /*
             if(err.args.count()==1)
                 msg = "<u>" + msg +"</u>" + ":<p>"+ err.args[0]+ "</p";
         */
-        //cout << "runwindow::reportError message before translation is:" << msg.toStdString() << endl;
-        //cout.flush();
-        for(int i=0; i<err.args.count(); i++)
-        {
-            msg = msg.arg(err.args[i]);
-        }
+    //cout << "runwindow::reportError message before translation is:" << msg.toStdString() << endl;
+    //cout.flush();
+    for(int i=0; i<err.args.count(); i++)
+    {
+        msg = msg.arg(err.args[i]);
+    }
 
-        QMessageBox box;
-        box.setTextFormat(Qt::RichText);
-        box.setWindowTitle(VM::argumentErrors[ArgErr::Kalimat]);
+    QMessageBox box;
+    box.setTextFormat(Qt::RichText);
+    box.setWindowTitle(VM::argumentErrors[ArgErr::Kalimat]);
 
-        box.setText(msg);
-        box.exec();
+    box.setText(msg);
+    box.exec();
 
-        client->handleVMError(err);
+    client->handleVMError(err);
 }
 
 QString RunWindow::pathOfRunningProgram()
@@ -718,9 +712,9 @@ void RunWindow::redrawWindow()
 
 void RunWindow::paintEvent(QPaintEvent *)
 {
-   QPainter painter(this);
+    QPainter painter(this);
 
-   paintSurface->paint(painter, textLayer, spriteLayer);
+    paintSurface->paint(painter, textLayer, spriteLayer);
 }
 
 void RunWindow::checkCollision(Sprite *s)
@@ -735,7 +729,7 @@ void RunWindow::checkCollision(Sprite *s)
 
 
     if(vm->hasRegisteredEventHandler("collision")
-    //        &&!vm->mainScheduler.hasInterrupts()
+            //        &&!vm->mainScheduler.hasInterrupts()
             )
     {
         spriteLayer.checkCollision(s, &callBack);
@@ -763,7 +757,7 @@ void RunWindow::changeEvent(QEvent *e)
 
 void RunWindow::mousePressEvent(QMouseEvent *ev)
 {
-   activateMouseEvent(ev, "mousedown");
+    activateMouseEvent(ev, "mousedown");
 }
 
 void RunWindow::mouseReleaseEvent(QMouseEvent *ev)
@@ -847,6 +841,9 @@ void RunWindow::keyPressEvent(QKeyEvent *ev)
         if(ev->key() == Qt::Key_Return)
         {
             QString inputText = textLayer.endInput();
+
+            // to hide the cursor
+            textLayer.updateStrip(textLayer.cursorLine());
             Value *v = NULL;
             if(readMethod->readNum)
             {

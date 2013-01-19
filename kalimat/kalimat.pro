@@ -78,10 +78,11 @@ SOURCES += main.cpp \
     idemessages.cpp \
     ../smallvm/scheduler.cpp \
     ../smallvm/blockingqueue.cpp \
-    ../smallvm/instructionrunners.cpp \
     stepstopcondition.cpp \
     ../smallvm/runtime/windowproxymethod.cpp \
-    programdatabase.cpp
+    programdatabase.cpp \
+    ../smallvm/runtime/textbuffer.cpp \
+    ../smallvm/runtime/cursor.cpp
 HEADERS += mainwindow.h \
     Lexer/token.h \
     Lexer/statemachine.h \

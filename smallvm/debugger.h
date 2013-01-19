@@ -6,7 +6,7 @@ class Process;
 
 struct Debugger
 {
-    virtual bool currentBreakCondition(Frame *frame, Process *process) =0;
+    virtual void currentBreakCondition(Process *process) =0;
     virtual void postBreak(int offset, Frame *frame, Process *process)=0;
     virtual void Break(int offset, Frame *frame, Process *process) = 0;
     virtual void setDebuggedProcess(Process *) = 0;
@@ -14,9 +14,9 @@ struct Debugger
 
 struct NullaryDebugger : public Debugger
 {
-    virtual bool currentBreakCondition(Frame *frame, Process *process)
+    virtual void currentBreakCondition(Process *)
     {
-        return false;
+        return;
     }
 
     void postBreak(int offset, Frame *frame, Process *process) { }

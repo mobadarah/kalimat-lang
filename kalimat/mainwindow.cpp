@@ -156,7 +156,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     ui->functionNavigationToolbar->show();
     generatingProgramModel = false;
-    //codeModelUpdateTimerId = startTimer(codeModelUpdateInterval);
+    // codeModelUpdateTimerId = startTimer(codeModelUpdateInterval);
 
     connect(this, SIGNAL(markCurrentInstructionEvent(VM*,Process*,int*,int*)),
             this, SLOT(markCurrentInstructionSlot(VM*,Process*,int*,int*)),
@@ -1002,8 +1002,8 @@ void MainWindow::highlightRunningInstruction(Frame *f, QColor clr)
 
 CodePosition MainWindow::getPositionOfRunningInstruction(Frame *f)
 {
-    //const Instruction &i = f->getPreviousRunningInstruction();
-    const Instruction &i = f->currentMethod->Get(f->ip);
+    const Instruction &i = f->getPreviousRunningInstruction();
+    // const Instruction &i = f->currentMethod->Get(f->ip);
     int key = i.extra;
     CodePosition p = PositionInfo[key];
     return p;
@@ -1389,11 +1389,10 @@ void MainWindow::Break(int offset, Frame *frame, Process *process)
     }
 }
 
-bool MainWindow::currentBreakCondition(Frame *frame, Process *process)
+void MainWindow::currentBreakCondition(Process *process)
 {
-    return currentStepStopCondition->stopNow(frame, process);
+    currentStepStopCondition->stopNow(process);
 }
-
 
 void MainWindow::genericStep(Process *proc, StepStopCondition *cond)
 {

@@ -8,6 +8,7 @@
 #include <QStack>
 
 class Value;
+class VArray;
 class Allocator;
 class Process;
 
@@ -88,12 +89,37 @@ struct IClass : public IObject
     virtual Value *addDoubleToMe(double v1,  Value *v2, Allocator *);
     virtual Value *addLongToMe(long v1,  Value *v2, Allocator *);
     virtual Value *addStringToMe(QString v1,  Value *v2, Allocator *);
+    virtual Value *addArrayToMe(VArray *v1, Value *v2, Allocator *);
 
     virtual Value *minus(Value *v1, Value *v2, Allocator *);
     virtual Value* intMinusMe(int v1, Value *v2, Allocator *);
     virtual Value *doubleMinusMe(double v1,  Value *v2, Allocator *);
     virtual Value *longMinusMe(long v1,  Value *v2, Allocator *);
 
+};
+
+struct ArrayClass : public IClass
+{
+    // IObject
+    virtual bool hasSlot(QString name) { return false; }
+    virtual QList<QString> getSlotNames() { return QList<QString>(); }
+    virtual Value *getSlotValue(QString name) { return NULL; }
+    virtual void setSlotValue(QString name, Value *val) { }
+
+    //IClass
+    virtual QString getName();
+    bool hasField(QString name) { return false;}
+    IClass *baseClass();
+    virtual bool subclassOf(IClass *c);
+    IMethod *lookupMethod(QString name);
+    IObject *newValue(Allocator *allocator);
+    virtual bool getFieldAttribute(QString attr, Value *&ret, Allocator *allocator) { return false;}
+    virtual QVector<PropertyDesc> getProperties() { return QVector<PropertyDesc>(); }
+    QString toString() { return getName();}
+
+    // Addition
+    Value *addTo(Value *v1, Value *v2, Allocator *);
+    Value *addArrayToMe(VArray *v1, Value *v2, Allocator *allocator);
 };
 
 struct ComparableClass : public IClass
@@ -155,6 +181,8 @@ struct NumericClass : public ComparableClass
 struct IntClass : public NumericClass
 {
     QString getName();
+    IClass *baseClass();
+
     int compareTo(Value *v1, Value *v2);
     int compareIntToMe(int v1, Value *v2);
     int compareDoubleToMe(double v1,  Value *v2);
@@ -174,6 +202,8 @@ struct IntClass : public NumericClass
 struct DoubleClass : public NumericClass
 {
     QString getName();
+    IClass *baseClass();
+
     int compareTo(Value *v1, Value *v2);
     int compareIntToMe(int v1, Value *v2);
     int compareDoubleToMe(double v1,  Value *v2);
@@ -193,6 +223,8 @@ struct DoubleClass : public NumericClass
 struct LongClass : public NumericClass
 {
     QString getName();
+    IClass *baseClass();
+
     int compareTo(Value *v1, Value *v2);
     int compareIntToMe(int v1, Value *v2);
     int compareDoubleToMe(double v1,  Value *v2);

@@ -2188,7 +2188,7 @@ shared_ptr<Expression> KalimatParser::primaryExpression()
 
             match(COLON);
             tok = lookAhead;
-            if(false && withRecovery && !LA(IDENTIFIER))
+            if(false && withRecovery && !LA2(IDENTIFIER, LPAREN))
             {
                 // if we are parsing for autocomplete information
                 // and we entered x :
@@ -2203,10 +2203,10 @@ shared_ptr<Expression> KalimatParser::primaryExpression()
             }
             else
             {
-                if(!LA(IDENTIFIER))
+                if(!LA2(IDENTIFIER, LPAREN))
                 {
                     // We have seen a form <primary-non-invokation> <colon>
-                    // if it were followed by an identifier it would've been
+                    // if it were followed by 'identifier(' it would've been
                     // a method call, but it isn't; could be an ending of an 'if' condition
                     // so we backtrack
                     {

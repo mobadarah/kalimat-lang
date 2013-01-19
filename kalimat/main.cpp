@@ -33,6 +33,7 @@ int main(int argc, char *argv[])
 {
     qInstallMsgHandler(myMessageOutput);
     QApplication a(argc, argv);
+    a.setLayoutDirection(Qt::RightToLeft);
     qApp->setLayoutDirection(Qt::RightToLeft);
 
     MainWindow w;

@@ -78,7 +78,9 @@ void ffi_callback_dispatcher(ffi_cif *cif, void *ret, void** args,
     Method *method = dynamic_cast<Method *>(unboxObj(cdata->funcObj));
     if(method)
     {
-        cdata->proc->CallImpl(method, true, cdata->funcClass->argTypes.count(), NormalCall);
+        cdata->proc->verifyArity(cdata->funcClass->argTypes.count(), method);
+        cdata->proc->CallImpl(method,
+                              NormalCall);
         cdata->proc->RunUntilReturn();
     }
     else
@@ -101,7 +103,8 @@ void ffi_callback_dispatcher(ffi_cif *cif, void *ret, void** args,
             cdata->proc->pushOperand(v);
         }
         cdata->proc->pushOperand(cdata->funcObj);
-        cdata->proc->CallImpl(method, true, cdata->funcClass->argTypes.count()+1, NormalCall);
+        cdata->proc->verifyArity(cdata->funcClass->argTypes.count()+1, method);
+        cdata->proc->CallImpl(method, NormalCall);
         cdata->proc->RunUntilReturn();
         if(cif->rtype != &ffi_type_void)
         {

@@ -70,7 +70,6 @@ void Method::Add(Instruction i, QString label)
     if(label != "")
     {
         labels[label] = instructions.count() -1;
-        fastLabels[labelInterner.labelOf(label)] = instructions.count() -1;
     }
 }
 
@@ -83,7 +82,6 @@ void Method::Add(Instruction i, QString label, int extraInfo)
     if(label != "")
     {
         labels[label] = instructions.count() -1;
-        fastLabels[labelInterner.labelOf(label)] = instructions.count() -1;
     }
 }
 
@@ -91,6 +89,54 @@ void Method::Set(int ip, Instruction i)
 {
     instructions[ip] = i;
     prepareInstruction(ip);
+}
+
+void Method::setLabelsInInstructions()
+{
+    for(int i=0; i<instructions.count(); ++i)
+    {
+        Instruction &in = instructions[i];
+
+        if(in.opcode == Jmp)
+        {
+            in.SymRefLabel = labels[in.SymRef];
+        }
+    }
+}
+
+void Method::optimize()
+{
+    static QMap<Opcode, Opcode> comparisons;
+    if(comparisons.empty())
+    {
+        comparisons[Eq] = Jne;
+        comparisons[Ne] = Jeq;
+    }
+
+    for(int i=0; i<instructions.count(); ++i)
+    {
+        Instruction &in = instructions[i];
+
+        if(comparisons.contains(in.opcode) && i+2 < instructions.count())
+        {
+
+            Instruction &in1 = instructions[i+1];
+            Instruction &in2 = instructions[i+2];
+
+            if(in1.opcode == If)
+            {
+                in.opcode = comparisons[in.opcode];
+                in.SymRef = in2.SymRef;
+                in.SymRefLabel = in2.SymRefLabel;
+                in.assignRunner();
+
+                in1.opcode = Nop;
+                in2.opcode = Nop;
+                in1.assignRunner();
+                in2.assignRunner();
+            }
+        }
+    }
 }
 
 QString Method::getName()

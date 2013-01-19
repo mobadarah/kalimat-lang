@@ -2,6 +2,8 @@
 #define PROGRAMDATABASE_H
 
 #include <QtSql/QSqlDatabase>
+#include <QSqlQuery>
+
 #include "../smallvm/codedocument.h"
 #include "Lexer/token.h"
 #include "Parser/KalimatAst/kalimat_ast_gen.h"
@@ -24,9 +26,12 @@ class ProgramDatabase
 {
     QSqlDatabase db;
     bool _isOpen;
+
+    QSqlQuery tokenInsert;
 public:
     ProgramDatabase();
     bool open();
+    void prepareQueries();
     void createTables(bool actually);
     void close();
     bool isOpen() { return _isOpen; }
@@ -41,10 +46,12 @@ public:
     void addClassDef(int defId, QString filename, shared_ptr<ClassDecl>);
     void addFunctionDef(int defId, QString filename, shared_ptr<ProceduralDecl>);
 
+    QSqlQuery q(QSqlQuery &q, const QString &query);
     QSqlQuery q(QString query, QVariant);
     QSqlQuery q(QString query, QVariant arg1, QVariant arg2);
     QSqlQuery q(QString query, QVariant arg1, QVariant arg2, QVariant arg3);
 private:
+    void batchCheck(QSqlQuery &query, const QString &q);
     bool exec(QString query);
     bool exec(QString query, QVariant);
     bool exec(QString query, QVariant, QVariant);

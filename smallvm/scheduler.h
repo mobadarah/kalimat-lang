@@ -62,7 +62,9 @@ public:
     void detachProcess(Process *proc);
     void activateElapsedTimers();
     bool schedule();
-    bool RunStep(bool singleInstruction=false, int maxtimeSclice=30);
+    bool RunStep(bool singleInstruction=false, int maxtimeSclice=32);
+    bool FastRunStep(int maxtimeSclice=32);
+    void finishUp();
 
     ProcessIterator *getProcesses();
 

@@ -13,76 +13,74 @@
 #include <QColor>
 #include <QStringList>
 #include <QTextLayout>
+#include <QImage>
 
-struct ColorRun
+#include "textbuffer.h"
+
+namespace TextLayerState
 {
-    int startCol;
-    int length;
-};
-
-const int visibleTextLines = 18;
-const int textLineWidth = 54;
-
+    enum State { Normal, Input };
+}
 
 class TextLayer
 {
-    enum State { Normal, Input };
-    enum Mode { Insert, Overwrite};
-    State state;
-    Mode mode, oldMode;
-    QString inputBuffer;
-    int inputStartLine, inputStartCol;
+    TextLayerState::State state;
 
-    QVector<QString> visibleTextBuffer;
-    QStringList htmlLines;
-    QColor colorBits[visibleTextLines][textLineWidth];
-    QList<QTextLayout::FormatRange> lineFormats[visibleTextLines];
-    int cursor_col, cursor_line;
-    bool dirtyState;
-    void printChar(QChar c);
-    void cr();
-    void lf();
-    QColor currentColor;
-    bool noColor;
+    TextBuffer buffer;
+
+    int imgWidth, imgHeight, _stripHeight;
+    QFont textFont;
+
+    QPixmap strips[visibleTextLines];
+
+    void scrollUp();
+
+    void adjustFontForNumberOfLines(int n);
+    void updateChangedLines(int fromLine, int count);
+
+    void fastUpdateStrip(int i, bool drawCursor= false);
+    void TX(int &x);
+
+    void updateTextLine(int lineIndex);
+    friend class Cursor;
+    friend struct TextBuffer;
 public:
+
     TextLayer();
+    void Init(int width, int height, QFont font);
     bool dirty();
-    void updated() { dirtyState = false; }
-    const QVector<QString> &lines() const { return visibleTextBuffer; }
-    const QList<QTextLayout::FormatRange> &formatRanges(int i) { return lineFormats[i];}
+    void updated();
+
     void print(QString);
     void println(QString);
     void print(QString str, int width);
-    int cursorLine() { return cursor_line; }
-    int cursorColumn() { return cursor_col; }
-    int inputCursorPos() { return cursor_col - inputStartCol; }
-    QString currentLine() { return visibleTextBuffer[cursor_line]; }
-    void nl();
-    void del();
-    void backSpace();
+    int cursorLine() { return buffer.cursor.line(); }
+    int cursorColumn() { return buffer.cursor.column(); }
+
+    void nl() { buffer.nl(); }
+    void del() { buffer.cursor.del(); }
+    void backSpace() { buffer.cursor.backSpace(); }
+    void cursorFwd() { buffer.cursor.fwd(); }
+    void cursorBack() { buffer.cursor.back(); }
+
+    void updateStrip(int i, bool drawCursor= false);
+
     void clearText();
     int getCursorCol();
     int getCursorRow();
     bool setCursorPos(int row, int col);
-    bool cursorFwd();
-    bool cursorBack();
-    bool cursorDown();
-    bool cursorUp();
-
-    void setColor(QColor);
-    void resetColor();
-    void updateChangedLines(int fromLine, int count);
-    void updateHtmlLine(int i);
-    QString toHtml();
-    QString toText(QList<QTextLayout::FormatRange> &range);
-    QString lineToText(int line, QList<QTextLayout::FormatRange> &range);
-    void computeLineFormatRange(int i, QString &line, QList<QTextLayout::FormatRange> &range);
-    void updateTextLine(int lineIndex);
     int cursorPos();
     void beginInput();
     QString endInput();
     void typeIn(QString s);
     bool inputState();
+
+    void setColor(QColor);
+    void resetColor();
+
+    const QPixmap &strip(int i) { return strips[i]; }
+    int stripHeight();
+
     QString formatStringUsingWidth(QString str, int width);
 };
 

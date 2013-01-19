@@ -69,6 +69,13 @@ Value *IClass::addStringToMe(QString v1, Value *v2, Allocator *)
             arg(v2->type->toString());
 }
 
+Value *IClass::addArrayToMe(VArray *v1, Value *v2, Allocator *)
+{
+    throw VMError(BuiltInOperationOnNonBuiltn2).
+            arg(BuiltInTypes::ArrayType->getName()).
+            arg(v2->type->toString());
+}
+
 Value *IClass::minus(Value *v1, Value *v2, Allocator *)
 {
     throw VMError(NumericOperationOnNonNumber3)
@@ -101,6 +108,52 @@ Value *IClass::longMinusMe(long v1,  Value *v2, Allocator *)
             .arg(v2->type->toString());
 }
 
+QString ArrayClass::getName()
+{
+    return VMId::get(RId::VArray);
+}
+
+IClass *ArrayClass::baseClass()
+{
+    return BuiltInTypes::IndexableType;
+}
+
+bool ArrayClass::subclassOf(IClass *c)
+{
+    if(c == this)
+        return true;
+
+    return baseClass()->subclassOf(c);
+}
+
+IMethod *ArrayClass::lookupMethod(QString name)
+{
+    return baseClass()->lookupMethod(name);
+}
+
+IObject *ArrayClass::newValue(Allocator *allocator)
+{
+    throw VMError(InternalError);
+}
+
+Value *ArrayClass::addTo(Value *v1, Value *v2, Allocator *allocator)
+{
+    return v1->type->addArrayToMe(unboxArray(v1), v2, allocator);
+}
+
+Value *ArrayClass::addArrayToMe(VArray *arr1, Value *v2, Allocator *allocator)
+{
+    VArray *arr2 = unboxArray(v2);
+    Value *v3 = allocator->newArray(arr1->count() + arr2->count());
+    VArray *arr3 = unboxArray(v3);
+    int c = 0;
+    for(int i=0; i<arr1->count(); i++)
+        arr3->Elements[c++] = arr1->Elements[i];
+    for(int i=0; i<arr2->count(); i++)
+        arr3->Elements[c++] = arr2->Elements[i];
+    return v3;
+}
+
 QString StringClass::getName()
 {
     return VMId::get(RId::String);
@@ -109,6 +162,14 @@ QString StringClass::getName()
 IClass *StringClass::baseClass()
 {
     return BuiltInTypes::IndexableType;
+}
+
+bool StringClass::subclassOf(IClass *c)
+{
+    if(c == this)
+        return true;
+
+    return baseClass()->subclassOf(c);
 }
 
 IMethod *StringClass::lookupMethod(QString name)
@@ -139,14 +200,6 @@ Value *StringClass::addTo(Value *v1, Value *v2, Allocator *a)
 Value *StringClass::addStringToMe(QString v1, Value *v2, Allocator *a)
 {
     return a->newString(v1 + unboxStr(v2));
-}
-
-bool StringClass::subclassOf(IClass *c)
-{
-    if(c == this)
-        return true;
-
-    return baseClass()->subclassOf(c);
 }
 
 QString NumericClass::getName()
@@ -180,6 +233,11 @@ IObject *NumericClass::newValue(Allocator *allocator)
 QString IntClass::getName()
 {
     return VMId::get(RId::Integer);
+}
+
+IClass *IntClass::baseClass()
+{
+    return BuiltInTypes::NumericType;
 }
 
 int IntClass::compareTo(Value *v1, Value *v2)
@@ -259,6 +317,11 @@ QString DoubleClass::getName()
     return VMId::get(RId::Double);
 }
 
+IClass *DoubleClass::baseClass()
+{
+    return BuiltInTypes::NumericType;
+}
+
 int DoubleClass::compareTo(Value *v1, Value *v2)
 {
     return v2->type->compareDoubleToMe(unboxDouble(v1), v2);
@@ -334,6 +397,11 @@ Value *DoubleClass::longMinusMe(long v1, Value *v2, Allocator *a)
 QString LongClass::getName()
 {
     return VMId::get(RId::Long);
+}
+
+IClass *LongClass::baseClass()
+{
+    return BuiltInTypes::NumericType;
 }
 
 int LongClass::compareTo(Value *v1, Value *v2)

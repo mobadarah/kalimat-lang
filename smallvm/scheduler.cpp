@@ -6,6 +6,16 @@
 #include <queue>
 using namespace std;
 #include <QApplication>
+
+static unsigned int g_seed;
+
+//Used to seed the generator.
+inline void fast_srand( int seed )
+{
+    g_seed = seed;
+}
+
+
 Scheduler::Scheduler(VM *vm)
     :vm(vm)
 {
@@ -13,6 +23,7 @@ Scheduler::Scheduler(VM *vm)
     releasedGcSemaphore = false;
     runningNow = NULL;
     seed = 0xFFFFFFFFL;
+    fast_srand(rand());
 }
 
 void Scheduler::restartOwner()
@@ -127,10 +138,16 @@ unsigned long t;
   return z;
 }
 
+inline int fastrand()
+{
+  g_seed = (214013*g_seed+2531011);
+  return (g_seed>>16)&0x7FFF;
+}
+
 bool Scheduler::RunStep(bool singleInstruction, int maxtimeSclice)
 {
-    unsigned long random = xorshf96();
-    int n = singleInstruction? 1 : random % maxtimeSclice;
+    //int n = singleInstruction? 1 : xorshf96() % maxtimeSclice;
+    int n = singleInstruction? 1 : fastrand() % maxtimeSclice;
 
     // Bring a process to the front of 'running' queue
     // and set 'runningNow'
@@ -138,9 +155,35 @@ bool Scheduler::RunStep(bool singleInstruction, int maxtimeSclice)
     {
         return false;
     }
+    runningNow->timeSlice = n;
+    runningNow->RunTimeSlice(vm);
 
-    runningNow->RunTimeSlice(n, vm, this);
+    finishUp();
 
+    return true;
+}
+
+bool Scheduler::FastRunStep(int maxtimeSclice)
+{
+    //int n = xorshf96() % maxtimeSclice;
+    int n = fastrand() % maxtimeSclice;
+
+    // Bring a process to the front of 'running' queue
+    // and set 'runningNow'
+    if(!schedule())
+    {
+        return false;
+    }
+    runningNow->timeSlice = n;
+    runningNow->FastRunTimeSlice(vm);
+
+    finishUp();
+
+    return true;
+}
+
+void Scheduler::finishUp()
+{
     // We shall wait until a sleeping or timerWaiting process
     // awakens before deleting it, since other parts of the
     // VM still have business to do with that process
@@ -185,8 +228,6 @@ bool Scheduler::RunStep(bool singleInstruction, int maxtimeSclice)
     }
 
     runningNow = NULL;
-
-    return true;
 }
 
 ProcessIterator *Scheduler::getProcesses()
