@@ -26,8 +26,9 @@
 #include "ui_mainwindow.h"
 #include "settingsdlg.h"
 #include "aboutdlg.h"
-
+#include "makeexedlg.h"
 #include "mytooltip.h"
+
 #include <QMessageBox>
 #include <QFileDialog>
 #include <QInputDialog>
@@ -47,7 +48,7 @@
 #include <QToolTip>
 #include <QIcon>
 #include <QSqlQuery>
-
+#include <QImageWriter>
 MainWindow *MainWindow::that = NULL;
 
 NullaryStepStopCondition *NullaryStepStopCondition::instance()
@@ -166,8 +167,10 @@ MainWindow::MainWindow(QWidget *parent)
             SLOT(breakSlot(int,Frame*,Process*)));
     currentStepStopCondition = NullaryStepStopCondition::instance();
 
-    // No .exes for now
+    // No .exes for other operating systems for now...
+#ifndef Q_OS_WIN
     ui->actionMake_exe->setVisible(false);
+#endif
     ui->action_go_to_definition->setVisible(false);
 }
 
@@ -1515,29 +1518,47 @@ void MainWindow::on_action_step_procedure_triggered()
 
 void MainWindow::on_actionMake_exe_triggered()
 {
-    QFileDialog saveDlg;
-    QStringList filters;
-    filters << "Executable file (*.exe)";
-    saveDlg.setNameFilters(filters);
-    saveDlg.setDefaultSuffix("exe");
-    QString selFilter = "Executable file (*.exe)";
-    QString targetFile = saveDlg.getSaveFileName(this,
-                                                 Ide::msg[IdeMsg::ChooseExePath],
-                                                 "", "Executable file (*.exe)",
-                                                 &selFilter);
-
+    MakeExeDlg dlg(this);
+    dlg.exec();
+    if(!dlg.accepted)
+        return;
+    QString targetFile = dlg.targetFilename;
     CodeDocument *doc = docContainer->getCurrentDocument();
 
     QString fn = doc ? doc->getFileName() : "untitled";
     fn = QFileInfo(fn).fileName();
 
-    // QString stagingArea = "/home/samy/Desktop/kalimatstagingarea";
-    // QString stagingArea = "c:/Users/samy/Desktop/stagingarea";
-    QString stagingArea = qApp->applicationDirPath() + "/stagingarea";
+     //QString kalimatBaseDir = "c:/kalimat-release";
+     QString kalimatBaseDir = qApp->applicationDirPath();
+     QString stagingArea = kalimatBaseDir + "/stagingarea";
+
     QString pasFileName = stagingArea + "/" + fn + ".pas";
     QString oFileName = stagingArea + "/" + fn + ".o";
+    QString orFileName = stagingArea + "/" + fn + ".or";
     QString aFileName = stagingArea + "/libimp" + fn + ".a";
     QString exeFileName = stagingArea + "/" + fn + ".exe";
+    QString icoFileName = stagingArea + "/" + "app.ico";
+
+    QImage iconImg;
+
+    switch(dlg.iconIndex)
+    {
+    case 0:
+        iconImg.load(":/icons/icons/exe1.ico");
+        break;
+    case 1:
+        iconImg.load(":/icons/icons/exe2.ico");
+        break;
+    case 2:
+        iconImg.load(":/icons/icons/exe3.ico");
+        break;
+    case 3:
+        iconImg.load(dlg.customIconFile);
+        break;
+    }
+    if(QFile::exists(icoFileName))
+        QFile::remove(icoFileName);
+    iconImg.save(icoFileName);
 
     try
     {
@@ -1588,17 +1609,17 @@ void MainWindow::on_actionMake_exe_triggered()
             baha = baha.mid(80);
         }
         //                        {$APPTYPE GUI}
+        QString haveProjectRc = QFile::exists(icoFileName)? "{$R project.rc}" : "";
 
-
-        QString pascalProgram = QString(" {$APPTYPE GUI} {$LONGSTRINGS ON} \n\
+        QString pascalProgram = QString(" {$APPTYPE GUI}  %1 {$LONGSTRINGS ON} \n\
                                         program RunSmallVM;\n\
-                uses FileUtil;\n\
                 procedure RunSmallVMCodeBase64(A:PUnicodeChar;B:PChar);stdcall ;external 'smallvm.dll';\n\
                 procedure SmallVMAddStringConstant(A:PChar; B:PChar); stdcall; external 'smallvm.dll';\n\
                 begin\n\
-                %1\n%2\n\
-                RunSmallVMCodeBase64(PUnicodeChar(SysToUtf8(ParamStr(0))),%3);\n\
+                %2\n%3\n\
+                RunSmallVMCodeBase64(PUnicodeChar(AnsiToUtf8(ParamStr(0))),%4);\n\
                 end.")
+                .arg(haveProjectRc)
                 .arg(strConstants.join(";\n"))
                 .arg(strConstants.count() >0? ";\n":"")
                 .arg(segments.join("+"));
@@ -1607,7 +1628,7 @@ void MainWindow::on_actionMake_exe_triggered()
 
         QFile pascal(pasFileName);
 
-        pascal.open(QIODevice::WriteOnly|QIODevice::Text);
+        pascal.open(QIODevice::WriteOnly|QIODevice::Text | QIODevice::Truncate);
         QTextStream p(&pascal);
         p.setCodec("UTF-8");
         p << pascalProgram;
@@ -1627,24 +1648,86 @@ void MainWindow::on_actionMake_exe_triggered()
         bool success = false;
         if(fpc.exitCode() == 0)
         {
-            if(!QFile::exists(targetFile))
+            if(!QFile::exists(exeFileName))
             {
                 problem = "Failed to compile generated program";
             }
-            bool testCopy = QFile::copy(exeFileName, targetFile);
-            if(!testCopy)
-            {
-                problem = "Failed to copy executable to destination";
-            }
             else
             {
-                success = true;
+                bool testCopy = QFile::copy(exeFileName, targetFile);
+                if(!testCopy || !QFile::exists(targetFile))
+                {
+                    problem = "Failed to copy executable to destination";
+                }
+                else
+                {
+                    success = true;
+                }
             }
         }
         else
         {
             problem = QString("Failed to compile generated program");
         }
+        if(dlg.copyDll && dlg.targetPath != kalimatBaseDir)
+        {
+            QStringList dlls;
+            dlls << "smallvm" << "QtCore4" << "QtGui4" << "mingwm10"
+                 << "libstdc++-6" << "libgcc_s_dw2-1" << "libffi-5";
+            for(int i=0; i<dlls.count(); ++i)
+            {
+                QString src = kalimatBaseDir + "/" + dlls[i] + ".dll";
+                QString dest = dlg.targetPath + "/" + dlls[i] + ".dll";
+
+                bool overwriteAll = false;
+                bool overwriteAllDecided = false;
+                if(QFile::exists(dest))
+                {
+                    bool overwrite = false;
+                    if(overwriteAllDecided)
+                    {
+                        overwrite = overwriteAll;
+                    }
+                    else
+                    {
+                        QMessageBox box(QMessageBox::Information,
+                                        QString::fromStdWString(L"الملف موجود بالفعل"),
+                                        QString::fromStdWString(L"الملف '%1' موجود في المسار '%2' هل تريد الكتابة فوقه؟")
+                                        .arg(dlls[i]+ ".dll")
+                                        .arg(dlg.targetPath), QMessageBox::Yes|QMessageBox::YesAll|
+                                        QMessageBox::No| QMessageBox::NoAll
+                                        );
+                        box.exec();
+                        if(box.result() == QMessageBox::Yes)
+                        {
+                            overwrite = true;
+                        }
+                        else if(box.result() == QMessageBox::No)
+                        {
+                            overwrite = false;
+                        }
+                        else if(box.result() == QMessageBox::YesToAll)
+                        {
+                            overwrite = true;
+                            overwriteAll = true;
+                            overwriteAllDecided = true;
+                        }
+                        else if(box.result() == QMessageBox::NoToAll)
+                        {
+                            overwrite = false;
+                            overwriteAll = false;
+                            overwriteAllDecided = true;
+                        }
+                    }
+                    if(QFile::exists(src) && overwrite)
+                    {
+                        QFile::remove(dest);
+                    }
+                }
+                QFile::copy(src, dest);
+            }
+        }
+
         if(!success)
         {
             QMessageBox box(QMessageBox::Information, Ide::msg[IdeMsg::CreatingExecutable],
@@ -1701,14 +1784,20 @@ void MainWindow::on_actionMake_exe_triggered()
         }
     }
     // cleanup
+    //*
     if(QFile::exists(exeFileName))
         QFile::remove(exeFileName);
     if(QFile::exists(pasFileName))
         QFile::remove(pasFileName);
     if(QFile::exists(oFileName))
         QFile::remove(oFileName);
+    if(QFile::exists(orFileName))
+        QFile::remove(orFileName);
     if(QFile::exists(aFileName))
         QFile::remove(aFileName);
+    if(QFile::exists(icoFileName))
+        QFile::remove(icoFileName);
+    //*/
 }
 
 void MainWindow::makeDrag()

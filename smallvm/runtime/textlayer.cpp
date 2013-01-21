@@ -86,13 +86,20 @@ void TextLayer::print(QString str)
     if(str == "")
         return;
     int curLine = cursorLine();
+    buffer.scrollCount = 0;
     for(int i=0; i<str.length(); i++)
     {
         buffer.printChar(str[i]);
     }
     int curLine2 = cursorLine();
     if(str != "\n")
+    {
         updateChangedLines(curLine, 1 + curLine2 - curLine);
+    }
+    if(buffer.scrollCount > 0)
+    {
+        updateChangedLines(curLine2-buffer.scrollCount, buffer.scrollCount);
+    }
     buffer.dirtyState = true;
 }
 
@@ -151,7 +158,7 @@ void TextLayer::updateStrip(int i, bool drawCursor)
     qreal height = imgPainter.fontMetrics().lineSpacing();
     qreal subtractSomeHeigh = 0;
 
-    const QString &text = buffer.line(i);
+    const QString &text = buffer.lineAt(i);
     const QList<QTextLayout::FormatRange> range = buffer.formatRanges(i);
 
     layout.setText(text);
@@ -193,7 +200,7 @@ void TextLayer::fastUpdateStrip(int i, bool drawCursor)
     QPen oldPen = imgPainter.pen();
     //imgPainter.setPen(textColor);
 
-    const QString &text = buffer.line(i);
+    const QString &text = buffer.lineAt(i);
     QRect rct(0, 0, imgWidth-1, _stripHeight);
 
     imgPainter.drawText(rct, Qt::AlignVCenter, text);
@@ -247,12 +254,12 @@ bool TextLayer::setCursorPos(int row, int col)
 
 int TextLayer::getCursorRow()
 {
-    return buffer.cursor.line();
+    return buffer.cursor.cursorLine();
 }
 
 int TextLayer::getCursorCol()
 {
-    return buffer.cursor.column();
+    return buffer.cursor.cursorColumn();
 }
 
 void TextLayer::scrollUp()

@@ -11,32 +11,17 @@ void TextBuffer::clearText()
 {
     cursor.reset();
     dirtyState = true;
-    visibleTextBuffer = QString(visibleTextLines * textLineWidth, ' ');
-    colorBits.resize(visibleTextLines * textLineWidth);
+    visibleTextBuffer.clear();
+    visibleTextBuffer.resize(visibleTextLines);
+    colorBits.resize(visibleTextLines);
 
-    for(int i=0; i<visibleTextLines *textLineWidth; i++)
+    for(int i=0; i<visibleTextLines; ++i)
     {
-        colorBits[i] = Qt::black;
+        colorBits[i].resize(textLineWidth);
+        for(int j=0; j<textLineWidth; ++j)
+            colorBits[i][j] = Qt::black;
     }
     currentColor = Qt::black;
-}
-
-void TextBuffer::overWriteChar(int pos, QChar c)
-{
-    visibleTextBuffer[pos] = c;
-    colorBits[pos] = currentColor;
-}
-
-void TextBuffer::insertChar(int pos, QChar c)
-{
-    visibleTextBuffer.insert(pos, c);
-    colorBits.insert(pos, currentColor);
-}
-
-void TextBuffer::removeChar(int pos)
-{
-    visibleTextBuffer.remove(pos,1);
-    colorBits.remove(pos);
 }
 
 void TextBuffer::printChar(QChar c)
@@ -45,7 +30,15 @@ void TextBuffer::printChar(QChar c)
         nl();
     else
     {
-        overWriteChar(cursor.pos, c);
+        QString &s= lineAt(cursor.line);
+        if(s.length() < (cursor.col+1))
+        {
+            int delta = cursor.col + 1 - s.length();
+            s+= QString(delta, ' ');
+            for(int i=0; i<delta; ++i)
+                colorBits[cursor.line].append(currentColor);
+        }
+        s[cursor.col] = c;
         cursor.fwd();
     }
 }
@@ -57,39 +50,40 @@ void TextBuffer::nl()
         // todo: Split current line if state is 'input' and cursor at insert mode
     }
 
-    cursor.cr();
     cursor.lf();
+    cursor.cr();
     dirtyState = true;
 }
 
 void TextBuffer::scrollUp()
 {
-    visibleTextBuffer.remove(0, textLineWidth);
-    visibleTextBuffer.append(QString(textLineWidth, ' '));
+    scrollCount++;
+    visibleTextBuffer.remove(0);
+    visibleTextBuffer.append("");
 }
 
 void TextBuffer::computeLineFormatRange(int i)
 {
-    computeLineFormatRange(i, line(i).trimmed(), lineFormats[i]);
+    computeLineFormatRange(i, lineAt(i), lineFormats[i]);
 }
 
-void TextBuffer::computeLineFormatRange(int i, QString line, QList<QTextLayout::FormatRange> &range)
+void TextBuffer::computeLineFormatRange(int i, const QString &line, QList<QTextLayout::FormatRange> &range)
 {
     int pos =0;
     int runPos = 0;
     int runLen = 0;
-    QColor currentColor = colorBits[i * textLineWidth];
+    QColor currentColor = colorBits[i][0];
     range.clear();
     for(int j=0; j<line.length(); ++j)
     {
-        if(colorBits[i * textLineWidth + j] != currentColor)
+        if(colorBits[i][j] != currentColor)
         {
             runLen = pos - runPos;
             QTextLayout::FormatRange r;
             r.start = runPos;
             r.length = runLen;
             r.format.setForeground(QBrush(currentColor));
-            currentColor = colorBits[i * textLineWidth + j];
+            currentColor = colorBits[i][j];
             range.append(r);
             runPos = pos;
         }

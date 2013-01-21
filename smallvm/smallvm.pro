@@ -5,7 +5,7 @@ TARGET = smallvm
 QMAKE_CXXFLAGS += -std=gnu++0x -Wno-unused-parameter
 TEMPLATE = lib
 CONFIG += dll
-CONFIG -= console
+#CONFIG -= console
 SOURCES += main.cpp \
     value.cpp \
     instruction.cpp \
@@ -113,10 +113,3 @@ unix:LIBS += -lffi
 
 OTHER_FILES += \
     runlib_errors.txt
-
-
-
-
-
-
-

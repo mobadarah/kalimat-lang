@@ -33,10 +33,9 @@ public:
     void Break(int offset, Frame *frame, Process *process) { }
     void postBreak(int offset, Frame *frame, Process *process) { }
     void setDebuggedProcess(Process *) { }
-    bool currentBreakCondition(Frame *frame, Process *process)
+    void currentBreakCondition(Process *process)
     {
-        return false;
-    }
+        }
 };
 
 

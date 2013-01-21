@@ -23,8 +23,8 @@ PaintSurface::PaintSurface(QSize size, QFont font)
     image = im;
     finalImg = QImage(image.size(), image.format());
     dirtyState = true; // to update first time
-
-     cursorTimerPoint = -1;
+    showCoordinates = false;
+    cursorTimerPoint = -1;
 
     // todo: this line is the only reference we have to VM
     // we need to remove this dependency and remove #include "vm.h"
@@ -56,7 +56,6 @@ void PaintSurface::paint(QPainter &painter, TextLayer &textLayer, SpriteLayer &s
         textLayer.updated();
         spriteLayer.updated();
         this->updated();
-
     }
     painter.drawImage(QPoint(0, 0), finalImg);
 }

@@ -229,6 +229,11 @@ void RunWindow::Init(QString program, QMap<QString, QString> stringConstants, QS
 
         RegisterGuiControls(vm);
 
+        // This qDebug() and the following are for debugging
+        // executables that use SmallVM.dll, where we normally
+        // don't have a debugger
+        //qDebug("Defining string constants");
+
         for(int i=0; i<stringConstants.keys().count(); i++)
         {
 
@@ -236,7 +241,7 @@ void RunWindow::Init(QString program, QMap<QString, QString> stringConstants, QS
             QString strSymRef = stringConstants[strValue];
             vm->DefineStringConstant(strSymRef, strValue);
         }
-
+        //qDebug("Registering built-in types");
         IClass *builtIns[] = {
             BuiltInTypes::ObjectType,
             BuiltInTypes::NumericType,
@@ -280,8 +285,10 @@ void RunWindow::Init(QString program, QMap<QString, QString> stringConstants, QS
             vm->RegisterType(builtIns[i]->getName(), builtIns[i]);
         }
 
+        //qDebug("Loading prelude");
         InitVMPrelude(vm);
 
+        //qDebug("Registering GUI classes");
         // Meta class
         vm->Register("class_newobject", new WindowProxyMethod(this, vm, ClassNewObjectProc));
         BuiltInTypes::ClassType->attachVmMethod(vm, VMId::get(RId::NewObject));
@@ -305,6 +312,7 @@ void RunWindow::Init(QString program, QMap<QString, QString> stringConstants, QS
         vm->RegisterType(VMId::get(RId::ActivationRecord), BuiltInTypes::ActivationFrameType);
         ((FrameClass *) BuiltInTypes::ActivationFrameType)->allocator = &vm->GetAllocator();
 
+        //qDebug("Loading user program");
         vm->Load(program);
         for(QSet<Breakpoint>::const_iterator i=breakPoints.begin(); i!=breakPoints.end(); ++i)
         {
@@ -314,6 +322,7 @@ void RunWindow::Init(QString program, QMap<QString, QString> stringConstants, QS
         vm->guiScheduler.runWindow = this;
         vm->Init();
 
+        //qDebug("Setting debugger");
         if(breakPoints.empty())
             vm->setDebugger(NullaryDebugger::instance());
         else
@@ -326,7 +335,7 @@ void RunWindow::Init(QString program, QMap<QString, QString> stringConstants, QS
             vm->SetGlobal("%parseTree", pt);
         }
         //*/
-
+        //qDebug("Running user program");
         Run();
         //FastRun();
     }

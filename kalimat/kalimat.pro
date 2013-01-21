@@ -82,7 +82,8 @@ SOURCES += main.cpp \
     ../smallvm/runtime/windowproxymethod.cpp \
     programdatabase.cpp \
     ../smallvm/runtime/textbuffer.cpp \
-    ../smallvm/runtime/cursor.cpp
+    ../smallvm/runtime/cursor.cpp \
+    makeexedlg.cpp
 HEADERS += mainwindow.h \
     Lexer/token.h \
     Lexer/statemachine.h \
@@ -136,13 +137,15 @@ HEADERS += mainwindow.h \
     ../smallvm/blockingqueue.h \
     ../smallvm/vmerror.h \
     stepstopcondition.h \
-    programdatabase.h
+    programdatabase.h \
+    makeexedlg.h
 
 FORMS += mainwindow.ui \
     savechangedfiles.ui \
     ../smallvm/runtime/runwindow.ui \
     settingsdlg.ui \
-    aboutdlg.ui
+    aboutdlg.ui \
+    makeexedlg.ui
 
 # QT += testlib
 # CONFIG += qtestlib

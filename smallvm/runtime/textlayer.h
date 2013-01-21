@@ -54,14 +54,14 @@ public:
     void print(QString);
     void println(QString);
     void print(QString str, int width);
-    int cursorLine() { return buffer.cursor.line(); }
-    int cursorColumn() { return buffer.cursor.column(); }
+    int cursorLine() { return buffer.cursor.cursorLine(); }
+    int cursorColumn() { return buffer.cursor.cursorColumn(); }
 
     void nl() { buffer.nl(); }
     void del() { buffer.cursor.del(); }
     void backSpace() { buffer.cursor.backSpace(); }
-    void cursorFwd() { buffer.cursor.fwd(); }
-    void cursorBack() { buffer.cursor.back(); }
+    void cursorFwd() { buffer.cursor.inputfwd(); }
+    void cursorBack() { buffer.cursor.inputback(); }
 
     void updateStrip(int i, bool drawCursor= false);
 

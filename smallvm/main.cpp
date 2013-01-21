@@ -6,36 +6,22 @@
 **************************************************************************/
 
 #include <QtGui/QApplication>
-#include <iostream>
+#include <QDebug>
 #include <QMessageBox>
 #include <QTextStream>
 #include "runtime/runwindow.h"
 #include "utils.h"
-
+#include <iostream>
+#include <string>
 using namespace std;
 QMap<QString, QString> tempConstants;
-
-Q_DECL_EXPORT
-void RunSmallVMCode(QWidget *parent,
-                    QString pathOfProgramsFile,
-                    VMClient *client,
-                    QString program,
-                    QMap<QString, QString> stringConstants,
-                    QSet<Breakpoint> breakPoints,
-                    DebugInfo debugInfo)
-{
-    RunWindow rw(parent, pathOfProgramsFile, client);
-    rw.show();
-    rw.Init(program, stringConstants, breakPoints, debugInfo);
-}
 
 extern "C"
 {
 Q_DECL_EXPORT
 void SmallVMAddStringConstant(char *symBase64, char *strBase64)
 {
-    //cout << "adding string constant!" << endl;
-    //cout.flush();
+    // qDebug() << "adding string constant!";
     QString sym = base64Decode(symBase64);
     QString val = base64Decode(strBase64);
     tempConstants[val] = sym;
@@ -45,20 +31,20 @@ Q_DECL_EXPORT
 void RunSmallVMCodeBase64(wchar_t *pathOfProgramsFile,
                           char *programBase64)
 {
-    //cout << "program gonna run!" << endl;
+    BuiltInTypes::init();
+    //qDebug() << "program gonna run!";
     int argc = 0;
     char **argv = NULL;// = {"aa.exe"};
     QApplication app(argc, argv);
 
-    //cout << "program before decoding:" <<programBase64 << endl;
-    //cout.flush();
-    //cout << "path of prog file:" << pathOfProgramsFile << endl;
-    //cout.flush();
+    //qDebug() << "program before decoding:" <<programBase64;
+    //qDebug() << "path of prog file:" << QString::fromStdWString(pathOfProgramsFile);
     try
     {
+        //qDebug("Launching Run Window");
         RunWindow rw(QString::fromStdWString(pathOfProgramsFile), new NullaryVMClient());
         QString programCode = base64Decode(programBase64);
-        //cout << "program after decoding:" << programCode.toStdString() << endl;
+        //qDebug() << "program after decoding:" << programCode;
         rw.show();
         rw.Init(programCode, tempConstants, QSet<Breakpoint>(), DebugInfo());
         app.exec();

@@ -9,9 +9,11 @@ struct Cursor
 {
     enum Mode { Insert, Overwrite };
     Mode mode, oldMode;
-    int pos;
+    int line, col;
 
-    int inputStartPos, inputLength;
+    int inputStartLine, inputStartCol;
+    QString inputBuffer;
+    int inputCursorPos;
 
     TextLayer *owner;
     TextBuffer *buffer;
@@ -20,11 +22,11 @@ struct Cursor
     bool inputState();
     void reset();
 
-    bool fwd();
-    bool back();
-    bool down();
-    bool up();
-
+    void fwd(int n=1);
+    void fwdText(const QString &str);
+    void back();
+    bool inputfwd();
+    bool inputback();
     void backSpace();
     void del();
 
@@ -33,10 +35,11 @@ struct Cursor
     int cursorPos();
     void lineCol(int &line, int &col);
     bool setCursorPos(int line, int col);
-    int line();
-    int column();
+    int cursorLine();
+    int cursorColumn();
     void beginInput();
     QString endInput();
+    void spreadInputBuffer();
     void typeIn(QString s);
 };
 
