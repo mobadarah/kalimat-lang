@@ -153,7 +153,7 @@ MainWindow::MainWindow(QWidget *parent)
     functionNavigationComboIsUpdating = false;
     ui->functionNavigationToolbar->hide();
     ui->functionNavigationToolbar->addWidget(functionNavigationCombo);
-    connect(functionNavigationCombo, SIGNAL(currentIndexChanged(int)), SLOT(do_functionNavigationCombo_currentIndexChanged(int)));
+    //connect(functionNavigationCombo, SIGNAL(currentIndexChanged(int)), SLOT(do_functionNavigationCombo_currentIndexChanged(int)));
 
     ui->functionNavigationToolbar->show();
     generatingProgramModel = false;

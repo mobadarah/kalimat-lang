@@ -852,7 +852,7 @@ void RunWindow::keyPressEvent(QKeyEvent *ev)
             QString inputText = textLayer.endInput();
 
             // to hide the cursor
-            textLayer.updateStrip(textLayer.cursorLine());
+            textLayer.updateChangedLines(textLayer.cursorLine(), 1);
             Value *v = NULL;
             if(readMethod->readNum)
             {

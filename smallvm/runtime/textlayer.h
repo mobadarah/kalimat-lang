@@ -36,8 +36,6 @@ class TextLayer
     void scrollUp();
 
     void adjustFontForNumberOfLines(int n);
-    void updateChangedLines(int fromLine, int count);
-
     void fastUpdateStrip(int i, bool drawCursor= false);
     void TX(int &x);
 
@@ -63,6 +61,7 @@ public:
     void cursorFwd() { buffer.cursor.inputfwd(); }
     void cursorBack() { buffer.cursor.inputback(); }
 
+    void updateChangedLines(int fromLine, int count);
     void updateStrip(int i, bool drawCursor= false);
 
     void clearText();

@@ -39,6 +39,7 @@ void TextBuffer::printChar(QChar c)
                 colorBits[cursor.line].append(currentColor);
         }
         s[cursor.col] = c;
+        colorBits[cursor.line][cursor.col] = currentColor;
         cursor.fwd();
     }
 }
