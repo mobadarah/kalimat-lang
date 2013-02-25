@@ -58,6 +58,11 @@ void MouseDownEventChanProc(VOperandStack &stack, Process *, RunWindow *w, VM *)
 void MouseUpEventChanProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm);
 void MouseMoveEventChanProc(VOperandStack &stack, Process *, RunWindow *w, VM *);
 void KbEventChanProc(VOperandStack &stack, Process *, RunWindow *w, VM *);
+void EnableMouseEventChanProc(VOperandStack &stack, Process *, RunWindow *w, VM *);
+void EnableMouseDownEventChanProc(VOperandStack &stack, Process *, RunWindow *w, VM *);
+void EnableMouseUpEventChanProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm);
+void EnableMouseMoveEventChanProc(VOperandStack &stack, Process *, RunWindow *w, VM *);
+void EnableKbEventChanProc(VOperandStack &stack, Process *, RunWindow *w, VM *);
 
 void ClsProc(VOperandStack &stack, Process *proc, RunWindow *, VM *w);
 void ClearTextProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm);
@@ -72,6 +77,7 @@ void TypeFromIdProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm);
 void NewMapProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm);
 void HasKeyProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm);
 void KeysOfProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm);
+void MapKeyProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm);
 
 void RandomProc(VOperandStack &stack, Process *proc, RunWindow *, VM *w);
 void ToNumProc(VOperandStack &stack, Process *proc, RunWindow *, VM *w);
@@ -132,6 +138,9 @@ void ActivationFrameProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *
 
 void MigrateToGuiThreadProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm);
 void MigrateBackFromGuiThreadProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm);
+
+void CloseChannelProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm);
+void ChannelClosedProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm);
 
 void ImageRotatedProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm);
 void ImageScaledProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm);
@@ -206,6 +215,7 @@ double popDoubleOrCoercable(VOperandStack &stack, Process *proc, RunWindow *w, V
 int popInt(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm);
 bool popBool(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm);
 void *popRaw(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm, IClass *type);
+Channel *popChannel(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm);
 QString popString(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm);
 Value *popValue(VOperandStack &stack, Process *proc,  RunWindow *w, VM *vm);
 void verifyStackNotEmpty(VOperandStack &stack, Process *proc, VM *vm);

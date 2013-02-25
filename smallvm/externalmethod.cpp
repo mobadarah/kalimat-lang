@@ -13,14 +13,12 @@
 #include "value.h"
 #include "externalmethod.h"
 using namespace std;
-ExternalMethod::ExternalMethod() :
-    Object()
+ExternalMethod::ExternalMethod()
 {
     arity = -1;
     mustRunInGui = false;
 }
-ExternalMethod::ExternalMethod(int arity) :
-    Object()
+ExternalMethod::ExternalMethod(int arity)
 {
     this->arity = arity;
     mustRunInGui = false;

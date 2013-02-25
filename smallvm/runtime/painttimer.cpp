@@ -6,11 +6,13 @@
 **************************************************************************/
 
 #include "painttimer.h"
+#include "../utils.h"
 
+const int TIME_UNITS_PER_SEC = 1000000;
 PaintTimer::PaintTimer(int frameRate)
 {
-        minTime = CLOCKS_PER_SEC / frameRate;
-        first = true;
+    minTime = TIME_UNITS_PER_SEC / frameRate;
+    first = true;
 }
 
 bool PaintTimer::canUpdateNow()
@@ -18,13 +20,13 @@ bool PaintTimer::canUpdateNow()
     if(first)
     {
         first = false;
-        lastTimeStamp = clock();
+        lastTimeStamp = get_time();
         elapsedTime = 0;
         return true;
     }
     else
     {
-        clock_t ts = clock();
+        long ts = get_time();
         elapsedTime += (ts - lastTimeStamp);
         lastTimeStamp = ts;
         if(elapsedTime >= minTime)

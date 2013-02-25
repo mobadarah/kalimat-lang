@@ -17,10 +17,13 @@ class KalimatAst  :   public AST
 {
 public:
     Token _pos;
+    Token _endingpos;
 public:
 
-    KalimatAst(Token _pos);
+    KalimatAst(Token _pos,
+               Token _endingpos);
     Token pos() { return _pos; }
+    Token endingpos() { return _endingpos; }
     virtual QString toString()=0;
     virtual void prettyPrint(CodeFormatter *f)=0;
 
@@ -29,7 +32,10 @@ public:
     virtual void traverseChildren(Traverser *tv);
 
     virtual QString childrenToString();
-    Token getPos() { return _pos; }};
+    Token getPos() { return _pos; }
+    Token getEndingPos() { return _endingpos; }
+    void setEndingPos(Token t) { _endingpos= t; }
+};
 
 
 class TopLevel  :   public KalimatAst
@@ -37,7 +43,8 @@ class TopLevel  :   public KalimatAst
 public:
 public:
 
-    TopLevel(Token _pos);
+    TopLevel(Token _pos,
+             Token _endingpos);
     virtual QString toString()=0;
     virtual void prettyPrint(CodeFormatter *f)=0;
 
@@ -46,7 +53,8 @@ public:
     virtual void traverseChildren(Traverser *tv);
 
     virtual QString childrenToString();
-    QString attachedComments;};
+    QString attachedComments;
+};
 
 
 class Statement  :   public TopLevel
@@ -54,7 +62,8 @@ class Statement  :   public TopLevel
 public:
 public:
 
-    Statement(Token _pos);
+    Statement(Token _pos,
+              Token _endingpos);
     virtual QString toString()=0;
     virtual void prettyPrint(CodeFormatter *f)=0;
 
@@ -71,7 +80,8 @@ class Expression  :   public KalimatAst
 public:
 public:
 
-    Expression(Token _pos);
+    Expression(Token _pos,
+               Token _endingpos);
     virtual QString toString()=0;
     virtual void prettyPrint(CodeFormatter *f)=0;
 
@@ -88,7 +98,8 @@ class IOStatement  :   public Statement
 public:
 public:
 
-    IOStatement(Token _pos);
+    IOStatement(Token _pos,
+                Token _endingpos);
     virtual QString toString()=0;
     virtual void prettyPrint(CodeFormatter *f)=0;
 
@@ -105,7 +116,8 @@ class GraphicsStatement  :   public Statement
 public:
 public:
 
-    GraphicsStatement(Token _pos);
+    GraphicsStatement(Token _pos,
+                      Token _endingpos);
     virtual QString toString()=0;
     virtual void prettyPrint(CodeFormatter *f)=0;
 
@@ -122,7 +134,8 @@ class ChannelCommunicationStmt  :   public Statement
 public:
 public:
 
-    ChannelCommunicationStmt(Token _pos);
+    ChannelCommunicationStmt(Token _pos,
+                             Token _endingpos);
     virtual QString toString()=0;
     virtual void prettyPrint(CodeFormatter *f)=0;
 
@@ -141,6 +154,7 @@ public:
 public:
 
     CompilationUnit(Token _pos,
+                    Token _endingpos,
                     QVector<shared_ptr<StrLiteral> > usedModules);
     int usedModuleCount() { return usedModules.count(); }
     shared_ptr<StrLiteral> usedModule(int index) { return usedModules[index]; }
@@ -165,6 +179,7 @@ public:
 public:
 
     Program(Token _pos,
+            Token _endingpos,
             QVector<shared_ptr<StrLiteral> > usedModules,
             QVector<shared_ptr<TopLevel> > elements,
             QVector<shared_ptr<TopLevel> > originalElements);
@@ -192,6 +207,7 @@ public:
 public:
 
     Module(Token _pos,
+           Token _endingpos,
            QVector<shared_ptr<StrLiteral> > usedModules,
            shared_ptr<Identifier> _name,
            QVector<shared_ptr<Declaration> > declarations);
@@ -215,7 +231,8 @@ class AssignableExpression  :   public Expression
 public:
 public:
 
-    AssignableExpression(Token _pos);
+    AssignableExpression(Token _pos,
+                         Token _endingpos);
     virtual QString toString()=0;
     virtual void prettyPrint(CodeFormatter *f)=0;
 
@@ -232,7 +249,8 @@ class Literal  :   public Expression
 public:
 public:
 
-    Literal(Token _pos);
+    Literal(Token _pos,
+            Token _endingpos);
     virtual QString toString()=0;
     virtual void prettyPrint(CodeFormatter *f)=0;
 
@@ -249,7 +267,8 @@ class SimpleLiteral  :   public Literal
 public:
 public:
 
-    SimpleLiteral(Token _pos);
+    SimpleLiteral(Token _pos,
+                  Token _endingpos);
     virtual QString toString()=0;
     virtual void prettyPrint(CodeFormatter *f)=0;
 
@@ -270,6 +289,7 @@ public:
 public:
 
     AssignmentStmt(Token _pos,
+                   Token _endingpos,
                    shared_ptr<AssignableExpression> _variable,
                    shared_ptr<Expression> _value,
                    shared_ptr<TypeExpression> _type);
@@ -296,6 +316,7 @@ public:
 public:
 
     IfStmt(Token _pos,
+           Token _endingpos,
            shared_ptr<Expression> _condition,
            shared_ptr<Statement> _thenPart,
            shared_ptr<Statement> _elsePart);
@@ -321,6 +342,7 @@ public:
 public:
 
     WhileStmt(Token _pos,
+              Token _endingpos,
               shared_ptr<Expression> _condition,
               shared_ptr<Statement> _statement);
     shared_ptr<Expression> condition() { return _condition; }
@@ -348,6 +370,7 @@ public:
 public:
 
     ForAllStmt(Token _pos,
+               Token _endingpos,
                shared_ptr<Identifier> _variable,
                shared_ptr<Expression> _from,
                shared_ptr<Expression> _to,
@@ -371,6 +394,35 @@ public:
     virtual QVector<shared_ptr<Identifier> > getIntroducedVariables();};
 
 
+class ForEachStmt  :   public Statement
+{
+public:
+    shared_ptr<Identifier> _variable;
+    shared_ptr<Expression> _enumerable;
+    shared_ptr<Statement> _statement;
+public:
+
+    ForEachStmt(Token _pos,
+                Token _endingpos,
+                shared_ptr<Identifier> _variable,
+                shared_ptr<Expression> _enumerable,
+                shared_ptr<Statement> _statement);
+    shared_ptr<Identifier> variable() { return _variable; }
+    shared_ptr<Expression> enumerable() { return _enumerable; }
+    shared_ptr<Statement> statement() { return _statement; }
+    virtual QString toString();
+    virtual void prettyPrint(CodeFormatter *f);
+
+    virtual void traverse(shared_ptr<PrettyPrintable> p, Traverser *tv);
+
+    virtual void traverseChildren(Traverser *tv);
+
+    virtual QString childrenToString();
+
+    virtual QVector<shared_ptr<Identifier> > getIntroducedVariables();
+};
+
+
 class ReturnStmt  :   public Statement
 {
 public:
@@ -378,6 +430,7 @@ public:
 public:
 
     ReturnStmt(Token _pos,
+               Token _endingpos,
                shared_ptr<Expression> _returnVal);
     shared_ptr<Expression> returnVal() { return _returnVal; }
     virtual QString toString();
@@ -398,6 +451,7 @@ public:
 public:
 
     DelegationStmt(Token _pos,
+                   Token _endingpos,
                    shared_ptr<IInvokation> _invokation);
     shared_ptr<IInvokation> invokation() { return _invokation; }
     virtual QString toString();
@@ -418,6 +472,7 @@ public:
 public:
 
     LaunchStmt(Token _pos,
+               Token _endingpos,
                shared_ptr<IInvokation> _invokation);
     shared_ptr<IInvokation> invokation() { return _invokation; }
     virtual QString toString();
@@ -438,6 +493,7 @@ public:
 public:
 
     LabelStmt(Token _pos,
+              Token _endingpos,
               shared_ptr<Expression> _target);
     shared_ptr<Expression> target() { return _target; }
     virtual QString toString();
@@ -458,6 +514,7 @@ public:
 public:
 
     GotoStmt(Token _pos,
+             Token _endingpos,
              shared_ptr<Expression> _target);
     shared_ptr<Expression> target() { return _target; }
     virtual QString toString();
@@ -481,6 +538,7 @@ public:
 public:
 
     PrintStmt(Token _pos,
+              Token _endingpos,
               shared_ptr<Expression> _fileObject,
               QVector<shared_ptr<Expression> > args,
               QVector<shared_ptr<Expression> > widths,
@@ -512,6 +570,7 @@ public:
 public:
 
     ReadStmt(Token _pos,
+             Token _endingpos,
              shared_ptr<Expression> _fileObject,
              QString _prompt,
              QVector<shared_ptr<AssignableExpression> > variables,
@@ -542,6 +601,7 @@ public:
 public:
 
     DrawPixelStmt(Token _pos,
+                  Token _endingpos,
                   shared_ptr<Expression> _x,
                   shared_ptr<Expression> _y,
                   shared_ptr<Expression> _color);
@@ -570,6 +630,7 @@ public:
 public:
 
     DrawLineStmt(Token _pos,
+                 Token _endingpos,
                  shared_ptr<Expression> _x1,
                  shared_ptr<Expression> _y1,
                  shared_ptr<Expression> _x2,
@@ -603,6 +664,7 @@ public:
 public:
 
     DrawRectStmt(Token _pos,
+                 Token _endingpos,
                  shared_ptr<Expression> _x1,
                  shared_ptr<Expression> _y1,
                  shared_ptr<Expression> _x2,
@@ -637,6 +699,7 @@ public:
 public:
 
     DrawCircleStmt(Token _pos,
+                   Token _endingpos,
                    shared_ptr<Expression> _cx,
                    shared_ptr<Expression> _cy,
                    shared_ptr<Expression> _radius,
@@ -667,6 +730,7 @@ public:
 public:
 
     DrawImageStmt(Token _pos,
+                  Token _endingpos,
                   shared_ptr<Expression> _x,
                   shared_ptr<Expression> _y,
                   shared_ptr<Expression> _image);
@@ -693,6 +757,7 @@ public:
 public:
 
     DrawSpriteStmt(Token _pos,
+                   Token _endingpos,
                    shared_ptr<Expression> _x,
                    shared_ptr<Expression> _y,
                    shared_ptr<Expression> _sprite);
@@ -720,6 +785,7 @@ public:
 public:
 
     ZoomStmt(Token _pos,
+             Token _endingpos,
              shared_ptr<Expression> _x1,
              shared_ptr<Expression> _y1,
              shared_ptr<Expression> _x2,
@@ -759,6 +825,7 @@ public:
 public:
 
     EventStatement(Token _pos,
+                   Token _endingpos,
                    EventType _type,
                    shared_ptr<Identifier> _handler);
     EventType type() { return _type; }
@@ -783,6 +850,7 @@ public:
 public:
 
     SendStmt(Token _pos,
+             Token _endingpos,
              shared_ptr<Expression> _value,
              shared_ptr<Expression> _channel,
              bool _signal);
@@ -809,6 +877,7 @@ public:
 public:
 
     ReceiveStmt(Token _pos,
+                Token _endingpos,
                 shared_ptr<AssignableExpression> _value,
                 shared_ptr<Expression> _channel,
                 bool _signal);
@@ -834,6 +903,7 @@ public:
 public:
 
     SelectStmt(Token _pos,
+               Token _endingpos,
                QVector<shared_ptr<ChannelCommunicationStmt> > conditions,
                QVector<shared_ptr<Statement> > actions);
     int conditionCount() { return conditions.count(); }
@@ -858,6 +928,7 @@ public:
 public:
 
     BlockStmt(Token _pos,
+              Token _endingpos,
               QVector<shared_ptr<Statement> > _statements);
     int statementCount() { return _statements.count(); }
     shared_ptr<Statement> statement(int index) { return _statements[index]; }
@@ -880,6 +951,7 @@ public:
 public:
 
     InvokationStmt(Token _pos,
+                   Token _endingpos,
                    shared_ptr<Expression> _expression);
     shared_ptr<Expression> expression() { return _expression; }
     virtual QString toString();
@@ -902,6 +974,7 @@ public:
 public:
 
     BinaryOperation(Token _pos,
+                    Token _endingpos,
                     QString _operator_,
                     shared_ptr<Expression> _operand1,
                     shared_ptr<Expression> _operand2);
@@ -927,6 +1000,7 @@ public:
 public:
 
     UnaryOperation(Token _pos,
+                   Token _endingpos,
                    QString _operator_,
                    shared_ptr<Expression> _operand);
     QString operator_() { return _operator_; }
@@ -950,6 +1024,7 @@ public:
 public:
 
     IsaOperation(Token _pos,
+                 Token _endingpos,
                  shared_ptr<Expression> _expression,
                  shared_ptr<Identifier> _type);
     shared_ptr<Expression> expression() { return _expression; }
@@ -973,6 +1048,7 @@ public:
 public:
 
     MatchOperation(Token _pos,
+                   Token _endingpos,
                    shared_ptr<Expression> _expression,
                    shared_ptr<Pattern> _pattern);
     shared_ptr<Expression> expression() { return _expression; }
@@ -995,6 +1071,7 @@ public:
 public:
 
     Identifier(Token _pos,
+               Token _endingpos,
                QString _name);
     QString name() { return _name; }
     virtual QString toString();
@@ -1005,6 +1082,8 @@ public:
     virtual void traverseChildren(Traverser *tv);
 
     virtual QString childrenToString();
+    Identifier(Token _pos,
+               QString _name);
 };
 
 
@@ -1015,6 +1094,7 @@ public:
 public:
 
     VarAccess(Token _pos,
+              Token _endingpos,
               shared_ptr<Identifier> _name);
     shared_ptr<Identifier> name() { return _name; }
     virtual QString toString();
@@ -1025,6 +1105,7 @@ public:
     virtual void traverseChildren(Traverser *tv);
 
     virtual QString childrenToString();
+    VarAccess(shared_ptr<Identifier> _name);
 };
 
 
@@ -1049,8 +1130,8 @@ public:
     virtual void traverseChildren(Traverser *tv);
 
     virtual QString childrenToString();
-    NumLiteral(Token pos ,QString lexeme);
-    NumLiteral(Token pos ,int value);
+    NumLiteral(Token pos, QString lexeme);
+    NumLiteral(Token pos, int value);
     QString repr();};
 
 
@@ -1061,6 +1142,7 @@ public:
 public:
 
     StrLiteral(Token _pos,
+               Token _endingpos,
                QString _value);
     QString value() { return _value; }
     virtual QString toString();
@@ -1071,7 +1153,10 @@ public:
     virtual void traverseChildren(Traverser *tv);
 
     virtual QString childrenToString();
-    QString repr();};
+    QString repr();
+    StrLiteral(Token _pos,
+               QString _value);
+};
 
 
 class NullLiteral  :   public SimpleLiteral
@@ -1079,7 +1164,8 @@ class NullLiteral  :   public SimpleLiteral
 public:
 public:
 
-    NullLiteral(Token _pos);
+    NullLiteral(Token _pos,
+                Token _endingpos);
     virtual QString toString();
     virtual void prettyPrint(CodeFormatter *f);
 
@@ -1088,7 +1174,8 @@ public:
     virtual void traverseChildren(Traverser *tv);
 
     virtual QString childrenToString();
-    QString repr();};
+    QString repr();
+    NullLiteral(Token _pos);};
 
 
 class BoolLiteral  :   public SimpleLiteral
@@ -1098,6 +1185,7 @@ public:
 public:
 
     BoolLiteral(Token _pos,
+                Token _endingpos,
                 bool _value);
     bool value() { return _value; }
     virtual QString toString();
@@ -1108,7 +1196,10 @@ public:
     virtual void traverseChildren(Traverser *tv);
 
     virtual QString childrenToString();
-    QString repr();};
+    QString repr();
+    BoolLiteral(Token _pos,
+                bool _value);
+};
 
 
 class ArrayLiteral  :   public Literal
@@ -1118,6 +1209,7 @@ public:
 public:
 
     ArrayLiteral(Token _pos,
+                 Token _endingpos,
                  QVector<shared_ptr<Expression> > _data);
     int dataCount() { return _data.count(); }
     shared_ptr<Expression> data(int index) { return _data[index]; }
@@ -1140,6 +1232,7 @@ public:
 public:
 
     MapLiteral(Token _pos,
+               Token _endingpos,
                QVector<shared_ptr<Expression> > _data);
     int dataCount() { return _data.count(); }
     shared_ptr<Expression> data(int index) { return _data[index]; }
@@ -1160,7 +1253,8 @@ class IInvokation  :   public Expression
 public:
 public:
 
-    IInvokation(Token _pos);
+    IInvokation(Token _pos,
+                Token _endingpos);
     virtual QString toString()=0;
     virtual void prettyPrint(CodeFormatter *f)=0;
 
@@ -1180,6 +1274,7 @@ public:
 public:
 
     Invokation(Token _pos,
+               Token _endingpos,
                shared_ptr<Identifier> _functor,
                QVector<shared_ptr<Expression> > arguments);
     shared_ptr<Identifier> functor() { return _functor; }
@@ -1205,6 +1300,7 @@ public:
 public:
 
     MethodInvokation(Token _pos,
+                     Token _endingpos,
                      shared_ptr<Expression> _receiver,
                      shared_ptr<Identifier> _methodSelector,
                      QVector<shared_ptr<Expression> > arguments);
@@ -1230,6 +1326,7 @@ public:
 public:
 
     ForAutocomplete(Token _pos,
+                    Token _endingpos,
                     shared_ptr<Expression> _toBeCompleted);
     shared_ptr<Expression> toBeCompleted() { return _toBeCompleted; }
     virtual QString toString();
@@ -1250,6 +1347,7 @@ public:
 public:
 
     TimingExpression(Token _pos,
+                     Token _endingpos,
                      shared_ptr<Expression> _toTime);
     shared_ptr<Expression> toTime() { return _toTime; }
     virtual QString toString();
@@ -1279,6 +1377,7 @@ public:
 public:
 
     TheSomething(Token _pos,
+                 Token _endingpos,
                  QString _name,
                  DeclarationType _what);
     QString name() { return _name; }
@@ -1301,6 +1400,7 @@ public:
 public:
 
     Idafa(Token _pos,
+          Token _endingpos,
           shared_ptr<Identifier> _modaf,
           shared_ptr<Expression> _modaf_elaih);
     shared_ptr<Identifier> modaf() { return _modaf; }
@@ -1324,6 +1424,7 @@ public:
 public:
 
     ArrayIndex(Token _pos,
+               Token _endingpos,
                shared_ptr<Expression> _array,
                shared_ptr<Expression> _index);
     shared_ptr<Expression> array() { return _array; }
@@ -1347,6 +1448,7 @@ public:
 public:
 
     MultiDimensionalArrayIndex(Token _pos,
+                               Token _endingpos,
                                shared_ptr<Expression> _array,
                                QVector<shared_ptr<Expression> > _indexes);
     shared_ptr<Expression> array() { return _array; }
@@ -1373,6 +1475,7 @@ public:
 public:
 
     ObjectCreation(Token _pos,
+                   Token _endingpos,
                    shared_ptr<Identifier> _className,
                    QVector<shared_ptr<Identifier> > fieldInitNames,
                    QVector<shared_ptr<Expression> > fieldInitValues);
@@ -1401,10 +1504,11 @@ public:
     // into one class that encapsulate a simple expression and one (or two) for
     // longer procs and functions.
     bool _hasDoToken;
-    QVector<shared_ptr<Identifier> > freeVariables;
+    QSet<QString > freeVariables;
 public:
 
     LambdaExpression(Token _pos,
+                     Token _endingpos,
                      QVector<shared_ptr<FormalParam> > _argList,
                      QVector<shared_ptr<Statement> > statements,
                      bool _hasDoToken);
@@ -1414,8 +1518,8 @@ public:
     shared_ptr<Statement> statement(int index) { return statements[index]; }
     bool hasDoToken() { return _hasDoToken; }
     int freeVariableCount() { return freeVariables.count(); }
-    shared_ptr<Identifier> freeVariable(int index) { return freeVariables[index]; }
-    void addFreeVariable(shared_ptr<Identifier> arg) { freeVariables.append(arg);}
+    void insertFreeVariable(QString a) { freeVariables.insert(a);}
+    bool containsFreeVariable(QString a) { return freeVariables.contains(a);}
     virtual QString toString();
     virtual void prettyPrint(CodeFormatter *f);
 
@@ -1432,7 +1536,8 @@ class Pattern  :   public KalimatAst
 public:
 public:
 
-    Pattern(Token _pos);
+    Pattern(Token _pos,
+            Token _endingpos);
     virtual QString toString()=0;
     virtual void prettyPrint(CodeFormatter *f)=0;
 
@@ -1451,6 +1556,7 @@ public:
 public:
 
     SimpleLiteralPattern(Token _pos,
+                         Token _endingpos,
                          shared_ptr<SimpleLiteral> _value);
     shared_ptr<SimpleLiteral> value() { return _value; }
     virtual QString toString();
@@ -1471,6 +1577,7 @@ public:
 public:
 
     VarPattern(Token _pos,
+               Token _endingpos,
                shared_ptr<VarAccess> _id);
     shared_ptr<VarAccess> id() { return _id; }
     virtual QString toString();
@@ -1491,6 +1598,7 @@ public:
 public:
 
     AssignedVarPattern(Token _pos,
+                       Token _endingpos,
                        shared_ptr<AssignableExpression> _lv);
     shared_ptr<AssignableExpression> lv() { return _lv; }
     virtual QString toString();
@@ -1512,6 +1620,7 @@ public:
 public:
 
     ArrayPattern(Token _pos,
+                 Token _endingpos,
                  QVector<shared_ptr<Pattern> > elements,
                  bool _fixedLength);
     int elementCount() { return elements.count(); }
@@ -1537,6 +1646,7 @@ public:
 public:
 
     ObjPattern(Token _pos,
+               Token _endingpos,
                shared_ptr<Identifier> _classId,
                QVector<shared_ptr<Identifier> > fieldNames,
                QVector<shared_ptr<Pattern> > fieldPatterns);
@@ -1564,6 +1674,7 @@ public:
 public:
 
     MapPattern(Token _pos,
+               Token _endingpos,
                QVector<shared_ptr<Expression> > keys,
                QVector<shared_ptr<Pattern> > values);
     int keyCount() { return keys.count(); }
@@ -1586,7 +1697,8 @@ class TypeExpression  :   public KalimatAst
 public:
 public:
 
-    TypeExpression(Token _pos);
+    TypeExpression(Token _pos,
+                   Token _endingpos);
     virtual QString toString()=0;
     virtual void prettyPrint(CodeFormatter *f)=0;
 
@@ -1605,6 +1717,7 @@ public:
 public:
 
     TypeIdentifier(Token _pos,
+                   Token _endingpos,
                    QString _name);
     QString name() { return _name; }
     virtual QString toString();
@@ -1615,6 +1728,9 @@ public:
     virtual void traverseChildren(Traverser *tv);
 
     virtual QString childrenToString();
+
+    TypeIdentifier(Token _pos,
+                   QString _name);
 };
 
 
@@ -1625,6 +1741,7 @@ public:
 public:
 
     PointerTypeExpression(Token _pos,
+                          Token _endingpos,
                           shared_ptr<TypeExpression> _pointeeType);
     shared_ptr<TypeExpression> pointeeType() { return _pointeeType; }
     virtual QString toString();
@@ -1646,6 +1763,7 @@ public:
 public:
 
     FunctionTypeExpression(Token _pos,
+                           Token _endingpos,
                            shared_ptr<TypeExpression> _retType,
                            QVector<shared_ptr<TypeExpression> > argTypes);
     shared_ptr<TypeExpression> retType() { return _retType; }
@@ -1669,6 +1787,7 @@ public:
 public:
 
     Declaration(Token _pos,
+                Token _endingpos,
                 bool _isPublic);
     bool isPublic() { return _isPublic; }
     virtual QString toString()=0;
@@ -1713,19 +1832,17 @@ public:
 class ProceduralDecl  :   public Declaration,  public IScopeIntroducer
 {
 public:
-    Token _endingToken;
     shared_ptr<Identifier> _procName;
     QVector<shared_ptr<FormalParam> > formals;
     shared_ptr<BlockStmt> _body;
 public:
 
     ProceduralDecl(Token _pos,
+                   Token _endingpos,
                    bool _isPublic,
-                   Token _endingToken,
                    shared_ptr<Identifier> _procName,
                    QVector<shared_ptr<FormalParam> > formals,
                    shared_ptr<BlockStmt> _body);
-    Token endingToken() { return _endingToken; }
     shared_ptr<Identifier> procName() { return _procName; }
     int formalCount() { return formals.count(); }
     shared_ptr<FormalParam> formal(int index) { return formals[index]; }
@@ -1767,8 +1884,8 @@ public:
 public:
 
     ProcedureDecl(Token _pos,
+                  Token _endingpos,
                   bool _isPublic,
-                  Token _endingToken,
                   shared_ptr<Identifier> _procName,
                   QVector<shared_ptr<FormalParam> > formals,
                   shared_ptr<BlockStmt> _body);
@@ -1789,8 +1906,8 @@ public:
 public:
 
     FunctionDecl(Token _pos,
+                 Token _endingpos,
                  bool _isPublic,
-                 Token _endingToken,
                  shared_ptr<Identifier> _procName,
                  QVector<shared_ptr<FormalParam> > formals,
                  shared_ptr<BlockStmt> _body);
@@ -1813,6 +1930,7 @@ public:
 public:
 
     FFILibraryDecl(Token _pos,
+                   Token _endingpos,
                    bool _isPublic,
                    QString _libName,
                    QVector<shared_ptr<Declaration> > decls);
@@ -1841,6 +1959,7 @@ public:
 public:
 
     FFIProceduralDecl(Token _pos,
+                      Token _endingpos,
                       bool _isPublic,
                       bool _isFunctionNotProc,
                       QString _procName,
@@ -1874,6 +1993,7 @@ public:
 public:
 
     FFIStructDecl(Token _pos,
+                  Token _endingpos,
                   bool _isPublic,
                   shared_ptr<Identifier> _name,
                   QVector<shared_ptr<Identifier> > fieldNames,
@@ -2013,6 +2133,7 @@ public:
 public:
 
     ClassDecl(Token _pos,
+              Token _endingpos,
               bool _isPublic,
               shared_ptr<Identifier> _ancestorName,
               shared_ptr<Identifier> _name,
@@ -2020,7 +2141,6 @@ public:
               QMap<QString, MethodInfo > _methodPrototypes,
               QVector<shared_ptr<ClassInternalDecl> > _internalDecls,
               QMap<QString, shared_ptr<TypeExpression> > _fieldMarshallAs);
-
     shared_ptr<Identifier> ancestorName() { return _ancestorName; }
     shared_ptr<Identifier> name() { return _name; }
     int fieldCount() { return _fields.count(); }
@@ -2057,6 +2177,7 @@ public:
 public:
 
     GlobalDecl(Token _pos,
+               Token _endingpos,
                bool _isPublic,
                QString _varName);
     QString varName() { return _varName; }
@@ -2080,8 +2201,8 @@ public:
 public:
 
     MethodDecl(Token _pos,
+               Token _endingpos,
                bool _isPublic,
-               Token _endingToken,
                shared_ptr<Identifier> _procName,
                QVector<shared_ptr<FormalParam> > formals,
                shared_ptr<BlockStmt> _body,
@@ -2107,7 +2228,8 @@ class PegExpr  :   public KalimatAst
 public:
 public:
 
-    PegExpr(Token _pos);
+    PegExpr(Token _pos,
+            Token _endingpos);
     virtual QString toString()=0;
     virtual void prettyPrint(CodeFormatter *f)=0;
 
@@ -2126,6 +2248,7 @@ public:
 public:
 
     PegPrimary(Token _pos,
+               Token _endingpos,
                shared_ptr<Identifier> _associatedVar);
     shared_ptr<Identifier> associatedVar() { return _associatedVar; }
     void setAssociatedVar(shared_ptr<Identifier> val) { _associatedVar = val; }
@@ -2147,6 +2270,7 @@ public:
 public:
 
     PegSequence(Token _pos,
+                Token _endingpos,
                 QVector<shared_ptr<PegExpr> > elements);
     int elementCount() { return elements.count(); }
     shared_ptr<PegExpr> element(int index) { return elements[index]; }
@@ -2168,6 +2292,7 @@ public:
 public:
 
     PegRuleInvokation(Token _pos,
+                      Token _endingpos,
                       shared_ptr<Identifier> _associatedVar,
                       shared_ptr<Identifier> _ruleName);
     shared_ptr<Identifier> ruleName() { return _ruleName; }
@@ -2189,6 +2314,7 @@ public:
 public:
 
     PegLiteral(Token _pos,
+               Token _endingpos,
                shared_ptr<Identifier> _associatedVar,
                shared_ptr<StrLiteral> _value);
     shared_ptr<StrLiteral> value() { return _value; }
@@ -2211,6 +2337,7 @@ public:
 public:
 
     PegCharRange(Token _pos,
+                 Token _endingpos,
                  shared_ptr<Identifier> _associatedVar,
                  shared_ptr<StrLiteral> _value1,
                  shared_ptr<StrLiteral> _value2);
@@ -2238,6 +2365,7 @@ public:
 public:
 
     PegRepetion(Token _pos,
+                Token _endingpos,
                 shared_ptr<Identifier> _associatedVar,
                 shared_ptr<Identifier> _resultVar,
                 shared_ptr<PegExpr> _subExpr,
@@ -2264,6 +2392,7 @@ public:
 public:
 
     RuleOption(Token _pos,
+               Token _endingpos,
                shared_ptr<PegExpr> _expression,
                shared_ptr<Expression> _resultExpr);
     shared_ptr<PegExpr> expression() { return _expression; }
@@ -2287,6 +2416,7 @@ public:
 public:
 
     RuleDecl(Token _pos,
+             Token _endingpos,
              QString _ruleName,
              QVector<shared_ptr<RuleOption> > options);
     QString ruleName() { return _ruleName; }
@@ -2311,6 +2441,7 @@ public:
 public:
 
     RulesDecl(Token _pos,
+              Token _endingpos,
               bool _isPublic,
               shared_ptr<Identifier> _ruleName,
               QVector<shared_ptr<RuleDecl> > _subRules);

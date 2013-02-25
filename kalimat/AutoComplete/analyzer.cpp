@@ -48,7 +48,7 @@ analyzeFunctionDeclarations(shared_ptr<CompilationUnit> cu,
             // QString s = getBeautifulName(proc, msg);
             ret.funcNameToAst[getBeautifulName(proc, msg)] = proc;
             Token start = proc->getPos();
-            Token end = proc->_endingToken;
+            Token end = proc->getEndingPos();
             ret.rangeOfEachProc[start.Pos] = ProcPosRange(start.Pos,
                                                           end.Pos + end.Lexeme.length(),
                                                           proc);

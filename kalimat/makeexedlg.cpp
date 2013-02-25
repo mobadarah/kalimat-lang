@@ -8,6 +8,9 @@ MakeExeDlg::MakeExeDlg(QWidget *parent) :
     ui(new Ui::MakeExeDlg)
 {
     ui->setupUi(this);
+#ifdef ENGLISH_PL
+    setLayoutDirection(Qt::LeftToRight);
+#endif
     targetFilename = "";
     copyDll = true;
     iconIndex = 0;

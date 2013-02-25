@@ -1,27 +1,54 @@
 ﻿لا يمكن التنفيذ
+Cannot run program
 لا يمكن تنفيذ برنامج جديد بينما نحن في نقطة توقف للبرنامج الحالي
+Cannot run a new program while stopped at breakpoint
 انتهى البرنامج قبل أن يكون له معنى
+Incomplete program code
 لا يمكن كتابة هذا الرمز هنا: '%1'
+Incorrect symbol: '%1'
 خطأ في تركيب البرنامج
+Syntax error
 السطر: %1
+Line: %1
 العمود: %1
+Column: %1
  / سطر:%1، عمود:%2، موضع:%3
+ / Line:%1, Column:%2, Pos:%3
 لا يمكن تنفيذ '%1' لأنه وحدة، هل تريد تنفيذ البرنامج '%2' بدلا منه؟
+Cannot run '%1' because it's a unit; run '%2' instead?
 لا يمكن تنفيذ وحدة
+Cannot run a unit
 (البرنامج الرئيسي)
+(main program)
 (خارج الإجراءات)
+(outside of procedures)
 بدون عنوان
+Untitled
 ملف غير موجود
+File not found
 الملف '%1' غير موجود، هل تود إنشاءه؟
+File '%1' not found, create it?
 وصلنا لبداية الملف
+Reached start of file
 وصلنا لنهاية الملف
+Reached end of file
 وصلت لنقطة توقف!!
+Breakpoint reached!!
 كلمات
+Kalimat
 اختر مكان واسم الملف التنفيذي
+Select location & name of executable
 عمل ملف تنفيذي
+Creating executable file
 خطأ في عمل الملف التنفيذي<i>%1</i>
+Problem creating executable:<br /><i>%1</i>
 تم عمل الملف التنفيذي. تأكد من وجود الملفات ذات الإمتداد DLL المطلوبة في نفس مكان الملف التنفيذي لكي يعمل برنامجك!
-هذه هي النسخة الأولية لشهر يناير 2013. حمل أحدث نسخة من www.kalimat-lang.com
+Executable created. Make sure the required DLL files are available alongside your program
+هذه هي النسخة الأولية لشهر فبراير 2013. حمل أحدث نسخة من www.kalimat-lang.com
+Kalimat, February 2013 release. Latest version at www.kalimat-lang.com
 اضغط لفتح الملف
+Click to open file
 إجراء
+proc
 دالة
+func

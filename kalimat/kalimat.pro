@@ -4,10 +4,11 @@
 TARGET = kalimat
 TEMPLATE = app
 QMAKE_CXXFLAGS += -std=gnu++0x -Wno-unused-parameter
-
+#DEFINES += ENGLISH_PL
 #QMAKE_CXXFLAGS_RELEASE -= -O2
 #QMAKE_CXXFLAGS_RELEASE += -O3
-
+CODECFORTR = UTF-8
+TRANSLATIONS = kalimat_en.ts
 SOURCES += main.cpp \
     mainwindow.cpp \
     Lexer/token.cpp \
@@ -83,7 +84,8 @@ SOURCES += main.cpp \
     programdatabase.cpp \
     ../smallvm/runtime/textbuffer.cpp \
     ../smallvm/runtime/cursor.cpp \
-    makeexedlg.cpp
+    makeexedlg.cpp \
+    ../smallvm/cflowgraph.cpp
 HEADERS += mainwindow.h \
     Lexer/token.h \
     Lexer/statemachine.h \

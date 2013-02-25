@@ -22,6 +22,10 @@
     #include "instruction.h"
 #endif
 
+#ifndef CFLOWGRAPH_H
+    #include "cflowgraph.h"
+#endif
+
 class Method : public IMethod
 {
 private:
@@ -34,6 +38,9 @@ private:
     ValueClass *receiver;
     QString name;
     Labeller localsInterner;
+    CFlowGraph cflow;
+private:
+    void buildCFlowGraph();
 public:
     QMap<QString, int> Locals;
 public:
@@ -44,11 +51,12 @@ public:
     void prepareInstruction(int index);
     void Add(Instruction i);
     void Add(Instruction i, QString label);
-    void Add(Instruction i, QString label, int extraInfo);
+    Instruction &Add(Instruction i, QString label, int extraInfo);
     void setLabelsInInstructions();
     void optimize();
     inline int GetIp(const QString &label) { return labels.value(label, -1); }
     inline int Arity() { return arity; }
+    inline int FastArity() { return arity; } // non-virtual, can be inlined
     inline int InstructionCount() { return instructions.count(); }
     inline const Instruction &Get(const QString &label) { return instructions[labels[label]]; }
     inline const Instruction &Get(int ip) { return instructions[ip]; }
@@ -57,7 +65,8 @@ public:
     bool IsReturningReference() { return returnsReference; }
     inline int NumReturnValues() { return numReturnValues; }
     QString getName();
-
+    void computeMaxStack(VM *vm);
+    void computeStackDiff(BasicBlock &bb, VM *vm);
 
     inline int localVarCount() { return Locals.count(); }
     // Implementing IObject
@@ -73,6 +82,7 @@ class MethodClass : public IClass
     QString name;
     IClass *base;
     static IMethod *Apply;
+    friend class VM; // Just so that VM::InitGlobalData() can initialize it
 public:
 
     MethodClass(QString name, IClass *base) : name(name), base(base)

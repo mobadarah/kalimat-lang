@@ -5,7 +5,7 @@
 #include <QSet>
 
 enum Kind { Class, Struct, Enum};
-enum FieldKind { NormalField, VectorField, MapField};
+enum FieldKind { NormalField, VectorField, MapField, SetField};
 
 // json attributes:
 // type: string, name: string, arabic:string,  vector: bool, map: bool, comment: string, hasAddFunction: bool

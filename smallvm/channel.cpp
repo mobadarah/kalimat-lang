@@ -3,6 +3,13 @@
 
 Channel::Channel()
 {
+    isOpen = true;
+}
+
+void Channel::close()
+{
+    QMutexLocker locker(&lock);
+    isOpen = false;
 }
 
 bool Channel::canSend()
@@ -19,6 +26,11 @@ void Channel::send(Value *v, Process *proc)
 
 void Channel::sendNoLock(Value *v, Process *proc)
 {
+    if(closed())
+    {
+        throw VMError(CannotSendToClosedChannel);
+    }
+
     if(!recv_q.empty())
     {
         Process *receiver = recv_q.front();
@@ -59,6 +71,11 @@ void Channel::receive(Process *proc)
 
 void Channel::receiveNoLock(Process *proc)
 {
+    if(closed())
+    {
+        throw VMError(CannotReceiveFromClosedChannel);
+    }
+
     if(!send_q.empty())
     {
         Process *sender = send_q.front();
@@ -68,6 +85,7 @@ void Channel::receiveNoLock(Process *proc)
         {
             Value *v = data[sender];
             proc->pushOperand(v);
+            sender->successfullSelect(this);
             sender->awaken();
         }
         else
@@ -82,7 +100,7 @@ void Channel::receiveNoLock(Process *proc)
 
         if(proc)
             proc->successfullSelect(this);
-        sender->successfullSelect(this);
+
     }
     else
     {

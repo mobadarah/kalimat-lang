@@ -9,10 +9,53 @@
 #include "../../../smallvm/utils.h"
 using namespace std;
 
+uint qHash(shared_ptr<Identifier> id)
+{
+    return qHash(id->name());
+}
+
 MethodInfo::MethodInfo()
 {
 
 }
+
+Identifier::Identifier(Token _pos, QString _name)
+    : KalimatAst(_pos,_pos), _name(_name)
+{
+
+}
+
+VarAccess::VarAccess(shared_ptr<Identifier> _name)
+    : AssignableExpression(_name->getPos(),_name->getEndingPos()),_name(_name)
+{
+
+}
+
+StrLiteral::StrLiteral(Token _pos, QString _value)
+    :SimpleLiteral(_pos,_pos),_value(_value)
+{
+
+}
+
+NullLiteral::NullLiteral(Token _pos)
+    :SimpleLiteral(_pos,_pos)
+{
+
+}
+
+BoolLiteral::BoolLiteral(Token _pos, bool _value)
+    :SimpleLiteral(_pos, _pos),_value(_value)
+{
+
+}
+
+TypeIdentifier::TypeIdentifier(Token _pos,
+               QString _name)
+    : TypeExpression(_pos, _pos),_name(_name)
+{
+
+}
+
 
 QVector<shared_ptr<Identifier> > ForAllStmt::getIntroducedVariables()
 {
@@ -21,7 +64,16 @@ QVector<shared_ptr<Identifier> > ForAllStmt::getIntroducedVariables()
     return ret;
 }
 
-NumLiteral::NumLiteral(Token pos ,QString lexeme) : SimpleLiteral(pos)
+QVector<shared_ptr<Identifier> > ForEachStmt::getIntroducedVariables()
+{
+    QVector<shared_ptr<Identifier> > ret;
+    ret.append(variable());
+    return ret;
+}
+
+
+NumLiteral::NumLiteral(Token pos ,QString lexeme)
+    : SimpleLiteral(pos, pos)
 {
     bool ok;
     QLocale loc(QLocale::Arabic, QLocale::Egypt);
@@ -39,10 +91,10 @@ NumLiteral::NumLiteral(Token pos ,QString lexeme) : SimpleLiteral(pos)
         _dValue = lexeme.toDouble(&ok);
 
     _valueRecognized = ok;
-
 }
 
-NumLiteral::NumLiteral(Token pos ,int value) : SimpleLiteral(pos)
+NumLiteral::NumLiteral(Token pos ,int value) :
+    SimpleLiteral(pos, pos)
 {
     _valueRecognized = true;
     this->_lValue = value;
@@ -310,6 +362,29 @@ void ForAllStmt::prettyPrint(CodeFormatter *f)
         f->nl(); // for extra neatness, add an empty line after block statements
 }
 
+void ForEachStmt::prettyPrint(CodeFormatter *f)
+{
+    f->printKw(L"لكل");
+    this->variable()->prettyPrint(f);
+    f->space();
+    f->printKw(L"في");
+    this->enumerable()->prettyPrint(f);
+    f->colon();
+
+    shared_ptr<BlockStmt> actionBlk = dynamic_pointer_cast<BlockStmt>(this->statement());
+    if(actionBlk)
+        f->nl();
+    else
+        f->space();
+
+    this->statement()->prettyPrint(f);
+    if(!actionBlk)
+        f->space();
+    f->printKw(L"تابع");
+    if(actionBlk)
+        f->nl(); // for extra neatness, add an empty line after block statements
+}
+
 void ReturnStmt::prettyPrint(CodeFormatter *f)
 {
     f->printKw(L"ارجع ب:");
@@ -330,7 +405,6 @@ void LaunchStmt::prettyPrint(CodeFormatter *f)
     f->space();
     this->invokation()->prettyPrint(f);
 }
-
 
 void LabelStmt::prettyPrint(CodeFormatter *f)
 {

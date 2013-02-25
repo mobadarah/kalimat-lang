@@ -103,6 +103,8 @@ void setupFields(TypeInfo &type, QList<QVariant> nodes, Context &context)
             field.kind = VectorField;
         else if(obj.contains("map") && obj["map"].toBool())
             field.kind = MapField;
+        else if(obj.contains("set") && obj["set"].toBool())
+            field.kind = SetField;
 
 
         field.arabicName = obj["arabic"].toString();
@@ -156,7 +158,7 @@ void setupFields(TypeInfo &type, QList<QVariant> nodes, Context &context)
 
         type.fields.append(field);
 
-        if(field.kind !=MapField)
+        if(field.kind != MapField)
         {
             if(context.allTypeNames.contains(field.jsonType))
             {
@@ -183,8 +185,6 @@ void setupFields(TypeInfo &type, QList<QVariant> nodes, Context &context)
 
     }
 }
-
-
 
 int main(int argc, char *argv[])
 {
@@ -221,8 +221,6 @@ int main(int argc, char *argv[])
         processType(type, context);
 
     }
-
-
 
     for(int i=0; i<context.allTypes.count(); ++i)
     {

@@ -53,14 +53,6 @@ enum StepMode
     StepSingle, StepCall, StepParams
 };
 
-struct NullaryStepStopCondition : public StepStopCondition
-{
-    void stopNow(Process *)
-    {
-    }
-    static NullaryStepStopCondition *instance();
-};
-
 class MainWindow : public QMainWindow, public DocumentClient, public VMClient
 {
     Q_OBJECT
@@ -126,7 +118,7 @@ public:
 
     bool isWonderfulMonitorEnabled();
     int wonderfulMonitorDelay();
-    CodePosition getPositionOfRunningInstruction(Frame *f);
+    bool getPositionOfRunningInstruction(CodePosition &p, Frame *f, bool previous);
     CodePosition getPositionOfInstruction(QString method, int offset);
 
     void postMarkCurrentInstruction(VM *vm, Process *proc, int *pos, int *length);
@@ -147,8 +139,8 @@ public:
     void outputMsg(QString s);
     QString translateParserError(ParserException ex);
 
-    void Break(int offset, Frame *frame, Process *process);
-    void postBreak(int offset, Frame *frame, Process *process);
+    void Break(BreakSource::Src source, int offset, Frame *frame, Process *process);
+    void postBreak(BreakSource::Src source, int offset, Frame *frame, Process *process);
     void programStopped(RunWindow *);
     bool eventFilter(QObject *sender, QEvent *event);
 
@@ -186,6 +178,7 @@ private:
     Breakpoint stoppedAtBreakPoint;
     Process *currentDebuggerProcess;
     bool atBreak;
+    BreakSource::Src breakSource;
     StepStopCondition *currentStepStopCondition;
     RunWindow *stoppedRunWindow;
 
@@ -198,9 +191,9 @@ private:
     void makeDrag();
 signals:
     void markCurrentInstructionEvent(VM *vm, Process *proc, int *pos, int *length);
-    void breakEvent(int offset, Frame *frame, Process *process);
+    void breakEvent(BreakSource::Src source, int offset, Frame *frame, Process *process);
 private slots:
-    void breakSlot(int offset, Frame *frame, Process *process);
+    void breakSlot(BreakSource::Src source, int offset, Frame *frame, Process *process);
     void markCurrentInstructionSlot(VM *vm, Process *proc, int *pos, int *length);
     void on_actionGo_to_position_triggered();
     void on_actionCompile_without_tags_triggered();

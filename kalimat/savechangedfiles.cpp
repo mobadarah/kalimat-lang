@@ -25,6 +25,9 @@ SaveChangedFiles::SaveChangedFiles(QWidget *parent) :
 {
     ui->setupUi(this);
     CenterWidget(this);
+#ifdef ENGLISH_PL
+    setLayoutDirection(Qt::LeftToRight);
+#endif
 }
 
 void SaveChangedFiles::addFile(int index, QString fileName)

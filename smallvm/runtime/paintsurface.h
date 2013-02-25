@@ -32,7 +32,7 @@ class PaintSurface
     long cursorTimerPoint;
     double cursorTimeSoFar;
 public:
-    // We have a specia 'demo coordinates' mode in Kalimat
+    // We have a special 'demo coordinates' mode in Kalimat
     // to teach children about the x/y coordinate system
     // by drawing the axes and showing mouse position if this
     // mode was activated

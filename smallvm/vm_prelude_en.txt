@@ -1,0 +1,763 @@
+﻿.method %emptymethod 0
+ret
+.endmethod
+
+.method array 1 1
+newarr
+ret
+.endmethod
+
+.method dict 0 1
+callex newmap
+ret
+.endmethod
+
+.method containsKey 2 1
+callex haskey
+ret
+.endmethod
+
+.method keys 1 1
+callex keysof
+ret
+.endmethod
+
+
+.method multiArray 1 1
+newmdarr
+ret
+.endmethod
+
+.method random 1
+callex random
+ret
+.endmethod
+
+.method toNum 1
+callex to_num
+ret
+.endmethod
+
+.method len 1
+arrlength
+ret
+.endmethod
+
+.method toStr 1
+callex to_string
+ret
+.endmethod
+
+.method round 1
+callex round
+ret
+.endmethod
+
+.method remainder 2
+callex remainder
+ret
+.endmethod
+
+.method sin 1
+callex sin
+ret
+.endmethod
+
+.method cos 1
+callex cos
+ret
+.endmethod
+
+.method tan 1 1
+callex tan
+ret
+.endmethod
+
+.method asin 1 1
+callex asin
+ret
+.endmethod
+
+.method acos 1 1
+callex acos
+ret
+.endmethod
+
+.method atan 1 1
+callex atan
+ret
+.endmethod
+
+.method sqrt 1 1
+callex sqrt
+ret
+.endmethod
+
+.method pow 2 1
+callex pow
+ret
+.endmethod
+
+
+.method log 1 1
+callex log10
+ret
+.endmethod
+
+.method ln 1 1
+callex ln
+ret
+.endmethod
+
+.method strLen 1 1
+callex str_len
+ret
+.endmethod
+
+.method first 2 1
+callex str_first
+ret
+.endmethod
+
+.method last 2 1
+callex str_last
+ret
+.endmethod
+
+.method mid 3 1
+callex str_mid
+ret
+
+.method beginsWith 2 1
+callex str_begins_with
+ret
+.endmethod
+
+.method endsWith 2 1
+callex str_ends_with
+ret
+.endmethod
+
+.method contains 2 1
+callex str_contains
+ret
+.endmethod
+
+.method split 2 1 
+callex str_split
+ret
+.endmethod 
+
+.method trim 1 1
+callex str_trim
+ret
+.endmethod
+
+.method replace 3 1
+callex str_replace
+ret
+.endmethod
+
+.method ticks 0 1
+tick
+ret
+.endmethod
+
+.method loadImage 1 1
+callex load_image
+ret
+.endmethod
+
+.method loadSprite 1 1
+callex load_sprite
+ret
+.endmethod
+
+.method spriteFromImage 1 1
+callex sprite_from_image
+ret
+.endmethod
+
+.method wait 1 0
+callex wait
+ret
+.endmethod
+
+.method hideSprite 1 0
+callex hidesprite
+ret
+.endmethod
+
+.method showSprite 1 0
+callex showsprite
+ret
+.endmethod
+
+.method drawspr 3 0
+callex drawsprite
+ret
+.endmethod
+
+.method spriteRight 1 1
+callex getspriteright
+ret
+.endmethod
+
+.method spriteLeft 1 1
+callex getspriteleft
+ret
+.endmethod
+
+.method spriteTop 1 1
+callex getspritetop
+ret
+.endmethod
+
+.method spriteBottom 1 1
+callex getspritebottom
+ret
+.endmethod
+
+.method spriteWidth 1 1
+callex getspritewidth
+ret
+.endmethod
+
+.method spriteHeight 1 1
+callex getspriteheight
+ret
+.endmethod
+
+.method spriteImage 1 1
+callex getspriteimage
+ret
+.endmethod
+
+.method setSpriteImage 2 0
+callex setspriteimage
+ret
+.endmethod
+
+
+.method cls 0
+callex cls
+ret
+.endmethod
+
+.method clearText 0
+callex cleartext
+ret
+.endmethod
+
+.method setCursorPos 2 0
+callex setcursorpos
+ret
+.endmethod
+
+.method cursorLine 0 1
+callex getcursorrow
+ret
+.endmethod
+
+.method cursorColumn 0 1
+callex getcursorcol
+ret
+.endmethod
+
+.method setTextColor 1 0
+callex settextcolor
+ret
+.endmethod
+
+.method pixelAt 2 1
+callex pointat
+ret
+.endmethod
+
+.method pixelRgbAt 2 1
+callex pointrgbat
+ret
+.endmethod
+
+.method systemConst 1 1
+callex builtinconstant
+ret
+.endmethod
+
+.method isNumeric 1 1
+callex stringisnumeric
+ret
+.endmethod
+
+.method isAlpha 1 1
+callex stringisalphabetic
+ret
+.endmethod
+
+.method typeOf 1 1
+callex typeof
+ret
+.endmethod
+
+.class %file
+	.field file_handle	
+	.method writeLine 2 0
+		callex file_write_line
+		ret
+	.endmethod
+	.method write 2 0
+		callex file_write
+		ret
+	.endmethod	
+	.method writeWidth 3 0
+		callex file_write_using_width
+		ret
+	.endmethod	
+	.method readLine 1 1
+		callex file_read_line
+		ret
+	.endmethod
+
+        .method eof 1 1
+		callex file_eof
+		ret
+	.endmethod
+.endclass
+
+.method openFile 1 1
+	callex file_open
+	ret
+.endmethod
+
+.method createFile 1 1
+	callex file_create
+	ret
+.endmethod
+
+.method appendFile 1 1
+	callex file_append
+	ret
+.endmethod
+
+.method closeFile 1 0
+	callex file_close
+	ret
+.endmethod
+
+.method eof 1 1
+	callex file_eof
+	ret
+.endmethod
+
+.method edit 1 1
+	callex edit
+	ret
+.endmethod
+
+.method mainWindow 0 1
+	callex getmainwindow
+	popl handle
+	new نافذة
+	popl fw
+	pushl fw
+	pushl handle
+	setfld handle
+	pushl fw
+	ret
+.endmethod
+
+.method channel 0 1
+	callex newchannel
+	ret
+.endmethod
+
+.method loadLibrary 1 1
+	callex loadlibrary
+	ret
+.endmethod
+
+.method getProcAddress 2 1
+	callex getprocaddress
+	ret
+.endmethod
+
+.method addressOf 1 1
+	callex addressof
+	ret
+.endmethod
+
+//.method testMakeCArray 0 1
+//	callex test_make_c_array
+//	ret
+// .endmethod
+
+//.method contentOf 1 1
+//	callex contentof
+//	ret
+//.endmethod
+
+.method callForeignMethod 4 1
+	callex callforeign
+	ret
+.endmethod
+
+.class mouseEventData
+    .field x
+    .field y
+    .field rightButton
+    .field leftButton
+.endclass
+
+.class keyEventData
+    .field button
+    .field char
+.endclass
+
+.method enableMouseEventChannel 1 0
+	callex enable_mouse_event_channel
+	ret
+.endmethod
+
+.method enableMouseDownEventChannel 1 0
+	callex enable_mouseDown_event_channel
+	ret
+.endmethod
+
+.method enableMouseUpEventChannel 1 0
+	callex enable_mouseUp_event_channel
+	ret
+.endmethod
+
+.method enableMouseMoveEventChannel 1 0
+	callex enable_mouseMove_event_channel
+	ret
+.endmethod
+
+.method enableKeyEventChannel 1 0
+	callex enable_kb_event_channel
+	ret
+.endmethod
+
+.method mouseEventChannel 0 1
+    callex mouse_event_channel
+    ret
+.endmethod
+
+.method mouseDownEventChannel 0 1
+    callex mouseDown_event_channel
+    ret
+.endmethod
+
+.method mouseUpEventChannel 0 1
+    callex mouseUp_event_channel
+    ret
+.endmethod
+
+.method mouseMoveEventChannel 0 1
+    callex mouseMove_event_channel
+    ret
+.endmethod
+
+
+.method keyEventChannel 0 1
+    callex kb_event_channel
+    ret
+.endmethod
+
+.method currentParseTree 0 1
+callex current_parse_tree
+ret
+.endmethod
+
+.method makeParser 1 1
+callex make_parser
+ret
+.endmethod
+
+.method activationFrame 1 1
+callex activation_frame
+ret
+.endmethod
+
+.method thisSouceCodePoint 0 1
+call thiscp
+ret
+.endmethod
+
+// .method هاجر.لخيط.الرسوم 0 0
+// callex migrate_to_gui_thread
+// ret
+// .endmethod
+
+// .method عد.من.خيط.الرسوم 0 0
+// callex migrate_back_from_gui_thread
+// ret
+// .endmethod
+
+.method %Image_rotated 2 1
+callex image_rotated
+ret
+.endmethod
+
+.method %Image_stretched 3 1
+callex image_scaled
+ret
+.endmethod
+
+.method %Image_line 5 0
+callex image_drawline
+ret
+.endmethod
+
+.method %Image_flipped 3 1
+callex image_flipped
+ret
+.endmethod
+
+.method %Image_copy 1 1
+callex image_copied
+ret
+.endmethod
+
+.method %Image_setPixelColor 4 0
+callex image_setpixelcolor
+ret
+.endmethod
+
+.method %Image_pixelColor 3 1
+callex image_pixelcolor
+ret
+.endmethod
+
+.method %Image_width 1 1
+callex image_width
+ret
+.endmethod
+
+.method %Image_height 1 1
+callex image_height
+ret
+.endmethod
+
+.method %Image_text 4 0
+callex image_drawtext
+ret
+.endmethod
+
+.method %Window_maximize 1 0
+callex foreignwindow_maximize
+ret
+.endmethod
+
+.method %Window_moveTo 3 0
+callex foreignwindow_moveto
+ret
+.endmethod
+
+.method %Window_add 2 0
+callex foreignwindow_add
+ret
+.endmethod
+
+.method %Window_setSize 3 0
+callex foreignwindow_setsize
+ret
+.endmethod
+
+.method %Window_setTitle 2 0
+callex foreignwindow_settitle
+ret
+.endmethod
+
+.method %Window_init 1 0
+callex foreignwindow_setup
+ret
+.endmethod
+
+.method %control_setText 2 0
+callex control_settext
+ret
+.endmethod
+
+.method %control_setSize 3 0
+callex control_setsize
+ret
+.endmethod
+.method %control_setLocation 3 0
+callex control_setlocation
+ret
+.endmethod
+.method %control_text 1 1
+callex control_text
+ret
+.endmethod
+
+.method %control_show 1 0
+callex control_show
+ret
+.endmethod
+
+.method %control_hide 1 0
+callex control_hide
+ret
+.endmethod
+
+.method %control_setVisible 2 0
+callex control_setvisible
+ret
+.endmethod
+
+.method %control_close 1 0
+callex control_close
+ret
+.endmethod
+
+.method %Button_setText 2 0
+callex button_settext
+ret
+.endmethod
+
+.method %Button_text 1 1
+callex button_text
+ret
+.endmethod
+
+.method %TextBox_setText 2 0
+callex textbox_settext
+ret
+.endmethod
+
+.method %TextBox_text 1 1
+callex textbox_text
+ret
+.endmethod
+
+.method %TextBox_appendText 2 0
+callex textbox_appendtext
+ret
+.endmethod
+
+.method %TextLine_setText 2 0
+callex lineedit_settext
+ret
+.endmethod
+
+.method %TextLine_text 1 1
+callex lineedit_text
+ret
+.endmethod
+
+.method %TextLine_appendText 2 0
+callex lineedit_appendtext
+ret
+.endmethod
+
+.method %ListBox_add 2 0
+callex listbox_add
+ret
+.endmethod
+
+.method %ListBox_insertAt 3 0
+callex listbox_insertitem
+ret
+.endmethod
+
+.method %ListBox_itemAt 2 1
+callex listbox_getitem
+ret
+.endmethod
+
+.method %ComboBox_setText 2 0
+callex combobox_settext
+ret
+.endmethod
+
+.method %ComboBox_text 1 1
+callex combobox_text
+ret
+.endmethod
+
+.method %ComboBox_add 2 0
+callex combobox_add
+ret
+.endmethod
+
+.method %ComboBox_insertAt 3 0
+callex combobox_insertitem
+ret
+.endmethod
+
+.method %ComboBox_itemAt 2 1
+callex combobox_getitem
+ret
+.endmethod
+
+.method %ComboBox_setEditable 2 1
+callex combobox_seteditable
+ret
+.endmethod
+
+.method %Label_setText 2 0
+callex label_settext
+ret
+.endmethod
+         
+.method %Label_text 1 1
+callex label_text
+ret
+.endmethod
+
+.method %CheckBox_setText 2 0
+callex checkbox_settext
+ret
+.endmethod
+
+.method %CheckBox_text 1 1
+callex checkbox_text
+ret
+.endmethod
+
+.method %CheckBox_setValue 2 0
+callex checkbox_setvalue
+ret
+.endmethod
+
+.method %CheckBox_value 1 1
+callex checkbox_value
+ret
+.endmethod
+
+.method %RadioButton_setText 2 0
+callex radiobutton_settext
+ret
+.endmethod
+
+.method %RadioButton_text 1 1
+callex radiobutton_text
+ret
+.endmethod
+
+.method %RadioButton_setValue 2 0
+callex radiobutton_setvalue
+ret
+.endmethod
+
+.method %RadioButton_value 1 1
+callex radiobutton_value
+ret
+.endmethod
+
+.method %ButtonGroup_add 2 1
+callex buttongroup_add
+ret
+.endmethod
+
+.method %ButtonGroup_buttonTagged 2 1
+callex buttongroup_getbutton
+ret
+.endmethod
+
+.method %Class_createObject 1 1
+callex class_newobject
+ret
+.endmethod

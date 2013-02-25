@@ -1,7 +1,9 @@
 #include "kalimat_ast_gen.h"
 #include "../../../smallvm/utils.h"
-KalimatAst::KalimatAst(Token _pos): 
-    AST(),_pos(_pos)
+KalimatAst::KalimatAst(Token _pos,
+                       Token _endingpos):
+    AST(),_pos(_pos),
+    _endingpos(_endingpos)
 {
 }
 
@@ -17,8 +19,9 @@ void KalimatAst::traverseChildren(Traverser *tv)
 {
 }
 
-TopLevel::TopLevel(Token _pos): 
-    KalimatAst(_pos)
+TopLevel::TopLevel(Token _pos,
+                   Token _endingpos):
+    KalimatAst(_pos,_endingpos)
 {
 }
 
@@ -34,8 +37,9 @@ void TopLevel::traverseChildren(Traverser *tv)
 {
 }
 
-Statement::Statement(Token _pos): 
-    TopLevel(_pos)
+Statement::Statement(Token _pos,
+                     Token _endingpos):
+    TopLevel(_pos,_endingpos)
 {
 }
 
@@ -51,8 +55,9 @@ void Statement::traverseChildren(Traverser *tv)
 {
 }
 
-Expression::Expression(Token _pos): 
-    KalimatAst(_pos)
+Expression::Expression(Token _pos,
+                       Token _endingpos):
+    KalimatAst(_pos,_endingpos)
 {
 }
 
@@ -68,8 +73,9 @@ void Expression::traverseChildren(Traverser *tv)
 {
 }
 
-IOStatement::IOStatement(Token _pos): 
-    Statement(_pos)
+IOStatement::IOStatement(Token _pos,
+                         Token _endingpos):
+    Statement(_pos,_endingpos)
 {
 }
 
@@ -85,8 +91,9 @@ void IOStatement::traverseChildren(Traverser *tv)
 {
 }
 
-GraphicsStatement::GraphicsStatement(Token _pos): 
-    Statement(_pos)
+GraphicsStatement::GraphicsStatement(Token _pos,
+                                     Token _endingpos):
+    Statement(_pos,_endingpos)
 {
 }
 
@@ -102,8 +109,9 @@ void GraphicsStatement::traverseChildren(Traverser *tv)
 {
 }
 
-ChannelCommunicationStmt::ChannelCommunicationStmt(Token _pos): 
-    Statement(_pos)
+ChannelCommunicationStmt::ChannelCommunicationStmt(Token _pos,
+                                                   Token _endingpos):
+    Statement(_pos,_endingpos)
 {
 }
 
@@ -120,8 +128,9 @@ void ChannelCommunicationStmt::traverseChildren(Traverser *tv)
 }
 
 CompilationUnit::CompilationUnit(Token _pos,
+                                 Token _endingpos,
                                  QVector<shared_ptr<StrLiteral> > usedModules):
-    KalimatAst(_pos),usedModules(usedModules)
+    KalimatAst(_pos,_endingpos),usedModules(usedModules)
 {
 }
 
@@ -156,10 +165,11 @@ void CompilationUnit::traverseChildren(Traverser *tv)
 }
 
 Program::Program(Token _pos,
+                 Token _endingpos,
                  QVector<shared_ptr<StrLiteral> > usedModules,
                  QVector<shared_ptr<TopLevel> > elements,
                  QVector<shared_ptr<TopLevel> > originalElements):
-    CompilationUnit(_pos,usedModules),elements(elements),
+    CompilationUnit(_pos,_endingpos,usedModules),elements(elements),
     originalElements(originalElements)
 {
 }
@@ -221,10 +231,11 @@ void Program::traverseChildren(Traverser *tv)
 }
 
 Module::Module(Token _pos,
+               Token _endingpos,
                QVector<shared_ptr<StrLiteral> > usedModules,
                shared_ptr<Identifier> _name,
                QVector<shared_ptr<Declaration> > declarations):
-    CompilationUnit(_pos,usedModules),_name(_name),
+    CompilationUnit(_pos,_endingpos,usedModules),_name(_name),
     declarations(declarations)
 {
 }
@@ -233,7 +244,7 @@ QString Module::toString()
 {
     QString ret;
     QTextStream out(&ret);
-    out << _ws(L"أمر.اتصال.بقناة(");
+    out << _ws(L"وحدة.برمجية(");
     out << CompilationUnit::childrenToString();
     out << ", " << childrenToString();
     out <<")";
@@ -285,8 +296,9 @@ void Module::traverseChildren(Traverser *tv)
 
 }
 
-AssignableExpression::AssignableExpression(Token _pos): 
-    Expression(_pos)
+AssignableExpression::AssignableExpression(Token _pos,
+                                           Token _endingpos):
+    Expression(_pos,_endingpos)
 {
 }
 
@@ -302,8 +314,9 @@ void AssignableExpression::traverseChildren(Traverser *tv)
 {
 }
 
-Literal::Literal(Token _pos): 
-    Expression(_pos)
+Literal::Literal(Token _pos,
+                 Token _endingpos):
+    Expression(_pos,_endingpos)
 {
 }
 
@@ -319,8 +332,9 @@ void Literal::traverseChildren(Traverser *tv)
 {
 }
 
-SimpleLiteral::SimpleLiteral(Token _pos): 
-    Literal(_pos)
+SimpleLiteral::SimpleLiteral(Token _pos,
+                             Token _endingpos):
+    Literal(_pos,_endingpos)
 {
 }
 
@@ -337,10 +351,11 @@ void SimpleLiteral::traverseChildren(Traverser *tv)
 }
 
 AssignmentStmt::AssignmentStmt(Token _pos,
+                               Token _endingpos,
                                shared_ptr<AssignableExpression> _variable,
                                shared_ptr<Expression> _value,
                                shared_ptr<TypeExpression> _type):
-    Statement(_pos),_variable(_variable),
+    Statement(_pos,_endingpos),_variable(_variable),
     _value(_value),
     _type(_type)
 {
@@ -403,10 +418,11 @@ void AssignmentStmt::traverseChildren(Traverser *tv)
 }
 
 IfStmt::IfStmt(Token _pos,
+               Token _endingpos,
                shared_ptr<Expression> _condition,
                shared_ptr<Statement> _thenPart,
                shared_ptr<Statement> _elsePart):
-    Statement(_pos),_condition(_condition),
+    Statement(_pos,_endingpos),_condition(_condition),
     _thenPart(_thenPart),
     _elsePart(_elsePart)
 {
@@ -469,9 +485,10 @@ void IfStmt::traverseChildren(Traverser *tv)
 }
 
 WhileStmt::WhileStmt(Token _pos,
+                     Token _endingpos,
                      shared_ptr<Expression> _condition,
                      shared_ptr<Statement> _statement):
-    Statement(_pos),_condition(_condition),
+    Statement(_pos,_endingpos),_condition(_condition),
     _statement(_statement)
 {
 }
@@ -480,7 +497,7 @@ QString WhileStmt::toString()
 {
     QString ret;
     QTextStream out(&ret);
-    out << _ws(L"أمر.طالما(");
+    out << _ws(L"أمر.كرر(");
     out << Statement::childrenToString();
     out << ", " << childrenToString();
     out <<")";
@@ -524,13 +541,14 @@ void WhileStmt::traverseChildren(Traverser *tv)
 }
 
 ForAllStmt::ForAllStmt(Token _pos,
+                       Token _endingpos,
                        shared_ptr<Identifier> _variable,
                        shared_ptr<Expression> _from,
                        shared_ptr<Expression> _to,
                        shared_ptr<Expression> _step,
                        shared_ptr<Statement> _statement,
                        bool _downTo):
-    Statement(_pos),_variable(_variable),
+    Statement(_pos,_endingpos),_variable(_variable),
     _from(_from),
     _to(_to),
     _step(_step),
@@ -614,9 +632,77 @@ void ForAllStmt::traverseChildren(Traverser *tv)
 
 }
 
+ForEachStmt::ForEachStmt(Token _pos,
+                         Token _endingpos,
+                         shared_ptr<Identifier> _variable,
+                         shared_ptr<Expression> _enumerable,
+                         shared_ptr<Statement> _statement):
+    Statement(_pos,_endingpos),_variable(_variable),
+    _enumerable(_enumerable),
+    _statement(_statement)
+{
+}
+
+QString ForEachStmt::toString()
+{
+    QString ret;
+    QTextStream out(&ret);
+    out << _ws(L"أمر.لكل.في(");
+    out << Statement::childrenToString();
+    out << ", " << childrenToString();
+    out <<")";
+    return ret;
+}
+
+QString ForEachStmt::childrenToString()
+{
+    QString ret;
+    QTextStream out(&ret);
+    if(_variable)
+    {
+        out << variable()->toString() << ", " ;
+    }
+    if(_enumerable)
+    {
+        out << enumerable()->toString() << ", " ;
+    }
+    if(_statement)
+    {
+        out << statement()->toString() << ", " ;
+    }
+    return ret;
+}
+
+void ForEachStmt::traverse(shared_ptr<PrettyPrintable> p, Traverser *tv)
+{
+    tv->visit(p);
+    Statement::traverseChildren(tv);
+    this->traverseChildren(tv);
+    tv->exit(p);
+}
+void ForEachStmt::traverseChildren(Traverser *tv)
+{
+    if(_variable)
+    {
+        _variable->traverse(_variable, tv);
+    }
+
+    if(_enumerable)
+    {
+        _enumerable->traverse(_enumerable, tv);
+    }
+
+    if(_statement)
+    {
+        _statement->traverse(_statement, tv);
+    }
+
+}
+
 ReturnStmt::ReturnStmt(Token _pos,
+                       Token _endingpos,
                        shared_ptr<Expression> _returnVal):
-    Statement(_pos),_returnVal(_returnVal)
+    Statement(_pos,_endingpos),_returnVal(_returnVal)
 {
 }
 
@@ -659,8 +745,9 @@ void ReturnStmt::traverseChildren(Traverser *tv)
 }
 
 DelegationStmt::DelegationStmt(Token _pos,
+                               Token _endingpos,
                                shared_ptr<IInvokation> _invokation):
-    Statement(_pos),_invokation(_invokation)
+    Statement(_pos,_endingpos),_invokation(_invokation)
 {
 }
 
@@ -703,8 +790,9 @@ void DelegationStmt::traverseChildren(Traverser *tv)
 }
 
 LaunchStmt::LaunchStmt(Token _pos,
+                       Token _endingpos,
                        shared_ptr<IInvokation> _invokation):
-    Statement(_pos),_invokation(_invokation)
+    Statement(_pos,_endingpos),_invokation(_invokation)
 {
 }
 
@@ -747,8 +835,9 @@ void LaunchStmt::traverseChildren(Traverser *tv)
 }
 
 LabelStmt::LabelStmt(Token _pos,
+                     Token _endingpos,
                      shared_ptr<Expression> _target):
-    Statement(_pos),_target(_target)
+    Statement(_pos,_endingpos),_target(_target)
 {
 }
 
@@ -791,8 +880,9 @@ void LabelStmt::traverseChildren(Traverser *tv)
 }
 
 GotoStmt::GotoStmt(Token _pos,
+                   Token _endingpos,
                    shared_ptr<Expression> _target):
-    Statement(_pos),_target(_target)
+    Statement(_pos,_endingpos),_target(_target)
 {
 }
 
@@ -835,11 +925,12 @@ void GotoStmt::traverseChildren(Traverser *tv)
 }
 
 PrintStmt::PrintStmt(Token _pos,
+                     Token _endingpos,
                      shared_ptr<Expression> _fileObject,
                      QVector<shared_ptr<Expression> > args,
                      QVector<shared_ptr<Expression> > widths,
                      bool _printOnSameLine):
-    IOStatement(_pos),_fileObject(_fileObject),
+    IOStatement(_pos,_endingpos),_fileObject(_fileObject),
     args(args),
     widths(widths),
     _printOnSameLine(_printOnSameLine)
@@ -922,11 +1013,12 @@ void PrintStmt::traverseChildren(Traverser *tv)
 }
 
 ReadStmt::ReadStmt(Token _pos,
+                   Token _endingpos,
                    shared_ptr<Expression> _fileObject,
                    QString _prompt,
                    QVector<shared_ptr<AssignableExpression> > variables,
                    QVector<bool > readNumberFlags):
-    IOStatement(_pos),_fileObject(_fileObject),
+    IOStatement(_pos,_endingpos),_fileObject(_fileObject),
     _prompt(_prompt),
     variables(variables),
     readNumberFlags(readNumberFlags)
@@ -997,10 +1089,11 @@ void ReadStmt::traverseChildren(Traverser *tv)
 }
 
 DrawPixelStmt::DrawPixelStmt(Token _pos,
+                             Token _endingpos,
                              shared_ptr<Expression> _x,
                              shared_ptr<Expression> _y,
                              shared_ptr<Expression> _color):
-    GraphicsStatement(_pos),_x(_x),
+    GraphicsStatement(_pos,_endingpos),_x(_x),
     _y(_y),
     _color(_color)
 {
@@ -1010,7 +1103,7 @@ QString DrawPixelStmt::toString()
 {
     QString ret;
     QTextStream out(&ret);
-    out << _ws(L"أمر.لكل(");
+    out << _ws(L"أمر.ارسم.نقطة(");
     out << GraphicsStatement::childrenToString();
     out << ", " << childrenToString();
     out <<")";
@@ -1063,12 +1156,13 @@ void DrawPixelStmt::traverseChildren(Traverser *tv)
 }
 
 DrawLineStmt::DrawLineStmt(Token _pos,
+                           Token _endingpos,
                            shared_ptr<Expression> _x1,
                            shared_ptr<Expression> _y1,
                            shared_ptr<Expression> _x2,
                            shared_ptr<Expression> _y2,
                            shared_ptr<Expression> _color):
-    GraphicsStatement(_pos),_x1(_x1),
+    GraphicsStatement(_pos,_endingpos),_x1(_x1),
     _y1(_y1),
     _x2(_x2),
     _y2(_y2),
@@ -1151,13 +1245,14 @@ void DrawLineStmt::traverseChildren(Traverser *tv)
 }
 
 DrawRectStmt::DrawRectStmt(Token _pos,
+                           Token _endingpos,
                            shared_ptr<Expression> _x1,
                            shared_ptr<Expression> _y1,
                            shared_ptr<Expression> _x2,
                            shared_ptr<Expression> _y2,
                            shared_ptr<Expression> _color,
                            shared_ptr<Expression> _filled):
-    GraphicsStatement(_pos),_x1(_x1),
+    GraphicsStatement(_pos,_endingpos),_x1(_x1),
     _y1(_y1),
     _x2(_x2),
     _y2(_y2),
@@ -1250,12 +1345,13 @@ void DrawRectStmt::traverseChildren(Traverser *tv)
 }
 
 DrawCircleStmt::DrawCircleStmt(Token _pos,
+                               Token _endingpos,
                                shared_ptr<Expression> _cx,
                                shared_ptr<Expression> _cy,
                                shared_ptr<Expression> _radius,
                                shared_ptr<Expression> _color,
                                shared_ptr<Expression> _filled):
-    GraphicsStatement(_pos),_cx(_cx),
+    GraphicsStatement(_pos,_endingpos),_cx(_cx),
     _cy(_cy),
     _radius(_radius),
     _color(_color),
@@ -1338,10 +1434,11 @@ void DrawCircleStmt::traverseChildren(Traverser *tv)
 }
 
 DrawImageStmt::DrawImageStmt(Token _pos,
+                             Token _endingpos,
                              shared_ptr<Expression> _x,
                              shared_ptr<Expression> _y,
                              shared_ptr<Expression> _image):
-    GraphicsStatement(_pos),_x(_x),
+    GraphicsStatement(_pos,_endingpos),_x(_x),
     _y(_y),
     _image(_image)
 {
@@ -1404,10 +1501,11 @@ void DrawImageStmt::traverseChildren(Traverser *tv)
 }
 
 DrawSpriteStmt::DrawSpriteStmt(Token _pos,
+                               Token _endingpos,
                                shared_ptr<Expression> _x,
                                shared_ptr<Expression> _y,
                                shared_ptr<Expression> _sprite):
-    GraphicsStatement(_pos),_x(_x),
+    GraphicsStatement(_pos,_endingpos),_x(_x),
     _y(_y),
     _sprite(_sprite)
 {
@@ -1470,11 +1568,12 @@ void DrawSpriteStmt::traverseChildren(Traverser *tv)
 }
 
 ZoomStmt::ZoomStmt(Token _pos,
+                   Token _endingpos,
                    shared_ptr<Expression> _x1,
                    shared_ptr<Expression> _y1,
                    shared_ptr<Expression> _x2,
                    shared_ptr<Expression> _y2):
-    GraphicsStatement(_pos),_x1(_x1),
+    GraphicsStatement(_pos,_endingpos),_x1(_x1),
     _y1(_y1),
     _x2(_x2),
     _y2(_y2)
@@ -1548,9 +1647,10 @@ void ZoomStmt::traverseChildren(Traverser *tv)
 
 
 EventStatement::EventStatement(Token _pos,
+                               Token _endingpos,
                                EventType _type,
                                shared_ptr<Identifier> _handler):
-    Statement(_pos),_type(_type),
+    Statement(_pos,_endingpos),_type(_type),
     _handler(_handler)
 {
 }
@@ -1595,10 +1695,11 @@ void EventStatement::traverseChildren(Traverser *tv)
 }
 
 SendStmt::SendStmt(Token _pos,
+                   Token _endingpos,
                    shared_ptr<Expression> _value,
                    shared_ptr<Expression> _channel,
                    bool _signal):
-    ChannelCommunicationStmt(_pos),_value(_value),
+    ChannelCommunicationStmt(_pos,_endingpos),_value(_value),
     _channel(_channel),
     _signal(_signal)
 {
@@ -1608,7 +1709,7 @@ QString SendStmt::toString()
 {
     QString ret;
     QTextStream out(&ret);
-    out << _ws(L"أمر.لكل(");
+    out << _ws(L"أمر.ارسل(");
     out << ChannelCommunicationStmt::childrenToString();
     out << ", " << childrenToString();
     out <<")";
@@ -1653,10 +1754,11 @@ void SendStmt::traverseChildren(Traverser *tv)
 }
 
 ReceiveStmt::ReceiveStmt(Token _pos,
+                         Token _endingpos,
                          shared_ptr<AssignableExpression> _value,
                          shared_ptr<Expression> _channel,
                          bool _signal):
-    ChannelCommunicationStmt(_pos),_value(_value),
+    ChannelCommunicationStmt(_pos,_endingpos),_value(_value),
     _channel(_channel),
     _signal(_signal)
 {
@@ -1666,7 +1768,7 @@ QString ReceiveStmt::toString()
 {
     QString ret;
     QTextStream out(&ret);
-    out << _ws(L"أمر.لكل(");
+    out << _ws(L"أمر.تسلم(");
     out << ChannelCommunicationStmt::childrenToString();
     out << ", " << childrenToString();
     out <<")";
@@ -1711,9 +1813,10 @@ void ReceiveStmt::traverseChildren(Traverser *tv)
 }
 
 SelectStmt::SelectStmt(Token _pos,
+                       Token _endingpos,
                        QVector<shared_ptr<ChannelCommunicationStmt> > conditions,
                        QVector<shared_ptr<Statement> > actions):
-    Statement(_pos),conditions(conditions),
+    Statement(_pos,_endingpos),conditions(conditions),
     actions(actions)
 {
 }
@@ -1722,7 +1825,7 @@ QString SelectStmt::toString()
 {
     QString ret;
     QTextStream out(&ret);
-    out << _ws(L"أمر.لكل(");
+    out << _ws(L"أمر.تخير(");
     out << Statement::childrenToString();
     out << ", " << childrenToString();
     out <<")";
@@ -1784,8 +1887,9 @@ void SelectStmt::traverseChildren(Traverser *tv)
 }
 
 BlockStmt::BlockStmt(Token _pos,
+                     Token _endingpos,
                      QVector<shared_ptr<Statement> > _statements):
-    Statement(_pos),_statements(_statements)
+    Statement(_pos,_endingpos),_statements(_statements)
 {
 }
 
@@ -1837,8 +1941,9 @@ void BlockStmt::traverseChildren(Traverser *tv)
 }
 
 InvokationStmt::InvokationStmt(Token _pos,
+                               Token _endingpos,
                                shared_ptr<Expression> _expression):
-    Statement(_pos),_expression(_expression)
+    Statement(_pos,_endingpos),_expression(_expression)
 {
 }
 
@@ -1846,7 +1951,7 @@ QString InvokationStmt::toString()
 {
     QString ret;
     QTextStream out(&ret);
-    out << _ws(L"أمر.لكل(");
+    out << _ws(L"أمر.استدعائي(");
     out << Statement::childrenToString();
     out << ", " << childrenToString();
     out <<")";
@@ -1881,10 +1986,11 @@ void InvokationStmt::traverseChildren(Traverser *tv)
 }
 
 BinaryOperation::BinaryOperation(Token _pos,
+                                 Token _endingpos,
                                  QString _operator_,
                                  shared_ptr<Expression> _operand1,
                                  shared_ptr<Expression> _operand2):
-    Expression(_pos),_operator_(_operator_),
+    Expression(_pos,_endingpos),_operator_(_operator_),
     _operand1(_operand1),
     _operand2(_operand2)
 {
@@ -1939,9 +2045,10 @@ void BinaryOperation::traverseChildren(Traverser *tv)
 }
 
 UnaryOperation::UnaryOperation(Token _pos,
+                               Token _endingpos,
                                QString _operator_,
                                shared_ptr<Expression> _operand):
-    Expression(_pos),_operator_(_operator_),
+    Expression(_pos,_endingpos),_operator_(_operator_),
     _operand(_operand)
 {
 }
@@ -1950,7 +2057,7 @@ QString UnaryOperation::toString()
 {
     QString ret;
     QTextStream out(&ret);
-    out << _ws(L"أمر.لكل(");
+    out << _ws(L"أمر.عملية.أحادية(");
     out << Expression::childrenToString();
     out << ", " << childrenToString();
     out <<")";
@@ -1986,9 +2093,10 @@ void UnaryOperation::traverseChildren(Traverser *tv)
 }
 
 IsaOperation::IsaOperation(Token _pos,
+                           Token _endingpos,
                            shared_ptr<Expression> _expression,
                            shared_ptr<Identifier> _type):
-    Expression(_pos),_expression(_expression),
+    Expression(_pos,_endingpos),_expression(_expression),
     _type(_type)
 {
 }
@@ -1997,7 +2105,7 @@ QString IsaOperation::toString()
 {
     QString ret;
     QTextStream out(&ret);
-    out << _ws(L"أمر.لكل(");
+    out << _ws(L"تعبير.هو(");
     out << Expression::childrenToString();
     out << ", " << childrenToString();
     out <<")";
@@ -2041,9 +2149,10 @@ void IsaOperation::traverseChildren(Traverser *tv)
 }
 
 MatchOperation::MatchOperation(Token _pos,
+                               Token _endingpos,
                                shared_ptr<Expression> _expression,
                                shared_ptr<Pattern> _pattern):
-    Expression(_pos),_expression(_expression),
+    Expression(_pos,_endingpos),_expression(_expression),
     _pattern(_pattern)
 {
 }
@@ -2096,8 +2205,9 @@ void MatchOperation::traverseChildren(Traverser *tv)
 }
 
 Identifier::Identifier(Token _pos,
+                       Token _endingpos,
                        QString _name):
-    KalimatAst(_pos),_name(_name)
+    KalimatAst(_pos,_endingpos),_name(_name)
 {
 }
 
@@ -2132,8 +2242,9 @@ void Identifier::traverseChildren(Traverser *tv)
 }
 
 VarAccess::VarAccess(Token _pos,
+                     Token _endingpos,
                      shared_ptr<Identifier> _name):
-    AssignableExpression(_pos),_name(_name)
+    AssignableExpression(_pos,_endingpos),_name(_name)
 {
 }
 
@@ -2180,7 +2291,7 @@ QString NumLiteral::toString()
 {
     QString ret;
     QTextStream out(&ret);
-    out << _ws(L"أمر.لكل(");
+    out << _ws(L"تعبير.عددي.حرفي(");
     out << SimpleLiteral::childrenToString();
     out << ", " << childrenToString();
     out <<")";
@@ -2210,8 +2321,9 @@ void NumLiteral::traverseChildren(Traverser *tv)
 }
 
 StrLiteral::StrLiteral(Token _pos,
+                       Token _endingpos,
                        QString _value):
-    SimpleLiteral(_pos),_value(_value)
+    SimpleLiteral(_pos,_endingpos),_value(_value)
 {
 }
 
@@ -2219,7 +2331,7 @@ QString StrLiteral::toString()
 {
     QString ret;
     QTextStream out(&ret);
-    out << _ws(L"أمر.لكل(");
+    out << _ws(L"تعبير.نصي.حرفي(");
     out << SimpleLiteral::childrenToString();
     out << ", " << childrenToString();
     out <<")";
@@ -2245,8 +2357,9 @@ void StrLiteral::traverseChildren(Traverser *tv)
 {
 }
 
-NullLiteral::NullLiteral(Token _pos): 
-    SimpleLiteral(_pos)
+NullLiteral::NullLiteral(Token _pos,
+                         Token _endingpos):
+    SimpleLiteral(_pos,_endingpos)
 {
 }
 
@@ -2254,7 +2367,7 @@ QString NullLiteral::toString()
 {
     QString ret;
     QTextStream out(&ret);
-    out << _ws(L"أمر.لكل(");
+    out << _ws(L"لاشيء(");
     out << SimpleLiteral::childrenToString();
     out << ", " << childrenToString();
     out <<")";
@@ -2280,8 +2393,9 @@ void NullLiteral::traverseChildren(Traverser *tv)
 }
 
 BoolLiteral::BoolLiteral(Token _pos,
+                         Token _endingpos,
                          bool _value):
-    SimpleLiteral(_pos),_value(_value)
+    SimpleLiteral(_pos,_endingpos),_value(_value)
 {
 }
 
@@ -2289,7 +2403,7 @@ QString BoolLiteral::toString()
 {
     QString ret;
     QTextStream out(&ret);
-    out << _ws(L"أمر.لكل(");
+    out << _ws(L"تعبير.منطقي.حرفي(");
     out << SimpleLiteral::childrenToString();
     out << ", " << childrenToString();
     out <<")";
@@ -2316,8 +2430,9 @@ void BoolLiteral::traverseChildren(Traverser *tv)
 }
 
 ArrayLiteral::ArrayLiteral(Token _pos,
+                           Token _endingpos,
                            QVector<shared_ptr<Expression> > _data):
-    Literal(_pos),_data(_data)
+    Literal(_pos,_endingpos),_data(_data)
 {
 }
 
@@ -2369,8 +2484,9 @@ void ArrayLiteral::traverseChildren(Traverser *tv)
 }
 
 MapLiteral::MapLiteral(Token _pos,
+                       Token _endingpos,
                        QVector<shared_ptr<Expression> > _data):
-    Literal(_pos),_data(_data)
+    Literal(_pos,_endingpos),_data(_data)
 {
 }
 
@@ -2421,8 +2537,9 @@ void MapLiteral::traverseChildren(Traverser *tv)
 
 }
 
-IInvokation::IInvokation(Token _pos): 
-    Expression(_pos)
+IInvokation::IInvokation(Token _pos,
+                         Token _endingpos):
+    Expression(_pos,_endingpos)
 {
 }
 
@@ -2439,9 +2556,10 @@ void IInvokation::traverseChildren(Traverser *tv)
 }
 
 Invokation::Invokation(Token _pos,
+                       Token _endingpos,
                        shared_ptr<Identifier> _functor,
                        QVector<shared_ptr<Expression> > arguments):
-    IInvokation(_pos),_functor(_functor),
+    IInvokation(_pos,_endingpos),_functor(_functor),
     arguments(arguments)
 {
 }
@@ -2503,10 +2621,11 @@ void Invokation::traverseChildren(Traverser *tv)
 }
 
 MethodInvokation::MethodInvokation(Token _pos,
+                                   Token _endingpos,
                                    shared_ptr<Expression> _receiver,
                                    shared_ptr<Identifier> _methodSelector,
                                    QVector<shared_ptr<Expression> > arguments):
-    IInvokation(_pos),_receiver(_receiver),
+    IInvokation(_pos,_endingpos),_receiver(_receiver),
     _methodSelector(_methodSelector),
     arguments(arguments)
 {
@@ -2516,7 +2635,7 @@ QString MethodInvokation::toString()
 {
     QString ret;
     QTextStream out(&ret);
-    out << _ws(L"أمر.لكل(");
+    out << _ws(L"إرسال.رسالة(");
     out << IInvokation::childrenToString();
     out << ", " << childrenToString();
     out <<")";
@@ -2578,8 +2697,9 @@ void MethodInvokation::traverseChildren(Traverser *tv)
 }
 
 ForAutocomplete::ForAutocomplete(Token _pos,
+                                 Token _endingpos,
                                  shared_ptr<Expression> _toBeCompleted):
-    IInvokation(_pos),_toBeCompleted(_toBeCompleted)
+    IInvokation(_pos,_endingpos),_toBeCompleted(_toBeCompleted)
 {
 }
 
@@ -2622,8 +2742,9 @@ void ForAutocomplete::traverseChildren(Traverser *tv)
 }
 
 TimingExpression::TimingExpression(Token _pos,
+                                   Token _endingpos,
                                    shared_ptr<Expression> _toTime):
-    Expression(_pos),_toTime(_toTime)
+    Expression(_pos,_endingpos),_toTime(_toTime)
 {
 }
 
@@ -2667,9 +2788,10 @@ void TimingExpression::traverseChildren(Traverser *tv)
 
 
 TheSomething::TheSomething(Token _pos,
+                           Token _endingpos,
                            QString _name,
                            DeclarationType _what):
-    Expression(_pos),_name(_name),
+    Expression(_pos,_endingpos),_name(_name),
     _what(_what)
 {
 }
@@ -2696,9 +2818,10 @@ void TheSomething::traverseChildren(Traverser *tv)
 }
 
 Idafa::Idafa(Token _pos,
+             Token _endingpos,
              shared_ptr<Identifier> _modaf,
              shared_ptr<Expression> _modaf_elaih):
-    AssignableExpression(_pos),_modaf(_modaf),
+    AssignableExpression(_pos,_endingpos),_modaf(_modaf),
     _modaf_elaih(_modaf_elaih)
 {
 }
@@ -2751,9 +2874,10 @@ void Idafa::traverseChildren(Traverser *tv)
 }
 
 ArrayIndex::ArrayIndex(Token _pos,
+                       Token _endingpos,
                        shared_ptr<Expression> _array,
                        shared_ptr<Expression> _index):
-    AssignableExpression(_pos),_array(_array),
+    AssignableExpression(_pos,_endingpos),_array(_array),
     _index(_index)
 {
 }
@@ -2806,9 +2930,10 @@ void ArrayIndex::traverseChildren(Traverser *tv)
 }
 
 MultiDimensionalArrayIndex::MultiDimensionalArrayIndex(Token _pos,
+                                                       Token _endingpos,
                                                        shared_ptr<Expression> _array,
                                                        QVector<shared_ptr<Expression> > _indexes):
-    AssignableExpression(_pos),_array(_array),
+    AssignableExpression(_pos,_endingpos),_array(_array),
     _indexes(_indexes)
 {
 }
@@ -2870,10 +2995,11 @@ void MultiDimensionalArrayIndex::traverseChildren(Traverser *tv)
 }
 
 ObjectCreation::ObjectCreation(Token _pos,
+                               Token _endingpos,
                                shared_ptr<Identifier> _className,
                                QVector<shared_ptr<Identifier> > fieldInitNames,
                                QVector<shared_ptr<Expression> > fieldInitValues):
-    Expression(_pos),_className(_className),
+    Expression(_pos,_endingpos),_className(_className),
     fieldInitNames(fieldInitNames),
     fieldInitValues(fieldInitValues)
 {
@@ -2954,10 +3080,11 @@ void ObjectCreation::traverseChildren(Traverser *tv)
 }
 
 LambdaExpression::LambdaExpression(Token _pos,
+                                   Token _endingpos,
                                    QVector<shared_ptr<FormalParam> > _argList,
                                    QVector<shared_ptr<Statement> > statements,
                                    bool _hasDoToken):
-    Expression(_pos),_argList(_argList),
+    Expression(_pos,_endingpos),_argList(_argList),
     statements(statements),
     _hasDoToken(_hasDoToken)
 {
@@ -2997,15 +3124,12 @@ QString LambdaExpression::childrenToString()
     }
     out << "]";
     out << _hasDoToken << ", " ;
-    out << "[";
-    for(int i=0; i<freeVariables.count(); i++)
+    out << "{";
+    for(QSet<QString >::const_iterator i=freeVariables.begin(); i!=freeVariables.end(); ++i)
     {
-        if(freeVariables[i])
-        {
-            out << freeVariables[i]->toString() << ", " ;
-        }
+        out << *i << ", " ;
     }
-    out << "]";
+    out << "}";
     return ret;
 }
 
@@ -3038,8 +3162,9 @@ void LambdaExpression::traverseChildren(Traverser *tv)
 
 }
 
-Pattern::Pattern(Token _pos): 
-    KalimatAst(_pos)
+Pattern::Pattern(Token _pos,
+                 Token _endingpos):
+    KalimatAst(_pos,_endingpos)
 {
 }
 
@@ -3056,8 +3181,9 @@ void Pattern::traverseChildren(Traverser *tv)
 }
 
 SimpleLiteralPattern::SimpleLiteralPattern(Token _pos,
+                                           Token _endingpos,
                                            shared_ptr<SimpleLiteral> _value):
-    Pattern(_pos),_value(_value)
+    Pattern(_pos,_endingpos),_value(_value)
 {
 }
 
@@ -3065,7 +3191,7 @@ QString SimpleLiteralPattern::toString()
 {
     QString ret;
     QTextStream out(&ret);
-    out << _ws(L"أمر.لكل(");
+    out << _ws(L"نمط.بسيط(");
     out << Pattern::childrenToString();
     out << ", " << childrenToString();
     out <<")";
@@ -3100,8 +3226,9 @@ void SimpleLiteralPattern::traverseChildren(Traverser *tv)
 }
 
 VarPattern::VarPattern(Token _pos,
+                       Token _endingpos,
                        shared_ptr<VarAccess> _id):
-    Pattern(_pos),_id(_id)
+    Pattern(_pos,_endingpos),_id(_id)
 {
 }
 
@@ -3109,7 +3236,7 @@ QString VarPattern::toString()
 {
     QString ret;
     QTextStream out(&ret);
-    out << _ws(L"أمر.لكل(");
+    out << _ws(L"نمط.متغير(");
     out << Pattern::childrenToString();
     out << ", " << childrenToString();
     out <<")";
@@ -3144,8 +3271,9 @@ void VarPattern::traverseChildren(Traverser *tv)
 }
 
 AssignedVarPattern::AssignedVarPattern(Token _pos,
+                                       Token _endingpos,
                                        shared_ptr<AssignableExpression> _lv):
-    Pattern(_pos),_lv(_lv)
+    Pattern(_pos,_endingpos),_lv(_lv)
 {
 }
 
@@ -3153,7 +3281,7 @@ QString AssignedVarPattern::toString()
 {
     QString ret;
     QTextStream out(&ret);
-    out << _ws(L"أمر.لكل(");
+    out << _ws(L"نمط.متغير.مخصص.له(");
     out << Pattern::childrenToString();
     out << ", " << childrenToString();
     out <<")";
@@ -3188,9 +3316,10 @@ void AssignedVarPattern::traverseChildren(Traverser *tv)
 }
 
 ArrayPattern::ArrayPattern(Token _pos,
+                           Token _endingpos,
                            QVector<shared_ptr<Pattern> > elements,
                            bool _fixedLength):
-    Pattern(_pos),elements(elements),
+    Pattern(_pos,_endingpos),elements(elements),
     _fixedLength(_fixedLength)
 {
 }
@@ -3199,7 +3328,7 @@ QString ArrayPattern::toString()
 {
     QString ret;
     QTextStream out(&ret);
-    out << _ws(L"أمر.لكل(");
+    out << _ws(L"نمط.مصفوفة(");
     out << Pattern::childrenToString();
     out << ", " << childrenToString();
     out <<")";
@@ -3244,10 +3373,11 @@ void ArrayPattern::traverseChildren(Traverser *tv)
 }
 
 ObjPattern::ObjPattern(Token _pos,
+                       Token _endingpos,
                        shared_ptr<Identifier> _classId,
                        QVector<shared_ptr<Identifier> > fieldNames,
                        QVector<shared_ptr<Pattern> > fieldPatterns):
-    Pattern(_pos),_classId(_classId),
+    Pattern(_pos,_endingpos),_classId(_classId),
     fieldNames(fieldNames),
     fieldPatterns(fieldPatterns)
 {
@@ -3257,7 +3387,7 @@ QString ObjPattern::toString()
 {
     QString ret;
     QTextStream out(&ret);
-    out << _ws(L"أمر.لكل(");
+    out << _ws(L"نمط.كائن(");
     out << Pattern::childrenToString();
     out << ", " << childrenToString();
     out <<")";
@@ -3328,9 +3458,10 @@ void ObjPattern::traverseChildren(Traverser *tv)
 }
 
 MapPattern::MapPattern(Token _pos,
+                       Token _endingpos,
                        QVector<shared_ptr<Expression> > keys,
                        QVector<shared_ptr<Pattern> > values):
-    Pattern(_pos),keys(keys),
+    Pattern(_pos,_endingpos),keys(keys),
     values(values)
 {
 }
@@ -3339,7 +3470,7 @@ QString MapPattern::toString()
 {
     QString ret;
     QTextStream out(&ret);
-    out << _ws(L"أمر.لكل(");
+    out << _ws(L"نمط.قاموس(");
     out << Pattern::childrenToString();
     out << ", " << childrenToString();
     out <<")";
@@ -3400,8 +3531,9 @@ void MapPattern::traverseChildren(Traverser *tv)
 
 }
 
-TypeExpression::TypeExpression(Token _pos): 
-    KalimatAst(_pos)
+TypeExpression::TypeExpression(Token _pos,
+                               Token _endingpos):
+    KalimatAst(_pos,_endingpos)
 {
 }
 
@@ -3418,8 +3550,9 @@ void TypeExpression::traverseChildren(Traverser *tv)
 }
 
 TypeIdentifier::TypeIdentifier(Token _pos,
+                               Token _endingpos,
                                QString _name):
-    TypeExpression(_pos),_name(_name)
+    TypeExpression(_pos,_endingpos),_name(_name)
 {
 }
 
@@ -3427,7 +3560,7 @@ QString TypeIdentifier::toString()
 {
     QString ret;
     QTextStream out(&ret);
-    out << _ws(L"أمر.لكل(");
+    out << _ws(L"معرف.نوع(");
     out << TypeExpression::childrenToString();
     out << ", " << childrenToString();
     out <<")";
@@ -3454,8 +3587,9 @@ void TypeIdentifier::traverseChildren(Traverser *tv)
 }
 
 PointerTypeExpression::PointerTypeExpression(Token _pos,
+                                             Token _endingpos,
                                              shared_ptr<TypeExpression> _pointeeType):
-    TypeExpression(_pos),_pointeeType(_pointeeType)
+    TypeExpression(_pos,_endingpos),_pointeeType(_pointeeType)
 {
 }
 
@@ -3463,7 +3597,7 @@ QString PointerTypeExpression::toString()
 {
     QString ret;
     QTextStream out(&ret);
-    out << _ws(L"أمر.لكل(");
+    out << _ws(L"معرف.نوع.مشير(");
     out << TypeExpression::childrenToString();
     out << ", " << childrenToString();
     out <<")";
@@ -3498,9 +3632,10 @@ void PointerTypeExpression::traverseChildren(Traverser *tv)
 }
 
 FunctionTypeExpression::FunctionTypeExpression(Token _pos,
+                                               Token _endingpos,
                                                shared_ptr<TypeExpression> _retType,
                                                QVector<shared_ptr<TypeExpression> > argTypes):
-    TypeExpression(_pos),_retType(_retType),
+    TypeExpression(_pos,_endingpos),_retType(_retType),
     argTypes(argTypes)
 {
 }
@@ -3509,7 +3644,7 @@ QString FunctionTypeExpression::toString()
 {
     QString ret;
     QTextStream out(&ret);
-    out << _ws(L"أمر.لكل(");
+    out << _ws(L"تعبير.نوع.إجراء(");
     out << TypeExpression::childrenToString();
     out << ", " << childrenToString();
     out <<")";
@@ -3562,8 +3697,9 @@ void FunctionTypeExpression::traverseChildren(Traverser *tv)
 }
 
 Declaration::Declaration(Token _pos,
+                         Token _endingpos,
                          bool _isPublic):
-    TopLevel(_pos),_isPublic(_isPublic)
+    TopLevel(_pos,_endingpos),_isPublic(_isPublic)
 {
 }
 
@@ -3633,14 +3769,13 @@ void FormalParam::traverseChildren(Traverser *tv)
 }
 
 ProceduralDecl::ProceduralDecl(Token _pos,
+                               Token _endingpos,
                                bool _isPublic,
-                               Token _endingToken,
                                shared_ptr<Identifier> _procName,
                                QVector<shared_ptr<FormalParam> > formals,
                                shared_ptr<BlockStmt> _body):
-    Declaration(_pos,_isPublic),
-    IScopeIntroducer(),_endingToken(_endingToken),
-    _procName(_procName),
+    Declaration(_pos,_endingpos,_isPublic),
+    IScopeIntroducer(),_procName(_procName),
     formals(formals),
     _body(_body)
 {
@@ -3651,7 +3786,6 @@ QString ProceduralDecl::childrenToString()
 {
     QString ret;
     QTextStream out(&ret);
-    out << _endingToken << ", " ;
     if(_procName)
     {
         out << procName()->toString() << ", " ;
@@ -3712,12 +3846,12 @@ IFunction::IFunction()
 
 
 ProcedureDecl::ProcedureDecl(Token _pos,
+                             Token _endingpos,
                              bool _isPublic,
-                             Token _endingToken,
                              shared_ptr<Identifier> _procName,
                              QVector<shared_ptr<FormalParam> > formals,
                              shared_ptr<BlockStmt> _body):
-    ProceduralDecl(_pos,_isPublic,_endingToken,_procName,formals,_body),
+    ProceduralDecl(_pos,_endingpos,_isPublic,_procName,formals,_body),
     IProcedure()
 {
 }
@@ -3753,12 +3887,12 @@ void ProcedureDecl::traverseChildren(Traverser *tv)
 }
 
 FunctionDecl::FunctionDecl(Token _pos,
+                           Token _endingpos,
                            bool _isPublic,
-                           Token _endingToken,
                            shared_ptr<Identifier> _procName,
                            QVector<shared_ptr<FormalParam> > formals,
                            shared_ptr<BlockStmt> _body):
-    ProceduralDecl(_pos,_isPublic,_endingToken,_procName,formals,_body),
+    ProceduralDecl(_pos,_endingpos,_isPublic,_procName,formals,_body),
     IFunction()
 {
 }
@@ -3794,10 +3928,11 @@ void FunctionDecl::traverseChildren(Traverser *tv)
 }
 
 FFILibraryDecl::FFILibraryDecl(Token _pos,
+                               Token _endingpos,
                                bool _isPublic,
                                QString _libName,
                                QVector<shared_ptr<Declaration> > decls):
-    Declaration(_pos,_isPublic),_libName(_libName),
+    Declaration(_pos,_endingpos,_isPublic),_libName(_libName),
     decls(decls)
 {
 }
@@ -3851,13 +3986,14 @@ void FFILibraryDecl::traverseChildren(Traverser *tv)
 }
 
 FFIProceduralDecl::FFIProceduralDecl(Token _pos,
+                                     Token _endingpos,
                                      bool _isPublic,
                                      bool _isFunctionNotProc,
                                      QString _procName,
                                      QString _symbol,
                                      shared_ptr<TypeExpression> _returnType,
                                      QVector<shared_ptr<TypeExpression> > paramTypes):
-    Declaration(_pos,_isPublic),_isFunctionNotProc(_isFunctionNotProc),
+    Declaration(_pos,_endingpos,_isPublic),_isFunctionNotProc(_isFunctionNotProc),
     _procName(_procName),
     _symbol(_symbol),
     _returnType(_returnType),
@@ -3925,12 +4061,13 @@ void FFIProceduralDecl::traverseChildren(Traverser *tv)
 }
 
 FFIStructDecl::FFIStructDecl(Token _pos,
+                             Token _endingpos,
                              bool _isPublic,
                              shared_ptr<Identifier> _name,
                              QVector<shared_ptr<Identifier> > fieldNames,
                              QVector<shared_ptr<TypeExpression> > fieldTypes,
                              QVector<int > fieldBatches):
-    Declaration(_pos,_isPublic),_name(_name),
+    Declaration(_pos,_endingpos,_isPublic),_name(_name),
     fieldNames(fieldNames),
     fieldTypes(fieldTypes),
     fieldBatches(fieldBatches)
@@ -4217,6 +4354,7 @@ void RespondsTo::traverseChildren(Traverser *tv)
 }
 
 ClassDecl::ClassDecl(Token _pos,
+                     Token _endingpos,
                      bool _isPublic,
                      shared_ptr<Identifier> _ancestorName,
                      shared_ptr<Identifier> _name,
@@ -4224,7 +4362,7 @@ ClassDecl::ClassDecl(Token _pos,
                      QMap<QString, MethodInfo > _methodPrototypes,
                      QVector<shared_ptr<ClassInternalDecl> > _internalDecls,
                      QMap<QString, shared_ptr<TypeExpression> > _fieldMarshallAs):
-    Declaration(_pos,_isPublic),_ancestorName(_ancestorName),
+    Declaration(_pos,_endingpos,_isPublic),_ancestorName(_ancestorName),
     _name(_name),
     _fields(_fields),
     _methodPrototypes(_methodPrototypes),
@@ -4328,9 +4466,10 @@ void ClassDecl::traverseChildren(Traverser *tv)
 }
 
 GlobalDecl::GlobalDecl(Token _pos,
+                       Token _endingpos,
                        bool _isPublic,
                        QString _varName):
-    Declaration(_pos,_isPublic),_varName(_varName)
+    Declaration(_pos,_endingpos,_isPublic),_varName(_varName)
 {
 }
 
@@ -4365,15 +4504,15 @@ void GlobalDecl::traverseChildren(Traverser *tv)
 }
 
 MethodDecl::MethodDecl(Token _pos,
+                       Token _endingpos,
                        bool _isPublic,
-                       Token _endingToken,
                        shared_ptr<Identifier> _procName,
                        QVector<shared_ptr<FormalParam> > formals,
                        shared_ptr<BlockStmt> _body,
                        shared_ptr<Identifier> _className,
                        shared_ptr<Identifier> _receiverName,
                        bool _isFunctionNotProcedure):
-    ProceduralDecl(_pos,_isPublic,_endingToken,_procName,formals,_body),_className(_className),
+    ProceduralDecl(_pos,_endingpos,_isPublic,_procName,formals,_body),_className(_className),
     _receiverName(_receiverName),
     _isFunctionNotProcedure(_isFunctionNotProcedure)
 {
@@ -4435,8 +4574,9 @@ void MethodDecl::traverseChildren(Traverser *tv)
 
 }
 
-PegExpr::PegExpr(Token _pos): 
-    KalimatAst(_pos)
+PegExpr::PegExpr(Token _pos,
+                 Token _endingpos):
+    KalimatAst(_pos,_endingpos)
 {
 }
 
@@ -4453,8 +4593,9 @@ void PegExpr::traverseChildren(Traverser *tv)
 }
 
 PegPrimary::PegPrimary(Token _pos,
+                       Token _endingpos,
                        shared_ptr<Identifier> _associatedVar):
-    PegExpr(_pos),_associatedVar(_associatedVar)
+    PegExpr(_pos,_endingpos),_associatedVar(_associatedVar)
 {
 }
 
@@ -4480,8 +4621,9 @@ void PegPrimary::traverseChildren(Traverser *tv)
 }
 
 PegSequence::PegSequence(Token _pos,
+                         Token _endingpos,
                          QVector<shared_ptr<PegExpr> > elements):
-    PegExpr(_pos),elements(elements)
+    PegExpr(_pos,_endingpos),elements(elements)
 {
 }
 
@@ -4533,9 +4675,10 @@ void PegSequence::traverseChildren(Traverser *tv)
 }
 
 PegRuleInvokation::PegRuleInvokation(Token _pos,
+                                     Token _endingpos,
                                      shared_ptr<Identifier> _associatedVar,
                                      shared_ptr<Identifier> _ruleName):
-    PegPrimary(_pos,_associatedVar),_ruleName(_ruleName)
+    PegPrimary(_pos,_endingpos,_associatedVar),_ruleName(_ruleName)
 {
 }
 
@@ -4578,9 +4721,10 @@ void PegRuleInvokation::traverseChildren(Traverser *tv)
 }
 
 PegLiteral::PegLiteral(Token _pos,
+                       Token _endingpos,
                        shared_ptr<Identifier> _associatedVar,
                        shared_ptr<StrLiteral> _value):
-    PegPrimary(_pos,_associatedVar),_value(_value)
+    PegPrimary(_pos,_endingpos,_associatedVar),_value(_value)
 {
 }
 
@@ -4623,10 +4767,11 @@ void PegLiteral::traverseChildren(Traverser *tv)
 }
 
 PegCharRange::PegCharRange(Token _pos,
+                           Token _endingpos,
                            shared_ptr<Identifier> _associatedVar,
                            shared_ptr<StrLiteral> _value1,
                            shared_ptr<StrLiteral> _value2):
-    PegPrimary(_pos,_associatedVar),_value1(_value1),
+    PegPrimary(_pos,_endingpos,_associatedVar),_value1(_value1),
     _value2(_value2)
 {
 }
@@ -4679,11 +4824,12 @@ void PegCharRange::traverseChildren(Traverser *tv)
 }
 
 PegRepetion::PegRepetion(Token _pos,
+                         Token _endingpos,
                          shared_ptr<Identifier> _associatedVar,
                          shared_ptr<Identifier> _resultVar,
                          shared_ptr<PegExpr> _subExpr,
                          shared_ptr<AssignmentStmt> _stepAssignment):
-    PegPrimary(_pos,_associatedVar),_resultVar(_resultVar),
+    PegPrimary(_pos,_endingpos,_associatedVar),_resultVar(_resultVar),
     _subExpr(_subExpr),
     _stepAssignment(_stepAssignment)
 {
@@ -4746,9 +4892,10 @@ void PegRepetion::traverseChildren(Traverser *tv)
 }
 
 RuleOption::RuleOption(Token _pos,
+                       Token _endingpos,
                        shared_ptr<PegExpr> _expression,
                        shared_ptr<Expression> _resultExpr):
-    KalimatAst(_pos),_expression(_expression),
+    KalimatAst(_pos,_endingpos),_expression(_expression),
     _resultExpr(_resultExpr)
 {
 }
@@ -4801,9 +4948,10 @@ void RuleOption::traverseChildren(Traverser *tv)
 }
 
 RuleDecl::RuleDecl(Token _pos,
+                   Token _endingpos,
                    QString _ruleName,
                    QVector<shared_ptr<RuleOption> > options):
-    KalimatAst(_pos),_ruleName(_ruleName),
+    KalimatAst(_pos,_endingpos),_ruleName(_ruleName),
     options(options)
 {
 }
@@ -4857,10 +5005,11 @@ void RuleDecl::traverseChildren(Traverser *tv)
 }
 
 RulesDecl::RulesDecl(Token _pos,
+                     Token _endingpos,
                      bool _isPublic,
                      shared_ptr<Identifier> _ruleName,
                      QVector<shared_ptr<RuleDecl> > _subRules):
-    Declaration(_pos,_isPublic),_ruleName(_ruleName),
+    Declaration(_pos,_endingpos,_isPublic),_ruleName(_ruleName),
     _subRules(_subRules)
 {
 }

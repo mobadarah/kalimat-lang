@@ -33,9 +33,14 @@ int main(int argc, char *argv[])
 {
     qInstallMsgHandler(myMessageOutput);
     QApplication a(argc, argv);
+#ifndef ENGLISH_PL
     a.setLayoutDirection(Qt::RightToLeft);
     qApp->setLayoutDirection(Qt::RightToLeft);
-
+#else
+    QTranslator translator;
+    translator.load(":/kalimat_en");
+    a.installTranslator(&translator);
+#endif
     MainWindow w;
     w.show();
     return a.exec();

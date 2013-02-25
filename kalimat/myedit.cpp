@@ -79,10 +79,18 @@ void MyEdit::toggleBreakpoint(int line)
 void MyEdit::updateLineNumberAreaWidth(int /* newBlockCount */)
 {
     LineNumberArea *lna = dynamic_cast<LineNumberArea *>(lineNumberArea);
-
+#ifdef ENGLISH_PL
+    setViewportMargins(lna->getWidth(), 0, 0, 0);
+#else
     setViewportMargins(0, 0, lna->getWidth(), 0);
+#endif
     QRect cr = contentsRect();
-    lineNumberArea->setGeometry(QRect(width() - lna->getWidth(),
+#ifdef ENGLISH_PL
+    const int x = 0;
+#else
+    const int x = width() - lna->getWidth();
+#endif
+    lineNumberArea->setGeometry(QRect(x,
                                       cr.top(),
                                       lna->getWidth(),
                                       cr.height()));
@@ -249,11 +257,13 @@ void MyEdit::highlightCurrentLine()
 
 void MyEdit::setRtl()
 {
+#ifndef ENGLISH_PL
     QKeyEvent ev(QKeyEvent::KeyPress, Qt::Key_Direction_R, 0, "");
     emit keyPressEvent(&ev);
     QTextOption opt = document()->defaultTextOption();
     opt.setTextDirection(Qt::RightToLeft);
     document()->setDefaultTextOption(opt);
+#endif
 }
 
 void MyEdit::centerCursorVerticallyIfNeeded()

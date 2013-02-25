@@ -13,6 +13,7 @@
     case, as most operand stacks store a small number of values.
 */
 
+#define CACHE_LINE_SIZE 64
 // Works only for some 'b' that is a power of two
 #define modulo(a, b) ((a) & (b-1))
 // #define modulo(a, b) ((a) % (b))
@@ -25,42 +26,52 @@ template<class T, int Size> struct StackNode
 
 template<class T, int ChunkSize> class Stack
 {
-    StackNode<T, ChunkSize> first;
     StackNode<T, ChunkSize> *last;
+    StackNode<T, ChunkSize> first;
+
     int _count;
     int nchuncks;
     int capacity;
+    int _pos;
+
+     StackNode<T, ChunkSize> *trueLast;
 public:
     Stack()
     {
         _count = 0;
+        _pos = 0;
         nchuncks = 1;
         last = &first;
+        trueLast = last;
         first.next = first.prev = 0;
         capacity = nchuncks * ChunkSize;
     }
 
     ~Stack()
     {
-        while(last != &first)
+        while(trueLast != &first)
         {
-            removeChunk();
+            deleteChunk();
         }
     }
 
     void clear()
     {
-        while(last != &first)
+        while(trueLast != &first)
         {
-            removeChunk();
+            deleteChunk();
         }
         _count = 0;
+        _pos = 0;
         nchuncks = 1;
+        last = &first;
         first.next = first.prev = 0;
+        capacity = nchuncks * ChunkSize;
     }
 
     Stack(Stack &other)
     {
+        clear();
         for(Stack<T, ChunkSize>::const_iterator i=other.begin(); i!= other.end(); ++i)
             push(*i);
     }
@@ -73,34 +84,43 @@ public:
         return *this;
     }
 
-    void push(T value)
+    inline void push(T value)
     {
-        if(_count == capacity)
+        //int n = modulo(_count, ChunkSize);
+        if(_pos == ChunkSize)
         {
             addChunk();
         }
-        int n = modulo(_count, ChunkSize);
-        last->data[n] = value;
+        last->data[_pos++] = value;
         _count++;
     }
+
     T pop()
     {
-        int n = modulo(_count - 1, ChunkSize);
-        T ret = last->data[n];
-        /*
-        if(n == 0 && (last != &first))
+        //int n = modulo(_count - 1, ChunkSize);
+        if((_pos == 0) && (_count !=0))
         {
             removeChunk();
         }
-        //*/
+
+        T ret = last->data[--_pos];
+
         _count--;
         return ret;
     }
 
     inline T &peek()
     {
-        int n = modulo(_count, ChunkSize);
-        return last->data[n-1];
+        StackNode<T, ChunkSize> *current;
+        if((_pos != 0) || (_count == 0))
+        {
+            current = last;
+        }
+        else
+        {
+            current = last->prev;
+        }
+        return current->data[_pos-1];
     }
 
     inline T &top()
@@ -122,25 +142,40 @@ public:
     void addChunk()
     {
         //qDebug() << "Chunk added to call stack";
-        StackNode<T, ChunkSize> *node = new StackNode<T, ChunkSize>();
-        node->next = 0;
-        last->next = node;
-        node->prev = last;
-        last = node;
 
-        nchuncks++;
+        _pos = 0;
+        if(last->next !=NULL)
+        {
+            last = last->next;
+        }
+        else
+        {
+            StackNode<T, ChunkSize> *node = new StackNode<T, ChunkSize>();
+            node->next = 0;
+            last->next = node;
+            node->prev = last;
+            last = node;
+            nchuncks++;
+            capacity = nchuncks * ChunkSize;
+            trueLast = last;
+        }
+    }
+
+    void deleteChunk()
+    {
+        StackNode<T, ChunkSize> *oldLast = trueLast;
+        trueLast = oldLast->prev;
+        trueLast->next = 0;
+        delete oldLast;
+
+        nchuncks--;
         capacity = nchuncks * ChunkSize;
     }
 
     void removeChunk()
     {
-        StackNode<T, ChunkSize> *oldLast = last;
-        last = oldLast->prev;
-        last->next = 0;
-        delete oldLast;
-
-        nchuncks--;
-        capacity = nchuncks * ChunkSize;
+        last = last->prev;
+        _pos = ChunkSize;
     }
 
     class const_iterator

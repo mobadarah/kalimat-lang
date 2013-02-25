@@ -36,8 +36,8 @@ struct FrameClass : public EasyForeignClass
 const int fast_local_static_size = 20;
 struct Frame : public IObject
 {
-    Method *currentMethod;
     int ip;
+    Method *currentMethod;
     bool returnReferenceIfRefMethod;
 
     Value **fastLocals;
@@ -57,6 +57,7 @@ struct Frame : public IObject
 
     virtual ~Frame();
     const Instruction &getPreviousRunningInstruction();
+    const Instruction &getRunningInstruction();
     void prepareFastLocals();
 
     inline Value *local(const QString &name)

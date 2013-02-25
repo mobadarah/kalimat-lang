@@ -28,7 +28,7 @@ newmdarr
 ret
 .endmethod
 
-.method عشوائي 1
+.method عشوائي 1 1
 callex random
 ret
 .endmethod
@@ -401,10 +401,10 @@ ret
 //	ret
 // .endmethod
 
-.method مشار.إليه 1 1
-	callex contentof
-	ret
-.endmethod
+//.method مشار.إليه 1 1
+//	callex contentof
+//	ret
+//.endmethod
 
 .method استدعاء.الدالة.الخارجية 4 1
 	callex callforeign
@@ -422,6 +422,32 @@ ret
     .field زر
     .field حرف
 .endclass
+
+.method شغل.قناة.الماوس 1 0
+	callex enable_mouse_event_channel
+	ret
+.endmethod
+
+.method شغل.قناة.ضغط.زر.الماوس 1 0
+	callex enable_mouseDown_event_channel
+	ret
+.endmethod
+
+.method شغل.قناة.رفع.زر.الماوس 1 0
+	callex enable_mouseUp_event_channel
+	ret
+.endmethod
+
+.method شغل.قناة.تحريك.الماوس 1 0
+	callex enable_mouseMove_event_channel
+	ret
+.endmethod
+
+.method شغل.قناة.لوحة.المفاتيح 1 0
+	callex enable_kb_event_channel
+	ret
+.endmethod
+
 
 .method قناة.الماوس 0 1
     callex mouse_event_channel
@@ -746,3 +772,189 @@ ret
 callex class_newobject
 ret
 .endmethod
+
+.class %pair
+	.field مفتاح
+	.field قيمة
+.endclass
+
+.method %قاموس.قيم_مفتاح.رقم 2 1
+	callex mapkey
+	ret
+.endmethod
+
+.method %قاموس.قيم_يحتوي 2 1
+	callex haskey
+	ret
+.endmethod
+
+.class %map_enumerator
+	.field map
+	.field pos
+	.field len
+	.method تقدم 1 1
+		popl this
+		
+		pushl this
+		pushl this
+		getfld pos
+		pushv 1
+		add
+		setfld pos
+		
+		pushl this
+		getfld pos
+		pushl this
+		getfld len
+		gt
+		if
+		jmp domove
+		pushv false
+		ret
+		domove:
+		pushv true
+		ret
+	.endmethod
+	.method القيمة.الحالية 1 1
+		popl this
+		pushl this
+		getfld pos
+		pushl this
+		getfld map
+		callex mapkey
+		popl %key
+		new %pair
+		popl ret
+		pushl ret
+		pushl %key
+		setfld مفتاح
+		pushl ret
+		pushl this
+		getfld map
+		pushl %key
+		getarr
+		setfld قيمة
+		pushl ret
+		ret
+	.endmethod
+.endclass
+
+.method %قاموس.قيم_المعدد 1 1
+	popl this
+	new %map_enumerator
+	popl enu
+	pushl enu
+	pushl this
+	setfld map
+	pushl enu
+	pushl this
+	arrlength
+	setfld len
+	pushl enu
+	pushv 0
+	setfld pos
+	pushl enu
+	ret
+.endmethod
+
+.class %array_enumerator
+	.field arr
+	.field pos
+	.field len
+	.method تقدم 1 1
+		popl this
+		
+		pushl this
+		pushl this
+		getfld pos
+		pushv 1
+		add
+		setfld pos
+		
+		pushl this
+		getfld pos
+		pushl this
+		getfld len
+		gt
+		if
+		jmp domove
+		pushv false
+		ret
+		domove:
+		pushv true
+		ret
+	.endmethod
+	.method القيمة.الحالية 1 1
+		popl this
+		pushl this
+		getfld arr
+		pushl this
+		getfld pos
+		getarr
+		ret
+	.endmethod
+.endclass
+
+.method %مصفوفة.قيم_المعدد 1 1
+	popl this
+	new %array_enumerator
+	popl enu
+	pushl enu
+	pushl this
+	setfld arr
+	pushl enu
+	pushl this
+	arrlength
+	setfld len
+	pushl enu
+	pushv 0
+	setfld pos
+	pushl enu
+	ret
+.endmethod
+
+.method %نص_المعدد 1 1
+	popl this
+	new %array_enumerator
+	popl enu
+	pushl enu
+	pushl this
+	setfld arr
+	pushl enu
+	pushl this
+	arrlength
+	setfld len
+	pushl enu
+	pushv 0
+	setfld pos
+	pushl enu
+	ret
+.endmethod
+
+.method %قناة_المعدد 1 1
+	// return itself
+	ret
+.endmethod
+
+.method %قناة_اغلق 1 0
+	callex closechannel
+	ret
+.endmethod
+
+
+.method %قناة_مغلقة 1 1
+	callex channelclosed
+	ret
+.endmethod
+
+.method %قناة_تقدم 1 1
+	callm مغلقة
+	not
+	ret
+.endmethod
+
+.method %قناة_القيمة.الحالية 1 1
+	receive
+	ret
+.endmethod
+

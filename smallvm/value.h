@@ -111,8 +111,8 @@ public:
     static ValueClass *IndexableType;
     static ArrayClass *ArrayType;
     static ValueClass *MD_ArrayType;
-    static ValueClass *MapType;
-    static IClass *StringType;
+    static MapClass *MapType;
+    static StringClass *StringType;
     static IClass *SpriteType;
     static ValueClass *FileType;
     static ValueClass *RawFileType;
@@ -121,7 +121,7 @@ public:
     static ValueClass *FieldRefType;
     static ValueClass *ArrayRefType;
     static ValueClass *NullType;
-    static ValueClass *ChannelType;
+    static ChannelClass *ChannelType;
     static ValueClass *QObjectType;
     static ValueClass *LambdaType;
     static IClass *ActivationFrameType;
@@ -149,7 +149,7 @@ struct Value
     virtual ~Value() { }
     static Value *NullValue;
     virtual QString toString() const =0;
-    virtual bool isObject() { return false;}
+    virtual bool isObject() { return false; }
 
     virtual bool equals(Value *v2) =0;
 

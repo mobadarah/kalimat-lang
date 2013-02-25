@@ -49,7 +49,8 @@ SOURCES += main.cpp \
     runtime/windowproxymethod.cpp \
     framepool.cpp \
     runtime/cursor.cpp \
-    runtime/textbuffer.cpp
+    runtime/textbuffer.cpp \
+    cflowgraph.cpp
 
 HEADERS += value.h \
     instruction.h \
@@ -97,12 +98,14 @@ HEADERS += value.h \
     framepool.h \
     operandstack.h \
     runtime/cursor.h \
-    runtime/textbuffer.h
+    runtime/textbuffer.h \
+    cflowgraph.h
 FORMS +=  runtime/runwindow.ui
 
 RESOURCES += \
     messages.qrc
 
+qt += opengl
 win32:LIBS += -L"$$_PRO_FILE_PWD_/../smallvm/libffi/" -llibffi
 
 #win32:LIBS += -L"$$_PRO_FILE_PWD_/../smallvm/libsmoke/" -lsmokebase
@@ -112,4 +115,5 @@ win32:LIBS += -L"$$_PRO_FILE_PWD_/../smallvm/libffi/" -llibffi
 unix:LIBS += -lffi
 
 OTHER_FILES += \
-    runlib_errors.txt
+    runlib_errors.txt \
+    instruction_defs.h

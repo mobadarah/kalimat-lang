@@ -49,7 +49,8 @@ unless it's a map, then deal with the key an value.
 4) A class has to call it's base class's constructor and take any neccessary args to do so,
 so we need to keep track of each class's constructor args and do so in dependency order
 
-5) Also for each field: if it's a vector && it hasAddFunction, create a method like e.g addStatement.
+5) Also for each field: if it's a vector && it hasAddFunction, create a method like e.g addStatement
+or insertStatement for maps, and sets
 
 6) And for each field generate a getXXX method, but if it's a vector generate getXXXCount and getXXX(int index)
 
@@ -210,6 +211,31 @@ QString TypeInfo::generateDeclaration(Context &context)
                 out << "void add" << upCaseFirstChar(singleName) <<"(" << fi.cppVectorParam(context) << " arg) { " << fi.name <<".append(arg);}\n";
             }
 
+        }
+        else if(fi.kind == SetField)
+        {
+            QString singleName;
+            if(fi.notplural)
+                singleName = fi.name;
+            else
+                singleName = singularForm(fi.name);
+
+            QString etype = fi.cppVectorParam(context);
+
+
+            out << "int " << noStartWithUnderScore(singleName) <<"Count() { return " << fi.name <<".count(); }\n";
+
+            if(fi.hasAddFunction)
+            {
+
+                out << "void insert" << upCaseFirstChar(singleName) <<"(" << etype << " a) { " << fi.name <<".insert(a);}\n";
+            }
+
+            if(fi.hasContains)
+            {
+
+                out << "bool contains" << upCaseFirstChar(singleName) <<"(" << etype << " a) { return " << fi.name <<".contains(a);}\n";
+            }
         }
         else if(fi.kind == MapField)
         {
@@ -476,9 +502,13 @@ QString FieldInfo::cppType(Context &context)
                 .arg(cppType(strs[0], context))
                 .arg(cppType(strs[1], context));
     }
-    if(this->kind == VectorField)
+    else if(this->kind == VectorField)
     {
         return QString("QVector<%1 >").arg(cppType(jsonType, context));
+    }
+    else if(this->kind == SetField)
+    {
+        return QString("QSet<%1 >").arg(cppType(jsonType, context));
     }
 
     return cppType(jsonType, context);
@@ -537,6 +567,25 @@ QString FieldInfo::generateToString(Context &context)
         }
         ret +="}\n";
         ret += "out << \"]\";\n";
+        return ret;
+    }
+    else if(kind == SetField)
+    {
+        bool shared = needSharedPtr(jsonType, context);
+        QString ret = "out << \"{\";\n";
+        QString valType = shared? "shared_ptr<"+jsonType+"> ": jsonType;
+        ret += "for(QSet<"+ valType + " >::const_iterator i="+name+".begin(); i!="+ name + ".end(); ++i)\n{\n";
+
+        if(shared)
+        {
+            ret += "if(*i) \n { \n out << (*i)->toString() << \", \" ;\n}\n";
+        }
+        else
+        {
+            ret += "out << *i << \", \" ;\n";
+        }
+        ret +="}\n";
+        ret += "out << \"}\";\n";
         return ret;
     }
     else if(kind == MapField)
@@ -600,6 +649,20 @@ QString FieldInfo::generateTraverse(Context &context)
         {
             out << "if(i.value())\n{\n";
             out << "i.value()->traverse(i.value(), tv);\n";
+            out << "}\n";
+        }
+        out << "}\n";
+    }
+    else if(kind == SetField)
+    {
+        // todo: generate 'if' only if field is nullable
+        bool shared = needSharedPtr(jsonType, context);
+        QString valType = shared? "shared_ptr<"+jsonType+"> ": jsonType;
+        out << "for(QSet< "+ valType + " >::const_iterator i="+name+".begin(); i!="+ name + ".end(); ++i)\n{\n";
+        if(shared)
+        {
+            out << "if(*i)\n{\n";
+            out << "(*i)->traverse(*i, tv);\n";
             out << "}\n";
         }
         out << "}\n";

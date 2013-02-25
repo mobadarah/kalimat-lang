@@ -10,7 +10,7 @@
 
 #include "operandstack.h"
 
-class ExternalMethod : public Object
+class ExternalMethod : public IMethod
 {
     int arity;
 public:
@@ -20,7 +20,12 @@ public:
     explicit ExternalMethod(int arity);
     int Arity() { return arity;}
     virtual void operator ()(VOperandStack &operandStack, Process *) =0;
-};
 
+    virtual bool hasSlot(QString name) { return false; }
+    virtual QList<QString> getSlotNames() { return QList<QString>(); }
+    virtual Value *getSlotValue(QString name) { return NULL; }
+    virtual void setSlotValue(QString name, Value *val) { }
+    virtual QString toString() { return QString("%1").arg((long)this); }
+};
 
 #endif // EXTERNALMETHOD_H

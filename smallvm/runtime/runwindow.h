@@ -85,6 +85,7 @@ public:
     }
 };
 
+class QGLCanvas;
 class RunWindow : public QMainWindow {
     Q_OBJECT
 public:
@@ -120,12 +121,23 @@ public:
     TextLayer textLayer;
     SpriteLayer spriteLayer;
     PaintSurface *paintSurface;
+    QGLCanvas *glCanvas;
 
     Value *mouseEventChannel;
+    Value *realmouseEventChannel;
+
     Value *mouseDownEventChannel;
+    Value *realmouseDownEventChannel;
+
     Value *mouseUpEventChannel;
+    Value *realmouseUpEventChannel;
+
     Value *mouseMoveEventChannel;
+    Value *realmouseMoveEventChannel;
+
     Value *kbEventChannel;
+    Value *realkbEventChannel;
+
     void checkCollision(Sprite *s);
     void onCollision(Sprite *s1, Sprite *s2);
     void cls();

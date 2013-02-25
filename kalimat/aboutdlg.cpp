@@ -6,6 +6,9 @@ AboutDlg::AboutDlg(QWidget *parent) :
     ui(new Ui::AboutDlg)
 {
     ui->setupUi(this);
+#ifdef ENGLISH_PL
+    setLayoutDirection(Qt::LeftToRight);
+#endif
 }
 
 AboutDlg::~AboutDlg()

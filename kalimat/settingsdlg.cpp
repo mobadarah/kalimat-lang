@@ -9,6 +9,9 @@ SettingsDlg::SettingsDlg(QWidget *parent) :
     ui(new Ui::settings)
 {
     ui->setupUi(this);
+#ifdef ENGLISH_PL
+    setLayoutDirection(Qt::LeftToRight);
+#endif
 }
 
 void SettingsDlg::init(int editorFontSize,

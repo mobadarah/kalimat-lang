@@ -23,11 +23,15 @@ void TextLayer::Init(int width, int height, QFont font)
     textFont = font;
     adjustFontForNumberOfLines(visibleTextLines);
     _stripHeight = imgHeight / visibleTextLines;
+    /*
     for(int i=0; i< visibleTextLines; ++i)
     {
         strips[i] = QPixmap(imgWidth, _stripHeight);
         strips[i].fill(Qt::transparent);
     }
+    //*/
+    image = QPixmap(imgWidth, imgHeight);
+    image.fill(Qt::transparent);
 }
 
 int TextLayer::stripHeight()
@@ -74,10 +78,14 @@ void TextLayer::updated()
 void TextLayer::clearText()
 {
     buffer.clearText();
+
+    /*
     for(int i=0; i<visibleTextLines; i++)
     {
         strips[i].fill(Qt::transparent);
     }
+    //*/
+    image.fill(Qt::transparent);
 }
 
 // 'print' always overwrites
@@ -144,12 +152,16 @@ void TextLayer::updateChangedLines(int fromLine, int count)
 
 void TextLayer::updateStrip(int i, bool drawCursor)
 {
-    strips[i].fill(Qt::transparent);
-    QPainter imgPainter(&strips[i]);
-    QTextLayout layout("", textFont, &strips[i]);
+    //strips[i].fill(Qt::transparent);
+    QPainter imgPainter(&image);
+    QTextLayout layout("", textFont, &image);
     QTextOption option;
+#ifdef ENGLISH_PL
+    option.setAlignment(Qt::AlignVCenter | Qt::AlignLeft);
+#else
     option.setTextDirection(Qt::RightToLeft);
     option.setAlignment(Qt::AlignVCenter | Qt::AlignRight);
+#endif
     layout.setTextOption(option);
 
     layout.setFont(textFont);
@@ -183,25 +195,36 @@ void TextLayer::updateStrip(int i, bool drawCursor)
         }
     }
     layout.endLayout();
-    layout.draw(&imgPainter, QPointF(0, -subtractSomeHeigh));
+    QPainter::CompositionMode oldCompositionMode = imgPainter.compositionMode();
+    imgPainter.setCompositionMode(QPainter::CompositionMode_DestinationIn);
+    imgPainter.fillRect(0, _stripHeight * i, imgWidth, _stripHeight, Qt::transparent);
+    imgPainter.setCompositionMode(oldCompositionMode);
+    layout.draw(&imgPainter, QPointF(0, _stripHeight * i - subtractSomeHeigh));
     if(drawCursor)
-        layout.drawCursor(&imgPainter, QPointF(0, - subtractSomeHeigh), cursorColumn(), 2);
+    {
+        // We clip because Qt draws a very tall cursor - exceeding the line height -
+        // when there's a question mark in the line. This often shows when using a statement
+        // like read "?", x
+        imgPainter.setClipRect(0, i*_stripHeight, imgWidth, _stripHeight);
+        layout.drawCursor(&imgPainter, QPointF(0, _stripHeight *i - subtractSomeHeigh), cursorColumn(), 2);
+        imgPainter.setClipping(false);
+    }
 }
 
 void TextLayer::fastUpdateStrip(int i, bool drawCursor)
 {
     // Faster, but cannot give each individual letters a different color
-    strips[i].fill(Qt::transparent);
-    QPainter imgPainter(&strips[i]);
-
+    QPainter imgPainter(&image);
+#ifndef ENGLISH_PL
     imgPainter.setLayoutDirection(Qt::RightToLeft);
+#endif
     imgPainter.setFont(textFont);
 
     QPen oldPen = imgPainter.pen();
     //imgPainter.setPen(textColor);
 
     const QString &text = buffer.lineAt(i);
-    QRect rct(0, 0, imgWidth-1, _stripHeight);
+    QRect rct(0, i*_stripHeight, imgWidth-1, _stripHeight);
 
     imgPainter.drawText(rct, Qt::AlignVCenter, text);
 
@@ -264,12 +287,11 @@ int TextLayer::getCursorCol()
 
 void TextLayer::scrollUp()
 {
-    for(int i=0; i<visibleTextLines -1; ++i)
-    {
-        strips[i] = strips[i+1];
-    }
-    strips[visibleTextLines-1] = QPixmap(imgWidth, imgHeight/visibleTextLines);
-    strips[visibleTextLines-1].fill(Qt::transparent);
+    image.scroll(0, -_stripHeight, image.rect());
+    QPainter imgPainter(&image);
+    imgPainter.setCompositionMode(QPainter::CompositionMode_DestinationIn);
+    QRect rct(0, _stripHeight * (visibleTextLines-1), imgWidth, _stripHeight);
+    imgPainter.fillRect(rct, Qt::transparent);
 }
 
 QString TextLayer::formatStringUsingWidth(QString str, int width)

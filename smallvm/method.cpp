@@ -6,6 +6,7 @@
 **************************************************************************/
 
 #include "method.h"
+#include "vm.h"
 #include "vmerror.h"
 #include "runtime_identifiers.h"
 
@@ -45,7 +46,6 @@ void Method::prepareInstruction(int index)
         instructions[index-1].next = &i;
     }
 
-    i.assignRunner();
 
     if(i.opcode == PushLocal || i.opcode == PopLocal)
     {
@@ -53,7 +53,6 @@ void Method::prepareInstruction(int index)
         i.SymRefLabel = index;
         Locals[i.SymRef] = index;
     }
-
 }
 
 void Method::Add(Instruction i)
@@ -73,16 +72,16 @@ void Method::Add(Instruction i, QString label)
     }
 }
 
-void Method::Add(Instruction i, QString label, int extraInfo)
+Instruction &Method::Add(Instruction i, QString label, int extraInfo)
 {
-
     instructions.append(i.wExtra(extraInfo));
-    prepareInstruction(instructions.count()-1);
-
+    int index = instructions.count()-1;
+    prepareInstruction(index);
     if(label != "")
     {
-        labels[label] = instructions.count() -1;
+        labels[label] = index;
     }
+    return instructions[index];
 }
 
 void Method::Set(int ip, Instruction i)
@@ -109,17 +108,36 @@ void Method::optimize()
     static QMap<Opcode, Opcode> comparisons;
     if(comparisons.empty())
     {
-        comparisons[Eq] = Jne;
-        comparisons[Ne] = Jeq;
+        comparisons[Eq] = JmpIfNe;
+        comparisons[Ne] = JmpIfEq;
     }
 
     for(int i=0; i<instructions.count(); ++i)
     {
         Instruction &in = instructions[i];
 
+        if(in.opcode == PushVal
+                && in.Arg->type == BuiltInTypes::IntType
+                && unboxInt(in.Arg) == 1
+                && ((i+1) < instructions.count()))
+        {
+            Instruction &in1 = instructions[i+1];
+
+            // if it's pushv 1, add make it inc
+            if(in1.opcode == ::Add)
+            {
+                in.opcode = Increment;
+                in1.opcode = Nop;
+            }
+            // if it's pushv 1, sub, make it dec
+            else if(in1.opcode == Sub)
+            {
+                in.opcode = Decrement;
+                in1.opcode = Nop;
+            }
+        }
         if(comparisons.contains(in.opcode) && i+2 < instructions.count())
         {
-
             Instruction &in1 = instructions[i+1];
             Instruction &in2 = instructions[i+2];
 
@@ -128,15 +146,107 @@ void Method::optimize()
                 in.opcode = comparisons[in.opcode];
                 in.SymRef = in2.SymRef;
                 in.SymRefLabel = in2.SymRefLabel;
-                in.assignRunner();
 
                 in1.opcode = Nop;
                 in2.opcode = Nop;
-                in1.assignRunner();
-                in2.assignRunner();
             }
         }
     }
+}
+
+void Method::buildCFlowGraph()
+{
+    if(instructions.count() == 0)
+        return;
+
+    QSet<int> leaders;
+    leaders.insert(0);
+    for(int i=0; i<instructions.count(); ++i)
+    {
+        Instruction &in = instructions[i];
+        if((in.opcode == Jmp
+            ||
+            in.opcode == JmpVal
+            ||
+            in.opcode == Ret
+            ) && (i+1) < instructions.count())
+        {
+            leaders.insert(i+1);
+        }
+
+        if(labels.values().contains(i))
+            leaders.insert(i);
+    }
+
+    QList<int> sortedLeader = leaders.toList();
+    qSort(sortedLeader);
+    for(int i=0; i<sortedLeader.count(); ++i)
+    {
+        int i1 = sortedLeader[i];
+        int i2;
+        if((i+1) < sortedLeader.count())
+            i2 = sortedLeader[i+1];
+        else
+            i2 = instructions.count() -1;
+
+        cflow.addBasicBlock(i1, i2);
+    }
+
+    for(int i=0; i<cflow.basicBlockCount(); ++i)
+    {
+        BasicBlock &bb = cflow.basicBlock(i);
+        int ix = cflow.basicBlockStartingAt(bb.to+1);
+        if(ix != -1)
+        {
+            cflow.addEdge(i, ix);
+        }
+    }
+}
+
+void Method::computeMaxStack(VM *vm)
+{
+    for(int i=0; i<cflow.basicBlockCount(); ++i)
+    {
+        computeStackDiff(cflow.basicBlock(i), vm);
+    }
+}
+
+void Method::computeStackDiff(BasicBlock &bb, VM *vm)
+{
+    int d = 0;
+    for(int i=bb.from; i<=bb.to; ++i)
+    {
+        int delta;
+        Instruction &in = instructions[i];
+        if(in.opcode == Call || in.opcode == CallRef)
+        {
+            // IMethod *method = vm->GetMethod(in.SymRef);
+            // delta += -method->Arity() + 1; // consume args, push (possibly) return val
+
+            delta +=1; // we won't bother to find arity for now, todo:
+        }
+        else if(in.opcode == CallExternal)
+        {
+            // IMethod *method = vm->GetMethod(in.SymRef);
+            // delta += -method->Arity() + 1;
+
+            delta +=1; // we won't bother to find arity for now, todo:
+        }
+        else if(in.opcode == CallMethod)
+        {
+            delta +=1; // we won't bother to find arity for now, todo:
+        }
+        else
+        {
+#define VM_INSTRUCTION(opCode, take, put) \
+    if(in.opcode == opCode) { \
+        delta += (put - take) }
+#undef VM_INSTRUCTION
+        }
+        d+=delta;
+    }
+    bb.stackChange = d;
+
 }
 
 QString Method::getName()
@@ -169,7 +279,7 @@ QString Method::toString()
     return getName();
 }
 
-IMethod *MethodClass::Apply = new ApplyM();
+IMethod *MethodClass::Apply = NULL;
 
 IMethod *MethodClass::lookupMethod(QString name)
 {

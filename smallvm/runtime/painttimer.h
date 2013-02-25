@@ -11,7 +11,7 @@
 #include <time.h>
 class PaintTimer
 {
-    clock_t lastTimeStamp;
+    long lastTimeStamp;
     long elapsedTime;
     long minTime;
     bool first;

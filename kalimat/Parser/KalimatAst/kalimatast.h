@@ -43,6 +43,8 @@ public:
 };
 */
 class Identifier;
+
+uint qHash(shared_ptr<Identifier>);
 class IScopeIntroducer
 {
     virtual QVector<shared_ptr<Identifier> > getIntroducedVariables()=0;

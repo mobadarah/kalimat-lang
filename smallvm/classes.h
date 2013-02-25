@@ -11,6 +11,7 @@ class Value;
 class VArray;
 class Allocator;
 class Process;
+class VM;
 
 struct IObject
 {
@@ -71,6 +72,8 @@ struct IClass : public IObject
     virtual IMethod *lookupMethod(QString name)=0;
     virtual IObject *newValue(Allocator *allocator)=0;
     virtual bool getFieldAttribute(QString attr, Value *&ret, Allocator *allocator)=0;
+
+    virtual QString toString();
     // TODO: we need a relection API with attributes, similar to e.g .net
     // instead of these ad-hoc solutions
     virtual QVector<PropertyDesc> getProperties()=0;
@@ -100,6 +103,8 @@ struct IClass : public IObject
 
 struct ArrayClass : public IClass
 {
+    QMap<QString, IMethod *> externalMethods;
+    void attachVmMethod(VM *vm, QString methodName);
     // IObject
     virtual bool hasSlot(QString name) { return false; }
     virtual QList<QString> getSlotNames() { return QList<QString>(); }
@@ -122,14 +127,37 @@ struct ArrayClass : public IClass
     Value *addArrayToMe(VArray *v1, Value *v2, Allocator *allocator);
 };
 
+struct MapClass : public IClass
+{
+    QMap<QString, IMethod *> externalMethods;
+    void attachVmMethod(VM *vm, QString methodName);
+    // IObject
+    virtual bool hasSlot(QString name) { return false; }
+    virtual QList<QString> getSlotNames() { return QList<QString>(); }
+    virtual Value *getSlotValue(QString name) { return NULL; }
+    virtual void setSlotValue(QString name, Value *val) { }
+
+    //IClass
+    virtual QString getName();
+    bool hasField(QString name) { return false;}
+    IClass *baseClass();
+    virtual bool subclassOf(IClass *c);
+    IMethod *lookupMethod(QString name);
+    IObject *newValue(Allocator *allocator);
+    virtual bool getFieldAttribute(QString attr, Value *&ret, Allocator *allocator) { return false;}
+    virtual QVector<PropertyDesc> getProperties() { return QVector<PropertyDesc>(); }
+    QString toString() { return getName();}
+};
+
 struct ComparableClass : public IClass
 {
     // virtual bool equals(Value *v) = 0;
-
 };
 
 struct StringClass : public ComparableClass
 {
+    QMap<QString, IMethod *> externalMethods;
+    void attachVmMethod(VM *vm, QString methodName);
     // IObject
     virtual bool hasSlot(QString name) { return false; }
     virtual QList<QString> getSlotNames() { return QList<QString>(); }
@@ -173,7 +201,7 @@ struct NumericClass : public ComparableClass
     IObject *newValue(Allocator *allocator);
     virtual bool getFieldAttribute(QString attr, Value *&ret, Allocator *allocator) { return false;}
     virtual QVector<PropertyDesc> getProperties() { return QVector<PropertyDesc>(); }
-    QString toString() { return getName();}
+    //QString toString() { return getName();}
 
     bool isNumeric() { return true;}
 };
@@ -367,6 +395,28 @@ struct FunctionClass : public IClass
     virtual bool getFieldAttribute(QString attr, Value *&ret, Allocator *allocator);
     virtual QVector<PropertyDesc> getProperties();
     QString toString();
+};
+
+struct ChannelClass : public IClass
+{
+    QMap<QString, IMethod *> externalMethods;
+    void attachVmMethod(VM *vm, QString methodName);
+    // IObject
+    virtual bool hasSlot(QString name) { return false; }
+    virtual QList<QString> getSlotNames() { return QList<QString>(); }
+    virtual Value *getSlotValue(QString name) { return NULL; }
+    virtual void setSlotValue(QString name, Value *val) { }
+
+    //IClass
+    virtual QString getName();
+    bool hasField(QString name) { return false;}
+    IClass *baseClass();
+    virtual bool subclassOf(IClass *c);
+    IMethod *lookupMethod(QString name);
+    IObject *newValue(Allocator *allocator);
+    virtual bool getFieldAttribute(QString attr, Value *&ret, Allocator *allocator) { return false;}
+    virtual QVector<PropertyDesc> getProperties() { return QVector<PropertyDesc>(); }
+    QString toString() { return getName();}
 };
 
 #endif // CLASSES_H

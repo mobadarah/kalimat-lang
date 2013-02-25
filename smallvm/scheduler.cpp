@@ -15,6 +15,29 @@ inline void fast_srand( int seed )
     g_seed = seed;
 }
 
+//  George Marsaglia's xorshf random number generator
+unsigned long xorshf96(void)
+{
+    static unsigned long x=123456789, y=362436069, z=521288629;
+    //period 2^96-1
+unsigned long t;
+    x ^= x << 16;
+    x ^= x >> 5;
+    x ^= x << 1;
+
+   t = x;
+   x = y;
+   y = z;
+   z = t ^ x ^ y;
+
+  return z;
+}
+
+inline int fastrand()
+{
+  g_seed = (214013*g_seed+2531011);
+  return (g_seed>>16) & 0x7FFF;
+}
 
 Scheduler::Scheduler(VM *vm)
     :vm(vm)
@@ -120,41 +143,18 @@ bool Scheduler::schedule()
 }
 
 
-//  George Marsaglia's xorshf random number generator
-unsigned long xorshf96(void)
-{
-    static unsigned long x=123456789, y=362436069, z=521288629;
-    //period 2^96-1
-unsigned long t;
-    x ^= x << 16;
-    x ^= x >> 5;
-    x ^= x << 1;
-
-   t = x;
-   x = y;
-   y = z;
-   z = t ^ x ^ y;
-
-  return z;
-}
-
-inline int fastrand()
-{
-  g_seed = (214013*g_seed+2531011);
-  return (g_seed>>16)&0x7FFF;
-}
-
 bool Scheduler::RunStep(bool singleInstruction, int maxtimeSclice)
 {
-    //int n = singleInstruction? 1 : xorshf96() % maxtimeSclice;
-    int n = singleInstruction? 1 : fastrand() % maxtimeSclice;
-
     // Bring a process to the front of 'running' queue
     // and set 'runningNow'
     if(!schedule())
     {
         return false;
     }
+
+    //int n = singleInstruction? 1 : xorshf96() % maxtimeSclice;
+    int n = singleInstruction? 1 : fastrand() % maxtimeSclice;
+
     runningNow->timeSlice = n;
     runningNow->RunTimeSlice(vm);
 
@@ -165,17 +165,16 @@ bool Scheduler::RunStep(bool singleInstruction, int maxtimeSclice)
 
 bool Scheduler::FastRunStep(int maxtimeSclice)
 {
-    //int n = xorshf96() % maxtimeSclice;
-    int n = fastrand() % maxtimeSclice;
-
     // Bring a process to the front of 'running' queue
     // and set 'runningNow'
     if(!schedule())
     {
         return false;
     }
+    //int n = xorshf96() % maxtimeSclice;
+    int n = fastrand() % maxtimeSclice;
     runningNow->timeSlice = n;
-    runningNow->FastRunTimeSlice(vm);
+    runningNow->FastRunTimeSlice();
 
     finishUp();
 
@@ -192,9 +191,16 @@ void Scheduler::finishUp()
         // If it's finished then it doesn't need to be put back in any queues, doesn't
         // need to migrate to another scheduler, and should be completely removed
 
-        // setting runningNow to null is important because the GC looks in runningNow in
+        // setting runningNow to null when deleting is important because the GC looks in runningNow in
         // addition to the various queues for root objects
-        delete runningNow;
+
+        // We keep the main process because the debugger (for now) focuses mainly on it
+        // the debugger will call isFinished() so as not to step into a finished process
+        if(runningNow != vm->getMainProcess())
+        {
+            delete runningNow;
+        }
+
         runningNow = NULL;
     }
     else if(runningNow->wannaMigrateTo != NULL && runningNow->wannaMigrateTo != this)
@@ -248,7 +254,9 @@ Frame *Scheduler::launchProcess(Method *method, Process *&proc)
     Process *p = new Process(this);
     p->starterProcedureName = method->getName();
     proc = p;
-    p->pushFrame(p->framePool.allocate(method, 0));
+    Frame *f = p->framePool.allocate(method, 0);
+    f->next = NULL;
+    p->pushFrame(f);
     running.push_front(p);
     Frame *ret = p->stack;
     //_isRunning = 1;
@@ -274,13 +282,13 @@ void Scheduler::awaken(Process *proc)
 void Scheduler::sleepify(Process *proc)
 {
     sleeping.push_back(proc); // todo: what's more optimal, push_back or push_front?
-    proc->timeSlice = 0;
+    proc->exitTimeSlice();
 }
 
 void Scheduler::makeItWaitTimer(Process *proc, int ms)
 {
     proc->state = TimerWaitingProcess;
-    proc->timeSlice = 0;
+    proc->exitTimeSlice();
     proc->timeToWake = get_time() + ms *1000;
     bool added = false;
     int posToInsertAt= 0;

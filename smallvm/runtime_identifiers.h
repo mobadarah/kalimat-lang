@@ -152,7 +152,14 @@ namespace RId
         MainProgram,
         Subtraction,
         Multiplication,
-        Division
+        Division,
+        GetEnumerator,
+        EnumMoveNext,
+        Current,
+        CloseChan,
+        ChanClosed,
+        KeyAt,
+        Contains
     };
 }
 

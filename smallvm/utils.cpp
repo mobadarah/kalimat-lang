@@ -94,7 +94,7 @@ QString readFile(QString path)
     return ret;
 }
 
-LineIterator Utils::readResourceTextFile(QString fileName)
+LineIterator Utils::readResourceTextFile(QString fileName, bool bilingual)
 {
     LineIterator iter;
 
@@ -105,6 +105,7 @@ LineIterator Utils::readResourceTextFile(QString fileName)
 
     iter.file = inputFile;
     iter.stream = in;
+    iter.bilingual = bilingual;
     return iter;
 }
 
@@ -120,9 +121,44 @@ QMap<QString, QString> Utils::readAequalBFile(LineIterator &iter)
     return ret;
 }
 
+QStringList Utils::segmentString(QString source, int segmentMaxLength)
+{
+    QStringList segments;
+    while(source.length() > 0)
+    {
+        segments.append(source.left(segmentMaxLength));
+        source = source.mid(segmentMaxLength);
+    }
+    return segments;
+}
+
+QStringList Utils::segmentStringForPascal(QString source, int segmentMaxLength)
+{
+    QStringList segments;
+    while(source.length() > 0)
+    {
+        segments.append("'" + source.left(segmentMaxLength)+"'");
+        source = source.mid(segmentMaxLength);
+    }
+    return segments;
+}
+
+
 QString LineIterator::readLine()
 {
-    return stream->readLine();
+    if(!bilingual)
+        return stream->readLine();
+    else
+    {
+#ifdef ENGLISH_PL
+        stream->readLine();
+        return stream->readLine();
+#else
+        QString ret = stream->readLine();
+        stream->readLine();
+        return ret;
+#endif
+    }
 }
 
 QString LineIterator::readAll()

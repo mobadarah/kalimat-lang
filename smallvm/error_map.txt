@@ -1,42 +1,90 @@
 ﻿متغير غير موجود: %1
+Undefined variable: %1
 إجراء غير موجود: %1
+Undefined procedure: %1
 إجراء (أو دالة) غير موجود: %1
+Undefined procedure or function: %1
 الخاصية '%1' غير موجودة في الفصيلة '%2'
+Property '%1' is not defined in class '%2'
 رسالة '%1' لا يوجد لها استجابة في الفصيلة '%2'
+Message '%1' has no reponse in class '%2'
 إجراء خارجي غير موجود: %1
+Undefined external procedure: %1
 الفصيلة '%1' لا يوجد فيها استجابة خارجة رقمها %2
+Class '%1' does not have an external response numbered %2
 نوع حدث غير معروف
+Undefined event type
 نوع غير معروف: '%1'
+Undefined type: '%1'
 المعرّف '%1' لا يدل على نوع
+Identifier '%1' does not designate a type
 تعليمة غير موجودة: '%1'
+Unknown instruction: '%1'
 تعليمة غير معروفة '%1' في السطر %2
+Unknown instruction '%1' at line '%2'
 محاولة قراءة خاصية لما ليس بكائن
+Trying to read a field from a non-object
 <u>محاولة كتابة خاصية لما ليس بكائن</u><p>القيمة المقدمة من نوع %1 وهو ليس نوع كائني</p>
+<u>Trying to read a field from a non-object</u><p>Given value is of type '%1' which is not an object type</p>
 محاولة إرسال رسالة لما ليس بكائن
+Trying to send a message to a non-object
 محاولة قراءة خاصية من لاشيء
+Trying to read a field from the value 'nothing'
 محاولة كتابة خاصية للاشيء
+Trying to write a field to the value 'nothing'
 محاولة إرسال رسالة للاشيء
+Trying to send a message to the value 'nothing'
 <u>عملية ال%1 لا تُجرَى إلا على أعداد!</u><p>النوع المقدم هو %2</p>
+<u>Operation '%1' applies only to numeric values</u><p>Value given is of type '%2'</p>
 <u>عملية ال%1 لا تُجرَى إلا على أعداد!</u><p>الأنواع المقدمة هي %2 و %3</p>
+<u>Operation '%1' applies only to numeric values</u><p>Values given are of type '%2' and '%3'</p>
 محاولة إجراء عملية منطقية على ما ليس بقيم منطقية
+Trying to apply logical operation to non-logical values
 قسمة على صفر
+Division by zero
 هذه العملية لا تنفع مع قيمتين من نوع '%1' و'%2'
+This operation does not apply to the values '%1' and '%2'
 لا يمكن الذهاب لعلامة غير موجودة: %1
+Cannot go to an undefined label: %1
 القيمة المقدمة لأمر اذهب إلى لابد أن تكون عدداً صحيحاً أو نص، ولكنها من نوع '%1'
+Value given to 'go to' must be a string or integer, value give is of type '%1'
 <u>خطأ في نوع القيمة</u> <p> [النوع المطلوب '%1' بينما النوع المقدّم '%2']</p>
+<u>Type error</u> <p>Expected '%1', but given '%2'</p>
 خطأ داخلي في البرنامج
+Internal error
 <u>خطأ داخلي في البرنامج</u> <p>%1</p>
+<u>Internal error</u> <p>%1</p>
 استدعاء الإجراء أو الدالة '%1' بعدد غير مناسب من القيم المرسلة (%2 بدلاً من %3)
+Calling procedure or function '%1' with wrong number of arguments  (given %2 instead of %3)
 الدالة '%1' انتهت ولم ترجع بقيمة
+Function call of '%1' ended without returning a value
 هذه العملية يجب أن تعمل على مصفوفة
+This operation applies only to an array
 الإشارة لعنصر في مصفوفة يجب أن تكون بقيمة عددية
+Array index has to be a numerical value
 لا يمكن استخدام النوع '%1' كقيمة مفتاحية
+Cannot use values of type '%1' as a key
 القيمة المفتاحية %1 ليست موجودة
+Key '%1' doesn't exist
 <u>رقم العنصر المطلوب خارج نطاق المصفوفة</u><p>الرقم المقدم %1 وليس من 1 إلى %2</p>
+<u>Array index out of bounds</u><p>Index must be from 1 to %2, given %1</p>
 <u>رقم العنصر المطلوب خارج نطاق المصفوفة</u><p>الرقم المقدم للبعد رقم %1 هو %2 وليس من 1 إلى %3</p>
+<u>Array index out of bounds</u><p>Index for dimension %1 must be from 1 to %3, given %2</p>
 <u>خطأ في القيمة المقدمة للإجراء أو الدالة</u><p>%1</p>
+<u>Error in value given to procedure or function</u><p>%1</p>
 عدد الأبعاد خطأ في استخدام المصفوفة متعددة الأبعاد
+Incorrect number of dimensions when using multidimensional array
 يوجد عنصر بنفس الأسم معرف من قبل: '%1'
-توجد استجابة معرفة بنفس الإسم في الفصيلة
+Element already defined: '%1'
+توجد استجابة معرفة بنفس الإسم ('%1') في الفصيلة '%2'
+Reponse '%1' already defined in class '%2'
+عنصر البيانات '%1' معرف بالفعل في الفصيلة '%2'
+Field '%1' already defined in class '%2'
 خطأ في تنفيذ أمر مبني باللغة
+Error when running built-in command
 خطأ
+Error
+لا يمكن الإرسال لقناة مغلقة
+Cannot send to a closed channel
+لا يمكن التسلم من قناة مغلقة
+Cannot receive from a closed channel

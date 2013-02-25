@@ -1,32 +1,64 @@
 ﻿العبارة يجب أن تكون في صورة أمر أو تعريف
+Expected statement or declaration
 الفصيلة %1 مُعرّفة بالفعل
+Class '%1' already defined
 الفصيلة '%2' مبنية على الفصيلة غير الموجودة '%1'
+Class '%1' is built on nonexisting class '%2'
 محاولة تعريف استجابة أو رد للفصيلة غير الموجودة '%1'
+Trying to define a method for nonexisting class '%1'
 يوجد بالفعل تعريف للاستجابة أو الرد '%1' في الفصيلة '%2'
+Method '%1' already defined in class '%2'
 لم يُعلَن عن الاستجابة أو الرد '%1' في الفصيلة '%2'
+Method '%1' defined but not declared in class '%2'
 اختلاف في عدد العوامل بين الإعلان والتعريف للاستجابة أو الرد '%1'  في الفصيلة '%2'
+Declaration and definition differ in parameter count for method '%1' in class '%2'
 '%1' أُعلِن عنها كردّ ثمّ عُرّفَت كاستجابة في الفصيلة '%2'
+'%1' was declared as a reply, but defined as a response in class '%2'
 '%1' أُعلِن عنها كاستجابة ثمّ عُرّفَت كردّ في الفصيلة '%2'
+'%1' was declared as a response, but defined as a reply in class '%2'
 أمر 'اقرأ من' لا يمكن أن يأخذ رسالة
+'read from' cannot include a message
 أمر 'اقرأ من' لا يأخذ سوى متغير واحد فقط
+'read from' can take only one variable
 لا يأتي بعد 'اذهب إلى' سوى رقم أو اسم
+'go to' can only followed by an identifier or number literal
 العلامة %1 معرفة من قبل في %2
+Label '%1' already defined in '%2'
 لا يمكن استخدام أمر 'ارجع ب:' سوى في دالّة
+'return' can only be used in a function or reply
 لا يمكن استخدام الإجراء '%1' في موضع يحتاج لقيمة
+Cannot call procedure '%1' where a value is expected
 متغير غير معروف : '%1'
+Undefined variable: '%1'
 الثابت العددي '%1' في صورة غير مقبولة
+Incorrect for for number literal '%1'
 تعريف غير مفهوم: '%1'
+Unknown definition form: '%1'
 تعريف نوع المتغير لا يقبل إلا في أول تخصيص قيمة له
+Variable can have type declaration only in first assignment
 مخصص له في صورة غير مفهومة: '%1'
+Unknown form for lvalue: '%1'
 تعبير في صورة غير مفهومة: '%1'
+Unknown form for expression: '%1'
 أمر في صورة غير مفهومة: '%1'
-استدعاء في صورة غير مفهومة: '%1'	
+Unknown form for statement: '%1'
+استدعاء في صورة غير مفهومة: '%1'
+Unknown form for invokation: '%1'
 نوع في صورة غير مفهومة: '%1'
+Unknown form for type: '%1'
 نمط في صورة غير مفهومة: '%1'
+Unknown form for pattern: '%1'
 لابد من تخزين الوحدة الخارجية قبل استخدامها
+External units must be saved before usage
 خطأ داخلي في المترجم: %1
+Internal compiler error: '%1'
 لايمكن تنفيذ وحدة
+Cannot run a unit
 القاعدة '%1' معرفة بالفعل
+Rule '%1' already defined
 استخدام قاعدة غير معرفة: %1
+Using undefined rule: '%1'
 الوحدة '%1' غير موجودة
+Unit '%1' doesn't exist
 إجراء (أو دالة) '%1' غير موجود
+Procedure or function not defined: '%1'

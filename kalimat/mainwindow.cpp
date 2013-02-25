@@ -49,17 +49,8 @@
 #include <QIcon>
 #include <QSqlQuery>
 #include <QImageWriter>
-MainWindow *MainWindow::that = NULL;
 
-NullaryStepStopCondition *NullaryStepStopCondition::instance()
-{
-    static NullaryStepStopCondition *inst = NULL;
-    if(!inst)
-    {
-        inst = new NullaryStepStopCondition();
-    }
-    return inst;
-}
+MainWindow *MainWindow::that = NULL;
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent),
@@ -68,12 +59,17 @@ MainWindow::MainWindow(QWidget *parent)
       ui(new Ui::MainWindow)
 {
     MainWindow::that = this;
+    VM::InitGlobalData();
     BuiltInTypes::init();
     helpWindowVisible = false;
     helpSplitter = NULL;
 
     ui->setupUi(this);
-
+#ifdef ENGLISH_PL
+    setLayoutDirection(Qt::LeftToRight);
+    ui->menuBar->setLayoutDirection(Qt::LeftToRight);
+    ui->menuBar->removeAction(ui->mnuSpecialSymbol->menuAction());
+#endif
     settingsOrganizationName = "mohamedsamy";
     settingsApplicationName = "kalimat 1.0";
 
@@ -84,7 +80,7 @@ MainWindow::MainWindow(QWidget *parent)
                                               here).toString();
 
     QString editorFontName = settings.value("editor_font_name",
-                                        this->font().family()).toString();
+                                            this->font().family()).toString();
 
     this->editorFontSize = settings.value("editor_font_size", 18).toInt();
 
@@ -96,9 +92,9 @@ MainWindow::MainWindow(QWidget *parent)
     QToolBar *notice = new QToolBar("");
     notice->addAction(
                 Ide::msg[IdeMsg::UpdateBanner],
-                this,
-                SLOT(do_goto_kalimatlangdotcom_triggered())
-                );
+            this,
+            SLOT(do_goto_kalimatlangdotcom_triggered())
+            );
     insertToolBarBreak(ui->functionNavigationToolbar);
     insertToolBar(ui->functionNavigationToolbar, notice);
     speedGroup = new QActionGroup(this);
@@ -154,8 +150,7 @@ MainWindow::MainWindow(QWidget *parent)
     ui->functionNavigationToolbar->hide();
     ui->functionNavigationToolbar->addWidget(functionNavigationCombo);
     //connect(functionNavigationCombo, SIGNAL(currentIndexChanged(int)), SLOT(do_functionNavigationCombo_currentIndexChanged(int)));
-
-    ui->functionNavigationToolbar->show();
+    //ui->functionNavigationToolbar->show();
     generatingProgramModel = false;
     // codeModelUpdateTimerId = startTimer(codeModelUpdateInterval);
 
@@ -163,8 +158,8 @@ MainWindow::MainWindow(QWidget *parent)
             this, SLOT(markCurrentInstructionSlot(VM*,Process*,int*,int*)),
             Qt::BlockingQueuedConnection);
 
-    connect(this, SIGNAL(breakEvent(int,Frame*,Process*)),this,
-            SLOT(breakSlot(int,Frame*,Process*)));
+    connect(this, SIGNAL(breakEvent(BreakSource::Src,int,Frame*,Process*)),this,
+            SLOT(breakSlot(BreakSource::Src,int,Frame*,Process*)));
     currentStepStopCondition = NullaryStepStopCondition::instance();
 
     // No .exes for other operating systems for now...
@@ -311,7 +306,7 @@ void MainWindow::setLineIndicators(int line, int column, QTextEdit *editor)
             // cursor's not within range
             minz = min(t1.Pos, t2.Pos);
             maxz = max(t1.Pos + t1.Lexeme.count(),
-                          t2.Pos + t2.Lexeme.count());
+                       t2.Pos + t2.Lexeme.count());
             int pos = ed->textCursor().position();
             // pos+1 because the closing )
             // hasn't been entered yet
@@ -344,7 +339,7 @@ void MainWindow::setFunctionNavigationComboSelection(QTextEdit *editor)
         QString d = q.value(0).toString();
         functionNavigationComboIsUpdating = true;
         functionNavigationCombo->setCurrentIndex(
-                                    functionNavigationCombo->findText(q.value(0).toString()));
+                    functionNavigationCombo->findText(q.value(0).toString()));
         functionNavigationComboIsUpdating = false;
     }
     else
@@ -400,12 +395,12 @@ void MainWindow::on_actionLexize_triggered()
     try
     {
         ui->tabWidget->setCurrentWidget(ui->outputView);
-        clock_t t1 = clock();
+        long t1 = get_time();
         lxr.tokenize();
         QVector<Token> tokens = lxr.getTokens();
         ui->outputView->clear();
-        clock_t t2 = clock();
-        double secs = (double)(t2-t1) / CLOCKS_PER_SEC;
+        clock_t t2 = get_time();
+        double secs = (double)(t2-t1) / 1000000;
         ui->outputView->append(QString("Compiled in %1 seconds.").arg(secs));
         for(int i=0; i<tokens.size(); i++)
         {
@@ -646,7 +641,7 @@ top:
     if((currentDebuggerProcess != NULL) && atBreak)
     {
         QMessageBox box(QMessageBox::Information, Ide::msg[IdeMsg::CannotRunProgram],
-                        Ide::msg[IdeMsg::CannotRunNewProgramAtMiddleOfBreakPoint]);
+                Ide::msg[IdeMsg::CannotRunNewProgramAtMiddleOfBreakPoint]);
         box.exec();
         return;
     }
@@ -752,9 +747,9 @@ top:
             {
                 QString message = Ide::msg.get(IdeMsg::CannotExecuteUnit2, doc->getFileName(), lastCodeDocToRun->getFileName());
                 QMessageBox box(QMessageBox::Question,
-                               Ide::msg[IdeMsg::CannotExecuteUnit],
-                                message,
-                                QMessageBox::Yes | QMessageBox::No);
+                                Ide::msg[IdeMsg::CannotExecuteUnit],
+                        message,
+                        QMessageBox::Yes | QMessageBox::No);
                 if(box.exec() == QMessageBox::Yes)
                 {
                     docContainer->setCurrentDocument(lastCodeDocToRun);
@@ -925,8 +920,10 @@ void MainWindow::visualizeCallStack(Frame *callStack, QGraphicsView *view)
 
         f = f->next;
     }
+#ifndef ENGLISH_PL
     view->setAlignment(Qt::AlignRight| Qt::AlignTop);
     view->setLayoutDirection(Qt::RightToLeft);
+#endif
     ui->tabWidget->setCurrentWidget(ui->graphicsView);
     QGraphicsScene *oldScene = view->scene();
     if(oldScene)
@@ -986,7 +983,11 @@ void MainWindow::highlightRunningInstruction(Frame *f)
 
 void MainWindow::highlightRunningInstruction(Frame *f, QColor clr)
 {
-    CodePosition p = getPositionOfRunningInstruction(f);
+    CodePosition p;
+    if(!getPositionOfRunningInstruction(p, f, true))
+    {
+        return;
+    }
 
     if(p.doc != NULL)
     {
@@ -1003,13 +1004,40 @@ void MainWindow::highlightRunningInstruction(Frame *f, QColor clr)
     }
 }
 
-CodePosition MainWindow::getPositionOfRunningInstruction(Frame *f)
+bool MainWindow::getPositionOfRunningInstruction(CodePosition &p, Frame *f, bool previous)
 {
-    const Instruction &i = f->getPreviousRunningInstruction();
-    // const Instruction &i = f->currentMethod->Get(f->ip);
-    int key = i.extra;
-    CodePosition p = PositionInfo[key];
-    return p;
+    /*
+     We can come to a break for one of two reasons:
+        1- A stepStopCondition was reached when stepping
+        2- Executing a break instruction caused by a breakpoint,
+
+     - In the first case, the current running instruction
+     is method[ip-1] because the current instruction has already been executed and ip
+     was incremented.
+
+     - In the second case the the 'break' has replaced an existing instruction,
+       and execution has gone back a step, so we should not decrement ip
+       since it has already been decremented
+     */
+    try
+    {
+        const Instruction *i;
+
+        if(previous)
+            i = &f->getPreviousRunningInstruction();
+        else
+            i= &f->getRunningInstruction();
+
+        // const Instruction &i = f->currentMethod->Get(f->ip);
+        int key = i->extra;
+        p = PositionInfo[key];
+        return true;
+    }
+    catch(VMError err)
+    {
+        handleVMError(err);
+        return false;
+    }
 }
 
 void MainWindow::on_action_new_triggered()
@@ -1353,21 +1381,22 @@ void MainWindow::on_action_autoFormat_triggered()
     }
 }
 
-void MainWindow::breakSlot(int offset, Frame *frame, Process *process)
+void MainWindow::breakSlot(BreakSource::Src source, int offset, Frame *frame, Process *process)
 {
-    Break(offset, frame, process);
+    Break(source, offset, frame, process);
 }
 
-void MainWindow::postBreak(int offset, Frame *frame, Process *process)
+void MainWindow::postBreak(BreakSource::Src source, int offset, Frame *frame, Process *process)
 {
-    emit breakEvent(offset, frame, process);
+    emit breakEvent(source, offset, frame, process);
 }
 
-void MainWindow::Break(int offset, Frame *frame, Process *process)
+void MainWindow::Break(BreakSource::Src source, int offset, Frame *frame, Process *process)
 {
     this->setWindowTitle(Ide::msg[IdeMsg::BreakpointReached]);
     //this->activateWindow();
     atBreak = true;
+    breakSource = source;
     if(currentStepStopCondition != NullaryStepStopCondition::instance())
     {
         delete currentStepStopCondition;
@@ -1397,6 +1426,43 @@ void MainWindow::currentBreakCondition(Process *process)
     currentStepStopCondition->stopNow(process);
 }
 
+void MainWindow::step(Process *proc)
+{
+    bool prev;
+    if(this->breakSource == BreakSource::FromInstruction)
+        prev = false;
+    else if(this->breakSource == BreakSource::FromStepping)
+        prev = true;
+    else
+    {
+        // should be unreachable
+        //int dummy = 0;
+    }
+
+    CodePosition p;
+    if(!getPositionOfRunningInstruction(p, proc->currentFrame(), prev))
+        return;
+
+    StepStopCondition *cond = new SingleStepCondition(p.doc, p.ast->getPos().Line, proc->currentFrame(), this);
+    genericStep(proc, cond);
+}
+
+void MainWindow::stepOver(Process *proc)
+{
+    bool prev;
+    if(this->breakSource == BreakSource::FromInstruction)
+        prev = false;
+    else
+        prev = true;
+
+    CodePosition p;
+    if(!getPositionOfRunningInstruction(p, proc->currentFrame(), prev))
+        return;
+
+    StepStopCondition *cond = new StepOverCondition(p.doc, p.ast->getPos().Line, proc->currentFrame(), this);
+    genericStep(proc, cond);
+}
+
 void MainWindow::genericStep(Process *proc, StepStopCondition *cond)
 {
     if(!stoppedRunWindow)
@@ -1411,20 +1477,6 @@ void MainWindow::genericStep(Process *proc, StepStopCondition *cond)
     atBreak = false;
     stoppedRunWindow->resume();
     stoppedRunWindow->Run();
-}
-
-void MainWindow::step(Process *proc)
-{
-    CodePosition p = getPositionOfRunningInstruction(proc->currentFrame());
-    StepStopCondition *cond = new SingleStepCondition(p.doc, p.ast->getPos().Line, proc->currentFrame(), this);
-    genericStep(proc, cond);
-}
-
-void MainWindow::stepOver(Process *proc)
-{
-    CodePosition p = getPositionOfRunningInstruction(proc->currentFrame());
-    StepStopCondition *cond = new StepOverCondition(p.doc, p.ast->getPos().Line, proc->currentFrame(), this);
-    genericStep(proc, cond);
 }
 
 void MainWindow::setDebuggedProcess(Process *p)
@@ -1508,11 +1560,15 @@ void MainWindow::on_action_resume_triggered()
 
 void MainWindow::on_action_step_triggered()
 {
+    if(!currentDebuggerProcess || currentDebuggerProcess->isFinished())
+        return;
     step(currentDebuggerProcess);
 }
 
 void MainWindow::on_action_step_procedure_triggered()
 {
+    if(!currentDebuggerProcess || currentDebuggerProcess->isFinished())
+        return;
     stepOver(currentDebuggerProcess);
 }
 
@@ -1528,9 +1584,9 @@ void MainWindow::on_actionMake_exe_triggered()
     QString fn = doc ? doc->getFileName() : "untitled";
     fn = QFileInfo(fn).fileName();
 
-     //QString kalimatBaseDir = "c:/kalimat-release";
-     QString kalimatBaseDir = qApp->applicationDirPath();
-     QString stagingArea = kalimatBaseDir + "/stagingarea";
+    //QString kalimatBaseDir = "c:/kalimat-release";
+    QString kalimatBaseDir = qApp->applicationDirPath();
+    QString stagingArea = kalimatBaseDir + "/stagingarea";
 
     QString pasFileName = stagingArea + "/" + fn + ".pas";
     QString oFileName = stagingArea + "/" + fn + ".o";
@@ -1597,17 +1653,19 @@ void MainWindow::on_actionMake_exe_triggered()
         {
             QString sym = base64encode(i.value());
             QString data = base64encode(i.key());
-            strConstants.append(QString("SmallVMAddStringConstant('%1','%2')").arg(sym).arg(data));
-        }
-        QString bb = compiler.generator.getOutput();
 
-        QString baha = base64encode(bb);
-        QStringList segments;
-        while(baha.length() > 0)
-        {
-            segments.append("'" + baha.left(80)+"'");
-            baha = baha.mid(80);
+            QStringList dataSegments = Utils::segmentStringForPascal(data, 200);
+
+            strConstants.append(QString("SmallVMAddStringConstant('%1','%2')")
+                                .arg(sym)
+                                .arg(dataSegments.join("+")));
         }
+        QString vmCode = compiler.generator.getOutput();
+
+        QString vmCode64 = base64encode(vmCode);
+
+        QStringList segments = Utils::segmentStringForPascal(vmCode64, 200);
+
         //                        {$APPTYPE GUI}
         QString haveProjectRc = QFile::exists(icoFileName)? "{$R project.rc}" : "";
 
@@ -1731,13 +1789,13 @@ void MainWindow::on_actionMake_exe_triggered()
         if(!success)
         {
             QMessageBox box(QMessageBox::Information, Ide::msg[IdeMsg::CreatingExecutable],
-                            Ide::msg.get(IdeMsg::ErrorCreatingExecutable1, problem));
+                    Ide::msg.get(IdeMsg::ErrorCreatingExecutable1, problem));
             box.exec();
         }
         else
         {
             QMessageBox box(QMessageBox::Information,  Ide::msg[IdeMsg::CreatingExecutable],
-                            Ide::msg[IdeMsg::SuccessCreatingExe]);
+                    Ide::msg[IdeMsg::SuccessCreatingExe]);
             box.exec();
         }
     }
@@ -1881,8 +1939,8 @@ void MainWindow::do_editor_linkClicked(MyEdit *source, QString href)
     if(linkedFile == "")
     {
         QMessageBox box(QMessageBox::Question,Ide::msg[IdeMsg::FileNotFound],
-                        Ide::msg.get(IdeMsg::FileNotFoundCreateIt1, linkedFile),
-                        QMessageBox::Yes|QMessageBox::No);
+                Ide::msg.get(IdeMsg::FileNotFoundCreateIt1, linkedFile),
+                QMessageBox::Yes|QMessageBox::No);
         box.exec();
         if( box.result() == QMessageBox::Yes)
         {
@@ -2081,7 +2139,7 @@ void MainWindow::on_actionUpdate_code_model_triggered()
     qDebug() << "Updated DB in: " << (t2-t1)/ 1000 << " ms";
     fillFunctionNavigationCombo(doc, fileName);
     functionNavigationCombo->setMinimumWidth(
-                        0.6f * (float) ui->functionNavigationToolbar->width() );
+                0.6f * (float) ui->functionNavigationToolbar->width() );
 
     /*
     functionNavigationInfo = codeAnalyzer.analyzeCompilationUnit(cu);
@@ -2297,12 +2355,12 @@ void MainWindow::on_action_go_to_definition_triggered()
     }
 
     q = progdb.q("SELECT defining_token_pos, function_definitions.module_filename FROM function_definitions JOIN definitions "
-                              " ON definitions.id=function_definitions.def_id AND "
-                              " definitions.module_filename = function_definitions.module_filename "
-                              " WHERE definitions.module_filename IN (SELECT imported FROM"
-                              " module_imports WHERE importer=?)"
-                              " AND definitions.name in  (SELECT lexeme FROM tokens WHERE pos <=? "
-                              " AND pos + length >=?)", filename, cursorPos, cursorPos);
+                 " ON definitions.id=function_definitions.def_id AND "
+                 " definitions.module_filename = function_definitions.module_filename "
+                 " WHERE definitions.module_filename IN (SELECT imported FROM"
+                 " module_imports WHERE importer=?)"
+                 " AND definitions.name in  (SELECT lexeme FROM tokens WHERE pos <=? "
+                 " AND pos + length >=?)", filename, cursorPos, cursorPos);
 
     if(q.next())
     {
@@ -2323,9 +2381,9 @@ void MainWindow::triggerAutocomplete(MyEdit *editor)
         return;
     if(!varInfos.contains(t.Pos))
         return; // among other reasons for not being in
-                // varinfos is that it might not
-                // actually be a variable
-                // but any identifier
+    // varinfos is that it might not
+    // actually be a variable
+    // but any identifier
     VarUsageInfo vi = varInfos[t.Pos];
     showCompletionCombo(editor, vi);
 
@@ -2348,8 +2406,8 @@ void MainWindow::showCompletionCombo(MyEdit *editor, VarUsageInfo vi)
     autoCompleteCombo = new QComboBox(editor);
     //autoCompleteCombo->setIconSize(QSize(32,32));
     for(QMap<QString, shared_ptr<MethodDecl> >::const_iterator i=cd->_methods.begin();
-            i != cd->_methods.end();
-            ++i)
+        i != cd->_methods.end();
+        ++i)
     {
         shared_ptr<MethodDecl> md = i.value();
         /*

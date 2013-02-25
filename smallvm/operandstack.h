@@ -8,7 +8,7 @@ const int fourK = 4096;
 const int ValueSize = 16;
 
 // OperandStackChunkSize _must_ be a power of two!
-// or module(...) won't work!!
+// or modulo(...) won't work!!
 const int OperandStackChunkSize = fourK / ValueSize;
 
 typedef Stack<Value *, OperandStackChunkSize> VOperandStack;

@@ -17,9 +17,12 @@ struct ParserState
     int curToken;
     QVector<Token> tokens;
     Token lookAhead;
-
+    Token previousToken;
     QString (*tokenFormatter)(int);
-    ParserState(int curToken, Token lookAhead, QVector<Token> tokens, QString (*tokenFormatter)(int));
+    ParserState(int curToken,
+                Token lookAhead,
+                Token previousToken,
+                QVector<Token> tokens, QString (*tokenFormatter)(int));
 };
 
 class Parser
@@ -32,7 +35,9 @@ protected:
     QString fileName;
     QVector<Token> tokens;
     Token lookAhead;
+    Token previousToken;
     bool atStartOfFile;
+    bool lineStart;
     virtual shared_ptr<AST> parseRoot()=0;
 public:
     bool withRecovery;

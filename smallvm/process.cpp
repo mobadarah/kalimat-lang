@@ -198,39 +198,117 @@ double Process::popDoubleOrCoercedInt()
 
 void Process::RunTimeSlice(VM *vm)
 {
-    while(timeSlice > 0)
+    static void *jumpTable[] = {
+    #define VM_INSTRUCTION(x, __t, __p) \
+        &&LBL_##x,
+    #include "instruction_defs.h"
+    #undef VM_INSTRUCTION
+    };
+
+    static void *instructionLoopLabels[]  = { &&label1, &&label2};
+    currentLabel = 0;
+label1:
+    Frame *frame = currentFrame();
+    Instruction *executedInstruction = (Instruction *) &frame->currentMethod->Get(frame->ip++);
+    /*
+    //if(vm->traceInstructions)
     {
-        RunSingleInstruction();
-        vm->debugger->currentBreakCondition(this);
-        timeSlice--;
+    qDebug() << QString("Running '%1', IP=%2, method=%3, process=%4, scheduler =%5")
+             .arg(InstructionToString(i))
+             .arg(frame->ip)
+             .arg(frame->currentMethod->getName())
+             .arg((long) this)
+             .arg((owner ==(&vm->mainScheduler))?QString("main"): QString("gui"));
     }
+    //*/
+    goto *jumpTable[executedInstruction->opcode];
+
+#define VM_INSTRUCTION(x, __t, __p)     \
+        LBL_##x: Do##x(executedInstruction); \
+      vm->debugger->currentBreakCondition(this); \
+        goto *instructionLoopLabels[currentLabel];
+#include "instruction_defs.h"
+#undef VM_INSTRUCTION
+    label2:;
 }
 
-void Process::FastRunTimeSlice(VM *vm)
+void Process::FastRunTimeSlice()
 {
-    while(timeSlice > 0)
-    {
-        RunSingleInstruction();
-        timeSlice--;
-    }
+    static void *jumpTable[] = {
+    #define VM_INSTRUCTION(x, __t, __p) \
+        &&LBL_##x,
+    #include "instruction_defs.h"
+    #undef VM_INSTRUCTION
+    };
+
+    static void *instructionLoopLabels[]  = { &&label1, &&label2};
+    currentLabel = 0;
+label1:
+    Frame *frame = currentFrame();
+    Instruction *executedInstruction = (Instruction *) &frame->currentMethod->Get(frame->ip++);
+    goto *jumpTable[executedInstruction->opcode];
+
+#define VM_INSTRUCTION(x, __t, __p)     \
+        LBL_##x: Do##x(executedInstruction); \
+        goto *instructionLoopLabels[currentLabel];
+#include "instruction_defs.h"
+#undef VM_INSTRUCTION
+    label2:;
+
 }
+
+void Process::RunSingleInstruction(VM *vm)
+{
+    static void *jumpTable[] = {
+    #define VM_INSTRUCTION(x, __t, __p) \
+        &&LBL_##x,
+    #include "instruction_defs.h"
+    #undef VM_INSTRUCTION
+    };
+
+    Frame *frame = currentFrame();
+    Instruction *executedInstruction = (Instruction *) &frame->currentMethod->Get(frame->ip++);
+    goto *jumpTable[executedInstruction->opcode];
+
+#define VM_INSTRUCTION(x, __t, __p)     \
+        LBL_##x: Do##x(executedInstruction); \
+        vm->debugger->currentBreakCondition(this); \
+        goto label2;
+#include "instruction_defs.h"
+#undef VM_INSTRUCTION
+    label2:;
+}
+
+
 
 void Process::RunUntilReturn()
 {
-    /* Todo:
-
-     * This code runs only the current process until it returns. If the process is, say, waiting to
-     * receive from a channel; it would be waiting forever if the process sending to the channel runs
-     * on the same scheduler. We need to run the _virtual machine_, and not just the process, until
-     * the process returns.
+    /* This code runs only the current process until it returns. It also asks the scheduler to
+     * RunStep(). This is because otherwise if the current process is suspended (e.g because
+     * it's trying to receive from a channel); it would be waiting forever if the process
+     * sending to the channel runs on the same scheduler. We need to run the _virtual machine_,
+     * and not just the process, until the process returns.
      */
+
     assert1(stack->next, InternalError1, "RunUntilReturn: must have something to return to");
     Frame *prev  = stack->next;
     while(stack != prev)
     {
+        if(this->state == AwakeProcess)
+        {
+            RunSingleInstruction(vm);
+        }
         if(this->isFinished())
+        {
             break;
-        RunSingleInstruction();
+        }
+        /*
+         * We let RunStep go one instruction at a time since this is how the current process is also
+         * running, so we don't want to change program behavior by making this process run slower than
+         * the other processes in the same scheduler. Unfortunately this means that for the duration
+         * of this call, *all* processes in the scheduler run slowly. Todo: revise this decision
+         */
+        owner->RunStep(true);
     }
 }
 
@@ -245,7 +323,7 @@ void Process::migrateTo(Scheduler *scheduler)
     scheduler->lock.lock();
     //qDebug("locked other in migrate");
 
-    timeSlice = 0;
+    exitTimeSlice();
     owner->detachProcess(this);
     owner = scheduler;
     scheduler->attachProcess(this);
@@ -266,32 +344,10 @@ void Process::migrateTo(Scheduler *scheduler)
     //*/
 }
 
-void Process::RunSingleInstruction()
-{
-    Frame *frame = currentFrame();
-    executedInstruction = (Instruction *) &frame->currentMethod->Get(frame->ip);
-
-    /*
-    //if(vm->traceInstructions)
-    {
-    qDebug() << QString("Running '%1', IP=%2, method=%3, process=%4, scheduler =%5")
-             .arg(InstructionToString(i))
-             .arg(frame->ip)
-             .arg(frame->currentMethod->getName())
-             .arg((long) this)
-             .arg((owner ==(&vm->mainScheduler))?QString("main"): QString("gui"));
-    }
-    //*/
-    frame->ip++;
-
-    (this->*executedInstruction->runner)();
-}
-
 void Process::signal(VMErrorType toSignal)
 {
     vm->signal(this, toSignal);
 }
-
 
 void Process::signal(VMErrorType toSignal, QString arg0)
 {
@@ -355,31 +411,61 @@ inline QHash<int, Value*> &Process::constantPool()
     return vm->constantPool;
 }
 
+inline QHash<int, Value *> &Process::externalMethods()
+{
+    return vm->externalMethods;
+}
+
 inline Allocator &Process::allocator()
 {
     return vm->allocator;
 }
 
-void Process::DoPushVal()
+#define IMPLEMENT_VM_INSTRUCTION(x) void Process::x(Instruction *executedInstruction)
+
+IMPLEMENT_VM_INSTRUCTION(DoPushVal)
 {
     pushOperand(executedInstruction->Arg);
 }
 
-void Process::DoPushLocal()
+IMPLEMENT_VM_INSTRUCTION(DoPushLocal)
 {
-    Value *v = currentFrame()->fastLocals[executedInstruction->SymRefLabel];
+    const Frame *f = currentFrame();
+    Value *&v = f->fastLocals[executedInstruction->SymRefLabel];
     assert1(v, NoSuchVariable1, executedInstruction->SymRef);
     pushOperand(v);
+
+    /*
+     We shall cache the offset from fastLocals to our particular local var
+     and hot-swap the instruction runner to one that directly uses
+     the cached value.
+
+     Unfortunately we can't store the offset to replace SymRefLabel in
+     the instruction since this might lead to data corruption in multithreading;
+     (consider two threads running the same Method object and one of them changes SymRefLabel
+     before the other reads it). On the other hand changing an instruction's
+     'runner' at the end of the method seems to be fine.
+     */
+    Value **v0 = f->fastLocals;
+    executedInstruction->Arg = (Value *) (&v - v0); // cheating
+    executedInstruction->opcode = PushLocalCached;
 }
 
-void Process::DoPushGlobal()
+IMPLEMENT_VM_INSTRUCTION(DoPushLocalCached)
+{
+    Value **v = currentFrame()->fastLocals + (int) executedInstruction->Arg;
+    assert1(v, NoSuchVariable1, executedInstruction->SymRef);
+    pushOperand(*v);
+}
+
+IMPLEMENT_VM_INSTRUCTION(DoPushGlobal)
 {
     Value *v = globalFrame().value(executedInstruction->SymRef, NULL);
     assert1(v != NULL, NoSuchVariable1, executedInstruction->SymRef);
     pushOperand(v);
 }
 
-void Process::DoPushConstant()
+IMPLEMENT_VM_INSTRUCTION(DoPushConstant)
 {
     Value *v = constantPool().value(executedInstruction->SymRefLabel, NULL);
     if(v != NULL)
@@ -391,7 +477,7 @@ void Process::DoPushConstant()
     }
 }
 
-void Process::DoPopLocal()
+IMPLEMENT_VM_INSTRUCTION(DoPopLocal)
 {
     if(!frameHasOperands())
         signal(InternalError1, "Empty operand stack when reading value in 'popl'");
@@ -401,7 +487,7 @@ void Process::DoPopLocal()
     currentFrame()->fastLocals[SymRefLabel] = v;
 }
 
-void Process::DoPopGlobal()
+IMPLEMENT_VM_INSTRUCTION(DoPopGlobal)
 {
     if(!frameHasOperands())
         signal(InternalError1, "Empty operand stack when reading value in 'popg'");
@@ -409,19 +495,19 @@ void Process::DoPopGlobal()
     globalFrame()[executedInstruction->SymRef] = v;
 }
 
-void Process::DoPushNull()
+IMPLEMENT_VM_INSTRUCTION(DoPushNull)
 {
     pushOperand(allocator().null());
 }
 
-void Process::DoGetRef()
+IMPLEMENT_VM_INSTRUCTION(DoGetRef)
 {
     // ... ref => ... val
     Reference *ref = unboxRef(popValue());
     pushOperand(ref->Get());
 }
 
-void Process::DoSetRef()
+IMPLEMENT_VM_INSTRUCTION(DoSetRef)
 {
     // ...ref val => ...
     Value *v = popValue();
@@ -471,10 +557,8 @@ bool ge_long(long a, long b) { return a>=b;}
 bool ge_double(double a, double b) { return a>=b;}
 bool ge_str(QString a, QString b) { return a >= b; }
 
-void Process::DoAdd()
+IMPLEMENT_VM_INSTRUCTION(DoAdd)
 {
-    //BuiltInAddOp(add_int, add_long, add_double, add_str);
-
     Value *v2 = this->popValue();
     Value *v1 = this->popValue();
 
@@ -482,7 +566,16 @@ void Process::DoAdd()
     pushOperand(v3);
 }
 
-void Process::DoSub()
+IMPLEMENT_VM_INSTRUCTION(DoIncrement)
+{
+    Value *v2 = allocator().one();
+    Value *v1 = this->popValue();
+
+    Value *v3 = v1->type->addTo(v1, v2, &allocator());
+    pushOperand(v3);
+}
+
+IMPLEMENT_VM_INSTRUCTION(DoSub)
 {
     // BuiltInArithmeticOp(RId::Subtraction, sub_int, sub_long, sub_double);
 
@@ -493,12 +586,23 @@ void Process::DoSub()
     pushOperand(v3);
 }
 
-void Process::DoMul()
+IMPLEMENT_VM_INSTRUCTION(DoDecrement)
+{
+    // BuiltInArithmeticOp(RId::Subtraction, sub_int, sub_long, sub_double);
+
+    Value *v2 = allocator().one();
+    Value *v1 = this->popValue();
+
+    Value *v3 = v1->type->minus(v1, v2, &allocator());
+    pushOperand(v3);
+}
+
+IMPLEMENT_VM_INSTRUCTION(DoMul)
 {
     BuiltInArithmeticOp(RId::Multiplication, mul_int, mul_long, mul_double);
 }
 
-void Process::DoDiv()
+IMPLEMENT_VM_INSTRUCTION(DoDiv)
 {
     // can't convert till we can handle div by zero situation :(
     Value *v2 = popValue();
@@ -509,7 +613,7 @@ void Process::DoDiv()
     pushOperand(v3);
 }
 
-void Process::DoNeg()
+IMPLEMENT_VM_INSTRUCTION(DoNeg)
 {
     Value *v1 = popValue();
     Value *v2 = NULL;
@@ -528,36 +632,36 @@ void Process::DoNeg()
     pushOperand(v2);
 }
 
-void Process::DoAnd()
+IMPLEMENT_VM_INSTRUCTION(DoAnd)
 {
     BinaryLogicOp(_and);
 }
 
-void Process::DoOr()
+IMPLEMENT_VM_INSTRUCTION(DoOr)
 {
     BinaryLogicOp(_or);
 }
 
-void Process::DoNot()
+IMPLEMENT_VM_INSTRUCTION(DoNot)
 {
     UnaryLogicOp(_not);
 }
 
-void Process::DoJmp()
+IMPLEMENT_VM_INSTRUCTION(DoJmp)
 {
     int fastLabel = executedInstruction->SymRefLabel;
     assert1(fastLabel != -1, JumpingToNonExistentLabel1, executedInstruction->SymRef);
     JmpImpl(fastLabel);
 }
 
-void Process::DoJmpIfEq()
+IMPLEMENT_VM_INSTRUCTION(DoJmpIfEq)
 {
     Value *v2 = popValue();
     Value *v1 = popValue();
     bool result = v1->equals(v2);
     if(result)
     {
-        DoJmp();
+        DoJmp(executedInstruction);
     }
     else
     {
@@ -565,14 +669,14 @@ void Process::DoJmpIfEq()
     }
 }
 
-void Process::DoJmpIfNe()
+IMPLEMENT_VM_INSTRUCTION(DoJmpIfNe)
 {
     Value *v2 = popValue();
     Value *v1 = popValue();
     bool result = !v1->equals(v2);
     if(result)
     {
-        DoJmp();
+        DoJmp(executedInstruction);
     }
     else
     {
@@ -585,7 +689,7 @@ inline void Process::JmpImpl(int label)
     currentFrame()->ip = label;
 }
 
-void Process::DoJmpVal()
+IMPLEMENT_VM_INSTRUCTION(DoJmpVal)
 {
     Frame *f = currentFrame();
     Value *v = popValue();
@@ -599,7 +703,7 @@ void Process::DoJmpVal()
     JmpImpl(f->currentMethod->GetIp(label));
 }
 
-void Process::DoIf()
+IMPLEMENT_VM_INSTRUCTION(DoIf)
 {
     /*
      An If instruction has no operands, and is always followed by a jmp instruction
@@ -621,17 +725,21 @@ void Process::DoIf()
     }
 }
 
-void Process::DoLt()
+IMPLEMENT_VM_INSTRUCTION(DoLt)
 {
-    BuiltInComparisonOp(lt_int,lt_long, lt_double, lt_str);
+    Value *v2 = popValue();
+    Value *v1 = popValue();
+    pushOperand(allocator().newBool(v1->type->compareTo(v1, v2) < 0));
 }
 
-void Process::DoGt()
+IMPLEMENT_VM_INSTRUCTION(DoGt)
 {
-    BuiltInComparisonOp(gt_int, gt_long, gt_double , gt_str);
+    Value *v2 = popValue();
+    Value *v1 = popValue();
+    pushOperand(allocator().newBool(v1->type->compareTo(v1, v2) > 0));
 }
 
-void Process::DoEq()
+IMPLEMENT_VM_INSTRUCTION(DoEq)
 {
     Value *v2 = popValue();
     Value *v1 = popValue();
@@ -640,7 +748,7 @@ void Process::DoEq()
     pushOperand(v);
 }
 
-void Process::DoNe()
+IMPLEMENT_VM_INSTRUCTION(DoNe)
 {
     Value *v2 = popValue();
     Value *v1 = popValue();
@@ -649,22 +757,31 @@ void Process::DoNe()
     pushOperand(v);
 }
 
-void Process::DoLe()
+IMPLEMENT_VM_INSTRUCTION(DoLe)
 {
-    BuiltInComparisonOp(le_int, le_long, le_double, le_str);
+    Value *v2 = popValue();
+    Value *v1 = popValue();
+    pushOperand(allocator().newBool(v1->type->compareTo(v1, v2) <= 0));
 }
 
-void Process::DoGe()
+IMPLEMENT_VM_INSTRUCTION(DoGe)
 {
-    BuiltInComparisonOp(ge_int, ge_long, ge_double, ge_str);
+    Value *v2 = popValue();
+    Value *v1 = popValue();
+    pushOperand(allocator().newBool(v1->type->compareTo(v1, v2) >= 0));
 }
 
-void Process::DoNop()
+IMPLEMENT_VM_INSTRUCTION(DoTail)
 {
 
 }
 
-void Process::DoCall()
+IMPLEMENT_VM_INSTRUCTION(DoNop)
+{
+
+}
+
+IMPLEMENT_VM_INSTRUCTION(DoCall)
 {
     Value *v = constantPool().value(executedInstruction->SymRefLabel, NULL);
     assert1(v != NULL, NoSuchProcedureOrFunction1, executedInstruction->SymRef);
@@ -672,34 +789,79 @@ void Process::DoCall()
     Method *method = (Method *) unboxObj(v);
 
     int arity = getInstructionArity(*executedInstruction);
-    int marity = method->Arity();
+    int marity = method->FastArity();
     assert3(arity == -1 || marity ==-1 || arity == marity, WrongNumberOfArguments3,
-            method->getName(), str(arity), str(method->Arity()));
+            method->getName(), str(arity), str(marity));
+
+    CallImpl(method, executedInstruction->callStyle);
 
     // Cache the method object (since it's resolved statically it can be cached)
     // and change how the instruction runs
-    executedInstruction->Arg = v;
-    executedInstruction->runner = &Process::DoCallCached;
 
-    CallImpl(method, executedInstruction->callStyle);
+    executedInstruction->Arg = (Value *) method; // cheating
+    if(executedInstruction->callStyle == NormalCall)
+    {
+        //executedInstruction->runner = &Process::DoNormalCallCached;
+        executedInstruction->opcode = NormalCallCached;
+    }
+    else if(executedInstruction->callStyle == TailCall)
+    {
+        //executedInstruction->runner = &Process::DoTailCallCached;
+        executedInstruction->opcode = TailCallCached;
+    }
+    else
+    {
+        // executedInstruction->runner = &Process::DoLaunchCallCached;
+        executedInstruction->opcode = LaunchCallCached;
+    }
 }
 
-void Process::DoCallCached()
+IMPLEMENT_VM_INSTRUCTION(DoNormalCallCached)
 {
-    Method *method = (Method *) unboxObj(executedInstruction->Arg);
-    CallImpl(method, executedInstruction->callStyle);
+    Method *method = (Method *) executedInstruction->Arg;
+    const int marity = method->FastArity();
+    const int stackSize = OperandStack.count() - marity;
+
+    assert1(stackSize >=0, InternalError1, "Not enough operands for function call");
+    pushFrame(framePool.allocate(method, stackSize));
 }
 
-void Process::DoCallRef()
+IMPLEMENT_VM_INSTRUCTION(DoTailCallCached)
 {
-    CallImpl();
+    Method *method = (Method *) executedInstruction->Arg;
+    const int marity = method->FastArity();
+    int stackSize = OperandStack.count() - marity;
+
+    assert1(stackSize >=0, InternalError1, "Not enough operands for function call");
+
+    Frame *oldFrame = popFrame();
+    framePool.free(oldFrame);
+    pushFrame(framePool.allocate(method, stackSize));
+}
+
+IMPLEMENT_VM_INSTRUCTION(DoLaunchCallCached)
+{
+    Method *method = (Method *) executedInstruction->Arg;
+    const int marity = method->FastArity();
+    int stackSize = OperandStack.count() - marity;
+
+    assert1(stackSize >=0, InternalError1, "Not enough operands for function call");
+
+    Process *newProc;
+    owner->launchProcess(method, newProc);
+    copyArgs(OperandStack, newProc->OperandStack, marity);
+}
+
+IMPLEMENT_VM_INSTRUCTION(DoCallRef)
+{
+    CallImpl(executedInstruction);
     if(executedInstruction->callStyle != LaunchCall)
     {
         currentFrame()->returnReferenceIfRefMethod = true;
     }
 }
 
-inline void Process::CallImpl()
+inline void Process::CallImpl(Instruction *executedInstruction)
 {
     Value *v = constantPool().value(executedInstruction->SymRefLabel, NULL);
     assert1(v != NULL, NoSuchProcedureOrFunction1, executedInstruction->SymRef);
@@ -729,7 +891,7 @@ void Process::CallImpl(Method *method, CallStyle callStyle)
     // pop b
     // pop c
     // ...code
-    int marity = method->Arity();
+    const int marity = method->FastArity();
     int stackSize = OperandStack.count() - marity;
 
     assert1(stackSize >=0, InternalError1, "Not enough operands for function call");
@@ -790,14 +952,14 @@ void Process::copyArgs(VOperandStack &source, VOperandStack &dest, int marity)
     }
 }
 
-void Process::DoCallMethod()
+IMPLEMENT_VM_INSTRUCTION(DoCallMethod)
 {
     // callm expects the arguments in reverse order, and the last pushed argument is 'this'
     // but the execution site pops them in the correct order, i.e the first popped is 'this'
     // followed by the first normal argument...and so on.
     Value *receiver = popValue();
     assert0(receiver->type != BuiltInTypes::NullType, CallingMethodOnNull);
-    assert0(receiver->isObject(), CallingMethodOnNonObject);
+    //assert0(receiver->isObject(), CallingMethodOnNonObject);
 
     QString SymRef = executedInstruction->SymRef;
     int arity = getInstructionArity(*executedInstruction);
@@ -887,7 +1049,7 @@ void Process::CallSpecialMethod(IMethod *method, int arity)
     assert1(false, InternalError, "CallSpecialMethod is not implemented for this type of method");
 }
 
-void Process::DoRet()
+IMPLEMENT_VM_INSTRUCTION(DoRet)
 {
     int toReturn = currentFrame()->currentMethod->NumReturnValues();
     bool getReferredVal = currentFrame()->currentMethod->IsReturningReference() &&!currentFrame()->returnReferenceIfRefMethod;
@@ -915,16 +1077,16 @@ void Process::DoRet()
     if(!(stack == NULL))
     {
         if((leftValCount == 1) && getReferredVal)
-            DoGetRef();
+            DoGetRef(executedInstruction);
     }
     else
     {
         // All calls on the stack have returned, nothing to do
-        timeSlice = 0;
+        exitTimeSlice();
     }
 }
 
-void Process::DoApply()
+IMPLEMENT_VM_INSTRUCTION(DoApply)
 {
     // Stack is:
     // methodObj, [args], ...
@@ -947,19 +1109,18 @@ void Process::startMigrationToGui()
     Frame *frame = currentFrame();
     frame->ip--;
     this->wannaMigrateTo = &vm->guiScheduler;
-    this->timeSlice = 0;
+    this->exitTimeSlice();
 }
 
 void Process::migrateBackFromGui()
 {
     this->wannaMigrateTo = &vm->mainScheduler;
-    this->timeSlice = 0;
+    this->exitTimeSlice();
 }
 
-void Process::DoCallExternal()
+IMPLEMENT_VM_INSTRUCTION(DoCallExternal)
 {
-    Value *v = constantPool().value(executedInstruction->SymRefLabel, NULL);
-    assert1(v, NoSuchExternalMethod1, executedInstruction->SymRef);
+    Value *v = executedInstruction->Arg;
     int arity = getInstructionArity(*executedInstruction);
     ExternalMethod *method = (ExternalMethod*) unboxObj(v);
     assert3(arity == -1 || method->Arity() ==-1 || arity == method->Arity(), WrongNumberOfArguments3,
@@ -979,7 +1140,7 @@ void Process::DoCallExternal()
     }
 }
 
-void Process::DoSetField()
+IMPLEMENT_VM_INSTRUCTION(DoSetField)
 {
     // ...obj val  => ...
     Value *v = popValue();
@@ -993,7 +1154,7 @@ void Process::DoSetField()
     obj->setSlotValue(SymRef, v);
 }
 
-void Process::DoGetField()
+IMPLEMENT_VM_INSTRUCTION(DoGetField)
 {
     // ...object => val
     Value *objVal = popValue();
@@ -1007,7 +1168,7 @@ void Process::DoGetField()
     pushOperand(v);
 }
 
-void Process::DoGetFieldRef()
+IMPLEMENT_VM_INSTRUCTION(DoGetFieldRef)
 {
     // ...object => ...fieldRef
     Value *objVal = popValue();
@@ -1019,7 +1180,7 @@ void Process::DoGetFieldRef()
     pushOperand(ref);
 }
 
-void Process::DoSetArr()
+IMPLEMENT_VM_INSTRUCTION(DoSetArr)
 {
     // ...arr index val => ...
     /*
@@ -1069,7 +1230,7 @@ void Process::DoSetArr()
     }
 }
 
-void Process::DoGetArr()
+IMPLEMENT_VM_INSTRUCTION(DoGetArr)
 {
     // ...arr index => ...value
     /*
@@ -1090,6 +1251,7 @@ void Process::DoGetArr()
     Value *arrVal= popValue();
 
     assert0(arrVal->type == BuiltInTypes::ArrayType
+            || arrVal->type == BuiltInTypes::StringType
             || arrVal->type == BuiltInTypes::MapType,
             SubscribingNonArray);
 
@@ -1115,14 +1277,16 @@ void Process::DoGetArr()
     }
 }
 
-void Process::DoGetArrRef()
+IMPLEMENT_VM_INSTRUCTION(DoGetArrRef)
 {
     // todo: Sync DoGetArrRef with moving to VIndexable, support strings
     // ...arr index => ...arrref
     Value *index  = popValue();
     Value *arrVal= popValue();
 
-    assert0(arrVal->type == BuiltInTypes::ArrayType, SubscribingNonArray);
+    assert0(arrVal->type == BuiltInTypes::ArrayType
+            || arrVal->type == BuiltInTypes::MapType
+            || arrVal->type == BuiltInTypes::StringType, SubscribingNonArray);
     assert0(index->type == BuiltInTypes::IntType, SubscribtMustBeInteger);
     int i = unboxInt(index);
     VArray *arr = unboxArray(arrVal);
@@ -1133,7 +1297,7 @@ void Process::DoGetArrRef()
     pushOperand(ref);
 }
 
-void Process::DoNew()
+IMPLEMENT_VM_INSTRUCTION(DoNew)
 {
     Value *classObj = constantPool().value(executedInstruction->SymRefLabel, NULL);
     assert1(classObj != NULL, NoSuchClass1, executedInstruction->SymRef);
@@ -1159,7 +1323,7 @@ void Process::DoNew()
     }
 }
 
-void Process::DoNewArr()
+IMPLEMENT_VM_INSTRUCTION(DoNewArr)
 {
     assert2(__top()->type == BuiltInTypes::IntType, TypeError2, BuiltInTypes::IntType, __top()->type);
     int size = popInt();
@@ -1168,7 +1332,7 @@ void Process::DoNewArr()
     pushOperand(newArr);
 }
 
-void Process::DoArrLength()
+IMPLEMENT_VM_INSTRUCTION(DoArrLength)
 {
     // ... arr => ... length
     assert2(__top()->type == BuiltInTypes::ArrayType
@@ -1189,7 +1353,7 @@ void Process::DoArrLength()
     }
 }
 
-void Process::DoNewMD_Arr()
+IMPLEMENT_VM_INSTRUCTION(DoNewMD_Arr)
 {
     // ... dimensions => ... md_arr
     VArray *arr = popArray();
@@ -1228,7 +1392,7 @@ void Process::Pop_Md_Arr_and_indexes(MultiDimensionalArray<Value *> *&theArray, 
     }
 }
 
-void Process::DoGetMD_Arr()
+IMPLEMENT_VM_INSTRUCTION(DoGetMD_Arr)
 {
     // ... md_arr indexes => ... value
     MultiDimensionalArray<Value *> *theArray;
@@ -1239,7 +1403,7 @@ void Process::DoGetMD_Arr()
     pushOperand(v);
 }
 
-void Process::DoSetMD_Arr()
+IMPLEMENT_VM_INSTRUCTION(DoSetMD_Arr)
 {
     // ... md_arr indexes value => ...
     MultiDimensionalArray<Value *> *theArray;
@@ -1251,7 +1415,7 @@ void Process::DoSetMD_Arr()
     theArray->set(indexes, v);
 }
 
-void Process::DoGetMD_ArrRef()
+IMPLEMENT_VM_INSTRUCTION(DoGetMD_ArrRef)
 {
     // ... md_arr indexes => ... md_arrref
     MultiDimensionalArray<Value *> *theArray;
@@ -1263,7 +1427,7 @@ void Process::DoGetMD_ArrRef()
     pushOperand(v);
 }
 
-void Process::DoMD_ArrDimensions()
+IMPLEMENT_VM_INSTRUCTION(DoMD_ArrDimensions)
 {
     // ... md_arr => ... dimensions
     assert2(__top()->type == BuiltInTypes::MD_ArrayType, TypeError2, BuiltInTypes::MD_ArrayType, __top()->type);
@@ -1280,7 +1444,7 @@ void Process::DoMD_ArrDimensions()
     pushOperand(v);
 }
 
-void Process::DoRegisterEvent()
+IMPLEMENT_VM_INSTRUCTION(DoRegisterEvent)
 {
     int SymRefLabel = executedInstruction->SymRefLabel;
     Value *evname = executedInstruction->Arg;
@@ -1292,7 +1456,7 @@ void Process::DoRegisterEvent()
     vm->registeredEventHandlers[evName] = executedInstruction->SymRef;
 }
 
-void Process::DoIsa()
+IMPLEMENT_VM_INSTRUCTION(DoIsa)
 {
     // ...value => ...bool
     Value *v = popValue();
@@ -1312,7 +1476,7 @@ void Process::DoIsa()
     pushOperand(allocator().newBool(b));
 }
 
-void Process::DoSend()
+IMPLEMENT_VM_INSTRUCTION(DoSend)
 {
     // ... chan val => ...
     Value *v = popValue();
@@ -1323,7 +1487,7 @@ void Process::DoSend()
     channel->send(v, this);
 }
 
-void Process::DoReceive()
+IMPLEMENT_VM_INSTRUCTION(DoReceive)
 {
     // ... chan => ... val
     Value *chan = popValue();
@@ -1372,7 +1536,7 @@ void unlock_select(const QVector<Channel *> &chans)
     }
 }
 
-void Process::DoSelect()
+IMPLEMENT_VM_INSTRUCTION(DoSelect)
 {
     // ... arr sendcount => ... ret? activeIndex
 
@@ -1406,9 +1570,14 @@ void Process::DoSelect()
     unlock_select(lockOrder);
 }
 
-void Process::DoBreak()
+IMPLEMENT_VM_INSTRUCTION(DoBreak)
 {
-    timeSlice = 0;
+    BreakImpl(BreakSource::FromInstruction);
+}
+
+void Process::BreakImpl(BreakSource::Src source)
+{
+    exitTimeSlice();
     vm->destroyTheWorld(owner);
 
     // Restore the original instruction for when/if we resume
@@ -1438,18 +1607,28 @@ void Process::DoBreak()
     if(vm->debugger)
     {
         if(owner == &vm->guiScheduler)
-            vm->debugger->Break(offset, currentFrame(), this);
+            vm->debugger->Break(source, offset, currentFrame(), this);
         else
-            vm->debugger->postBreak(offset, currentFrame(), this);
+            vm->debugger->postBreak(source, offset, currentFrame(), this);
     }
 }
 
-void Process::DoTick()
+IMPLEMENT_VM_INSTRUCTION(DoTick)
 {
     //clock_t t = clock();
     //double span = ((double ) t)* 1000.0 / (double) CLOCKS_PER_SEC;
     long ts = get_time();
     pushOperand(allocator().newLong(ts/1000));
+}
+
+IMPLEMENT_VM_INSTRUCTION(DoChecktimeslice)
+{
+    //*
+    if(timeSlice == 0)
+        exitTimeSlice();
+    else
+        timeSlice--;
+    //*/
 }
 
 bool Process::coercion(Value *v1, Value *v2, Value *&newV1, Value *&newV2)
@@ -1541,53 +1720,6 @@ bool Process::coercion(Value *v1, Value *v2, Value *&newV1, Value *&newV2)
     return ret;
 }
 
-void Process::BuiltInAddOp(int (*intFunc)(int,int),
-                           long (*longFunc)(long, long),
-                           double (*doubleFunc)(double,double),
-                           QString (*strFunc)(QString, QString))
-{
-
-    Value *v2 = this->popValue();
-    Value *v1 = this->popValue();
-
-    Value *newV1, *newV2;
-    if(coercion(v1, v2, newV1, newV2))
-    {
-        v1 = newV1;
-        v2 = newV2;
-    }
-
-    assert2( v1->type == v2->type &&
-             (v1->type == BuiltInTypes::IntType ||
-              v1->type == BuiltInTypes::StringType||
-              v1->type == BuiltInTypes::DoubleType||
-              v1->type == BuiltInTypes::LongType ||
-              v1->type == BuiltInTypes::ArrayType), BuiltInOperationOnNonBuiltn2, v1->type->toString(), v2->type->toString());
-
-    Value *v3 = NULL;
-
-    if(v1->type == BuiltInTypes::IntType)
-        v3 = allocator().newInt(intFunc(unboxInt(v1), unboxInt(v2)));
-    else if(v1->type == BuiltInTypes::StringType)
-        v3 = allocator().newString(strFunc(unboxStr(v1), unboxStr(v2)));
-    else if(v1->type == BuiltInTypes::LongType)
-        v3 = allocator().newLong(longFunc(unboxLong(v1), unboxLong(v2)));
-    else if(v1->type == BuiltInTypes::DoubleType)
-        v3 = allocator().newDouble(doubleFunc(unboxDouble(v1), unboxDouble(v2)));
-    else if(v1->type == BuiltInTypes::ArrayType)
-    {
-        VArray *arr1 = unboxArray(v1);
-        VArray *arr2 = unboxArray(v2);
-        v3 = allocator().newArray(arr1->count() + arr2->count());
-        int c = 0;
-        for(int i=0; i<arr1->count(); i++)
-            unboxArray(v3)->Elements[c++] = arr1->Elements[i];
-        for(int i=0; i<arr2->count(); i++)
-            unboxArray(v3)->Elements[c++] = arr2->Elements[i];
-    }
-    pushOperand(v3);
-}
-
 inline void Process::BuiltInArithmeticOp(RId::RuntimeId opName,
                                          int (*intFunc)(int,int),
                                          long (*longFunc)(long, long),
@@ -1620,45 +1752,6 @@ inline void Process::BuiltInArithmeticOp(RId::RuntimeId opName,
     else if(v1->type == BuiltInTypes::DoubleType)
         v3 = allocator().newDouble(doubleFunc(unboxDouble(v1), unboxDouble(v2)));
 
-    pushOperand(v3);
-}
-
-void Process::BuiltInComparisonOp(bool (*intFunc)(int,int),
-                                  bool (*longFunc)(long, long),
-                                  bool (*doubleFunc)(double,double),
-                                  bool (*strFunc)(QString, QString))
-{
-    Value *v2 = popValue();
-    Value *v1 = popValue();
-
-    Value *newV1, *newV2;
-
-    if(coercion(v1, v2, newV1, newV2))
-    {
-        v1 = newV1;
-        v2 = newV2;
-    }
-
-    assert2(v1->type == v2->type &&
-            (v1->type == BuiltInTypes::IntType ||
-             v1->type == BuiltInTypes::LongType ||
-             v1->type == BuiltInTypes::DoubleType ||
-             v1->type == BuiltInTypes::StringType),
-            BuiltInOperationOnNonBuiltn2, v1->type->toString(), v1->type->toString());
-
-    Value *v3 = NULL;
-    bool result = false;
-
-    if(v1->type == BuiltInTypes::IntType)
-        result = intFunc(unboxInt(v1), unboxInt(v2));
-    else if(v1->type == BuiltInTypes::LongType)
-        result = longFunc(unboxLong(v1), unboxLong(v2));
-    else if(v1->type == BuiltInTypes::DoubleType)
-        result = doubleFunc(unboxDouble(v1), unboxDouble(v2));
-    else if(v1->type == BuiltInTypes::StringType)
-        result = strFunc(unboxStr(v1), unboxStr(v2));
-
-    v3 = allocator().newBool(result);
     pushOperand(v3);
 }
 

@@ -32,6 +32,7 @@ void RunSmallVMCodeBase64(wchar_t *pathOfProgramsFile,
                           char *programBase64)
 {
     BuiltInTypes::init();
+    VM::InitGlobalData();
     //qDebug() << "program gonna run!";
     int argc = 0;
     char **argv = NULL;// = {"aa.exe"};

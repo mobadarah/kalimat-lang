@@ -14,7 +14,7 @@ void SingleStepCondition::stopNow(Process *proc)
                 || pos.doc != this->doc
                 || frame != this->startingFrame)
         {
-            proc->DoBreak();
+            proc->Break(BreakSource::FromStepping);
             return;
         }
     }
@@ -33,8 +33,18 @@ void StepOverCondition::stopNow(Process *proc)
                 && pos.doc == this->doc
                 && frame == this->startingFrame)
         {
-            proc->DoBreak();
+            proc->Break(BreakSource::FromStepping);
             return;
         }
     }
+}
+
+NullaryStepStopCondition *NullaryStepStopCondition::instance()
+{
+    static NullaryStepStopCondition *inst = NULL;
+    if(!inst)
+    {
+        inst = new NullaryStepStopCondition();
+    }
+    return inst;
 }

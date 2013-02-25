@@ -42,7 +42,7 @@ DeclarationNotSupported,
 OnlyFirstAssignmentToVarCanContainType,
 LValueFormNotImplemented,
 UnimplementedExpressionForm,
-UnimplementedStatementForm,
+UnimplementedStatementForm1,
 UnimplementedInvokationForm,
 UnimplementedTypeForm1,
 UnimplementedPatternForm1,
@@ -198,6 +198,7 @@ private:
     void generateIfStmt(shared_ptr<IfStmt> stmt);
     void generateWhileStmt(shared_ptr<WhileStmt> stmt);
     void generateForAllStmt(shared_ptr<ForAllStmt> stmt);
+    void generateForEachStmt(shared_ptr<ForEachStmt> stmt);
     void generateLabelStmt(shared_ptr<LabelStmt> stmt);
     void generateGotoStmt(shared_ptr<GotoStmt> stmt);
     void generateReturnStmt(shared_ptr<ReturnStmt> stmt);

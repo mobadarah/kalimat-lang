@@ -28,6 +28,11 @@
 #ifndef OPERANDSTACK_H
     #include "operandstack.h"
 #endif
+
+#ifndef DEBUGGER_H
+    #include "debugger.h"
+#endif
+
 #include <QStack>
 #include <QVector>
 #include <QMap>
@@ -88,7 +93,6 @@ struct Process
     FramePool framePool;
 
     bool _isFinished;
-    Instruction *executedInstruction;
     VOperandStack OperandStack;
 public:
     Scheduler *wannaMigrateTo;
@@ -121,6 +125,7 @@ public:
 
         return false;
     }
+
     inline void pushFrame(Frame *f) {
         f->next = stack;
         stack = f;
@@ -136,8 +141,8 @@ public:
     inline Frame *currentFrame() { return stack; }
     inline bool frameHasOperands()
     {
-        //return OperandStack.count() > currentFrame()->operandStackLevel;
-        return true;
+        return OperandStack.count() > currentFrame()->operandStackLevel;
+        //return true;
     }
     inline void pushOperand(Value *v)
     {
@@ -145,14 +150,18 @@ public:
     }
 
     inline Value *popOperand() { return popValue();}
-
+private:
+    int currentLabel;
 public:
     const Instruction &getCurrentInstruction();
     void RunTimeSlice(VM *vm);
-    void FastRunTimeSlice(VM *vm);
+    void FastRunTimeSlice();
+    void RunSingleInstruction(VM *vm);
     void RunUntilReturn();
-    void RunSingleInstruction();
     void migrateTo(Scheduler *scheduler);
+    inline void exitTimeSlice() { currentLabel = 1; }
+    //inline void exitTimeSlice() { timeSlice = 0; }
+    void Break(BreakSource::Src s) { BreakImpl(s); }
 private:
     void startMigrationToGui();
     void migrateBackFromGui();
@@ -174,68 +183,17 @@ public:
 private:
     inline QMap<QString, Value *> &globalFrame();
     inline QHash<int, Value*> &constantPool();
+    inline QHash<int, Value *> &externalMethods();
     inline Allocator &allocator();
 public:
-    void DoPushVal();
-    void DoPushLocal();
-    void DoPushGlobal();
-    void DoPushConstant();
-    void DoPopLocal();
-    void DoPopGlobal();
-    void DoPushNull();
-    void DoGetRef();
-    void DoSetRef();
-    void DoAdd();
-    void DoSub();
-    void DoMul();
-    void DoDiv();
-    void DoNeg();
-    void DoAnd();
-    void DoOr();
-    void DoNot();
-    void DoJmp();
-    void DoJmpIfEq();
-    void DoJmpIfNe();
-    inline void JmpImpl(int label);
-    void DoJmpVal();
-    void DoIf();
-    void DoLt();
-    void DoGt();
-    void DoEq();
-    void DoNe();
-    void DoLe();
-    void DoGe();
-    void DoNop();
-    void DoCall();
-    void DoCallCached();
-    void DoCallRef();
-    void DoCallMethod();
-    void DoRet();
-    void DoApply();
-    void DoCallExternal();
-    void DoSetField();
-    void DoGetField();
-    void DoGetFieldRef();
-    void DoGetArr();
-    void DoSetArr();
-    void DoGetArrRef();
-    void DoNew();
-    void DoNewArr();
-    void DoArrLength();
-    void DoNewMD_Arr();
-    void DoGetMD_Arr();
-    void DoSetMD_Arr();
-    void DoGetMD_ArrRef();
-    void DoMD_ArrDimensions();
-    void DoRegisterEvent();
-    void DoIsa();
-    void DoSend();
-    void DoReceive();
-    void DoSelect();
-    void DoBreak();
-    void DoTick();
+#define VM_INSTRUCTION(x, __t, __p) \
+    inline void Do##x(Instruction *);
+#include "instruction_defs.h"
+#undef VM_INSTRUCTION
 
-    inline void CallImpl();
+    void BreakImpl(BreakSource::Src source);
+    inline void JmpImpl(int label);
+    inline void CallImpl(Instruction *executedInstruction);
     inline void verifyArity(int arity, Method *method)
     {
         int marity = method->Arity();
@@ -256,14 +214,6 @@ public:
     inline void BuiltInArithmeticOp(RId::RuntimeId opName, int (*intFunc)(int,int),
                              long (*longFunc)(long, long),
                              double (*doubleFunc)(double,double));
-    void BuiltInComparisonOp(bool  (*intFunc)(int,int),
-                             bool (*longFunc)(long, long),
-                             bool (*doubleFunc)(double,double),
-                             bool (*strFunc)(QString, QString));
-    void BuiltInAddOp(int (*intFunc)(int,int),
-                      long (*longFunc)(long, long),
-                      double (*doubleFunc)(double,double),
-                      QString (*strFunc)(QString ,QString));
     void BinaryLogicOp(bool (*boolFunc)(bool, bool));
     void UnaryLogicOp(bool (*boolFunc)(bool));
 private:

@@ -118,6 +118,8 @@ public:
     void gc();
 
     Value *newInt(int i);
+    Value *zero();
+    Value *one();
     Value *newInt(int i, bool gcMonitor);
     Value *newLong(long i);
     Value *newLong(long i, bool gcMonitor);

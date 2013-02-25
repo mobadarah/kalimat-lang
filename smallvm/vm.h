@@ -39,8 +39,9 @@
 class VM
 {
     Labeller constantPoolLabeller;
+    Labeller externalMethodLabeller;
     QHash<int, Value*> constantPool;
-
+    QHash<int, Value *> externalMethods;
 public:
     static Translation<ArgErr::ArgError> argumentErrors;
     Scheduler mainScheduler;
@@ -81,10 +82,12 @@ private:
 public:
     VM();
     void Init();
-    static void LoadCallInstruction(Opcode type, QString arg, Allocator &allocator,
+    static void InitGlobalData();
+
+    static Instruction *LoadCallInstruction(Opcode type, QString arg, Allocator &allocator,
                                     Method *method, QString label,
                                     int extraInfo, CallStyle callStyle,
-                                    Labeller &constantPoolLabeller);
+                                    Labeller &labeller);
     void Load(QString assemblyCode);
 
     void Register(QString symRef, ExternalMethod *method);

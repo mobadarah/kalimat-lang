@@ -35,8 +35,8 @@ MetaClass  *BuiltInTypes::ClassType = NULL;
 ValueClass *BuiltInTypes::IndexableType = NULL;
 ArrayClass *BuiltInTypes::ArrayType = NULL;
 ValueClass *BuiltInTypes::MD_ArrayType= NULL;
-ValueClass *BuiltInTypes::MapType = NULL;
-IClass *BuiltInTypes::StringType = NULL;
+MapClass *BuiltInTypes::MapType = NULL;
+StringClass *BuiltInTypes::StringType = NULL;
 IClass *BuiltInTypes::SpriteType = NULL;
 ValueClass *BuiltInTypes::FileType = NULL;
 ValueClass *BuiltInTypes::RawFileType = NULL;
@@ -45,7 +45,7 @@ ValueClass *BuiltInTypes::RefType = NULL;
 ValueClass *BuiltInTypes::FieldRefType = NULL;
 ValueClass *BuiltInTypes::ArrayRefType = NULL;
 ValueClass *BuiltInTypes::NullType = NULL;
-ValueClass *BuiltInTypes::ChannelType = NULL;
+ChannelClass *BuiltInTypes::ChannelType = NULL;
 ValueClass *BuiltInTypes::QObjectType = NULL;
 ValueClass *BuiltInTypes::LambdaType = NULL;
 IClass *BuiltInTypes::ActivationFrameType = NULL;
@@ -99,7 +99,7 @@ void BuiltInTypes::init()
     IndexableType = new ValueClass(VMId::get(RId::Indexable), BuiltInTypes::ObjectType);
     ArrayType = new ArrayClass();
     MD_ArrayType = new ValueClass(VMId::get(RId::MD_Array), BuiltInTypes::ObjectType);
-    MapType = new ValueClass(VMId::get(RId::VMap), BuiltInTypes::IndexableType);
+    MapType = new MapClass();
     StringType = new StringClass();
     SpriteType = new SpriteClass(VMId::get(RId::Sprite));
     FileType = NULL;
@@ -110,7 +110,7 @@ void BuiltInTypes::init()
     ArrayRefType = new ValueClass(VMId::get(RId::ArrayReference), BuiltInTypes::ObjectType);
     NullType = new ValueClass(VMId::get(RId::NullType), BuiltInTypes::ObjectType);
     NullType->equality = eq_null;
-    ChannelType = new ValueClass(VMId::get(RId::Channel), BuiltInTypes::ObjectType);
+    ChannelType = new ChannelClass();
     QObjectType = new ValueClass(VMId::get(RId::QObject), BuiltInTypes::ObjectType);
     QObjectType->equality = eq_qobject;
     LambdaType = new ValueClass("%lambda", BuiltInTypes::ObjectType);
@@ -341,7 +341,8 @@ bool NullVal::equals(Value *v2)
 
 QString ObjVal::toString() const
 {
-    return QString("<%1>").arg(type->getName());
+    return QString("<%1>:<%2>").arg(type->getName())
+            .arg(v->toString());
 }
 
 bool ObjVal::equals(Value *v2)

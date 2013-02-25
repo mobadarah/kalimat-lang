@@ -38,5 +38,12 @@ struct StepOverCondition : public StepStopCondition
     void stopNow(Process *);
 };
 
+struct NullaryStepStopCondition : public StepStopCondition
+{
+    void stopNow(Process *)
+    {
+    }
+    static NullaryStepStopCondition *instance();
+};
 
 #endif // STEPSTOPCONDITION_H

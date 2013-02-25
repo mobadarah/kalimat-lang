@@ -22,7 +22,15 @@ VM::VM()
       guiScheduler(this),
      allocator(&constantPool, setOf(&mainScheduler, &guiScheduler), this)
 {
+
+}
+
+void VM::InitGlobalData()
+{
     qRegisterMetaType<VMError>("VMError");
+    qRegisterMetaType<BreakSource::Src>("BreakSource::Src");
+
+    MethodClass::Apply = new ApplyM();
 }
 
 void VM::Init()
@@ -236,8 +244,8 @@ bool VM::getCodePos(Process *proc, QString &method, int &offset, Frame *&frame)
 
 void VM::Register(QString symRef, ExternalMethod *method)
 {
-    constantPool[constantPoolLabeller.labelOf(symRef)] =
-            allocator.newObject(method, BuiltInTypes::ExternalMethodType);
+    externalMethods[externalMethodLabeller.labelOf(symRef)] =
+            allocator.newObject(method, BuiltInTypes::ExternalMethodType, false);
 }
 
 void VM::RegisterType(QString typeName, IClass *type)
@@ -427,29 +435,30 @@ end
 */
 
 // This is a helper function for the next function - VM::Load()
-void VM::LoadCallInstruction(Opcode type, QString arg, Allocator &allocator,
+Instruction * VM::LoadCallInstruction(Opcode type, QString arg, Allocator &allocator,
                              Method *method, QString label, int extraInfo,
                              CallStyle callStyle,
-                             Labeller &constantPoolLabeller)
+                             Labeller &labeller)
 {
+    Instruction *ret = NULL;
     if(arg.contains(","))
     {
         QStringList ref_arity= arg.split(",", QString::SkipEmptyParts, Qt::CaseInsensitive);
         ref_arity[0] = ref_arity[0].trimmed();
         ref_arity[1] = ref_arity[1].trimmed();
         Instruction i = Instruction(type)
-                .wRef(ref_arity[0], constantPoolLabeller)
+                .wRef(ref_arity[0], labeller)
                 .wArgParse(ref_arity[1], &allocator)
                 .wCallStyle(callStyle);
-        method->Add(i, label, extraInfo);
+        ret = &method->Add(i, label, extraInfo);
     }
     else
     {
-        Instruction i = Instruction(type).wRef(arg, constantPoolLabeller).wCallStyle(callStyle);
-        method->Add(i, label, extraInfo);
+        Instruction i = Instruction(type).wRef(arg, labeller).wCallStyle(callStyle);
+        ret = &method->Add(i, label, extraInfo);
     }
+    return ret;
 }
-
 
 void VM::Load(QString assemblyCode)
 {
@@ -560,7 +569,7 @@ void VM::Load(QString assemblyCode)
             else
             {
                 if(curClass->methods.contains(curMethodName))
-                    signal(NULL, MethodAlreadyDefinedInClass, curMethodName, curClassName);
+                    signal(NULL, MethodAlreadyDefinedInClass2, curMethodName, curClassName);
                 else
                     curClass->methods[curMethodName] = methodVal;
             }
@@ -590,7 +599,7 @@ void VM::Load(QString assemblyCode)
         else if(opcode == ".field")
         {
             if(curClass->fields.contains(arg))
-                signal(NULL, MethodAlreadyDefinedInClass, arg, curClassName);
+                signal(NULL, FieldAlreadyDefinedInClass2, arg, curClassName);
             else
             {
                 curClass->fieldNames.append(arg);
@@ -621,7 +630,7 @@ void VM::Load(QString assemblyCode)
         }
         else if(opcode == "pushv")
         {
-            Instruction i = Instruction(PushV).wArgParse(arg, &allocator);
+            Instruction i = Instruction(PushVal).wArgParse(arg, &allocator);
             curMethod->Add(i, label, extraInfo);
         }
         else if(opcode == "pushl")
@@ -779,7 +788,11 @@ void VM::Load(QString assemblyCode)
         }
         else if(opcode == "callex")
         {
-            LoadCallInstruction(CallExternal, arg, allocator, curMethod, label, extraInfo, NormalCall, constantPoolLabeller);
+            Instruction *ret = LoadCallInstruction(CallExternal, arg, allocator, curMethod, label, extraInfo, NormalCall, externalMethodLabeller);
+            Value *exMethod = externalMethods.value(ret->SymRefLabel);
+            assert(NULL, exMethod != NULL, InternalError1,
+                   QString("Using unregistered external method '%1'").arg(ret->SymRef));
+            ret->Arg = exMethod;
         }
         else if(opcode == "nop")
         {
@@ -838,22 +851,22 @@ void VM::Load(QString assemblyCode)
         }
         else if(opcode == "newmdarr")
         {
-            Instruction i = Instruction(New_MD_Arr);
+            Instruction i = Instruction(NewMD_Arr);
             curMethod->Add(i, label, extraInfo);
         }
         else if(opcode == "getmdarr")
         {
-            Instruction i = Instruction(Get_MD_Arr);
+            Instruction i = Instruction(GetMD_Arr);
             curMethod->Add(i, label, extraInfo);
         }
         else if(opcode == "setmdarr")
         {
-            Instruction i = Instruction(Set_MD_Arr);
+            Instruction i = Instruction(SetMD_Arr);
             curMethod->Add(i, label, extraInfo);
         }
         else if(opcode == "getmdarrref")
         {
-            Instruction i = Instruction(Get_MD_ArrRef);
+            Instruction i = Instruction(GetMD_ArrRef);
             curMethod->Add(i, label, extraInfo);
         }
         else if(opcode == "mdarrdimensions")
@@ -905,6 +918,11 @@ void VM::Load(QString assemblyCode)
         else if(opcode == "tick")
         {
             Instruction i = Instruction(Tick);
+            curMethod->Add(i, label, extraInfo);
+        }
+        else if(opcode == "tslice")
+        {
+            Instruction i = Instruction(Checktimeslice);
             curMethod->Add(i, label, extraInfo);
         }
         else

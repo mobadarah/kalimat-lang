@@ -152,6 +152,7 @@ void KalimatLexer::InitCharPredicates()
     colon = new CharEquals(':');
     kasra = new CharEquals(arab_chars["kasra"].at(0));
     dollarSign = new CharEquals('$');
+
     hash = new CharEquals('#');
     ellipsis = new LAStr("...");
     lambda = choice(new LAStr("^"), new LAStr(L"λ"));
@@ -212,7 +213,7 @@ Token KalimatLexer::accept(TokenType t)
 }
 void KalimatLexer::InitKeywords()
 {
-    LineIterator in = Utils::readResourceTextFile(":/keywords.txt");
+    LineIterator in = Utils::readResourceTextFile(":/keywords.txt", true);
     int id = 1;
     while(!in.atEnd())
     {
@@ -226,7 +227,7 @@ void KalimatLexer::InitKeywords()
 
 void KalimatLexer::InitArabChars()
 {
-    LineIterator in = Utils::readResourceTextFile(":/arab_char.txt");
+    LineIterator in = Utils::readResourceTextFile(":/arab_char.txt", false);
     while(!in.atEnd())
     {
         QString kw = in.readLine().trimmed();
@@ -241,7 +242,7 @@ QString TokenNameFromId(int id)
 {
     if(KalimatLexer::tokenNameMap.count()==0)
     {
-        LineIterator in = Utils::readResourceTextFile(":/tokens.txt");
+        LineIterator in = Utils::readResourceTextFile(":/tokens.txt", false);
         while(!in.atEnd())
         {
             QStringList data = in.readLine().split(' ', QString::SkipEmptyParts, Qt::CaseSensitive);

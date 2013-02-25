@@ -64,30 +64,94 @@ void PushReadChanProc(VOperandStack &stack, Process *, RunWindow *w, VM *)
     stack.push(w->readChannel);
 }
 
-void MouseEventChanProc(VOperandStack &stack, Process *, RunWindow *w, VM *)
+void MouseEventChanProc(VOperandStack &stack, Process *, RunWindow *w, VM *vm)
 {
-    stack.push(w->mouseEventChannel);
+    stack.push(w->realmouseEventChannel);
 }
 
-void MouseDownEventChanProc(VOperandStack &stack, Process *, RunWindow *w, VM *)
+void MouseDownEventChanProc(VOperandStack &stack, Process *, RunWindow *w, VM *vm)
 {
-    stack.push(w->mouseDownEventChannel);
+    stack.push(w->realmouseDownEventChannel);
 }
 
 void MouseUpEventChanProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
-    stack.push(w->mouseUpEventChannel);
+    stack.push(w->realmouseUpEventChannel);
 }
 
 void MouseMoveEventChanProc(VOperandStack &stack, Process *, RunWindow *w, VM *)
 {
-    stack.push(w->mouseMoveEventChannel);
+    stack.push(w->realmouseMoveEventChannel);
 }
-
 
 void KbEventChanProc(VOperandStack &stack, Process *, RunWindow *w, VM *)
 {
-    stack.push(w->kbEventChannel);
+    stack.push(w->realkbEventChannel);
+}
+
+void EnableMouseEventChanProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
+{
+    bool enable = popBool(stack, proc, w, vm);
+    if(enable)
+    {
+        w->mouseEventChannel = w->realmouseEventChannel;
+    }
+    else
+    {
+        w->mouseEventChannel = NULL;
+    }
+}
+
+void EnableMouseDownEventChanProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
+{
+    bool enable = popBool(stack, proc, w, vm);
+    if(enable)
+    {
+        w->mouseDownEventChannel = w->realmouseDownEventChannel;
+    }
+    else
+    {
+        w->mouseDownEventChannel = NULL;
+    }
+}
+
+void EnableMouseUpEventChanProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
+{
+    bool enable = popBool(stack, proc, w, vm);
+    if(enable)
+    {
+        w->mouseUpEventChannel = w->realmouseUpEventChannel;
+    }
+    else
+    {
+        w->mouseUpEventChannel = NULL;
+    }
+}
+
+void EnableMouseMoveEventChanProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
+{
+    bool enable = popBool(stack, proc, w, vm);
+    if(enable)
+    {
+        w->mouseMoveEventChannel = w->realmouseMoveEventChannel;
+    }
+    else
+    {
+        w->mouseMoveEventChannel = NULL;
+    }
+}
+
+void EnableKbEventChanProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
+{
+    bool enable = popBool(stack, proc, w, vm);
+    if(enable)
+    {
+        w->kbEventChannel = w->realkbEventChannel;
+    }
+    else
+    {
+        w->kbEventChannel = NULL;
+    }
 }
 
 WindowReadMethod::WindowReadMethod(RunWindow *parent, VM *vm)
@@ -908,7 +972,6 @@ void PointAtProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
     {
         // todo: implement colorConstant that takes
         // QRgb to save time converting QRgb->QColor
-
         color = w->paintSurface->colorConstant(QColor(w->paintSurface->GetImage()->pixel(x, y)));
     }
 
@@ -1097,6 +1160,21 @@ void KeysOfProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
     stack.push(k);
 }
 
+void MapKeyProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
+{
+    w->typeCheck(proc, stack.top(), BuiltInTypes::MapType);
+    Value *v = popValue(stack, proc, w, vm);
+    VMap *m = unboxMap(v);
+
+    int keyIndex = popInt(stack, proc, w, vm);
+    if(keyIndex < 1 || keyIndex > m->allKeys.count())
+        throw VMError(SubscriptOutOfRange2, proc,
+                      proc->owner, proc->currentFrame()).arg(str(keyIndex)).arg(str(m->allKeys.count()));
+
+    Value *ret = m->allKeys[keyIndex-1];
+    stack.push(ret);
+}
+
 struct FileBlob
 {
     QFile *file;
@@ -1153,6 +1231,14 @@ void *popRaw(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm, IClass *
     verifyStackNotEmpty(stack, proc, vm);
     w->typeCheck(proc, stack.top(), type);
     void *ret = unboxRaw(stack.pop());
+    return ret;
+}
+
+Channel *popChannel(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
+{
+    verifyStackNotEmpty(stack, proc, vm);
+    w->typeCheck(proc, stack.top(), BuiltInTypes::ChannelType);
+    Channel *ret = unboxChan(stack.pop());
     return ret;
 }
 
@@ -1462,14 +1548,26 @@ void MigrateToGuiThreadProc(VOperandStack &stack, Process *proc, RunWindow *w, V
     //proc->migrateTo(&vm->guiScheduler);
     //emit w->EmitGuiSchedule();
     proc->wannaMigrateTo = &vm->guiScheduler;
-    proc->timeSlice = 0;
+    proc->exitTimeSlice();
 }
 
 void MigrateBackFromGuiThreadProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 {
     //proc->migrateTo(&vm->mainScheduler);
     proc->wannaMigrateTo = &vm->mainScheduler;
-    proc->timeSlice = 0;
+    proc->exitTimeSlice();
+}
+
+void CloseChannelProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
+{
+    Channel *chan = popChannel(stack, proc, w, vm);
+    chan->close();
+}
+
+void ChannelClosedProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
+{
+    Channel *chan = popChannel(stack, proc, w, vm);
+    stack.push(vm->GetAllocator().newBool(chan->closed()));
 }
 
 void ImageRotatedProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
@@ -2136,7 +2234,9 @@ Value *editAndReturn(Value *v, RunWindow *w, VM *vm)
     ly->addWidget(ok);
     ly->addWidget(cancel);
     dlg->setLayout(ly);
+#ifndef ENGLISH_PL
     dlg->setLayoutDirection(Qt::RightToLeft);
+#endif
     dlg->connect(ok, SIGNAL(clicked()), dlg, SLOT(accept()));
     dlg->connect(cancel, SIGNAL(clicked()), dlg, SLOT(reject()));
     bool ret = dlg->exec()== QDialog::Accepted;

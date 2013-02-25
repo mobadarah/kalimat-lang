@@ -35,9 +35,11 @@ enum VMErrorType
     SubscribingNonArray, SubscribtMustBeInteger, UnacceptableKeyFormMap1, IndexableNotFound1,
     SubscriptOutOfRange2, SubscriptOutOfRange3,
     ArgumentError, MD_IndexingWrongNumberOfDimensions,
-    ElementAlreadyDefined1, MethodAlreadyDefinedInClass,
+    ElementAlreadyDefined1, MethodAlreadyDefinedInClass2, FieldAlreadyDefinedInClass2,
     RuntimeError,
-    NoError
+    NoError,
+    CannotSendToClosedChannel,
+    CannotReceiveFromClosedChannel
 };
 
 namespace ArgErr

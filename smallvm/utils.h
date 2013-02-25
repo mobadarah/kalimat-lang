@@ -96,6 +96,7 @@ class LineIterator
 public:
     QTextStream *stream;
     QFile *file;
+    bool bilingual;
 public:
     ~LineIterator();
     QString readLine();
@@ -107,12 +108,12 @@ public:
 class Utils
 {
 public:
-    static LineIterator readResourceTextFile(QString fileName);
+    static LineIterator readResourceTextFile(QString fileName, bool bilingual);
     static QMap<QString, QString> readAequalBFile(LineIterator &iter);
     template<class ErrTypeEnum> static QMap<ErrTypeEnum, QString> prepareErrorMap(QString fileName)
     {
         QMap<ErrTypeEnum, QString> ErrorMap;
-        LineIterator in = Utils::readResourceTextFile(fileName);
+        LineIterator in = Utils::readResourceTextFile(fileName, true);
         int i=0;
         while(!in.atEnd())
         {
@@ -125,7 +126,7 @@ public:
     static QVector<QString> prepareErrorVector(QString fileName)
     {
         QVector<QString> errorVector;
-        LineIterator in = Utils::readResourceTextFile(fileName);
+        LineIterator in = Utils::readResourceTextFile(fileName, true);
         while(!in.atEnd())
         {
             QString val = in.readLine().trimmed();
@@ -134,6 +135,8 @@ public:
         in.close();
         return errorVector;
     }
+    static QStringList segmentString(QString source, int segmentMaxLength);
+    static QStringList segmentStringForPascal(QString source, int segmentMaxLength);
 };
 
 template<class ErrTypeEnum> class Translation

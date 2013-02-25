@@ -31,7 +31,8 @@ class TextLayer
     int imgWidth, imgHeight, _stripHeight;
     QFont textFont;
 
-    QPixmap strips[visibleTextLines];
+    //QPixmap strips[visibleTextLines];
+    QPixmap image;
 
     void scrollUp();
 
@@ -77,7 +78,8 @@ public:
     void setColor(QColor);
     void resetColor();
 
-    const QPixmap &strip(int i) { return strips[i]; }
+    //const QPixmap &strip(int i) { return strips[i]; }
+    inline const QPixmap &getImage() { return image; }
     int stripHeight();
 
     QString formatStringUsingWidth(QString str, int width);

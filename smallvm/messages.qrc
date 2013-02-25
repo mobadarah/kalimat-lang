@@ -6,5 +6,6 @@
         <file>codedoc_messages.txt</file>
         <file>runlib_errors.txt</file>
         <file>runlib_identifiers.txt</file>
+        <file>vm_prelude_en.txt</file>
     </qresource>
 </RCC>

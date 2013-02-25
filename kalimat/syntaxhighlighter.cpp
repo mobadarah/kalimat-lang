@@ -79,7 +79,11 @@ void SyntaxHighlighter::highlightToHtml(QString program, QStringList &output)
     {
         lexer->tokenize();
         QVector<Token> tokens = lexer->getTokens();
-        output.append("<div dir=\"rtl\" style=\"background-color: rgb(250, 250, 255);\"><pre>");
+#ifdef ENGLISH_PL
+        output.append("<div style=\"background-color: rgb(240, 240, 250);\"><pre>");
+#else
+        output.append("<div dir=\"rtl\" style=\"background-color: rgb(240, 240, 250);\"><pre>");
+#endif
         int indentlevel = 0;
         for(int i=0; i<tokens.size(); i++)
         {
@@ -165,7 +169,11 @@ void SyntaxHighlighter::highlightToWiki(QString program, QStringList &output)
     {
         lexer->tokenize();
         QVector<Token> tokens = lexer->getTokens();
+#ifdef ENGLISH_PL
+        output.append("<div>\n ");
+#else
         output.append("<div dir=\"rtl\">\n ");
+#endif
         int indentlevel = 0;
         for(int i=0; i<tokens.size(); i++)
         {

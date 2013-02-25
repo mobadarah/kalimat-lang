@@ -1,28 +1,56 @@
 ﻿قيم غير صحيحة لتحديد موقع المؤشر
+Invalid values for cursor location
 دالة عشوائي لابد أن تأخذ قيمة موجبة
+'random' must take a positive argument
 لا يمكن تحويل النص "%1" إلى قيمة عددية
+Cannot convert string '%1' to a numeric value
 تحميل صورة من ملف غير موجود: '%1'
+File '%1' not found when loading image
 تحميل طيف من ملف غير موجود: '%1'
+File '%1' not found when loading sprite
 قيمة %1 لابد ان تكون من %2 إلى %3
+Value of %1 must be from %2 to %3
 س
+x
 ص
+y
 لا يوجد ثابت بإسم '%1'
+Undefined constant: '%1'
 لا يمكن الكتابة في ملف مغلق
+Cannot write to closed file
 لا يمكن القراءة من ملف مغلق
+Cannot read from closed file
 لا يمكن التعامل مع ملف مغلق
+Cannot operate on closed file
 محاولة فتح ملف غير موجود: '%1'
+File not found: '%1'
 لم ينجح فتح الملف: '%1'
+Failed to open file: '%1'
 القيمة المقدمة لابد أن تكون كائناً، ولكنها %1
+Expected an object, give value of non-object type '%1'
 تجاهل آخر مسار بديل: قمة المكدس (%1) ليست نقطة تراجع
+Ignore last backtrack point: stack top (%1) not a backtrack point
 اذهب لمسار إعرابي بديل: قمة المكدس (%1) ليست نقطة تراجع
+Go to backtrack point: stack top (%1) not a backtrack point
 خطأ في قيمة الإطار التفعيلي المطلوب: %1
+Invalid activation frame number: %1
 لا يمكن استخدام ملف بإسم ناقص إلا عند تخزين البرنامج أولا (الملف: '%1')
+Cannot use file with a relative path without saving program first (file: '%1')
 لا يوجد إجراء أساسي لينفّذ
+No main procedure to run
 تحرير %1
+Editing %1
 حسناً
+Ok
 إلغاء
+Cancel
 النص المحدد لابد أن يكون طوله رمزا واحدا، لكن القيمة المقدمة '%1'
+Expected a single-character string
 حجم المصفوفة لابد أن يكون أكبر من صفر في البعد رقم %1
+Array size must be a non-zero positive number at dimension %1
 س=%1، ص=%2 النقطة=(%1, %2)
+x=%1، y=%2 point=(%1, %2)
 يجب إدخال رقم! حاول مرة اخرى
+Must enter a number! Try again
 كلمات
+Kalimat

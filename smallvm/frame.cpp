@@ -59,8 +59,8 @@ Frame::Frame()
 }
 
 Frame::Frame(Method *method, int operandStackLevel)
-    :currentMethod(method),
-      ip(0),
+    :ip(0),
+      currentMethod(method),
       returnReferenceIfRefMethod(false),
       operandStackLevel(operandStackLevel),
       next(NULL)
@@ -69,8 +69,8 @@ Frame::Frame(Method *method, int operandStackLevel)
 }
 
 Frame::Frame(Method *method, int ip, int operandStackLevel)
-    :currentMethod(method),
-      ip(ip),
+    :ip(ip),
+      currentMethod(method),
       returnReferenceIfRefMethod(false),
       operandStackLevel(operandStackLevel),
       next(NULL)
@@ -80,7 +80,16 @@ Frame::Frame(Method *method, int ip, int operandStackLevel)
 
 void Frame::Init(Method *method, int operandStackLevel)
 {
-    Init(method, 0, operandStackLevel);
+    this->operandStackLevel = operandStackLevel;
+    currentMethod = method;
+    this->ip = 0;
+    returnReferenceIfRefMethod = false;
+    //next = NULL;
+    if(fastLocals && fastLocals != fastLocalsStatic)
+    {
+        delete[] fastLocals;
+    }
+    prepareFastLocals();
 }
 
 void Frame::Init(Method *method, int ip, int operandStackLevel)
@@ -106,13 +115,25 @@ Frame::~Frame()
     }
 }
 
+const Instruction &Frame::getRunningInstruction()
+{
+    if(ip < currentMethod->InstructionCount())
+    {
+        return currentMethod->Get(ip);
+    }
+    else
+    {
+        throw VMError(InternalError1).arg("getRunningInstruction: out of range");
+    }
+}
+
 const Instruction &Frame::getPreviousRunningInstruction()
 {
     const int n = currentMethod->InstructionCount();
-    if(ip>=1 && ip-1 < n)
+    if(ip>=1 && (ip-1 < n))
         return currentMethod->Get(this->ip-1);
     else
-        return currentMethod->Get(n-1);
+        throw VMError(InternalError1).arg("getPreviousRunningInstruction: out of range");
 }
 
 void Frame::prepareFastLocals()
@@ -132,7 +153,7 @@ void Frame::prepareFastLocals()
         // The fastLocals have to be initialized to NULL
         // since the GC relies on this when scanning the frame
         // for roots
-        //*
+        /*
         for(int i=0; i<n; i++)
         {
             fastLocals[i] = NULL;
@@ -140,6 +161,7 @@ void Frame::prepareFastLocals()
         //*/
 
         //memset(fastLocals, 0, n *sizeof(Value *));
+        std::fill(fastLocals, fastLocals+n, nullptr);
     }
     else
     {

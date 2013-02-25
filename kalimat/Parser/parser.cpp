@@ -12,6 +12,7 @@ Parser::Parser()
     curToken = -1;
     tokenFormatter = NULL;
     atStartOfFile = false;
+    lineStart = false;
     withRecovery = false;
     tag = NULL;
 }
@@ -20,6 +21,7 @@ Parser::Parser(QString(*tokenFormatter)(int))
     curToken = -1;
     this->tokenFormatter = tokenFormatter;
     atStartOfFile = false;
+    lineStart = false;
     withRecovery = false;
     tag = NULL;
 }
@@ -50,6 +52,7 @@ void Parser::init(QString s, Lexer *lxr, void *tag)
     tokens = lxr->getTokens();
     curToken = -1;
     atStartOfFile = false;
+    lineStart = false;
     this->tag = tag;
 }
 
@@ -69,6 +72,7 @@ void Parser::init(QString s, Lexer *lxr, void *tag, QString fileName)
     tokens = lxr->getTokens();
     curToken = -1;
     atStartOfFile = false;
+    lineStart = false;
     this->tag = tag;
     this->fileName = fileName;
 }
@@ -143,7 +147,9 @@ bool Parser::match(TokenType tokenType)
     }
     if(true)
     {
-        throw ParserException(fileName, getPos(), QString("Exprected token of type:%1").arg(tokenId));
+        throw ParserException(fileName, getPos(), QString("Expected token of type:%1, found %2")
+                              .arg(tokenId)
+                              .arg(tokenFormatter(lookAhead.Type)));
     }
 }
 
@@ -155,10 +161,28 @@ void Parser::advanceToken()
     curToken++;
     if(curToken < tokens.size())
     {
+        if(lookAhead.Lexeme != "\n")
+        {
+            lineStart = false;
+        }
+        else
+        {
+            lineStart = true;
+        }
+
         lookAhead = tokens[curToken];
     }
     if(curToken == 0)
+    {
         atStartOfFile = true;
+        lineStart = true;
+    }
+    else
+    {
+        atStartOfFile = false;
+        if(curToken > 0)
+        previousToken = tokens[curToken -1];
+    }
 }
 
 void Parser::initLookAhead()
@@ -173,6 +197,7 @@ void Parser::initLookAhead()
         advanceToken();
     }
 }
+
 Token Parser::getPos()
 {
     if(curToken >=0 && curToken< tokens.size())
@@ -212,6 +237,7 @@ shared_ptr<AST> Parser::parse()
     }
     return ret;
 }
+
 shared_ptr<AST> Parser::parse(shared_ptr<AST> (*root)(Parser *p))
 {
     initLookAhead();
@@ -228,20 +254,22 @@ shared_ptr<AST> Parser::parse(shared_ptr<AST> (*root)(Parser *p))
 
 ParserState Parser::saveState()
 {
-    return ParserState(curToken, lookAhead, tokens, tokenFormatter);
+    return ParserState(curToken, lookAhead, previousToken, tokens, tokenFormatter);
 }
 void Parser::restoreState(ParserState s)
 {
     this->curToken = s.curToken;
     this->lookAhead = s.lookAhead;
+    this->previousToken = previousToken;
     this->tokens = s.tokens;
     this->tokenFormatter = s.tokenFormatter;
 }
 
-ParserState::ParserState(int curToken, Token lookAhead, QVector<Token>tokens, QString(*tokenFormatter)(int))
+ParserState::ParserState(int curToken, Token lookAhead, Token previousToken, QVector<Token>tokens, QString(*tokenFormatter)(int))
 {
     this->curToken = curToken;
     this->lookAhead = lookAhead;
+    this->previousToken = previousToken;
     this->tokens = tokens;
     this->tokenFormatter = tokenFormatter;
 }

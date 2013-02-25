@@ -14,12 +14,19 @@ class Channel
 {
     QQueue<Process *> send_q;
     QQueue<Process *> recv_q;
+    bool isOpen;
 public:
     QMap<Process *, Value *> data;
     QQueue<Value *> nullProcessQ;
 public:
     QMutex lock;
     Channel();
+
+    void close();
+
+    bool closed() { return !isOpen; }
+    bool opened() { return isOpen; }
+
     void send(Value *v, Process *proc);
     void sendNoLock(Value *v, Process *proc);
 

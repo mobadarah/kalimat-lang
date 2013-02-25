@@ -2,6 +2,12 @@
 #include "allocator.h"
 #include "vmerror.h"
 #include "runtime_identifiers.h"
+#include "vm.h"
+
+QString IClass::toString()
+{
+    return getName();
+}
 
 int IClass::compareTo(Value *v1, Value *v2)
 {
@@ -128,7 +134,17 @@ bool ArrayClass::subclassOf(IClass *c)
 
 IMethod *ArrayClass::lookupMethod(QString name)
 {
+    IMethod *m = externalMethods.value(name);
+    if(m != NULL)
+        return m;
     return baseClass()->lookupMethod(name);
+}
+
+void ArrayClass::attachVmMethod(VM *vm, QString methodName)
+{
+    QString internalName = QString("%%1_%2").arg(this->getName()).arg(methodName);
+    IMethod *method = vm->GetMethod(internalName);
+    externalMethods[methodName] = method;
 }
 
 IObject *ArrayClass::newValue(Allocator *allocator)
@@ -154,6 +170,44 @@ Value *ArrayClass::addArrayToMe(VArray *arr1, Value *v2, Allocator *allocator)
     return v3;
 }
 
+QString MapClass::getName()
+{
+    return VMId::get(RId::VMap);
+}
+
+IClass *MapClass::baseClass()
+{
+    return BuiltInTypes::IndexableType;
+}
+
+bool MapClass::subclassOf(IClass *c)
+{
+    if(c == this)
+        return true;
+
+    return baseClass()->subclassOf(c);
+}
+
+IMethod *MapClass::lookupMethod(QString name)
+{
+    IMethod *m = externalMethods.value(name);
+    if(m != NULL)
+        return m;
+    return baseClass()->lookupMethod(name);
+}
+
+void MapClass::attachVmMethod(VM *vm, QString methodName)
+{
+    QString internalName = QString("%%1_%2").arg(this->getName()).arg(methodName);
+    IMethod *method = vm->GetMethod(internalName);
+    externalMethods[methodName] = method;
+}
+
+IObject *MapClass::newValue(Allocator *allocator)
+{
+    throw VMError(InternalError);
+}
+
 QString StringClass::getName()
 {
     return VMId::get(RId::String);
@@ -174,7 +228,17 @@ bool StringClass::subclassOf(IClass *c)
 
 IMethod *StringClass::lookupMethod(QString name)
 {
+    IMethod *m = externalMethods.value(name);
+    if(m != NULL)
+        return m;
     return baseClass()->lookupMethod(name);
+}
+
+void StringClass::attachVmMethod(VM *vm, QString methodName)
+{
+    QString internalName = QString("%%1_%2").arg(this->getName()).arg(methodName);
+    IMethod *method = vm->GetMethod(internalName);
+    externalMethods[methodName] = method;
 }
 
 IObject *StringClass::newValue(Allocator *allocator)
@@ -247,12 +311,18 @@ int IntClass::compareTo(Value *v1, Value *v2)
 
 int IntClass::compareIntToMe(int v1, Value *v2)
 {
-    return v1 - unboxInt(v2);
+    int i2 = unboxInt(v2);
+    if(v1 > i2)
+        return 1;
+    else if(v1 < i2)
+        return -1;
+    else
+        return 0;
 }
 
 int IntClass::compareDoubleToMe(double v1, Value *v2)
 {
-    int i2= unboxInt(v2);
+    int i2 = unboxInt(v2);
     if(v1 > i2)
         return 1;
     else if(v1 < i2)
@@ -340,7 +410,13 @@ int DoubleClass::compareIntToMe(int v1, Value *v2)
 
 int DoubleClass::compareDoubleToMe(double v1, Value *v2)
 {
-    return v1 - unboxDouble(v2);
+    double d2 = unboxDouble(v2);
+    if(v1 > d2)
+        return 1;
+    else if(v1 < d2)
+        return -1;
+    else
+        return 0;
 }
 
 int DoubleClass::compareLongToMe(long v1, Value *v2)
@@ -434,7 +510,12 @@ int LongClass::compareDoubleToMe(double v1, Value *v2)
 int LongClass::compareLongToMe(long v1, Value *v2)
 {
     long l2 = unboxLong(v2);
-    return v1 - l2;
+    if(v1 > l2)
+        return 1;
+    else if(v1 < l2)
+        return -1;
+    else
+        return 0;
 }
 
 Value *LongClass::addTo(Value *v1, Value *v2, Allocator *a)
@@ -690,4 +771,42 @@ QVector<PropertyDesc> FunctionClass::getProperties()
 QString FunctionClass::toString()
 {
     return getName();
+}
+
+QString ChannelClass::getName()
+{
+    return VMId::get(RId::Channel);
+}
+
+IClass *ChannelClass::baseClass()
+{
+    return BuiltInTypes::ObjectType;
+}
+
+bool ChannelClass::subclassOf(IClass *c)
+{
+    if(c == this)
+        return true;
+
+    return baseClass()->subclassOf(c);
+}
+
+IMethod *ChannelClass::lookupMethod(QString name)
+{
+    IMethod *m = externalMethods.value(name);
+    if(m != NULL)
+        return m;
+    return baseClass()->lookupMethod(name);
+}
+
+void ChannelClass::attachVmMethod(VM *vm, QString methodName)
+{
+    QString internalName = QString("%%1_%2").arg(this->getName()).arg(methodName);
+    IMethod *method = vm->GetMethod(internalName);
+    externalMethods[methodName] = method;
+}
+
+IObject *ChannelClass::newValue(Allocator *allocator)
+{
+    throw VMError(InternalError);
 }

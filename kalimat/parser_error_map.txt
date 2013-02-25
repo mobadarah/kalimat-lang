@@ -1,24 +1,46 @@
 ﻿كان يتوقع تعريف هنا
+Expected a declaration
 كان يتوقع تعبير هنا
+Expected an expression
 كان يتوقع قيمة بسيطة (عدد، نص،...) هنا
+Expected a simple value (number, text...)
 كان يتوقع أمر أو تعريف هنا
+Expected a statement
 كان يتوقع امر رسم هنا
+Expected a drawing statement
 كان يتوقع اسم (معرِّف) هنا
+Expected a name (identifier)
 كان يتوقع امر 'ارسل' أو 'تسلم' هنا
+Expected a 'send' or 'receive' command
 كان يتوقع تعبيرا بعد امر اذهب إلى
+Expected an expression after 'go to' statement
 كان يتوقع نص هنا
+Expected a text literal
 أمر باستخدام لابد أن يتبعه ثابت نصي
+'Using' directive must be followed by a text literal
 لا يمكن للوحدة أن تتضمن أوامراً
+A unit cannot contain statements
 هذا الأمر لم يتم التعامل معه بعد في كلمات
+Unimplemented statement
 لابد من وجود تعبير يمكن التخصيص له قبل علامة =
+Expected an lvalue before '=' sign
 تعريف النوع في عملية التخصيص (=) لابد أن يكون مع متغير
+Type declaration in assignment has to be for a variable
 تعريف نوع المتغير لا ينفع هنا
+Type declarations not allowed here
 لا يمكن التوكيل لغير استدعاء إجراء أو دالة
+Can delegate only to a procedure or function call
 لا يمكن تشغيل ما ليس باستدعاء إجراء
+Can only launch procedures
 الاستجابة التي تكتب الخاصية لابد أن تبدأ بـ 'حدد.'
+Property writers must begin with set.
 الاستجابة التي تكتب الخاصية لابد أن تأخذ عاملاً واحداً.
+Property writers must have only one parameter
 الرد الذي يقرأ الخاصية لابد ألّا يأخذ عواملاً.
+Property readers must have no parameters
 الرد على رسالة أخرى لابد أن يأخذ عاملين.
+Reponse to 'another message' must take two parameters
 كان يتوقع نصاً من حرف واحد هنا
+Expected a single-character string
 هذا التعريف لا ينفع هنا
-
+Bad declaration

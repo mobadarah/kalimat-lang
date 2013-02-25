@@ -32,6 +32,7 @@ public:
 private:
     QStack<shared_ptr<ProceduralDecl> > varContext;
 private:
+    void error(ParserException ex);
 
     bool LA_first_statement();
     bool LA_first_declaration();

@@ -129,6 +129,17 @@ Value *Allocator::newInt(int i)
     return newInt(i, true);
 }
 
+Value *Allocator::zero()
+{
+    return &_ints[0];
+}
+
+Value *Allocator::one()
+{
+    return &_ints[1];
+}
+
+
 Value *Allocator::newInt(int i, bool gcMonitor=true)
 {
     if(intFreeList != NULL)

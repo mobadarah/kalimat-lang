@@ -30,8 +30,8 @@ public:
     void markCurrentInstruction(VM *, Process *, int *, int *) { }
     void handleVMError(VMError err) { }
 
-    void Break(int offset, Frame *frame, Process *process) { }
-    void postBreak(int offset, Frame *frame, Process *process) { }
+    void Break(BreakSource::Src source, int offset, Frame *frame, Process *process) { }
+    void postBreak(BreakSource::Src source, int offset, Frame *frame, Process *process) { }
     void setDebuggedProcess(Process *) { }
     void currentBreakCondition(Process *process)
     {

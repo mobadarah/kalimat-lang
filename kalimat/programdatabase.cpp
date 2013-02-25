@@ -169,7 +169,7 @@ void ProgramDatabase::addFunctionDef(int defId, QString filename, shared_ptr<Pro
          pd->formalCount(),
          numRets,
          pd->getPos().Pos,
-         pd->endingToken().Pos);
+         pd->getEndingPos().Pos);
 }
 
 void ProgramDatabase::addClassDef(int defId, QString filename, shared_ptr<ClassDecl>)
@@ -204,7 +204,7 @@ void ProgramDatabase::prepareQueries()
 
 void ProgramDatabase::createTables(bool actually)
 {
-    QString ddl_query = Utils::readResourceTextFile(":/prog_ddl.sql").readAll();
+    QString ddl_query = Utils::readResourceTextFile(":/prog_ddl.sql", false).readAll();
     QSqlQuery q(db);
     QStringList tableCreationStrings = ddl_query.split(";", QString::SkipEmptyParts);
     for(int i=0; i<tableCreationStrings.count(); ++i)

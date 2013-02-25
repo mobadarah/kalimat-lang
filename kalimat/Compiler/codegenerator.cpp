@@ -392,12 +392,13 @@ void CodeGenerator::popProcedureScope()
 void CodeGenerator::generateProcedureDeclaration(shared_ptr<ProcedureDecl> decl)
 {
     gen(decl, QString(".method %1 %2 0").arg(decl->procName()->name()).arg(decl->formalCount()));
+    gen(decl, "tslice");
     for(int i=0; i<decl->formalCount(); i++)
     {
         gen(decl, "popl " + decl->formal(i)->name()->name());
     }
     generateStatement(decl->body());
-    debugInfo.setInstructionForLine(currentCodeDoc, decl->_endingToken.Line,
+    debugInfo.setInstructionForLine(currentCodeDoc, decl->getEndingPos().Line,
                                     decl->procName()->name(), scopeStack.top().instructionCount);
     gen(decl, "ret");
     gen(decl,".endmethod");
@@ -406,13 +407,14 @@ void CodeGenerator::generateProcedureDeclaration(shared_ptr<ProcedureDecl> decl)
 void CodeGenerator::generateFunctionDeclaration(shared_ptr<FunctionDecl> decl)
 {
     gen(decl, QString(".method %1 %2 1").arg(decl->procName()->name()).arg(decl->formalCount()));
+    gen(decl, "tslice");
     for(int i=0; i<decl->formalCount(); i++)
     {
         gen(decl, "popl " + decl->formal(i)->name()->name());
     }
 
     generateStatement(decl->body());
-    debugInfo.setInstructionForLine(currentCodeDoc, decl->_endingToken.Line,
+    debugInfo.setInstructionForLine(currentCodeDoc, decl->getEndingPos().Line,
                                     decl->procName()->name(), scopeStack.top().instructionCount);
     gen(decl, "ret");
     gen(decl,".endmethod");
@@ -499,11 +501,13 @@ void CodeGenerator::generateFFIProceduralDeclaration(shared_ptr<FFIProceduralDec
     // Push a dummy procedure scope since all calls to gen()
     // attempt to increment an instruction count in the current procedure scope
     pushProcedureScope(shared_ptr<FunctionDecl>(new FunctionDecl(decl->getPos(),
-                                        false,
-                                        decl->getPos(),
-                                        shared_ptr<Identifier>(new Identifier(decl->getPos(),decl->procName())),
-                                        QVector<shared_ptr<FormalParam> >(),
-                                        shared_ptr<BlockStmt>(new BlockStmt(decl->getPos(), QVector<shared_ptr<Statement > >()))
+                                                                 decl->getEndingPos(),
+                            false,
+                            shared_ptr<Identifier>(new Identifier(decl->getPos(),decl->procName())),
+                            QVector<shared_ptr<FormalParam> >(),
+                            shared_ptr<BlockStmt>(new BlockStmt(decl->getPos(),
+                                                                decl->getEndingPos(),
+                                                                QVector<shared_ptr<Statement > >()))
 
                                         )));
     gen(decl, QString(".method %1 %2 %3").
@@ -607,12 +611,12 @@ void CodeGenerator::generateFFIStructDeclaration(shared_ptr<FFIStructDecl> decl)
 
 shared_ptr<VarAccess> varOf(Token pos, QString id)
 {
-    return shared_ptr<VarAccess>(new VarAccess(pos,shared_ptr<Identifier>(new Identifier(pos, id))));
+    return shared_ptr<VarAccess>(new VarAccess(shared_ptr<Identifier>(new Identifier(pos, id))));
 }
 
 shared_ptr<VarAccess> varOf(shared_ptr<Identifier> id)
 {
-    return shared_ptr<VarAccess>(new VarAccess(id->getPos(), id));
+    return shared_ptr<VarAccess>(new VarAccess(id));
 }
 
 shared_ptr<Identifier> idOf(Token pos, QString id)
@@ -632,7 +636,7 @@ shared_ptr<NumLiteral> numLitOf(Token pos, int value)
 
 shared_ptr<Idafa> fieldAccessOf(shared_ptr<Expression> obj, QString fname)
 {
-    return shared_ptr<Idafa>(new Idafa(obj->getPos(),
+    return shared_ptr<Idafa>(new Idafa(obj->getPos(), obj->getEndingPos(),
                                        idOf(obj->getPos(), fname),
                                                  obj));
 }
@@ -641,6 +645,7 @@ shared_ptr<Invokation> invokationOf(Token pos, QString fname)
 {
     QVector<shared_ptr<Expression> > args;
     return shared_ptr<Invokation>(new Invokation(pos,
+                                                 pos,
                                                  idOf(pos, fname),
                                                  args));
 }
@@ -650,6 +655,7 @@ shared_ptr<Invokation> invokationOf(Token pos, QString fname, shared_ptr<Express
     QVector<shared_ptr<Expression> > args;
     args.append(arg0);
     return shared_ptr<Invokation>(new Invokation(pos,
+                                                 pos,
                                                  idOf(pos, fname),
                                                  args));
 }
@@ -661,6 +667,7 @@ shared_ptr<Invokation> invokationOf(Token pos, QString fname, shared_ptr<Express
     args.append(arg0);
     args.append(arg1);
     return shared_ptr<Invokation>(new Invokation(pos,
+                                                 pos,
                                                  idOf(pos, fname),
                                                  args));
 }
@@ -670,6 +677,7 @@ shared_ptr<MethodInvokation> methodOf(shared_ptr<Expression> target,
 {
     QVector<shared_ptr<Expression> > args;
     return shared_ptr<MethodInvokation>(new MethodInvokation(target->getPos(),
+                                                             target->getEndingPos(),
                                                              target,
                                                  idOf(target->getPos(), mname),
                                                  args));
@@ -682,6 +690,7 @@ shared_ptr<MethodInvokation> methodOf(shared_ptr<Expression> target,
     QVector<shared_ptr<Expression> > args;
     args.append(arg0);
     return shared_ptr<MethodInvokation>(new MethodInvokation(target->getPos(),
+                                                             target->getEndingPos(),
                                                              target,
                                                  idOf(target->getPos(), mname),
                                                  args));
@@ -696,6 +705,7 @@ shared_ptr<MethodInvokation> methodOf(shared_ptr<Expression> target,
     args.append(arg0);
     args.append(arg1);
     return shared_ptr<MethodInvokation>(new MethodInvokation(target->getPos(),
+                                                             target->getEndingPos(),
                                                              target,
                                                  idOf(target->getPos(), mname),
                                                  args));
@@ -712,6 +722,7 @@ shared_ptr<MethodInvokation> methodOf(shared_ptr<Expression> target,
     args.append(arg1);
     args.append(arg2);
     return shared_ptr<MethodInvokation>(new MethodInvokation(target->getPos(),
+                                                             target->getEndingPos(),
                                                              target,
                                                  idOf(target->getPos(), mname),
                                                  args));
@@ -731,6 +742,7 @@ shared_ptr<MethodInvokation> methodOf(shared_ptr<Expression> target,
     args.append(arg2);
     args.append(arg3);
     return shared_ptr<MethodInvokation>(new MethodInvokation(target->getPos(),
+                                                             target->getEndingPos(),
                                                              target,
                                                  idOf(target->getPos(), mname),
                                                  args));
@@ -745,6 +757,7 @@ shared_ptr<LabelStmt> labelOf(Token pos, QString lbl, Labeller &lblr)
     //*
     int label = lblr.labelOf(lbl);
     return shared_ptr<LabelStmt>(new LabelStmt(pos,
+                                               pos,
                                                shared_ptr<NumLiteral>(
                                                new NumLiteral(pos,
                                                               label))));
@@ -754,6 +767,7 @@ shared_ptr<LabelStmt> labelOf(Token pos, QString lbl, Labeller &lblr)
 shared_ptr<LabelStmt> labelOf(Token pos, QString lbl)
 {
     return shared_ptr<LabelStmt>(new LabelStmt(pos,
+                                               pos,
                                                varOf(pos,lbl)));
 }
 
@@ -761,18 +775,21 @@ shared_ptr<LabelStmt> labelOf(Token pos, QString lbl)
 shared_ptr<GotoStmt> gotoOf(Token pos, QString lbl, Labeller &lblr)
 {
     return shared_ptr<GotoStmt>(new GotoStmt(pos,
+                                             pos,
                                              numLitOf(pos, lblr.labelOf(lbl))));
 }
 
 shared_ptr<GotoStmt> gotoOf(Token pos, shared_ptr<Expression> lbl)
 {
-    return shared_ptr<GotoStmt>(new GotoStmt(pos, lbl));
+    return shared_ptr<GotoStmt>(new GotoStmt(pos, lbl->getPos(), lbl));
 }
 
 shared_ptr<AssignmentStmt> assignmentOf(Token pos, shared_ptr<AssignableExpression> lval,
                                         shared_ptr<Expression> rval)
 {
-    return shared_ptr<AssignmentStmt>(new AssignmentStmt(pos, lval, rval,
+    return shared_ptr<AssignmentStmt>(new AssignmentStmt(pos,
+                                                         rval->getPos(),
+                                                         lval, rval,
                                                          shared_ptr<TypeExpression>()));
 }
 
@@ -780,6 +797,7 @@ shared_ptr<AssignmentStmt> assignmentOf(shared_ptr<AssignableExpression> lval,
                                         shared_ptr<Expression> rval)
 {
     return shared_ptr<AssignmentStmt>(new AssignmentStmt(lval->getPos(),
+                                                         rval->getPos(),
                                                          lval,
                                                          rval,
                                                          shared_ptr<TypeExpression>()));
@@ -789,13 +807,14 @@ shared_ptr<IfStmt> ifOf(Token pos, shared_ptr<Expression> cond,
                                         shared_ptr<Statement> thenpart,
                                         shared_ptr<Statement> elsepart)
 {
-    return shared_ptr<IfStmt>(new IfStmt(pos, cond, thenpart, elsepart));
+    return shared_ptr<IfStmt>(new IfStmt(pos, elsepart->endingpos(), cond, thenpart, elsepart));
 }
 
 
 shared_ptr<InvokationStmt> fromInvokation(shared_ptr<IInvokation> inv)
 {
-    return shared_ptr<InvokationStmt>(new InvokationStmt(inv->getPos(), inv));
+    return shared_ptr<InvokationStmt>(new InvokationStmt(inv->getPos(),
+                                                         inv->getPos(), inv));
 }
 
 void CodeGenerator::generateRulesDeclaration(shared_ptr<RulesDecl> decl)
@@ -848,6 +867,7 @@ void CodeGenerator::generateRulesDeclaration(shared_ptr<RulesDecl> decl)
                                         VMId::get(RId::PushLocals),
                                         shared_ptr<ArrayLiteral>(
                                             new ArrayLiteral(pos0,
+                                                             pos0,
                                                              QVector<shared_ptr<Expression> >())
                                             ))));
         // %parser : call(startRuleLabel, %endOfParsing)
@@ -950,21 +970,23 @@ void CodeGenerator::generateRulesDeclaration(shared_ptr<RulesDecl> decl)
     // now return our precious result :D
 
     shared_ptr<ReturnStmt> returnNow(new ReturnStmt(pos0,
+                                                    pos0,
                                                     varOf(pos0, VMId::get(RId::ParserGeneratedResultVarName))));
     stmts.append(returnNow);
 
     // and have a label to whom VM routines will jump on error
     stmts.append(labelOf(pos0, VMId::get(RId::ParseLblParseError)));
     shared_ptr<ReturnStmt> returnErr(new ReturnStmt(pos0,
+                                                    pos0,
                                                     shared_ptr<Expression>(new NullLiteral(pos0))));
     stmts.append(returnErr);
     shared_ptr<BlockStmt> body(
-            new BlockStmt(decl->getPos(), stmts));
+            new BlockStmt(decl->getPos(), decl->getEndingPos(), stmts));
     QVector<shared_ptr<FormalParam> > formals;
     formals.append(shared_ptr<FormalParam>(
                        new FormalParam(idOf(Token(), VMId::get(RId::ParserGeneratedInputArgName)))));
     shared_ptr<FunctionDecl> func(
-            new FunctionDecl(decl->getPos(), true, decl->getPos(),
+            new FunctionDecl(decl->getPos(), decl->getEndingPos(), true,
                              decl->ruleName(), formals, body));
     /*
     QFile f("pargen_debug.txt");
@@ -998,7 +1020,7 @@ QVector<shared_ptr<Statement> > CodeGenerator::generateRuleImplementation(
         elems.append(varOf(pos0, locals[i]));
     }
     shared_ptr<ArrayLiteral> arr(
-                new ArrayLiteral(pos0, elems));
+                new ArrayLiteral(pos0, pos0, elems));
 
     result.append(fromInvokation(methodOf(varOf(pos0, VMId::get(RId::ParserGeneratedVarName)),
                            VMId::get(RId::PushLocals),
@@ -1038,6 +1060,7 @@ QVector<shared_ptr<Statement> > CodeGenerator::generateRuleImplementation(
                     new NumLiteral(pos0, i+1));
         shared_ptr<ArrayIndex> arrAccess(
                     new ArrayIndex(pos0,
+                                   pos0,
                                    varOf(pos0,VMId::get(RId::TmpParseFrame)),
                                    idx));
         result.append(assignmentOf(pos0,
@@ -1096,13 +1119,13 @@ QVector<shared_ptr<Statement> > CodeGenerator::pegExprToStatements(
 
 
         shared_ptr<BlockStmt> assignBlock(
-                    new BlockStmt(pos0, assignStmts));
+                    new BlockStmt(pos0, pos0, assignStmts));
 
         QVector<shared_ptr<Statement> > invokeStmts =
                 generateRuleImplementation(rule, locals, labeller);
 
         shared_ptr<BlockStmt> invokeBlock(
-                    new BlockStmt(pos0, invokeStmts));
+                    new BlockStmt(pos0, pos0, invokeStmts));
 
         result.append(ifOf(pos0,
                            rememberCond,
@@ -1171,8 +1194,8 @@ QVector<shared_ptr<Statement> > CodeGenerator::pegExprToStatements(
         thenStmts.append(fromInvokation(progressCall));
         elseStmts.append(gotoOf(pos0, methodOf(varOf(pos0,VMId::get(RId::ParserGeneratedVarName)),
                                         VMId::get(RId::FailAndBackTrack))));
-        shared_ptr<BlockStmt> thenPart(new BlockStmt(pos0, thenStmts));
-        shared_ptr<BlockStmt> elsePart(new BlockStmt(pos0, elseStmts));
+        shared_ptr<BlockStmt> thenPart(new BlockStmt(pos0, pos0, thenStmts));
+        shared_ptr<BlockStmt> elsePart(new BlockStmt(pos0, pos0, elseStmts));
         shared_ptr<IfStmt> ifStmt = ifOf(pos0,
                     conditionCall,
                     thenPart,
@@ -1217,8 +1240,8 @@ QVector<shared_ptr<Statement> > CodeGenerator::pegExprToStatements(
         thenStmts.append(fromInvokation(progressCall));
         elseStmts.append(gotoOf(pos0, methodOf(varOf(pos0,VMId::get(RId::ParserGeneratedVarName)),
                                         VMId::get(RId::FailAndBackTrack))));
-        shared_ptr<BlockStmt> thenPart(new BlockStmt(pos0, thenStmts));
-        shared_ptr<BlockStmt> elsePart(new BlockStmt(pos0, elseStmts));
+        shared_ptr<BlockStmt> thenPart(new BlockStmt(pos0, pos0, thenStmts));
+        shared_ptr<BlockStmt> elsePart(new BlockStmt(pos0, pos0, elseStmts));
         shared_ptr<IfStmt> ifStmt = ifOf(pos0,
                     conditionCall,
                     thenPart,
@@ -1279,12 +1302,13 @@ void CodeGenerator::generateMethodDeclaration(shared_ptr<MethodDecl> decl)
     //        = decl->className()->name;
     int numRet = decl->isFunctionNotProcedure()? 1: 0;
     gen(decl, QString(".method %1 %2 %3").arg(name).arg(decl->formalCount()).arg(numRet));
+    gen(decl, "tslice");
     for(int i=0; i<decl->formalCount(); i++)
     {
         gen(decl, "popl " + decl->formal(i)->name()->name());
     }
     generateStatement(decl->body());
-    debugInfo.setInstructionForLine(currentCodeDoc, decl->_endingToken.Line,
+    debugInfo.setInstructionForLine(currentCodeDoc, decl->getEndingPos().Line,
                                     decl->procName()->name(), scopeStack.top().instructionCount);
     gen(decl, "ret");
     gen(decl,".endmethod");
@@ -1342,6 +1366,10 @@ void CodeGenerator::generateStatement(shared_ptr<Statement> stmt)
     {
         generateForAllStmt(dynamic_pointer_cast<ForAllStmt>(stmt));
     }
+    else if(isa<ForEachStmt>(stmt))
+    {
+        generateForEachStmt(dynamic_pointer_cast<ForEachStmt>(stmt));
+    }
     else if(isa<LabelStmt>(stmt))
     {
         generateLabelStmt(dynamic_pointer_cast<LabelStmt>(stmt));
@@ -1388,7 +1416,7 @@ void CodeGenerator::generateStatement(shared_ptr<Statement> stmt)
     }
     else
     {
-        error(CompilerException(currentFileName, stmt, UnimplementedStatementForm));
+        error(CompilerException(currentFileName, stmt, UnimplementedStatementForm1).arg(stmt->toString()));
     }
 }
 
@@ -1809,6 +1837,7 @@ void CodeGenerator::generateWhileStmt(shared_ptr<WhileStmt> stmt)
     generateExpression(stmt->condition());
     gen(stmt->condition(), "if");
     gen(stmt->condition(), "jmp " + endLabel);
+    gen(stmt, "tslice");
     generateStatement(stmt->statement());
     gen(stmt, "jmp "+testLabel);
     gen(stmt, endLabel+":");
@@ -1853,7 +1882,7 @@ void CodeGenerator::generateForAllStmt(shared_ptr<ForAllStmt> stmt)
     gen(stmt, "jmp " + endLabel);
 
     defineInCurrentScope(stmt->variable()->name(), stmt->variable());
-
+    gen(stmt, "tslice");
     generateStatement(stmt->statement());
     gen(stmt, "pushl "+ stmt->variable()->name());
     generateExpression(stmt->step());
@@ -1863,11 +1892,54 @@ void CodeGenerator::generateForAllStmt(shared_ptr<ForAllStmt> stmt)
     gen(stmt, endLabel+":");
 }
 
+void CodeGenerator::generateForEachStmt(shared_ptr<ForEachStmt> stmt)
+{
+    /*
+      foreach(var, expr)
+          stmt
+
+      expr
+      callm getEnumerator
+      popl enumerator
+      testLabel:
+      pushl enumerator
+      callm moveNext
+      if
+      jmp exit
+      pushl enumerator
+      callm current
+      popl var
+      <stmt>
+      jmp testLabel
+      exit:
+    */
+    QString testLabel = _asm.uniqueLabel();
+    QString endLabel = _asm.uniqueLabel();
+    QString enumVar = _asm.uniqueVariable();
+    generateExpression(stmt->enumerable());
+    gen(stmt->enumerable(), "callm " + VMId::get(RId::GetEnumerator));
+    gen(stmt->enumerable(), "popl " + enumVar);
+    gen(stmt, testLabel+":");
+
+    gen(stmt->enumerable(), "pushl " + enumVar);
+    gen(stmt->enumerable(), "callm " + VMId::get(RId::EnumMoveNext));
+    gen(stmt->enumerable(), "if");
+    gen(stmt->enumerable(), "jmp " + endLabel);
+
+    gen(stmt->variable(), "pushl " + enumVar);
+    gen(stmt->variable(), "callm " + VMId::get(RId::Current));
+    gen(stmt->variable(), "popl " + stmt->variable()->name());
+
+    defineInCurrentScope(stmt->variable()->name(), stmt->variable());
+    gen(stmt, "tslice");
+    generateStatement(stmt->statement());
+    gen(stmt->enumerable(), "jmp " + testLabel);
+    gen(stmt, endLabel+":");
+}
+
 void CodeGenerator::generateLabelStmt(shared_ptr<LabelStmt> stmt)
 {
     shared_ptr<Expression> target = stmt->target();
-
-
 
     if(isa<NumLiteral>(target))
     {
@@ -1900,15 +1972,18 @@ void CodeGenerator::generateGotoStmt(shared_ptr<GotoStmt> stmt)
     shared_ptr<Expression> target = stmt->target();
     if(isa<NumLiteral>(target))
     {
+        gen(stmt, "tslice");
         gen(stmt, "jmp "+ dynamic_pointer_cast<NumLiteral>(target)->repr());
     }
     else if(isa<VarAccess>(target))
     {
+        gen(stmt, "tslice");
         gen(stmt, "jmp "+ dynamic_pointer_cast<VarAccess>(target)->name()->name());
     }
 
     else
     {
+        gen(stmt, "tslice");
         generateExpression(target);
         gen(stmt, "jmpv");
     }
@@ -2414,7 +2489,9 @@ void CodeGenerator::generateMatchOperation(shared_ptr<MatchOperation> expr)
         // we currently define the temp var, but this pollutes the namespace
         // so we should use generateAssignmentToLVal instead
         defineInCurrentScopeNoSource(i.value()->name());
-        generateAssignmentStmt(shared_ptr<AssignmentStmt>(new AssignmentStmt(i.key()->getPos(),
+        generateAssignmentStmt(shared_ptr<AssignmentStmt>(new AssignmentStmt(
+                                                    i.key()->getPos(),
+                                                    i.value()->getPos(),
                                                     i.key(),
                                                   varOf(i.value()),
                                                 shared_ptr<TypeExpression>())));
@@ -2553,7 +2630,7 @@ void CodeGenerator::generateArrayPattern(shared_ptr<ArrayPattern> pattern,
 
         // todo: this leaks also
         shared_ptr<NumLiteral> idx(new NumLiteral(pattern->element(i)->getPos(), QString("%1").arg(i+1)));
-        shared_ptr<Expression> expr(new ArrayIndex(pattern->element(i)->getPos(), arrVarExpr, idx));
+        shared_ptr<Expression> expr(new ArrayIndex(pattern->element(i)->getPos(), pattern->element(i)->getPos(), arrVarExpr, idx));
         generatePattern(pattern->element(i), expr, bindings);
 
         ok = _asm.uniqueLabel();
@@ -2609,6 +2686,7 @@ void CodeGenerator::generateObjPattern(shared_ptr<ObjPattern> pattern,
 
         // todo: this leaks also
         shared_ptr<Expression> expr(new Idafa(pattern->fieldName(i)->getPos(),
+                                              objVarExpr->getEndingPos(),
                                                   pattern->fieldName(i),
                                                     objVarExpr));
         generatePattern(pattern->fieldPattern(i), expr, bindings);
@@ -2700,7 +2778,10 @@ void CodeGenerator::generateMapPattern(shared_ptr<MapPattern> pattern,
 
         // todo: this leaks also
         shared_ptr<Expression> idx = varOf(pattern->key(i)->getPos(), evaluatedKeys[i]);
-        shared_ptr<Expression> expr(new ArrayIndex(pattern->key(i)->getPos(), mapVarExpr, idx));
+        shared_ptr<Expression> expr(new ArrayIndex(pattern->key(i)->getPos(),
+                                                   pattern->key(i)->getPos(),
+                                                   mapVarExpr,
+                                                   idx));
         generatePattern(pattern->value(i), expr, bindings);
 
         ok = _asm.uniqueLabel();
@@ -2886,26 +2967,32 @@ void CodeGenerator::generateTheSomething(shared_ptr<TheSomething> expr)
     QVector<shared_ptr<Expression> > args;
     for(int i=0; i<proc->formals.count(); ++i)
     {
-        args.append(shared_ptr<VarAccess>(new VarAccess(expr->getPos(), proc->formal(i)->name())));
+        args.append(shared_ptr<VarAccess>(new VarAccess(expr->getPos(),
+                                                        expr->getEndingPos(),
+                                                        proc->formal(i)->name())));
     }
 
     if(expr->what() == Proc)
     {
         procCallStmts.append(shared_ptr<Statement>(new InvokationStmt(expr->getPos(),
-                                                                      shared_ptr<Invokation>(new Invokation(expr->getPos(),
-
-                                                                                                idOf(expr->getPos(),expr->name()),
-                                                                                args)))));
+                                      expr->getPos(),
+                                      shared_ptr<Invokation>(new Invokation(expr->getPos(),
+                                                                expr->getEndingPos(),
+                                                                idOf(expr->getPos(),expr->name()),
+                                                args)))));
     }
     else if(expr->what() == Function)
     {
         procCallStmts.append(shared_ptr<Statement>(new ReturnStmt(expr->getPos(),
-                                                                      shared_ptr<Invokation>(new Invokation(expr->getPos(),
+                                                                  expr->getPos(),
+                                                      shared_ptr<Invokation>(new Invokation(expr->getPos(),
+                                                                                            expr->getEndingPos(),
 
-                                                                                                idOf(expr->getPos(),expr->name()),
-                                                                                args)))));
+                                                                                idOf(expr->getPos(),expr->name()),
+                                                                args)))));
     }
     shared_ptr<LambdaExpression> lambda(new LambdaExpression(expr->getPos(),
+                                                             expr->getEndingPos(),
                                                              proc->formals,
                                                              procCallStmts,
                                                              expr->what() == Proc
@@ -3002,7 +3089,7 @@ public:
             if(!lambdaStack.empty() && !lookup(id->name(), lambdaStack.top()))
             {
                 // We have a lambda with a free variable
-                lambdaStack.top()->addFreeVariable(id->name());
+                lambdaStack.top()->insertFreeVariable(id->name()->name());
             }
             return;
         }
@@ -3046,18 +3133,30 @@ void CodeGenerator::generateLambdaExpression(shared_ptr<LambdaExpression> expr)
     FreeVarAnalysisTraverser fvTraverser(*this);
     expr->traverse(expr, &fvTraverser);
     // Now we have the free vars of our lambda expression!
-    shared_ptr<BlockStmt> body(new BlockStmt(expr->getPos(), expr->statements));
+    shared_ptr<BlockStmt> body(new BlockStmt(expr->getPos(),
+                                             expr->getPos(),
+                                             expr->statements));
 
     if(false && expr->freeVariableCount() == 0)
     {
         if(!expr->hasDoToken())
         {
-            shared_ptr<FunctionDecl> func(new FunctionDecl(expr->getPos(), false, expr->getPos(), procName, expr->_argList, body));
+            shared_ptr<FunctionDecl> func(new FunctionDecl(expr->getPos(),
+                                                           expr->getPos(),
+                                                           false,
+                                                           procName,
+                                                           expr->_argList,
+                                                           body));
             extraDeclarations.append(func);
         }
         else
         {
-            shared_ptr<ProcedureDecl> proc(new ProcedureDecl(expr->getPos(), false, expr->getPos(), procName, expr->_argList, body));
+            shared_ptr<ProcedureDecl> proc(new ProcedureDecl(expr->getPos(),
+                                                             expr->getPos(),
+                                                             false,
+                                                             procName,
+                                                             expr->_argList,
+                                                             body));
             extraDeclarations.append(proc);
         }
         gen(expr, "pushc " + name);
@@ -3070,23 +3169,28 @@ void CodeGenerator::generateLambdaExpression(shared_ptr<LambdaExpression> expr)
         proto[VMId::get(RId::Invoke)] = MethodInfo(1, true);
 
         QVector<shared_ptr<Identifier> > fields;
-        for(int i=0; i<expr->freeVariableCount(); ++i)
+        for(QSet<QString>::const_iterator i=expr->freeVariables.begin();
+            i != expr->freeVariables.end(); ++i)
         {
-            fields.append(expr->freeVariable(i));
+            fields.append(idOf(Token(), *i));
         }
 
-        shared_ptr<ClassDecl> klass(new ClassDecl(expr->getPos(), false, shared_ptr<Identifier>(),
+        shared_ptr<ClassDecl> klass(new ClassDecl(expr->getPos(),
+                                                  expr->getPos(),
+                                                  false, shared_ptr<Identifier>(),
                                                   procName, fields, proto, QVector<shared_ptr<ClassInternalDecl> >(),
                                                   QMap<QString, shared_ptr<TypeExpression> >()));
 
         klass->_ancestorName = idOf(Token(), "%lambda");
         shared_ptr<VarAccess> recvName = varOf(Token(), "%this");
         shared_ptr<Identifier> execName(new Identifier(Token(), VMId::get(RId::Invoke)));
-        for(int i=0; i< expr->freeVariableCount(); ++i)
+        int ii = 0;
+        for(auto i = expr->freeVariables.begin(); i != expr->freeVariables.end(); ++i)
         {
-            shared_ptr<Idafa> fieldAccess(new Idafa(Token(), fields[i], recvName));
+            shared_ptr<Idafa> fieldAccess(new Idafa(Token(), Token(), fields[ii++], recvName));
             shared_ptr<AssignmentStmt> stm(new AssignmentStmt(expr->getPos(),
-                                                              varOf(expr->freeVariable(i)),
+                                                              fieldAccess->getPos(),
+                                                              varOf(Token(), *i),
                                                               fieldAccess,
                                                               shared_ptr<TypeExpression>()));
             // todo: we should not mutate the parse tree here
@@ -3096,7 +3200,7 @@ void CodeGenerator::generateLambdaExpression(shared_ptr<LambdaExpression> expr)
         QVector<shared_ptr<FormalParam> > methodArgs;
         methodArgs = expr->_argList;
 
-        shared_ptr<MethodDecl> decl(new MethodDecl(expr->getPos(), false, expr->getPos(),
+        shared_ptr<MethodDecl> decl(new MethodDecl(expr->getPos(), expr->getPos(), false,
                                                    execName, methodArgs, body, procName, recvName->name(), !expr->hasDoToken()));
         klass->insertMethod(VMId::get(RId::Invoke), decl);
         extraDeclarations.append(klass);
@@ -3107,6 +3211,7 @@ void CodeGenerator::generateLambdaExpression(shared_ptr<LambdaExpression> expr)
             fieldVals.append(varOf(fields[i]));
 
         shared_ptr<ObjectCreation> oc(new ObjectCreation(expr->getPos(),
+                                                         expr->getEndingPos(),
                                                          procName, fields, fieldVals));
         generateObjectCreation(oc);
     }
@@ -3241,14 +3346,7 @@ QString CompilerException::translateErrorMessage(CompilerError error)
 {
     if(errorMap.empty())
     {
-        LineIterator in = Utils::readResourceTextFile(":/compiler_error_map.txt");
-        int i=0;
-        while(!in.atEnd())
-        {
-            QString val = in.readLine().trimmed();
-            errorMap[(CompilerError) i++] = val;
-        }
-        in.close();
+        errorMap = Utils::prepareErrorMap<CompilerError>(":/compiler_error_map.txt");
     }
     return errorMap[error];
 }

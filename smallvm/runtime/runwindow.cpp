@@ -24,6 +24,7 @@
 #include <QDir>
 #include <QtConcurrentRun>
 #include <thread>
+
 using namespace std;
 
 RunWindow::RunWindow(QWidget *parent, QString pathOfProgramsFile, VMClient *client) :
@@ -40,7 +41,6 @@ RunWindow::RunWindow(QString pathOfProgramsFile, VMClient *client) :
 {
     setup(pathOfProgramsFile, client);
 }
-
 
 void RunWindow::setup(QString pathOfProgramsFile, VMClient *client)
 {
@@ -97,11 +97,11 @@ RunWindow::~RunWindow()
     delete readMethod;
     delete paintSurface;
 
-    delete mouseEventChannel;
-    delete mouseDownEventChannel;
-    delete mouseUpEventChannel;
-    delete mouseMoveEventChannel;
-    delete kbEventChannel;
+    delete realmouseEventChannel;
+    delete realmouseDownEventChannel;
+    delete realmouseUpEventChannel;
+    delete realmouseMoveEventChannel;
+    delete realkbEventChannel;
     delete readChannel;
 }
 
@@ -111,11 +111,19 @@ void RunWindow::Init(QString program, QMap<QString, QString> stringConstants, QS
     {
         vm = new VM();
         readChannel =  vm->GetAllocator().newChannel(false);
-        mouseEventChannel = vm->GetAllocator().newChannel(false);
-        mouseDownEventChannel = vm->GetAllocator().newChannel(false);
-        mouseUpEventChannel = vm->GetAllocator().newChannel(false);
-        mouseMoveEventChannel = vm->GetAllocator().newChannel(false);
-        kbEventChannel = vm->GetAllocator().newChannel(false);
+
+        mouseEventChannel = NULL;
+        mouseDownEventChannel = NULL;
+        mouseUpEventChannel = NULL;
+        mouseMoveEventChannel = NULL;
+        kbEventChannel = NULL;
+
+        realmouseEventChannel = vm->GetAllocator().newChannel(false);
+        realmouseDownEventChannel = vm->GetAllocator().newChannel(false);
+        realmouseUpEventChannel = vm->GetAllocator().newChannel(false);
+        realmouseMoveEventChannel = vm->GetAllocator().newChannel(false);
+        realkbEventChannel = vm->GetAllocator().newChannel(false);
+
         vm->DefineStringConstant("new_line", "\n");
         vm->Register("print", new WindowProxyMethod(this, vm, PrintProc));
         vm->Register("input", readMethod);
@@ -146,6 +154,7 @@ void RunWindow::Init(QString program, QMap<QString, QString> stringConstants, QS
         vm->Register("newmap", new WindowProxyMethod(this, vm, NewMapProc));
         vm->Register("haskey", new WindowProxyMethod(this, vm, HasKeyProc));
         vm->Register("keysof", new WindowProxyMethod(this, vm, KeysOfProc));
+        vm->Register("mapkey", new WindowProxyMethod(this, vm, MapKeyProc));
 
         vm->Register("random", new WindowProxyMethod(this, vm, RandomProc));
         vm->Register("sin", new WindowProxyMethod(this, vm, SinProc));
@@ -196,6 +205,12 @@ void RunWindow::Init(QString program, QMap<QString, QString> stringConstants, QS
         vm->Register("mouseUp_event_channel", new WindowProxyMethod(this, vm, MouseUpEventChanProc));
         vm->Register("mouseMove_event_channel", new WindowProxyMethod(this, vm, MouseMoveEventChanProc));
         vm->Register("kb_event_channel", new WindowProxyMethod(this, vm, KbEventChanProc));
+        vm->Register("enable_mouse_event_channel", new WindowProxyMethod(this, vm, EnableMouseEventChanProc));
+        vm->Register("enable_mouseDown_event_channel", new WindowProxyMethod(this, vm, EnableMouseDownEventChanProc));
+        vm->Register("enable_mouseUp_event_channel", new WindowProxyMethod(this, vm, EnableMouseUpEventChanProc));
+        vm->Register("enable_mouseMove_event_channel", new WindowProxyMethod(this, vm, EnableMouseMoveEventChanProc));
+        vm->Register("enable_kb_event_channel", new WindowProxyMethod(this, vm, EnableKbEventChanProc));
+
 
         vm->Register("file_write", new WindowProxyMethod(this, vm, FileWriteProc));
         vm->Register("file_write_using_width", new WindowProxyMethod(this, vm, FileWriteUsingWidthProc));
@@ -225,7 +240,10 @@ void RunWindow::Init(QString program, QMap<QString, QString> stringConstants, QS
         vm->Register("migrate_to_gui_thread", new WindowProxyMethod(this, vm, MigrateToGuiThreadProc));
         vm->Register("migrate_back_from_gui_thread", new WindowProxyMethod(this, vm, MigrateBackFromGuiThreadProc));
 
-        vm->Register("test_make_c_array", new WindowProxyMethod(this, vm, TestMakeCArrayProc));
+        vm->Register("closechannel", new WindowProxyMethod(this, vm, CloseChannelProc));
+        vm->Register("channelclosed", new WindowProxyMethod(this, vm, ChannelClosedProc));
+
+        //vm->Register("test_make_c_array", new WindowProxyMethod(this, vm, TestMakeCArrayProc));
 
         RegisterGuiControls(vm);
 
@@ -285,13 +303,30 @@ void RunWindow::Init(QString program, QMap<QString, QString> stringConstants, QS
             vm->RegisterType(builtIns[i]->getName(), builtIns[i]);
         }
 
+        // This has to be before InitVMPrelude()
+        vm->Register("class_newobject", new WindowProxyMethod(this, vm, ClassNewObjectProc));
+
         //qDebug("Loading prelude");
         InitVMPrelude(vm);
 
+        // ...and this has to be after InitVMPrelude()
+        // together they allow a metaclass to create new objects
+        BuiltInTypes::ClassType->attachVmMethod(vm, VMId::get(RId::NewObject));
+
+        BuiltInTypes::ArrayType->attachVmMethod(vm, VMId::get(RId::GetEnumerator));
+        BuiltInTypes::StringType->attachVmMethod(vm, VMId::get(RId::GetEnumerator));
+        BuiltInTypes::MapType->attachVmMethod(vm, VMId::get(RId::GetEnumerator));
+        BuiltInTypes::MapType->attachVmMethod(vm, VMId::get(RId::KeyAt));
+        BuiltInTypes::MapType->attachVmMethod(vm, VMId::get(RId::Contains));
+
+        BuiltInTypes::ChannelType->attachVmMethod(vm, VMId::get(RId::GetEnumerator));
+        BuiltInTypes::ChannelType->attachVmMethod(vm, VMId::get(RId::EnumMoveNext));
+        BuiltInTypes::ChannelType->attachVmMethod(vm, VMId::get(RId::Current));
+        BuiltInTypes::ChannelType->attachVmMethod(vm, VMId::get(RId::ChanClosed));
+        BuiltInTypes::ChannelType->attachVmMethod(vm, VMId::get(RId::CloseChan));
+
         //qDebug("Registering GUI classes");
         // Meta class
-        vm->Register("class_newobject", new WindowProxyMethod(this, vm, ClassNewObjectProc));
-        BuiltInTypes::ClassType->attachVmMethod(vm, VMId::get(RId::NewObject));
 
         vm->RegisterType(VMId::get(RId::ForeignWindow), new WindowForeignClass(VMId::get(RId::ForeignWindow), this, vm));
         vm->RegisterType(VMId::get(RId::Button), new ButtonForeignClass (VMId::get(RId::Button), this, vm));
@@ -368,7 +403,6 @@ void RunWindow::RegisterGuiControls(VM *vm)
     vm->Register("foreignwindow_settitle", new WindowProxyMethod(this, vm, ForeignWindowSetTitleProc));
     vm->Register("foreignwindow_setup", new WindowProxyMethod(this, vm, ForeignWindowSetupProc));
 
-
     // Controls
     vm->Register("control_settext", new WindowProxyMethod(this, vm, ControlSetTextProc));
     vm->Register("control_setsize", new WindowProxyMethod(this, vm, ControlSetSizeProc));
@@ -444,7 +478,11 @@ void RunWindow::setBreakpoint(Breakpoint b, const DebugInfo &debugInfo)
 
 void RunWindow::InitVMPrelude(VM *vm)
 {
-    LineIterator in = Utils::readResourceTextFile(":/vm_prelude.txt");
+#ifdef ENGLISH_PL
+    LineIterator in = Utils::readResourceTextFile(":/vm_prelude_en.txt", false);
+#else
+    LineIterator in = Utils::readResourceTextFile(":/vm_prelude.txt", false);
+#endif
     QString prelude = in.readAll();
     in.close();
     vm->Load(prelude);
@@ -569,7 +607,7 @@ void RunWindow::Run()
             if(visualize)
                 vm->guiScheduler.RunStep(true);
             else
-                vm->guiScheduler.RunStep(50);
+                vm->guiScheduler.RunStep(40);
 
             redrawWindow();
             if(visualize && vm->getMainProcess() && vm->getMainProcess()->state == AwakeProcess)
@@ -607,7 +645,7 @@ void RunWindow::FastRun()
 
         while((state == rwNormal || state ==rwTextInput))
         {
-            vm->guiScheduler.FastRunStep(50);
+            vm->guiScheduler.FastRunStep(30);
 
             redrawWindow();
 
@@ -715,14 +753,13 @@ void RunWindow::redrawWindow()
 {
     if(updateTimer.canUpdateNow())
     {
-        update();
+       update();
     }
 }
 
 void RunWindow::paintEvent(QPaintEvent *)
 {
     QPainter painter(this);
-
     paintSurface->paint(painter, textLayer, spriteLayer);
 }
 
@@ -790,43 +827,59 @@ void RunWindow::mouseMoveEvent(QMouseEvent *ev)
 
 void RunWindow::activateMouseEvent(QMouseEvent *ev, QString evName)
 {
-    if(!vm->hasRegisteredEventHandler(evName))
-        return;
+    bool aChan = ( NULL != mouseEventChannel) ||
+            ( NULL != mouseDownEventChannel) ||
+            (NULL != mouseUpEventChannel) ||
+            (NULL != mouseMoveEventChannel);
 
-    QVector<Value *> args;
+    bool regEv = vm->hasRegisteredEventHandler(evName);
+    if(!(regEv || aChan))
+    {
+        return;
+    }
     int x = ev->x();
     int y = ev->y();
 
     paintSurface->TX(x);
 
+
     Value *xval = vm->GetAllocator().newInt(x);
     Value *yval = vm->GetAllocator().newInt(y);
-    args.append(xval);
-    args.append(yval);
 
     try
     {
+        //*
         // Send to mouse event channel
-        Value *mouseDataV = vm->GetAllocator().newObject((IClass *) unboxObj(vm->GetType(VMId::get(RId::MouseEventInfo))));
-        IObject *mouseData = unboxObj(mouseDataV);
-        mouseData->setSlotValue(VMId::get(RId::X), xval);
-        mouseData->setSlotValue(VMId::get(RId::Y), yval);
+        if(aChan)
+        {
+            Value *mouseDataV = vm->GetAllocator().newObject((IClass *) unboxObj(vm->GetType(VMId::get(RId::MouseEventInfo))));
+            IObject *mouseData = unboxObj(mouseDataV);
+            mouseData->setSlotValue(VMId::get(RId::X), xval);
+            mouseData->setSlotValue(VMId::get(RId::Y), yval);
 
-        bool leftBtn = ev->buttons() & Qt::LeftButton;
-        bool rightBtn = ev->buttons() & Qt::RightButton;
+            bool leftBtn = ev->buttons() & Qt::LeftButton;
+            bool rightBtn = ev->buttons() & Qt::RightButton;
 
-        mouseData->setSlotValue(VMId::get(RId::LeftButton), vm->GetAllocator().newBool(leftBtn));
-        mouseData->setSlotValue(VMId::get(RId::RightButton), vm->GetAllocator().newBool(rightBtn));
-        unboxChan(mouseEventChannel)->send(mouseDataV, NULL);
+            mouseData->setSlotValue(VMId::get(RId::LeftButton), vm->GetAllocator().newBool(leftBtn));
+            mouseData->setSlotValue(VMId::get(RId::RightButton), vm->GetAllocator().newBool(rightBtn));
+            if(mouseEventChannel != NULL)
+                unboxChan(mouseEventChannel)->send(mouseDataV, NULL);
 
-        if(evName == "mousedown")
-            unboxChan(mouseDownEventChannel)->send(mouseDataV, NULL);
-        else if(evName == "mouseup")
-            unboxChan(mouseUpEventChannel)->send(mouseDataV, NULL);
-        else if(evName == "mousemove")
-            unboxChan(mouseMoveEventChannel)->send(mouseDataV, NULL);
-
-        vm->ActivateEvent(evName, args);
+            if(evName == "mousedown" && mouseDownEventChannel != NULL)
+                unboxChan(mouseDownEventChannel)->send(mouseDataV, NULL);
+            else if(evName == "mouseup" && mouseUpEventChannel != NULL)
+                unboxChan(mouseUpEventChannel)->send(mouseDataV, NULL);
+            else if(evName == "mousemove" && mouseMoveEventChannel != NULL)
+                unboxChan(mouseMoveEventChannel)->send(mouseDataV, NULL);
+        }
+        //*/
+        if(regEv)
+        {
+            QVector<Value *> args;
+            args.append(xval);
+            args.append(yval);
+            vm->ActivateEvent(evName, args);
+        }
 
     }
     catch(VMError err)
@@ -926,25 +979,38 @@ void RunWindow::keyReleaseEvent(QKeyEvent *ev)
 
 void RunWindow::activateKeyEvent(QKeyEvent *ev, QString evName)
 {
+    bool regEv = vm->hasRegisteredEventHandler(evName);
+    bool chan = (kbEventChannel != NULL);
+    if(!(regEv || chan))
+    {
+        return;
+    }
     try
     {
-        QVector<Value *> args;
+
         int k = ev->key();
 
         Value *key = vm->GetAllocator().newInt(k);
         Value *kchar = vm->GetAllocator().newString(ev->text());
-        args.append(key);
-        args.append(kchar);
 
+        //*
         // Send to KB channel
-        Value *kbInfoV = vm->GetAllocator().newObject((IClass *) unboxObj(vm->GetType(VMId::get(RId::KBEventInfo))));
-        IObject *obj = unboxObj(kbInfoV);
-        obj->setSlotValue(VMId::get(RId::Key), key);
-        obj->setSlotValue(VMId::get(RId::Character), kchar);
-        unboxChan(kbEventChannel)->send(kbInfoV, NULL);
-
-        vm->ActivateEvent(evName, args);
-
+        if(chan)
+        {
+            Value *kbInfoV = vm->GetAllocator().newObject((IClass *) unboxObj(vm->GetType(VMId::get(RId::KBEventInfo))));
+            IObject *obj = unboxObj(kbInfoV);
+            obj->setSlotValue(VMId::get(RId::Key), key);
+            obj->setSlotValue(VMId::get(RId::Character), kchar);
+            unboxChan(kbEventChannel)->send(kbInfoV, NULL);
+        }
+        //*/
+        if(regEv)
+        {
+            QVector<Value *> args;
+            args.append(key);
+            args.append(kchar);
+            vm->ActivateEvent(evName, args);
+        }
     }
     catch(VMError err)
     {

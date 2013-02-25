@@ -1,2 +1,4 @@
 ﻿حفظ التغييرات في الملف '%1'؟
+Save changes in file '%1'?
 كلمات
+Kalimat

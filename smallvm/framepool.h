@@ -14,7 +14,7 @@ public:
         if(!freeList.empty())
         {
             Frame *f = freeList.pop();
-            f->Init(method, 0, stackLevel);
+            f->Init(method, stackLevel);
             return f;
         }
         else
@@ -22,10 +22,12 @@ public:
             return new Frame(method, stackLevel);
         }
     }
+
     inline void free(Frame *f)
     {
         freeList.push(f);
     }
+
     ~FramePool()
     {
         for(Stack<Frame *, FramePoolSize>::const_iterator iter = freeList.begin(); iter != freeList.end(); ++iter)

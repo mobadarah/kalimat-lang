@@ -16,12 +16,11 @@
 #include "../vm.h"
 
 PaintSurface::PaintSurface(QSize size, QFont font)
+    : image(size, QImage::Format_ARGB32_Premultiplied),
+      finalImg(size, QImage::Format_ARGB32_Premultiplied)
 {
     textColor = Qt::black;
-    QImage im(size, QImage::Format_RGB32);
-    im.fill(qRgb(255,255,255));
-    image = im;
-    finalImg = QImage(image.size(), image.format());
+    image.fill(qRgb(255,255,255));
     dirtyState = true; // to update first time
     showCoordinates = false;
     cursorTimerPoint = -1;
@@ -96,28 +95,28 @@ void PaintSurface::update(TextLayer &textLayer, SpriteLayer &spriteLayer)
     }
 }
 
-
 void PaintSurface::drawTextLayer(QPainter &imgPainter, TextLayer &textLayer)
 {
+    const int timeUnitsPerSec = 1000000;
     if(textLayer.inputState())
     {
         bool drawCursor = false;
         if(cursorTimerPoint == -1)
         {
-            cursorTimerPoint = clock();
+            cursorTimerPoint = get_time();
             cursorTimeSoFar = 0.0;
         }
         else
         {
-            long t = clock();
+            long t = get_time();
             cursorTimeSoFar += t - cursorTimerPoint;
             cursorTimerPoint = t;
         }
-        if(cursorTimeSoFar < (CLOCKS_PER_SEC /2))
+        if(cursorTimeSoFar < (timeUnitsPerSec / 2))
         {
             drawCursor = true;
         }
-        else if(cursorTimeSoFar > CLOCKS_PER_SEC)
+        else if(cursorTimeSoFar > timeUnitsPerSec)
         {
             cursorTimeSoFar = 0;
         }
@@ -125,12 +124,15 @@ void PaintSurface::drawTextLayer(QPainter &imgPainter, TextLayer &textLayer)
         textLayer.updateStrip(textLayer.cursorLine(), drawCursor);
     }
 
+    /*
     qreal height = textLayer.stripHeight();
     for(int i=0; i < visibleTextLines; ++i)
     {
         //imgPainter.drawImage(0, i * height, textLayer.strip(i));
         imgPainter.drawPixmap(0, i * height, textLayer.strip(i));
     }
+    */
+    imgPainter.drawPixmap(0, 0, textLayer.getImage());
 }
 
 void PaintSurface::drawSpriteLayer(QPainter &imgPainter, SpriteLayer &spriteLayer)
@@ -241,13 +243,17 @@ void PaintSurface::clearImage()
 
 void PaintSurface::TX(int &x)
 {
+#ifndef ENGLISH_PL
     x = (this->image.width()-1)-x;
+#endif
 }
 
 void PaintSurface::TX(int &x, int w)
 {
+#ifndef ENGLISH_PL
     x = (this->image.width()-1)-x;
     x-= w;
+#endif
 }
 
 void PaintSurface::setTextColor(QColor color)
@@ -262,7 +268,7 @@ void PaintSurface::resize(int width, int height)
         int newWidth = qMax(width + 128, image.width());
         int newHeight = qMax(height + 128, image.height());
         resizeImage(&image, QSize(newWidth, newHeight));
-        finalImg = QImage(image.size(), image.format());
+        finalImg = QImage(image.size(), finalImg.format());
     }
 }
 
@@ -270,7 +276,7 @@ void PaintSurface::resizeImage(QImage *image, const QSize &newSize)
 {
      if (image->size() == newSize)
          return;
-     QImage newImage(newSize, QImage::Format_RGB32);
+     QImage newImage(newSize, image->format());
      newImage.fill(qRgb(255, 255, 255));
      QPainter painter(&newImage);
      painter.drawImage(QPoint(0, 0), *image);
