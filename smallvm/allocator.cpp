@@ -451,16 +451,16 @@ void Allocator::mark()
         if(v->type == BuiltInTypes::MapType)
         {
             VMap *map = unboxMap(v);
-            for(int i=0; i<map->allKeys.count(); i++)
+
+            for(QMap<VBox, Value*>::ConstIterator i = map->Elements.begin();
+                i != map->Elements.end(); ++i)
             {
-                Value *v2 = map->allKeys[i];
-                if(!v2->mark)
+                Value *v1 = i.key().v;
+                Value *v2 = i.value();
+                if(!v1->mark)
                 {
-                    reachable.push(v2);
+                    reachable.push(v1);
                 }
-            }
-            foreach(Value *v2, map->Elements)
-            {
                 if(!v2->mark)
                 {
                     reachable.push(v2);

@@ -1154,9 +1154,10 @@ void KeysOfProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
     Value *v = popValue(stack, proc, w, vm);
 
     VMap *m = unboxMap(v);
-    Value *k = vm->GetAllocator().newArray(m->allKeys.count());
-    for(int i=0; i<m->allKeys.count(); i++)
-        unboxArray(k)->Elements[i] = m->allKeys.at(i);
+    const int keyCount = m->Elements.keys().count();
+    Value *k = vm->GetAllocator().newArray(keyCount);
+    for(int i=0; i<keyCount; i++)
+        unboxArray(k)->Elements[i] = m->Elements.keys()[i].v;
     stack.push(k);
 }
 
@@ -1167,11 +1168,12 @@ void MapKeyProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
     VMap *m = unboxMap(v);
 
     int keyIndex = popInt(stack, proc, w, vm);
-    if(keyIndex < 1 || keyIndex > m->allKeys.count())
+    const int keyCount = m->Elements.keys().count();
+    if(keyIndex < 1 || keyIndex > keyCount)
         throw VMError(SubscriptOutOfRange2, proc,
-                      proc->owner, proc->currentFrame()).arg(str(keyIndex)).arg(str(m->allKeys.count()));
+                      proc->owner, proc->currentFrame()).arg(str(keyIndex)).arg(str(keyCount));
 
-    Value *ret = m->allKeys[keyIndex-1];
+    Value *ret = m->Elements.keys()[keyIndex-1].v;
     stack.push(ret);
 }
 
@@ -1740,9 +1742,10 @@ void ForeignWindowAddProc(VOperandStack &stack, Process *proc, RunWindow *w, VM 
     IClass *type;
     QWidget *widget = popGuiReceiver<QWidget *>(stack, type, proc, w, vm);
     QWidget *control = popGuiReceiver<QWidget *>(stack, type, proc, w, vm);
-
+#ifndef ENGLISH_PL
     control->move(widget->width() - (control->x() + control->width()),
                   control->y());
+#endif
     control->setParent(widget);
     QFont f = control->font();
     control->setFont(QFont(f.family(), f.pointSize()+3));
@@ -1756,6 +1759,7 @@ void ForeignWindowSetSizeProc(VOperandStack &stack, Process *proc, RunWindow *rw
     int w = popIntOrCoercable(stack, proc, rw, vm);
     int h = popIntOrCoercable(stack, proc, rw, vm);
 
+#ifndef ENGLISH_PL
     //int wdiff = widget->width() - w;
     //*
     for(int i=0; i<widget->children().count(); i++)
@@ -1777,8 +1781,11 @@ void ForeignWindowSetSizeProc(VOperandStack &stack, Process *proc, RunWindow *rw
     // left side
     int left = widget->pos().x() + widget->width() - w;
     int top = widget->pos().y();
+#endif
     widget->setFixedSize(w, h);
+#ifndef ENGLISH_PL
     widget->move(left, top);
+#endif
 }
 
 void ForeignWindowSetTitleProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
@@ -1814,14 +1821,17 @@ void ControlSetSizeProc(VOperandStack &stack, Process *proc, RunWindow *rw, VM *
     int w = popIntOrCoercable(stack, proc, rw, vm);
     int h = popIntOrCoercable(stack, proc, rw, vm);
 
-
+#ifndef ENGLISH_PL
     int originalx = widget->x() + widget->width();
+#endif
     widget->resize(w, h);
+#ifndef ENGLISH_PL
     if(widget->parentWidget() != NULL)
     {
         originalx -= widget->width();
         widget->move(originalx, widget->y());
     }
+#endif
 }
 
 void ControlSetLocationProc(VOperandStack &stack, Process *proc, RunWindow *rw, VM *vm)
@@ -1830,13 +1840,14 @@ void ControlSetLocationProc(VOperandStack &stack, Process *proc, RunWindow *rw, 
     QWidget *widget = popGuiReceiver<QWidget *>(stack, type, proc, rw, vm);
     int x = popIntOrCoercable(stack, proc, rw, vm);
     int y = popIntOrCoercable(stack, proc, rw, vm);
-
+#ifndef ENGLISH_PL
     if(widget->parentWidget())
     {
         int pw = widget->parentWidget()->width();
         x = (pw-1)-x;
         x-= widget->width();
     }
+#endif
     widget->move(x, y);
 }
 

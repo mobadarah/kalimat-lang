@@ -357,7 +357,7 @@ ret
 .method mainWindow 0 1
 	callex getmainwindow
 	popl handle
-	new نافذة
+	new Window
 	popl fw
 	pushl fw
 	pushl handle
@@ -761,3 +761,200 @@ ret
 callex class_newobject
 ret
 .endmethod
+
+
+.class %pair
+	.field key
+	.field value
+.endclass
+
+.method %Dictionary_keyAt 2 1
+	callex mapkey
+	ret
+.endmethod
+
+.method %Dictionary_contains 2 1
+	callex haskey
+	ret
+.endmethod
+
+.class %map_enumerator
+	.field map
+	.field pos
+	.field len
+
+
+
+
+
+
+
+
+
+
+	.method moveNext 1 1
+		popl this
+		
+		pushl this
+		pushl this
+		getfld pos
+		pushv 1
+		add
+		setfld pos
+		
+		pushl this
+		getfld pos
+		pushl this
+		getfld len
+		gt
+		if
+		jmp domove
+		pushv false
+		ret
+		domove:
+		pushv true
+		ret
+	.endmethod
+	.method current 1 1
+		popl this
+		pushl this
+		getfld pos
+		pushl this
+		getfld map
+		callex mapkey
+		popl %key
+		new %pair
+		popl ret
+		pushl ret
+		pushl %key
+		setfld key
+		pushl ret
+		pushl this
+		getfld map
+		pushl %key
+		getarr
+		setfld value
+		pushl ret
+		ret
+	.endmethod
+.endclass
+
+.method %Dictionary_getEnumerator 1 1
+	popl this
+	new %map_enumerator
+	popl enu
+	pushl enu
+	pushl this
+	setfld map
+	pushl enu
+	pushl this
+	arrlength
+	setfld len
+	pushl enu
+	pushv 0
+	setfld pos
+	pushl enu
+	ret
+.endmethod
+
+.class %array_enumerator
+	.field arr
+	.field pos
+	.field len
+	.method moveNext 1 1
+		popl this
+		
+		pushl this
+		pushl this
+		getfld pos
+		pushv 1
+		add
+		setfld pos
+		
+		pushl this
+		getfld pos
+		pushl this
+		getfld len
+		gt
+		if
+		jmp domove
+		pushv false
+		ret
+		domove:
+		pushv true
+		ret
+	.endmethod
+	.method current 1 1
+		popl this
+		pushl this
+		getfld arr
+		pushl this
+		getfld pos
+		getarr
+		ret
+	.endmethod
+.endclass
+
+.method %Array_getEnumerator 1 1
+	popl this
+	new %array_enumerator
+	popl enu
+	pushl enu
+	pushl this
+	setfld arr
+	pushl enu
+	pushl this
+	arrlength
+	setfld len
+	pushl enu
+	pushv 0
+	setfld pos
+	pushl enu
+	ret
+.endmethod
+
+.method %String_getEnumerator 1 1
+	popl this
+	new %array_enumerator
+	popl enu
+	pushl enu
+	pushl this
+	setfld arr
+	pushl enu
+	pushl this
+	arrlength
+	setfld len
+	pushl enu
+	pushv 0
+	setfld pos
+	pushl enu
+	ret
+.endmethod
+
+.method %Channel_getEnumerator 1 1
+	// return itself
+	ret
+.endmethod
+
+.method %Channel_close 1 0
+	callex closechannel
+	ret
+.endmethod
+
+
+.method %Channel_closed 1 1
+	callex channelclosed
+	ret
+.endmethod
+
+.method %Channel_moveNext 1 1
+	callm closed
+	not
+	ret
+.endmethod
+
+.method %Channel_current 1 1
+	receive
+	ret
+.endmethod
+

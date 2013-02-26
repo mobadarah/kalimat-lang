@@ -129,7 +129,7 @@ void WindowForeignObject::setSlotValue(QString name, Value *val)
 
 QString WindowForeignObject::toString()
 {
-    return QString("<%1>").arg(VMId::get(RId::Window));
+    return QString("<%1>").arg(VMId::get(RId::ForeignWindow));
 }
 
 ControlForeignClass::ControlForeignClass(QString name, RunWindow *rw, VM *vm)

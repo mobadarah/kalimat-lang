@@ -26,7 +26,6 @@ namespace RId
         String,
         Sprite,
         RawFile,
-        Window,
         Reference,
         FieldReference,
         ArrayReference,

@@ -40,7 +40,6 @@ StringClass *BuiltInTypes::StringType = NULL;
 IClass *BuiltInTypes::SpriteType = NULL;
 ValueClass *BuiltInTypes::FileType = NULL;
 ValueClass *BuiltInTypes::RawFileType = NULL;
-ValueClass *BuiltInTypes::WindowType = NULL;
 ValueClass *BuiltInTypes::RefType = NULL;
 ValueClass *BuiltInTypes::FieldRefType = NULL;
 ValueClass *BuiltInTypes::ArrayRefType = NULL;
@@ -104,7 +103,6 @@ void BuiltInTypes::init()
     SpriteType = new SpriteClass(VMId::get(RId::Sprite));
     FileType = NULL;
     RawFileType = new ValueClass(VMId::get(RId::RawFile), BuiltInTypes::RawType);
-    WindowType = new ValueClass(VMId::get(RId::Window), BuiltInTypes::ObjectType);
     RefType = new ValueClass(VMId::get(RId::Reference), BuiltInTypes::ObjectType);
     FieldRefType = new ValueClass(VMId::get(RId::FieldReference), BuiltInTypes::ObjectType);
     ArrayRefType = new ValueClass(VMId::get(RId::ArrayReference), BuiltInTypes::ObjectType);
@@ -507,7 +505,7 @@ Value *VMap::get(Value *key)
 
 void VMap::set(Value *key, Value *v)
 {
-    allKeys.append(key);
+    //allKeys.append(key);
     VBox vb(key);
     Elements[vb] = v;
 }
@@ -667,7 +665,7 @@ bool LexicographicLessThan(VArray *arr1, VArray *arr2)
     return false;
 }
 
-inline bool operator<(const VBox &v1, const VBox &v2)
+bool operator<(const VBox &v1, const VBox &v2)
 {
     // Only int, long, string, and arrays of [comparable value] are comparable values
     // Since we need a partial order, we will assume ints <long < string < array
@@ -721,7 +719,7 @@ bool ElementWiseCompare(VArray *arr1, VArray *arr2)
     return true;
 }
 
-inline bool operator==(const VBox &v1, const VBox &v2)
+bool operator==(const VBox &v1, const VBox &v2)
 {
     // The == function is only used as a helper for LexicographicLessThan, defined above
     // Only int, string, and arrays of [comparable value] are comparable values

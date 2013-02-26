@@ -183,7 +183,12 @@ void TextLayer::updateStrip(int i, bool drawCursor)
         if(!line.isValid())
             break;
         line.setLineWidth(imgWidth);
+#ifndef ENGLISH_PL
         line.setPosition(QPointF(-5, 0));
+#else
+        line.setPosition(QPointF(5, 0));
+#endif
+
         temph = line.height()-1;
         if(temph > height)
         {

@@ -36,8 +36,6 @@ String
 Sprite
 RawFile
 RawFile
-Window
-Window
 Reference
 Reference
 FieldReference

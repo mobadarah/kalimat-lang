@@ -279,25 +279,24 @@ void RunWindow::Init(QString program, QMap<QString, QString> stringConstants, QS
             BuiltInTypes::MapType,
             BuiltInTypes::StringType,
             BuiltInTypes::SpriteType,
-            BuiltInTypes::WindowType,
-
             BuiltInTypes::NullType,
+
             BuiltInTypes::LambdaType,
             BuiltInTypes::c_int,
             BuiltInTypes::c_long,
-
             BuiltInTypes::c_float,
+
             BuiltInTypes::c_double,
             BuiltInTypes::c_char,
             BuiltInTypes::c_asciiz,
-
             BuiltInTypes::c_wstr,
+
             BuiltInTypes::c_void,
             BuiltInTypes::c_ptr
 
         };
         // todo: handle built-in file type
-        const int numBuiltIns = 27;
+        const int numBuiltIns = 26;
         for(int i=0; i<numBuiltIns; i++)
         {
             vm->RegisterType(builtIns[i]->getName(), builtIns[i]);

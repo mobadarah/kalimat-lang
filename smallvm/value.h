@@ -67,7 +67,7 @@ struct VBox
 
 struct VMap : public VIndexable
 {
-    QVector<Value *> allKeys; //We need this for the GC, since the map itself stores the values as keys, not their pointers
+    //QSet<Value *> allKeys; //We need this for the GC, since the map itself stores the values as keys, not their pointers
     QMap<VBox, Value *> Elements;
     bool keyCheck(Value *key, VMError &err);
     void set(Value *key, Value *v);
@@ -116,7 +116,6 @@ public:
     static IClass *SpriteType;
     static ValueClass *FileType;
     static ValueClass *RawFileType;
-    static ValueClass *WindowType;
     static ValueClass *RefType;
     static ValueClass *FieldRefType;
     static ValueClass *ArrayRefType;
@@ -435,7 +434,7 @@ inline VIndexable *unboxIndexable(const Value *v)
 }
 
 // So that we can add (some types of) values to QMap
-inline bool operator<(const VBox &v1, const VBox &v2);
-inline bool operator==(const VBox &v1, const VBox &v2);
+bool operator<(const VBox &v1, const VBox &v2);
+bool operator==(const VBox &v1, const VBox &v2);
 
 #endif // VALUE_H
