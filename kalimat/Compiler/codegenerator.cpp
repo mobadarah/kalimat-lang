@@ -624,6 +624,11 @@ shared_ptr<Identifier> idOf(Token pos, QString id)
     return shared_ptr<Identifier>(new Identifier(pos, id));
 }
 
+shared_ptr<ProceduralRef> procRefOf(Token pos, QString id)
+{
+    return shared_ptr<ProceduralRef>(new ProceduralRef(pos, id));
+}
+
 shared_ptr<StrLiteral> strLitOf(Token pos, QString value)
 {
     return shared_ptr<StrLiteral>(new StrLiteral(pos, value));
@@ -646,7 +651,7 @@ shared_ptr<Invokation> invokationOf(Token pos, QString fname)
     QVector<shared_ptr<Expression> > args;
     return shared_ptr<Invokation>(new Invokation(pos,
                                                  pos,
-                                                 idOf(pos, fname),
+                                                 procRefOf(pos, fname),
                                                  args));
 }
 
@@ -656,7 +661,7 @@ shared_ptr<Invokation> invokationOf(Token pos, QString fname, shared_ptr<Express
     args.append(arg0);
     return shared_ptr<Invokation>(new Invokation(pos,
                                                  pos,
-                                                 idOf(pos, fname),
+                                                 procRefOf(pos, fname),
                                                  args));
 }
 
@@ -668,7 +673,7 @@ shared_ptr<Invokation> invokationOf(Token pos, QString fname, shared_ptr<Express
     args.append(arg1);
     return shared_ptr<Invokation>(new Invokation(pos,
                                                  pos,
-                                                 idOf(pos, fname),
+                                                 procRefOf(pos, fname),
                                                  args));
 }
 
@@ -834,7 +839,7 @@ void CodeGenerator::generateRulesDeclaration(shared_ptr<RulesDecl> decl)
     // %result = null -- to declare the variable
     // ...and they say Lisp isn't used anymore
     stmts.append(assignmentOf(pos0, varOf(pos0, VMId::get(RId::ParserGeneratedVarName)),
-                     invokationOf(pos0,_ws(L"صنع.معرب"), varOf(pos0, VMId::get(RId::ParserGeneratedInputArgName)))));
+                     invokationOf(pos0,VMId::get(RId::MakeParser), varOf(pos0, VMId::get(RId::ParserGeneratedInputArgName)))));
 
     stmts.append(assignmentOf(pos0, varOf(pos0, VMId::get(RId::ParserGeneratedPosVarName)),
                               shared_ptr<NumLiteral>(new NumLiteral(pos0,0))));
@@ -2883,7 +2888,7 @@ void CodeGenerator::generateInvokation(shared_ptr<Invokation> expr,
                                        InvokationContext context,
                                        MethodCallStyle style)
 {
-    shared_ptr<Identifier> functor = dynamic_pointer_cast<Identifier>(expr->functor());
+    shared_ptr<ProceduralRef> functor = expr->functor();
     QString procName = functor->name();
 
     if(context == FunctionInvokationContext && this->allProcedures.contains(procName))
@@ -2978,7 +2983,7 @@ void CodeGenerator::generateTheSomething(shared_ptr<TheSomething> expr)
                                       expr->getPos(),
                                       shared_ptr<Invokation>(new Invokation(expr->getPos(),
                                                                 expr->getEndingPos(),
-                                                                idOf(expr->getPos(),expr->name()),
+                                                                procRefOf(expr->getPos(),expr->name()),
                                                 args)))));
     }
     else if(expr->what() == Function)
@@ -2988,7 +2993,7 @@ void CodeGenerator::generateTheSomething(shared_ptr<TheSomething> expr)
                                                       shared_ptr<Invokation>(new Invokation(expr->getPos(),
                                                                                             expr->getEndingPos(),
 
-                                                                                idOf(expr->getPos(),expr->name()),
+                                                                                procRefOf(expr->getPos(),expr->name()),
                                                                 args)))));
     }
     shared_ptr<LambdaExpression> lambda(new LambdaExpression(expr->getPos(),

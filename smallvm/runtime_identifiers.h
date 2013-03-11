@@ -54,6 +54,7 @@ namespace RId
         ComboBox,
         Image,
         Parser,
+        MakeParser,
         ParseResultClass,
         PointerOf1,
         NullValue,

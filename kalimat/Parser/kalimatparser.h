@@ -116,6 +116,7 @@ private:
     shared_ptr<Expression> positiveOrNegativeExpression();
     shared_ptr<Expression> primaryExpression();
     shared_ptr<Expression> primaryExpressionNonInvokation();
+
     shared_ptr<SimpleLiteral> simpleLiteral();
     shared_ptr<Identifier> identifier();
 
@@ -124,6 +125,9 @@ private:
     QVector<shared_ptr<Expression> > comma_separated_expressions();
     QVector<shared_ptr<Expression> > comma_separated_pairs();
     QVector<shared_ptr<StrLiteral> > usingDirectives();
+
+    void possibleFieldInitialization(QVector<shared_ptr<Identifier> > &fieldInitNames,
+                                     QVector<shared_ptr<Expression> > &fieldInitValues);
 
     QString prepareStringLiteral(QString str);
     QString getOperation(Token token);

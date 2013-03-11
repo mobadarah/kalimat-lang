@@ -812,8 +812,11 @@ void GetSpriteLeftProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm
 {
     w->typeCheck(proc, stack.top(), BuiltInTypes::SpriteType);
     Sprite  *sprite = GetSpriteFromValue(stack.pop());
-
+#ifdef ENGLISH_PL
+    int ret = sprite->location.x();
+#else
     int ret = sprite->location.x() + sprite->image.width();
+#endif
     stack.push(vm->GetAllocator().newInt(ret));
 }
 
@@ -821,8 +824,11 @@ void GetSpriteRightProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *v
 {
     w->typeCheck(proc, stack.top(), BuiltInTypes::SpriteType);
     Sprite  *sprite = GetSpriteFromValue(stack.pop());
-
+#ifdef ENGLISH_PL
+    int ret = sprite->location.x() + sprite->image.width();
+#else
     int ret = sprite->location.x();
+#endif
     stack.push(vm->GetAllocator().newInt(ret));
 }
 
@@ -1584,9 +1590,12 @@ void ImageRotatedProc(VOperandStack &stack, Process *proc, RunWindow *w, VM *vm)
 
     width = handle->width()/2;
     height = handle->height() /2 ;
-
+#ifndef ENGLISH_PL
     // negative because of 'Arabic' coordinate system
     trans = trans.translate(width,height).rotate(-degrees).translate(-width,-height);
+#else
+    trans = trans.translate(width,height).rotate(degrees).translate(-width,-height);
+#endif
     img2 = new QImage(handle->width(),handle->height(), handle->format());
 
     QPainter p(img2);

@@ -128,3 +128,14 @@ void MakeExeDlg::on_btnMakeExe_clicked()
     accepted = true;
     this->close();
 }
+
+
+void MakeExeDlg::on_optCopyDll_toggled(bool checked)
+{
+    copyDll = checked;
+}
+
+void MakeExeDlg::on_optDontCopyDll_toggled(bool checked)
+{
+
+}

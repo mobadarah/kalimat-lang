@@ -44,8 +44,8 @@ Creating executable file
 Problem creating executable:<br /><i>%1</i>
 تم عمل الملف التنفيذي. تأكد من وجود الملفات ذات الإمتداد DLL المطلوبة في نفس مكان الملف التنفيذي لكي يعمل برنامجك!
 Executable created. Make sure the required DLL files are available alongside your program
-هذه هي النسخة الأولية لشهر فبراير 2013. حمل أحدث نسخة من www.kalimat-lang.com
-Kalimat, February 2013 release. Latest version at www.kalimat-lang.com
+هذه هي النسخة الأولية لشهر مارس 2013. حمل أحدث نسخة من www.kalimat-lang.com
+Kalimat, March 2013 release. Latest version at http://code.google.com/p/kalimat/downloads
 اضغط لفتح الملف
 Click to open file
 إجراء

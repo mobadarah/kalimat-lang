@@ -2241,6 +2241,43 @@ void Identifier::traverseChildren(Traverser *tv)
 {
 }
 
+ProceduralRef::ProceduralRef(Token _pos,
+                             Token _endingpos,
+                             QString _name):
+    KalimatAst(_pos,_endingpos),_name(_name)
+{
+}
+
+QString ProceduralRef::toString()
+{
+    QString ret;
+    QTextStream out(&ret);
+    out << _ws(L"اسم.إجراء.أو.دالة(");
+    out << KalimatAst::childrenToString();
+    out << ", " << childrenToString();
+    out <<")";
+    return ret;
+}
+
+QString ProceduralRef::childrenToString()
+{
+    QString ret;
+    QTextStream out(&ret);
+    out << _name << ", " ;
+    return ret;
+}
+
+void ProceduralRef::traverse(shared_ptr<PrettyPrintable> p, Traverser *tv)
+{
+    tv->visit(p);
+    KalimatAst::traverseChildren(tv);
+    this->traverseChildren(tv);
+    tv->exit(p);
+}
+void ProceduralRef::traverseChildren(Traverser *tv)
+{
+}
+
 VarAccess::VarAccess(Token _pos,
                      Token _endingpos,
                      shared_ptr<Identifier> _name):
@@ -2557,7 +2594,7 @@ void IInvokation::traverseChildren(Traverser *tv)
 
 Invokation::Invokation(Token _pos,
                        Token _endingpos,
-                       shared_ptr<Identifier> _functor,
+                       shared_ptr<ProceduralRef> _functor,
                        QVector<shared_ptr<Expression> > arguments):
     IInvokation(_pos,_endingpos),_functor(_functor),
     arguments(arguments)
@@ -2568,7 +2605,7 @@ QString Invokation::toString()
 {
     QString ret;
     QTextStream out(&ret);
-    out << _ws(L"أمر.لكل(");
+    out << _ws(L"استدعاء(");
     out << IInvokation::childrenToString();
     out << ", " << childrenToString();
     out <<")";

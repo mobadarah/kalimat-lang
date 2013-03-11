@@ -37,7 +37,7 @@ not
 ولا
 nor
 عند
-on
+at
 حادثة
 event
 نفذ
@@ -109,13 +109,13 @@ using
 وحدة
 unit
 بعرض
-width
+withWidth
 لاشيء
 nothing
 علامة
 label
 اذهب
-go
+goto
 وكل
 delegate
 هو
@@ -153,7 +153,7 @@ repetition
 بخطوة
 step
 نزولا
-down
+downTo
 كرر
 repeat
 الإجراء
@@ -162,3 +162,5 @@ theProc
 theFunc
 %
 of
+%%
+having

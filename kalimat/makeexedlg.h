@@ -38,6 +38,10 @@ private slots:
 
     void on_btnMakeExe_clicked();
 
+    void on_optCopyDll_toggled(bool checked);
+
+    void on_optDontCopyDll_toggled(bool checked);
+
 private:
     Ui::MakeExeDlg *ui;
 

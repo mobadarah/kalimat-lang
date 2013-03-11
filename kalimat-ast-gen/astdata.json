@@ -377,6 +377,17 @@
 
 },
 {
+        "type": "ProceduralRef",
+        "arabic" : "اسم.إجراء.أو.دالة",
+        "parent" : "KalimatAst",
+        "nodes" :[{"type": "QString", "name" : "name", "arabic" : "اسم"}
+                  ],
+        "embed": "ProceduralRef(Token _pos,
+        QString _name);
+        "
+
+},
+{
         "type": "VarAccess",
         "arabic" : "وصول.لمتغير",
         "parent" : "AssignableExpression",
@@ -449,16 +460,16 @@
 },
 {
 	"type": "IInvokation",
-	"arabic" : "أمر.لكل",
+        "arabic" : "واجهة.استدعاء",
 	"parent" : "Expression",
 	"nodes" :[]
 },
 {
 	"type": "Invokation",
-	"arabic" : "أمر.لكل",
+        "arabic" : "استدعاء",
 	"parent" : "IInvokation",
-        "nodes" :[{"type": "Identifier", "name" : "functor", "arabic" : "جزء.من"},
-		{"vector": true, "type": "Expression", "name" : "arguments", "arabic" : "جزء.من"}
+        "nodes" :[{"type": "ProceduralRef", "name" : "functor", "arabic" : "مستدعى"},
+                {"vector": true, "type": "Expression", "name" : "arguments", "arabic" : "عوامل"}
 	]
 },
 {

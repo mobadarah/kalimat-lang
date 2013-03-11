@@ -1087,6 +1087,29 @@ public:
 };
 
 
+class ProceduralRef  :   public KalimatAst
+{
+public:
+    QString _name;
+public:
+
+    ProceduralRef(Token _pos,
+                  Token _endingpos,
+                  QString _name);
+    QString name() { return _name; }
+    virtual QString toString();
+    virtual void prettyPrint(CodeFormatter *f);
+
+    virtual void traverse(shared_ptr<PrettyPrintable> p, Traverser *tv);
+
+    virtual void traverseChildren(Traverser *tv);
+
+    virtual QString childrenToString();
+    ProceduralRef(Token _pos,
+                  QString _name);
+};
+
+
 class VarAccess  :   public AssignableExpression
 {
 public:
@@ -1269,15 +1292,15 @@ public:
 class Invokation  :   public IInvokation
 {
 public:
-    shared_ptr<Identifier> _functor;
+    shared_ptr<ProceduralRef> _functor;
     QVector<shared_ptr<Expression> > arguments;
 public:
 
     Invokation(Token _pos,
                Token _endingpos,
-               shared_ptr<Identifier> _functor,
+               shared_ptr<ProceduralRef> _functor,
                QVector<shared_ptr<Expression> > arguments);
-    shared_ptr<Identifier> functor() { return _functor; }
+    shared_ptr<ProceduralRef> functor() { return _functor; }
     int argumentCount() { return arguments.count(); }
     shared_ptr<Expression> argument(int index) { return arguments[index]; }
     virtual QString toString();

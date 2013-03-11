@@ -25,6 +25,13 @@ Identifier::Identifier(Token _pos, QString _name)
 
 }
 
+ProceduralRef::ProceduralRef(Token _pos, QString _name)
+    : KalimatAst(_pos,_pos), _name(_name)
+{
+
+}
+
+
 VarAccess::VarAccess(shared_ptr<Identifier> _name)
     : AssignableExpression(_name->getPos(),_name->getEndingPos()),_name(_name)
 {
@@ -830,6 +837,11 @@ void UnaryOperation::prettyPrint(CodeFormatter *f)
 }
 
 void Identifier::prettyPrint(CodeFormatter *f)
+{
+    f->print(name());
+}
+
+void ProceduralRef::prettyPrint(CodeFormatter *f)
 {
     f->print(name());
 }

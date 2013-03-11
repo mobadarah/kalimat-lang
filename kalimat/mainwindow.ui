@@ -304,6 +304,9 @@
      <height>100</height>
     </size>
    </property>
+   <property name="layoutDirection">
+    <enum>Qt::RightToLeft</enum>
+   </property>
    <property name="features">
     <set>QDockWidget::AllDockWidgetFeatures</set>
    </property>
@@ -314,9 +317,9 @@
     <widget class="QLabel" name="label">
      <property name="geometry">
       <rect>
-       <x>720</x>
+       <x>630</x>
        <y>10</y>
-       <width>51</width>
+       <width>131</width>
        <height>20</height>
       </rect>
      </property>
@@ -330,9 +333,9 @@
     <widget class="QLabel" name="label_2">
      <property name="geometry">
       <rect>
-       <x>710</x>
+       <x>630</x>
        <y>40</y>
-       <width>61</width>
+       <width>131</width>
        <height>20</height>
       </rect>
      </property>
@@ -346,7 +349,7 @@
     <widget class="QLineEdit" name="txtSearchString">
      <property name="geometry">
       <rect>
-       <x>332</x>
+       <x>262</x>
        <y>10</y>
        <width>351</width>
        <height>20</height>
@@ -359,7 +362,7 @@
     <widget class="QLineEdit" name="txtReplacementString">
      <property name="geometry">
       <rect>
-       <x>332</x>
+       <x>262</x>
        <y>40</y>
        <width>351</width>
        <height>20</height>
@@ -372,14 +375,14 @@
     <widget class="QPushButton" name="btnFindPrev">
      <property name="geometry">
       <rect>
-       <x>300</x>
+       <x>230</x>
        <y>10</y>
        <width>21</width>
        <height>23</height>
       </rect>
      </property>
      <property name="text">
-      <string>&lt;</string>
+      <string>&gt;</string>
      </property>
      <property name="shortcut">
       <string>Shift+F3</string>
@@ -388,14 +391,14 @@
     <widget class="QPushButton" name="btnFindNext">
      <property name="geometry">
       <rect>
-       <x>280</x>
+       <x>210</x>
        <y>10</y>
        <width>21</width>
        <height>23</height>
       </rect>
      </property>
      <property name="text">
-      <string>&gt;</string>
+      <string>&lt;</string>
      </property>
      <property name="shortcut">
       <string>F3</string>
@@ -410,20 +413,7 @@
     <widget class="QPushButton" name="btnReplacePrev">
      <property name="geometry">
       <rect>
-       <x>300</x>
-       <y>40</y>
-       <width>21</width>
-       <height>23</height>
-      </rect>
-     </property>
-     <property name="text">
-      <string>&lt;</string>
-     </property>
-    </widget>
-    <widget class="QPushButton" name="btnReplaceNext">
-     <property name="geometry">
-      <rect>
-       <x>280</x>
+       <x>230</x>
        <y>40</y>
        <width>21</width>
        <height>23</height>
@@ -431,6 +421,19 @@
      </property>
      <property name="text">
       <string>&gt;</string>
+     </property>
+    </widget>
+    <widget class="QPushButton" name="btnReplaceNext">
+     <property name="geometry">
+      <rect>
+       <x>210</x>
+       <y>40</y>
+       <width>21</width>
+       <height>23</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>&lt;</string>
      </property>
     </widget>
     <widget class="QLabel" name="lblFindStatus">

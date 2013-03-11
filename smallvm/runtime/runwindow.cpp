@@ -45,7 +45,11 @@ RunWindow::RunWindow(QString pathOfProgramsFile, VMClient *client) :
 void RunWindow::setup(QString pathOfProgramsFile, VMClient *client)
 {
     ui->setupUi(this);
-
+#ifdef ENGLISH_PL
+    setLayoutDirection(Qt::LeftToRight);
+    // This should be done using Qt Linguist, but we'll do it here for now
+    setWindowTitle("Program running");
+#endif
     this->pathOfProgramsFile = pathOfProgramsFile;
 
     this->setFixedSize(800, 600);

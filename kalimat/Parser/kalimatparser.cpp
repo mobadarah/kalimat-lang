@@ -227,7 +227,12 @@ bool KalimatParser::LA_first_statement()
             || LA(DELEGATE) || LA(LAUNCH) || LA(LABEL) || LA(GO) || LA(WHEN)
             || LA(SEND) || LA(RECEIVE) || LA(SELECT)
             || LA_first_io_statement() || LA_first_grfx_statement()
-            || LA_first_assignment_or_invokation();
+            || LA_first_assignment_or_invokation()
+        #ifdef ENGLISH_PL
+            || LA(WHILE)
+        #endif
+
+            ;
 }
 
 shared_ptr<Statement> KalimatParser::statement()
@@ -251,6 +256,12 @@ shared_ptr<Statement> KalimatParser::statement()
     {
         ret = whileStmt();
     }
+#ifdef ENGLISH_PL
+    else if(LA(WHILE))
+    {
+        ret = whileStmt();
+    }
+#endif
     else if(LA(RETURN_WITH))
     {
         ret = returnStmt();
@@ -364,10 +375,12 @@ shared_ptr<Declaration> KalimatParser::declaration()
     }
     return ret;
 }
+
 bool KalimatParser::LA_first_assignment_or_invokation()
 {
     return LA_first_primary_expression();
 }
+
 shared_ptr<Statement> KalimatParser::assignmentStmt_or_Invokation(ParserState s)
 {
     shared_ptr<Expression> first = primaryExpression();
@@ -525,6 +538,7 @@ shared_ptr<Statement> KalimatParser::ifStmt()
         }
         return shared_ptr<Statement>(new IfStmt(ifTok, previousToken, cond, thenPart, elsePart));
     }
+
     throw ParserException(fileName, getPos(), "Expected IF");
 }
 
@@ -547,12 +561,24 @@ shared_ptr<Statement> KalimatParser::forEachStmt()
         shared_ptr<Expression> theStep;
         match(from_id);
         shared_ptr<Expression> from = expression();
+#ifndef ENGLISH_PL
         if(LA(DOWNTO))
         {
             match(DOWNTO);
             downTo = true;
         }
         match(TO);
+#else
+        if(LA(DOWNTO))
+        {
+            match(DOWNTO);
+            downTo = true;
+        }
+        else
+        {
+            match(TO);
+        }
+#endif
         shared_ptr<Expression> to = expression();
 
         if(LA(STEP))
@@ -633,10 +659,10 @@ shared_ptr<Statement> KalimatParser::whileStmt()
     bool multiLineStmt = false;
     shared_ptr<Statement> theStmt;
     shared_ptr<Expression> cond;
-    Token repeatTok = lookAhead;
+    Token firstTok = lookAhead;
 
+#ifndef ENGLISH_PL
     match(REPEAT);
-
     if(LA(WHILE))
     {
         match(WHILE);
@@ -644,8 +670,31 @@ shared_ptr<Statement> KalimatParser::whileStmt()
     }
     else
     {
-        cond = shared_ptr<Expression>(new BoolLiteral(repeatTok, previousToken, true));
+        cond = shared_ptr<Expression>(new BoolLiteral(firstTok, previousToken, true));
     }
+#else
+    if(LA2(REPEAT, WHILE))
+    {
+        match(REPEAT);
+        match(WHILE);
+        cond = expression();
+    }
+    else if(LA(REPEAT))
+    {
+        match(REPEAT);
+        cond = shared_ptr<Expression>(new BoolLiteral(firstTok, previousToken, true));
+    }
+    else if(LA(WHILE))
+    {
+        match(WHILE);
+        cond = expression();
+    }
+    else
+    {
+        error(ParserException(fileName, getPos(), QString("Expected REPEAT or WHILE")));
+    }
+#endif
+
 
     match(COLON);
     if(LA(NEWLINE))
@@ -665,7 +714,7 @@ shared_ptr<Statement> KalimatParser::whileStmt()
         theStmt = statement();
     }
     match(CONTINUE);
-    return shared_ptr<Statement>(new WhileStmt(repeatTok, previousToken, cond, theStmt));
+    return shared_ptr<Statement>(new WhileStmt(firstTok, previousToken, cond, theStmt));
 }
 
 shared_ptr<Statement> KalimatParser::returnStmt()
@@ -723,7 +772,9 @@ shared_ptr<Statement> KalimatParser::gotoStmt()
     Token pos = lookAhead;
     shared_ptr<Expression> target;
     match(GO);
+#ifndef ENGLISH_PL
     match(TO);
+#endif
     if(LA_first_expression())
     {
         target = expression();
@@ -1483,7 +1534,11 @@ shared_ptr<Declaration> KalimatParser::classDecl()
         if(LA(RESPONDS))
         {
             match(RESPONDS);
+#ifndef ENGLISH_PL
             match(UPON);
+#else
+            match(TO);
+#endif
 
             shared_ptr<Identifier> methodName = identifier();
             QVector<shared_ptr<FormalParam> > formals = formalParamList();
@@ -1525,7 +1580,11 @@ shared_ptr<Declaration> KalimatParser::classDecl()
         if(LA(REPLIES))
         {
             match(REPLIES);
+#ifndef ENGLISH_PL
             match(ON);
+#else
+            match(TO);
+#endif
 
             shared_ptr<Identifier> methodName = identifier();
             QVector<shared_ptr<FormalParam> > formals = formalParamList();
@@ -1613,7 +1672,11 @@ shared_ptr<Declaration> KalimatParser::methodDecl()
         match(RESPONSEOF);
         className = identifier();
         receiverName = identifier();
+#ifndef ENGLISH_PL
         match(UPON);
+#else
+        match(TO);
+#endif
     }
     else if(LA(REPLYOF))
     {
@@ -1621,7 +1684,11 @@ shared_ptr<Declaration> KalimatParser::methodDecl()
         match(REPLYOF);
         className = identifier();
         receiverName = identifier();
+#ifndef ENGLISH_PL
         match(ON);
+#else
+        match(TO);
+#endif
     }
     Token tok  = lookAhead;
     if(LA(IDENTIFIER))
@@ -2094,10 +2161,16 @@ shared_ptr<Pattern> KalimatParser::varOrObjPattern()
     }
 
     shared_ptr<Identifier> id = identifier();
-    if(LA(HAS))
+
+#ifndef ENGLISH_PL
+    TokenType hasTok = HAS;
+#else
+    TokenType hasTok = HAVING;
+#endif
+    if(LA(hasTok))
     {
         mustBeObj = true;
-        match(HAS);
+        match(hasTok);
 
         fnames.append(identifier());
         match(EQ);
@@ -2258,7 +2331,9 @@ shared_ptr<Expression> KalimatParser::primaryExpression()
             shared_ptr<VarAccess> dummyVar = dynamic_pointer_cast<VarAccess>(ret);
             if(dummyVar)
             {
-                ret = shared_ptr<Expression>(new Invokation(tok, previousToken, dummyVar->name(), args));
+                shared_ptr<ProceduralRef> fname = shared_ptr<ProceduralRef>
+                                    (new ProceduralRef(dummyVar->pos(), dummyVar->name()->name()));
+                ret = shared_ptr<Expression>(new Invokation(tok, previousToken, fname, args));
             }
             else
             {
@@ -2420,6 +2495,25 @@ shared_ptr<Expression> KalimatParser::primaryExpressionNonInvokation()
     {
         return simpleLiteral();
     }
+#ifdef ENGLISH_PL
+    else if(LA(NEW))
+    {
+        Token newTok = lookAhead;
+        match(NEW);
+
+        QVector<shared_ptr<Identifier> > fieldInitNames;
+        QVector<shared_ptr<Expression> > fieldInitValues;
+
+        shared_ptr<Identifier> id = identifier();
+        possibleFieldInitialization(fieldInitNames, fieldInitValues);
+        ret = shared_ptr<Expression>(new ObjectCreation(newTok,
+                                                        previousToken,
+                                                        id,
+                                                        fieldInitNames,
+                                                        fieldInitValues));
+
+    }
+#endif
     else if(LA(LBRACKET))
     {
         Token lbPos = lookAhead;
@@ -2445,6 +2539,8 @@ shared_ptr<Expression> KalimatParser::primaryExpressionNonInvokation()
 #else
         const int dollar_id = DOLLAR;
 #endif
+
+#ifndef ENGLISH_PL
         if(LA(NEW))
         {
             Token newTok = lookAhead;
@@ -2452,20 +2548,7 @@ shared_ptr<Expression> KalimatParser::primaryExpressionNonInvokation()
             QVector<shared_ptr<Expression> > fieldInitValues;
             match(NEW);
 
-            if(LA(HAS))
-            {
-                match(HAS);
-                fieldInitNames.append(identifier());
-                match(EQ);
-                fieldInitValues.append(expression());
-                while(LA(COMMA))
-                {
-                    match(COMMA);
-                    fieldInitNames.append(identifier());
-                    match(EQ);
-                    fieldInitValues.append(expression());
-                }
-            }
+            possibleFieldInitialization(fieldInitNames, fieldInitValues);
             ret = shared_ptr<Expression>(new ObjectCreation(newTok,
                                                             previousToken,
                                                             id,
@@ -2474,7 +2557,9 @@ shared_ptr<Expression> KalimatParser::primaryExpressionNonInvokation()
 
         }
 
-        else if(LA(dollar_id))
+        else
+#endif
+        if(LA(dollar_id))
         {
             match(dollar_id);
             shared_ptr<Expression> modaf_elaih = primaryExpression();
@@ -2577,6 +2662,31 @@ shared_ptr<Expression> KalimatParser::primaryExpressionNonInvokation()
         throw ParserException(fileName, getPos(), "Expected a literal, identifier, or parenthesized expression");
     }
     return ret;
+}
+
+void KalimatParser::possibleFieldInitialization(QVector<shared_ptr<Identifier> > &fieldInitNames,
+                                                QVector<shared_ptr<Expression> > &fieldInitValues)
+{
+#ifndef ENGLISH_PL
+    if(LA(HAS))
+    {
+        match(HAS);
+#else
+    if(LA(HAVING))
+    {
+        match(HAVING);
+#endif
+        fieldInitNames.append(identifier());
+        match(EQ);
+        fieldInitValues.append(expression());
+        while(LA(COMMA))
+        {
+            match(COMMA);
+            fieldInitNames.append(identifier());
+            match(EQ);
+            fieldInitValues.append(expression());
+        }
+    }
 }
 
 shared_ptr<Identifier> KalimatParser::identifier()

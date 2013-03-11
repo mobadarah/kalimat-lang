@@ -68,6 +68,7 @@ MainWindow::MainWindow(QWidget *parent)
 #ifdef ENGLISH_PL
     setLayoutDirection(Qt::LeftToRight);
     ui->menuBar->setLayoutDirection(Qt::LeftToRight);
+    ui->dockSearchReplace->setLayoutDirection(Qt::LeftToRight);
     ui->menuBar->removeAction(ui->mnuSpecialSymbol->menuAction());
 #endif
     settingsOrganizationName = "mohamedsamy";
@@ -1595,6 +1596,14 @@ void MainWindow::on_actionMake_exe_triggered()
     QString exeFileName = stagingArea + "/" + fn + ".exe";
     QString icoFileName = stagingArea + "/" + "app.ico";
 
+    if(targetFile == exeFileName)
+    {
+        QMessageBox box(QMessageBox::Information, "Invalid .exe path",
+                        QString("The path '%1' cannot be used as a location for creating .exe files")
+                        .arg(stagingArea));
+        box.exec();
+        return;
+    }
     QImage iconImg;
 
     switch(dlg.iconIndex)
@@ -1614,6 +1623,10 @@ void MainWindow::on_actionMake_exe_triggered()
     }
     if(QFile::exists(icoFileName))
         QFile::remove(icoFileName);
+
+    // Remove any previous temp. exe from the staging area
+    if(QFile::exists(exeFileName))
+        QFile::remove(exeFileName);
     iconImg.save(icoFileName);
 
     try
@@ -1656,7 +1669,7 @@ void MainWindow::on_actionMake_exe_triggered()
 
             QStringList dataSegments = Utils::segmentStringForPascal(data, 200);
 
-            strConstants.append(QString("SmallVMAddStringConstant('%1','%2')")
+            strConstants.append(QString("SmallVMAddStringConstant('%1',%2)")
                                 .arg(sym)
                                 .arg(dataSegments.join("+")));
         }
@@ -1701,14 +1714,21 @@ void MainWindow::on_actionMake_exe_triggered()
         {
             problem = QString::fromStdWString(L"Cannot find fpc.exe");
         }
+
+
         fpc.start(stagingArea + "/fpc.exe", argz);
         fpc.waitForFinished(10000);
         bool success = false;
+
+
         if(fpc.exitCode() == 0)
         {
             if(!QFile::exists(exeFileName))
             {
-                problem = "Failed to compile generated program";
+                problem = "Failed to compile generated program.";
+                problem += " - " + fpc.errorString() + ". ";
+                problem += fpc.readAllStandardError();
+
             }
             else
             {
@@ -1726,19 +1746,22 @@ void MainWindow::on_actionMake_exe_triggered()
         else
         {
             problem = QString("Failed to compile generated program");
+            problem += " " + fpc.errorString() + ". ";
+            problem += fpc.readAllStandardOutput();
         }
-        if(dlg.copyDll && dlg.targetPath != kalimatBaseDir)
+        if(success && dlg.copyDll && dlg.targetPath != kalimatBaseDir)
         {
             QStringList dlls;
             dlls << "smallvm" << "QtCore4" << "QtGui4" << "mingwm10"
                  << "libstdc++-6" << "libgcc_s_dw2-1" << "libffi-5";
+            bool overwriteAllDecided = false;
             for(int i=0; i<dlls.count(); ++i)
             {
                 QString src = kalimatBaseDir + "/" + dlls[i] + ".dll";
                 QString dest = dlg.targetPath + "/" + dlls[i] + ".dll";
 
                 bool overwriteAll = false;
-                bool overwriteAllDecided = false;
+
                 if(QFile::exists(dest))
                 {
                     bool overwrite = false;
@@ -2544,7 +2567,11 @@ void MainWindow::analyzeForAutocomplete()
 
 void launchKalimatSite()
 {
+#ifndef ENGLISH_PL
     QDesktopServices::openUrl(QUrl("http://www.kalimat-lang.com", QUrl::TolerantMode));
+#else
+    QDesktopServices::openUrl(QUrl("http://code.google.com/p/kalimat/downloads", QUrl::TolerantMode));
+#endif
 }
 
 void MainWindow::do_goto_kalimatlangdotcom_triggered()

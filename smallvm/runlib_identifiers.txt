@@ -92,6 +92,8 @@ ComboBox
 Image
 معرب
 Parser
+صنع.معرب
+makeParser
 ParseResult
 ParseResult
 مشير(%1)

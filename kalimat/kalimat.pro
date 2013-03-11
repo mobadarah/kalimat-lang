@@ -4,7 +4,7 @@
 TARGET = kalimat
 TEMPLATE = app
 QMAKE_CXXFLAGS += -std=gnu++0x -Wno-unused-parameter
-#DEFINES += ENGLISH_PL
+DEFINES += ENGLISH_PL
 #QMAKE_CXXFLAGS_RELEASE -= -O2
 #QMAKE_CXXFLAGS_RELEASE += -O3
 CODECFORTR = UTF-8
@@ -85,7 +85,8 @@ SOURCES += main.cpp \
     ../smallvm/runtime/textbuffer.cpp \
     ../smallvm/runtime/cursor.cpp \
     makeexedlg.cpp \
-    ../smallvm/cflowgraph.cpp
+    ../smallvm/cflowgraph.cpp \
+    Compiler/codemodel.cpp
 HEADERS += mainwindow.h \
     Lexer/token.h \
     Lexer/statemachine.h \
@@ -140,7 +141,9 @@ HEADERS += mainwindow.h \
     ../smallvm/vmerror.h \
     stepstopcondition.h \
     programdatabase.h \
-    makeexedlg.h
+    makeexedlg.h \
+    Compiler/treeutils.h \
+    Compiler/codemodel.h
 
 FORMS += mainwindow.ui \
     savechangedfiles.ui \
