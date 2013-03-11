@@ -135,7 +135,7 @@
      <x>0</x>
      <y>0</y>
      <width>782</width>
-     <height>26</height>
+     <height>18</height>
     </rect>
    </property>
    <property name="layoutDirection">
@@ -829,6 +829,9 @@
   <action name="action_copy_literate_html">
    <property name="text">
     <string>نسخ بالشرح؛HTML</string>
+   </property>
+   <property name="visible">
+    <bool>false</bool>
    </property>
   </action>
   <action name="action_autoFormat">

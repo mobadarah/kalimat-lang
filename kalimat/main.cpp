@@ -40,6 +40,8 @@ int main(int argc, char *argv[])
     QTranslator translator;
     translator.load(":/kalimat_en");
     a.installTranslator(&translator);
+    a.setLayoutDirection(Qt::LeftToRight);
+    qApp->setLayoutDirection(Qt::LeftToRight);
 #endif
     MainWindow w;
     w.show();

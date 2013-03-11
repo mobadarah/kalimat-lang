@@ -6,7 +6,7 @@ QMAKE_CXXFLAGS += -std=gnu++0x -Wno-unused-parameter
 TEMPLATE = lib
 CONFIG += dll
 #CONFIG -= console
-DEFINES += ENGLISH_PL
+#DEFINES += ENGLISH_PL
 SOURCES += main.cpp \
     value.cpp \
     instruction.cpp \
