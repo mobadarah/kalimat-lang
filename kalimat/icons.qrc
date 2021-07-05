@@ -1,0 +1,24 @@
+<RCC>
+    <qresource prefix="/icons">
+        <file>icons/checkIcon.png</file>
+        <file>icons/newIcon.png</file>
+        <file>icons/openIcon.png</file>
+        <file>icons/runIcon.png</file>
+        <file>icons/saveIcon.png</file>
+        <file>icons/formatIcon.png</file>
+        <file>icons/kalimat.ico</file>
+        <file>icons/stopIcon.png</file>
+        <file>icons/resumeIcon.png</file>
+        <file>icons/stepIcon.png</file>
+        <file>icons/stepParamsIcon.png</file>
+        <file>icons/stepCallIcon.png</file>
+        <file>icons/response.bmp</file>
+        <file>icons/reply.bmp</file>
+        <file>icons/exe1.ico</file>
+        <file>icons/exe2.ico</file>
+        <file>icons/exe3.ico</file>
+    </qresource>
+    <qresource prefix="/logo">
+        <file>logo.PNG</file>
+    </qresource>
+</RCC>

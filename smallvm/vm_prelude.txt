@@ -1,0 +1,960 @@
+﻿.method %emptymethod 0
+ret
+.endmethod
+
+.method مصفوفة 1 1
+newarr
+ret
+.endmethod
+
+.method قاموس 0 1
+callex newmap
+ret
+.endmethod
+
+.method به.مفتاح 2 1
+callex haskey
+ret
+.endmethod
+
+.method مفاتيح 1 1
+callex keysof
+ret
+.endmethod
+
+
+.method مصفوفة.متعددة 1 1
+newmdarr
+ret
+.endmethod
+
+.method عشوائي 1 1
+callex random
+ret
+.endmethod
+
+.method كعدد 1
+callex to_num
+ret
+.endmethod
+
+.method عدد 1
+arrlength
+ret
+.endmethod
+
+.method كنص 1
+callex to_string
+ret
+.endmethod
+
+.method تقريب 1
+callex round
+ret
+.endmethod
+
+.method باقي.قسمة 2
+callex remainder
+ret
+.endmethod
+
+.method جا 1
+callex sin
+ret
+.endmethod
+
+.method جتا 1
+callex cos
+ret
+.endmethod
+
+.method ظا 1
+callex tan
+ret
+.endmethod
+
+.method معكوس.جا 1
+callex asin
+ret
+.endmethod
+
+.method معكوس.جتا 1
+callex acos
+ret
+.endmethod
+
+.method معكوس.ظا 1
+callex atan
+ret
+.endmethod
+
+.method جذر 1
+callex sqrt
+ret
+.endmethod
+
+.method أس 2 1
+callex pow
+ret
+.endmethod
+
+
+.method لو 1
+callex log10
+ret
+.endmethod
+
+.method لو.ه 1
+callex ln
+ret
+.endmethod
+
+.method طول 1
+callex str_len
+ret
+.endmethod
+
+.method ضم 2
+callex concat
+ret
+.endmethod
+
+.method أول 2
+callex str_first
+ret
+.endmethod
+
+.method آخر 2
+callex str_last
+ret
+.endmethod
+
+.method وسط 3
+callex str_mid
+ret
+
+.method يبدأ 2 1
+callex str_begins_with
+ret
+.endmethod
+
+.method ينتهي 2 1
+callex str_ends_with
+ret
+.endmethod
+
+.method يحتوي 2 1
+callex str_contains
+ret
+.endmethod
+
+.method تفصيص 2 1 
+callex str_split
+ret
+.endmethod 
+
+.method تقليم 1 1
+callex str_trim
+ret
+.endmethod
+
+.method تبديل 3 1
+callex str_replace
+ret
+.endmethod
+
+.method النبضات 0 1
+tick
+ret
+.endmethod
+
+.method حمل.صورة 1
+callex load_image
+ret
+.endmethod
+
+.method حمل.طيف 1
+callex load_sprite
+ret
+.endmethod
+
+.method طيف.من.صورة 1 1
+callex sprite_from_image
+ret
+.endmethod
+
+.method انتظر 1
+callex wait
+ret
+.endmethod
+
+.method اخف.طيف 1
+callex hidesprite
+ret
+.endmethod
+
+.method اظهر.طيف 1
+callex showsprite
+ret
+.endmethod
+
+.method drawspr 3 0
+callex drawsprite
+ret
+.endmethod
+
+.method يمين.الطيف 1 1
+callex getspriteright
+ret
+.endmethod
+
+.method يسار.الطيف 1 1
+callex getspriteleft
+ret
+.endmethod
+
+.method قمة.الطيف 1 1
+callex getspritetop
+ret
+.endmethod
+
+.method قاع.الطيف 1 1
+callex getspritebottom
+ret
+.endmethod
+
+.method عرض.الطيف 1 1
+callex getspritewidth
+ret
+.endmethod
+
+.method ارتفاع.الطيف 1 1
+callex getspriteheight
+ret
+.endmethod
+
+.method صورة.الطيف 1 1
+callex getspriteimage
+ret
+.endmethod
+
+.method حدد.صورة.الطيف 2 0
+callex setspriteimage
+ret
+.endmethod
+
+
+.method م.ش 0
+callex cls
+ret
+.endmethod
+
+.method امسح.الشاشة 0
+callex cls
+ret
+.endmethod
+
+.method امسح.الكتابة 0
+callex cleartext
+ret
+.endmethod
+
+.method حدد.مكان.المؤشر 2 0
+callex setcursorpos
+ret
+.endmethod
+
+.method سطر.المؤشر 0 1
+callex getcursorrow
+ret
+.endmethod
+
+.method عمود.المؤشر 0 1
+callex getcursorcol
+ret
+.endmethod
+
+.method حدد.لون.النص 1 0
+callex settextcolor
+ret
+.endmethod
+
+.method النقطة.في 2 1
+callex pointat
+ret
+.endmethod
+
+.method النقطة.حخز.في 2 1
+callex pointrgbat
+ret
+.endmethod
+
+.method الثابت 1 1
+callex builtinconstant
+ret
+.endmethod
+
+.method رقمي 1 1
+callex stringisnumeric
+ret
+.endmethod
+
+.method حرفي 1 1
+callex stringisalphabetic
+ret
+.endmethod
+
+.method نوع 1 1
+callex typeof
+ret
+.endmethod
+
+.class %file
+	.field file_handle	
+	.method اطبع.سطر 2 0
+		callex file_write_line
+		ret
+	.endmethod
+	.method اكتب 2 0
+		callex file_write
+		ret
+	.endmethod	
+	.method اكتب.بعرض 3 0
+		callex file_write_using_width
+		ret
+	.endmethod	
+	.method اقرأ.سطر 1 1
+		callex file_read_line
+		ret
+	.endmethod
+
+        .method منته 1 1
+		callex file_eof
+		ret
+	.endmethod
+.endclass
+
+.method افتح.ملف 1 1
+	callex file_open
+	ret
+.endmethod
+
+.method انشيء.ملف 1 1
+	callex file_create
+	ret
+.endmethod
+
+.method الحق.بملف 1 1
+	callex file_append
+	ret
+.endmethod
+
+.method اغلق.ملف 1 0
+	callex file_close
+	ret
+.endmethod
+
+.method نهاية.الملف 1 1
+	callex file_eof
+	ret
+.endmethod
+
+.method حرر 1 1
+	callex edit
+	ret
+.endmethod
+
+.method النافذة.الحالية 0 1
+	callex getmainwindow
+	popl handle
+	new نافذة
+	popl fw
+	pushl fw
+	pushl handle
+	setfld handle
+	pushl fw
+	ret
+.endmethod
+
+.method قناة 0 1
+	callex newchannel
+	ret
+.endmethod
+
+.method حمل.مكتبة.خارجية 1 1
+	callex loadlibrary
+	ret
+.endmethod
+
+.method عنوان.الدالة 2 1
+	callex getprocaddress
+	ret
+.endmethod
+
+.method عنوان 1 1
+	callex addressof
+	ret
+.endmethod
+
+//.method testMakeCArray 0 1
+//	callex test_make_c_array
+//	ret
+// .endmethod
+
+//.method مشار.إليه 1 1
+//	callex contentof
+//	ret
+//.endmethod
+
+.method استدعاء.الدالة.الخارجية 4 1
+	callex callforeign
+	ret
+.endmethod
+
+.class معلومات.حادثة.ماوس
+    .field س
+    .field ص
+    .field الزر.الأيمن
+    .field الزر.الأيسر
+.endclass
+
+.class معلومات.حادثة.لوحة.مفاتيح
+    .field زر
+    .field حرف
+.endclass
+
+.method شغل.قناة.الماوس 1 0
+	callex enable_mouse_event_channel
+	ret
+.endmethod
+
+.method شغل.قناة.ضغط.زر.الماوس 1 0
+	callex enable_mouseDown_event_channel
+	ret
+.endmethod
+
+.method شغل.قناة.رفع.زر.الماوس 1 0
+	callex enable_mouseUp_event_channel
+	ret
+.endmethod
+
+.method شغل.قناة.تحريك.الماوس 1 0
+	callex enable_mouseMove_event_channel
+	ret
+.endmethod
+
+.method شغل.قناة.لوحة.المفاتيح 1 0
+	callex enable_kb_event_channel
+	ret
+.endmethod
+
+
+.method قناة.الماوس 0 1
+    callex mouse_event_channel
+    ret
+.endmethod
+
+.method قناة.ضغط.زر.الماوس 0 1
+    callex mouseDown_event_channel
+    ret
+.endmethod
+
+.method قناة.رفع.زر.الماوس 0 1
+    callex mouseUp_event_channel
+    ret
+.endmethod
+
+.method قناة.تحريك.الماوس 0 1
+    callex mouseMove_event_channel
+    ret
+.endmethod
+
+
+.method قناة.لوحة.المفاتيح 0 1
+    callex kb_event_channel
+    ret
+.endmethod
+
+.method شجرة.الإعراب.الحالية 0 1
+callex current_parse_tree
+ret
+.endmethod
+
+.method صنع.معرب 1 1
+callex make_parser
+ret
+.endmethod
+
+.method إطار.التفعيل 1 1
+callex activation_frame
+ret
+.endmethod
+
+.method نقطة.الكود.هذه 0 1
+call thiscp
+ret
+.endmethod
+
+// .method هاجر.لخيط.الرسوم 0 0
+// callex migrate_to_gui_thread
+// ret
+// .endmethod
+
+// .method عد.من.خيط.الرسوم 0 0
+// callex migrate_back_from_gui_thread
+// ret
+// .endmethod
+
+.method %صورة_تدويرها 2 1
+callex image_rotated
+ret
+.endmethod
+
+.method %صورة_ممطوطة 3 1
+callex image_scaled
+ret
+.endmethod
+
+.method %صورة_خط 5 0
+callex image_drawline
+ret
+.endmethod
+
+.method %صورة_قلبها 3 1
+callex image_flipped
+ret
+.endmethod
+
+.method %صورة_نسخة.منها 1 1
+callex image_copied
+ret
+.endmethod
+
+.method %صورة_حدد.لون.النقطة 4 0
+callex image_setpixelcolor
+ret
+.endmethod
+
+.method %صورة_لون.النقطة 3 1
+callex image_pixelcolor
+ret
+.endmethod
+
+.method %صورة_عرضها 1 1
+callex image_width
+ret
+.endmethod
+
+.method %صورة_ارتفاعها 1 1
+callex image_height
+ret
+.endmethod
+
+.method %صورة_نص 4 0
+callex image_drawtext
+ret
+.endmethod
+
+.method %نافذة_كبر 1 0
+callex foreignwindow_maximize
+ret
+.endmethod
+
+.method %نافذة_تحرك.إلى 3 0
+callex foreignwindow_moveto
+ret
+.endmethod
+
+.method %نافذة_اضف 2 0
+callex foreignwindow_add
+ret
+.endmethod
+
+.method %نافذة_حدد.الحجم 3 0
+callex foreignwindow_setsize
+ret
+.endmethod
+
+.method %نافذة_حدد.العنوان 2 0
+callex foreignwindow_settitle
+ret
+.endmethod
+
+.method %نافذة_جهز 1 0
+callex foreignwindow_setup
+ret
+.endmethod
+
+.method %control_حدد.النص 2 0
+callex control_settext
+ret
+.endmethod
+
+.method %control_حدد.الحجم 3 0
+callex control_setsize
+ret
+.endmethod
+.method %control_حدد.المكان 3 0
+callex control_setlocation
+ret
+.endmethod
+.method %control_نصه 1 1
+callex control_text
+ret
+.endmethod
+
+.method %control_اظهر 1 0
+callex control_show
+ret
+.endmethod
+
+.method %control_اخف 1 0
+callex control_hide
+ret
+.endmethod
+
+.method %control_حدد.أمرئي 2 0
+callex control_setvisible
+ret
+.endmethod
+
+.method %control_اغلق 1 0
+callex control_close
+ret
+.endmethod
+
+.method %زر_حدد.النص 2 0
+callex button_settext
+ret
+.endmethod
+
+.method %زر_نصه 1 1
+callex button_text
+ret
+.endmethod
+
+.method %صندوق.نصي_حدد.النص 2 0
+callex textbox_settext
+ret
+.endmethod
+
+.method %صندوق.نصي_نصه 1 1
+callex textbox_text
+ret
+.endmethod
+
+.method %صندوق.نصي_الحق.نص 2 0
+callex textbox_appendtext
+ret
+.endmethod
+
+.method %سطر.نصي_حدد.النص 2 0
+callex lineedit_settext
+ret
+.endmethod
+
+.method %سطر.نصي_نصه 1 1
+callex lineedit_text
+ret
+.endmethod
+
+.method %سطر.نصي_الحق.نص 2 0
+callex lineedit_appendtext
+ret
+.endmethod
+
+.method %صندوق.سرد_اضف 2 0
+callex listbox_add
+ret
+.endmethod
+
+.method %صندوق.سرد_اضف.في 3 0
+callex listbox_insertitem
+ret
+.endmethod
+
+.method %صندوق.سرد_عنصر.رقم 2 1
+callex listbox_getitem
+ret
+.endmethod
+
+.method %صندوق.مركب_حدد.النص 2 0
+callex combobox_settext
+ret
+.endmethod
+
+.method %صندوق.مركب_نصه 1 1
+callex combobox_text
+ret
+.endmethod
+
+.method %صندوق.مركب_اضف 2 0
+callex combobox_add
+ret
+.endmethod
+
+.method %صندوق.مركب_اضف.في 3 0
+callex combobox_insertitem
+ret
+.endmethod
+
+.method %صندوق.مركب_عنصر.رقم 2 1
+callex combobox_getitem
+ret
+.endmethod
+
+.method %صندوق.مركب_حدد.أيحرر 2 1
+callex combobox_seteditable
+ret
+.endmethod
+
+.method %علامة.نصية_حدد.النص 2 0
+callex label_settext
+ret
+.endmethod
+
+.method %علامة.نصية_نصه 1 1
+callex label_text
+ret
+.endmethod
+
+.method %صندوق.استبيان_حدد.النص 2 0
+callex checkbox_settext
+ret
+.endmethod
+
+.method %صندوق.استبيان_نصه 1 1
+callex checkbox_text
+ret
+.endmethod
+
+.method %صندوق.استبيان_حدد.القيمة 2 0
+callex checkbox_setvalue
+ret
+.endmethod
+
+.method %صندوق.استبيان_قيمته 1 1
+callex checkbox_value
+ret
+.endmethod
+
+.method %صندوق.اختيار_حدد.النص 2 0
+callex radiobutton_settext
+ret
+.endmethod
+
+.method %صندوق.اختيار_نصه 1 1
+callex radiobutton_text
+ret
+.endmethod
+
+.method %صندوق.اختيار_حدد.القيمة 2 0
+callex radiobutton_setvalue
+ret
+.endmethod
+
+.method %صندوق.اختيار_قيمته 1 1
+callex radiobutton_value
+ret
+.endmethod
+
+.method %مجموعة.اختيارات_اضف 2 1
+callex buttongroup_add
+ret
+.endmethod
+
+.method %مجموعة.اختيارات_الزر.الموسوم 2 1
+callex buttongroup_getbutton
+ret
+.endmethod
+
+.method %Class_انشيء.كائن 1 1
+callex class_newobject
+ret
+.endmethod
+
+.class %pair
+	.field مفتاح
+	.field قيمة
+.endclass
+
+.method %قاموس.قيم_مفتاح.رقم 2 1
+	callex mapkey
+	ret
+.endmethod
+
+.method %قاموس.قيم_يحتوي 2 1
+	callex haskey
+	ret
+.endmethod
+
+.class %map_enumerator
+	.field map
+	.field pos
+	.field len
+	.method تقدم 1 1
+		popl this
+		
+		pushl this
+		pushl this
+		getfld pos
+		pushv 1
+		add
+		setfld pos
+		
+		pushl this
+		getfld pos
+		pushl this
+		getfld len
+		gt
+		if
+		jmp domove
+		pushv false
+		ret
+		domove:
+		pushv true
+		ret
+	.endmethod
+	.method القيمة.الحالية 1 1
+		popl this
+		pushl this
+		getfld pos
+		pushl this
+		getfld map
+		callex mapkey
+		popl %key
+		new %pair
+		popl ret
+		pushl ret
+		pushl %key
+		setfld مفتاح
+		pushl ret
+		pushl this
+		getfld map
+		pushl %key
+		getarr
+		setfld قيمة
+		pushl ret
+		ret
+	.endmethod
+.endclass
+
+.method %قاموس.قيم_المعدد 1 1
+	popl this
+	new %map_enumerator
+	popl enu
+	pushl enu
+	pushl this
+	setfld map
+	pushl enu
+	pushl this
+	arrlength
+	setfld len
+	pushl enu
+	pushv 0
+	setfld pos
+	pushl enu
+	ret
+.endmethod
+
+.class %array_enumerator
+	.field arr
+	.field pos
+	.field len
+	.method تقدم 1 1
+		popl this
+		
+		pushl this
+		pushl this
+		getfld pos
+		pushv 1
+		add
+		setfld pos
+		
+		pushl this
+		getfld pos
+		pushl this
+		getfld len
+		gt
+		if
+		jmp domove
+		pushv false
+		ret
+		domove:
+		pushv true
+		ret
+	.endmethod
+	.method القيمة.الحالية 1 1
+		popl this
+		pushl this
+		getfld arr
+		pushl this
+		getfld pos
+		getarr
+		ret
+	.endmethod
+.endclass
+
+.method %مصفوفة.قيم_المعدد 1 1
+	popl this
+	new %array_enumerator
+	popl enu
+	pushl enu
+	pushl this
+	setfld arr
+	pushl enu
+	pushl this
+	arrlength
+	setfld len
+	pushl enu
+	pushv 0
+	setfld pos
+	pushl enu
+	ret
+.endmethod
+
+.method %نص_المعدد 1 1
+	popl this
+	new %array_enumerator
+	popl enu
+	pushl enu
+	pushl this
+	setfld arr
+	pushl enu
+	pushl this
+	arrlength
+	setfld len
+	pushl enu
+	pushv 0
+	setfld pos
+	pushl enu
+	ret
+.endmethod
+
+.method %قناة_المعدد 1 1
+	// return itself
+	ret
+.endmethod
+
+.method %قناة_اغلق 1 0
+	callex closechannel
+	ret
+.endmethod
+
+
+.method %قناة_مغلقة 1 1
+	callex channelclosed
+	ret
+.endmethod
+
+.method %قناة_تقدم 1 1
+	callm مغلقة
+	not
+	ret
+.endmethod
+
+.method %قناة_القيمة.الحالية 1 1
+	receive
+	ret
+.endmethod
+

@@ -1,0 +1,12 @@
+<RCC>
+    <qresource prefix="/">
+        <file>arab_char.txt</file>
+        <file>tokens.txt</file>
+        <file>keywords.txt</file>
+        <file>compiler_error_map.txt</file>
+        <file>parser_error_map.txt</file>
+        <file>ide_messages.txt</file>
+        <file>prog_ddl.sql</file>
+        <file>kalimat_en.qm</file>
+    </qresource>
+</RCC>
