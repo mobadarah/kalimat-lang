@@ -1,0 +1,11 @@
+# object files
+*.o
+# ignore makefiles, as we generate them using `qmake`
+makefile
+MakeFile
+
+.qmake.stash
+/kalimat_ast_gen.cpp
+/kalimat_ast_gen.h
+kalimat-ast-gen/kalimat-ast-gen
+
